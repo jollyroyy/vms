@@ -1,0 +1,18 @@
+{
+  "name": "vms",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Visitor & Material Gate Pass Management System — mall management office",
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "check": "tsc --noEmit && vitest run",
+    "check:security": "vitest run tests/security",
+    "test:e2e": "playwright test tests/e2e"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.0",
+    "vitest": "^3.0.0"
+  }
+}
