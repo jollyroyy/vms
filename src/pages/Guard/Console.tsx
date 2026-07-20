@@ -21,6 +21,7 @@ export default function GuardConsole(): React.ReactElement {
   const [badgeVisit,  setBadgeVisit]  = useState<Visit | null>(null);
   const [today]                        = useState(() => new Date().toISOString().slice(0, 10));
   const [successMsg,  setSuccessMsg]  = useState('');
+  const [actionErr,   setActionErr]   = useState('');
 
   const loadVisits = useCallback(async () => {
     setLoading(true);
@@ -45,14 +46,24 @@ export default function GuardConsole(): React.ReactElement {
     return () => { void supabase.removeChannel(channel); };
   }, [loadVisits]);
 
-  const logExit = async (visitId: string) => {
-    await supabase.from('visits').update({ status: 'checked_out', checked_out_at: new Date().toISOString(), exit_verified: true }).eq('id', visitId);
-    void loadVisits();
+  const logExit = async (visit: Visit) => {
+    if (visit.status !== 'checked_in') { setActionErr('Visitor is not checked in.'); return; }
+    setActionErr('');
+    try {
+      const { error } = await supabase.from('visits').update({ status: 'checked_out', checked_out_at: new Date().toISOString(), exit_verified: true }).eq('id', visit.id);
+      if (error) { setActionErr(error.message); return; }
+      void loadVisits();
+    } catch (err) { setActionErr(err instanceof Error ? err.message : String(err)); }
   };
 
-  const checkIn = async (visitId: string) => {
-    await supabase.from('visits').update({ status: 'checked_in', checked_in_at: new Date().toISOString() }).eq('id', visitId);
-    void loadVisits();
+  const checkIn = async (visit: Visit) => {
+    if (visit.status !== 'approved') { setActionErr('Only approved visits can be checked in.'); return; }
+    setActionErr('');
+    try {
+      const { error } = await supabase.from('visits').update({ status: 'checked_in', checked_in_at: new Date().toISOString() }).eq('id', visit.id);
+      if (error) { setActionErr(error.message); return; }
+      void loadVisits();
+    } catch (err) { setActionErr(err instanceof Error ? err.message : String(err)); }
   };
 
   const STATUS_STYLES: Record<Visit['status'], string> = {
@@ -99,6 +110,15 @@ export default function GuardConsole(): React.ReactElement {
           <span className="h-5 w-5 rounded-full bg-brand-100 flex items-center justify-center text-brand-700 text-xs font-bold shrink-0">✓</span>
           {successMsg}
           <button onClick={() => setSuccessMsg('')} className="ml-auto text-brand-500 hover:text-brand-700 text-xs font-medium">Dismiss</button>
+        </div>
+      )}
+
+      {/* Error message for checkIn/checkOut failures */}
+      {actionErr && (
+        <div className="rounded-xl bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700 flex items-center gap-2">
+          <span className="h-5 w-5 rounded-full bg-red-100 flex items-center justify-center text-red-600 text-xs font-bold shrink-0">!</span>
+          {actionErr}
+          <button onClick={() => setActionErr('')} className="ml-auto text-red-500 hover:text-red-700 text-xs font-medium">Dismiss</button>
         </div>
       )}
 
@@ -164,7 +184,7 @@ export default function GuardConsole(): React.ReactElement {
                     <div className="flex gap-2 mt-2.5 flex-wrap">
                       {v.status === 'approved' && (
                         <>
-                          <button onClick={() => checkIn(v.id)} className="btn-accent text-xs px-3.5 py-1.5">Check In</button>
+                          <button onClick={() => checkIn(v)} className="btn-accent text-xs px-3.5 py-1.5">Check In</button>
                           <button onClick={() => setBadgeVisit(v)} className="btn-secondary text-xs px-3.5 py-1.5">Print Badge</button>
                         </>
                       )}
@@ -189,7 +209,7 @@ export default function GuardConsole(): React.ReactElement {
                 <p className="font-semibold text-navy-900">{v.visitor?.full_name ?? '—'}</p>
                 <p className="text-xs text-navy-400 mt-0.5">{v.ref_number} · In: {v.checked_in_at ? new Date(v.checked_in_at).toLocaleTimeString('en-IN') : '—'}</p>
               </div>
-              <button onClick={() => logExit(v.id)} className="btn-primary text-sm px-5 py-2">Log Exit</button>
+              <button onClick={() => logExit(v)} className="btn-primary text-sm px-5 py-2">Log Exit</button>
             </div>
           ))}
           {checkedIn.length === 0 && (

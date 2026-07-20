@@ -1,6 +1,6 @@
-// CHECK for goal.md S1/S2a (🎯) and S8 (🏭) — FR ref: PRD §3.2 flow, FR-VIS-08
+// CHECK for goal.md S1/S2a (🎯), S8 (🏭), and HOD pre-approval — FR ref: PRD §3.2 flow, FR-VIS-08
 import { describe, it, expect } from 'vitest';
-import { canTransition, autoCloseAtDayEnd, type Visit } from '../../src/lib/visitLifecycle';
+import { canTransition, validatePreApproval, autoCloseAtDayEnd, type Visit } from '../../src/lib/visitLifecycle';
 
 describe('S1/S2a: visit lifecycle', () => {
   it('follows the happy path: pending → approved → checked_in → checked_out', () => {
@@ -44,5 +44,23 @@ describe('S8/FR-VIS-08: auto-checkout at day close', () => {
     const done: Visit = { ...openVisit, status: 'checked_out', checkedOutAt: '2026-07-20T16:00:00Z', exitVerified: true };
     const after = autoCloseAtDayEnd(done, '2026-07-20T22:00:00Z');
     expect(after).toEqual(done);
+  });
+});
+
+describe('HOD pre-approval', () => {
+  it('accepts valid pre-approval input', () => {
+    expect(validatePreApproval({ department_id: 'dept-1', host_id: 'host-1', purpose: 'meeting' })).toBeNull();
+  });
+
+  it('rejects missing department_id', () => {
+    expect(validatePreApproval({ department_id: '', host_id: 'host-1', purpose: 'meeting' })).toBe('Department is required');
+  });
+
+  it('rejects missing host_id', () => {
+    expect(validatePreApproval({ department_id: 'dept-1', host_id: '', purpose: 'meeting' })).toBe('Host is required');
+  });
+
+  it('rejects missing purpose', () => {
+    expect(validatePreApproval({ department_id: 'dept-1', host_id: 'host-1', purpose: '' })).toBe('Purpose is required');
   });
 });

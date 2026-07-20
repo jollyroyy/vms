@@ -3,13 +3,23 @@ import { supabase } from '../../supabaseClient';
 import type { Visit } from '../../types/index';
 import { getEscalationTarget } from '../../lib/escalation';
 import { attachHostNames } from '../../lib/hostNames';
+import PreApproveForm from './PreApproveForm';
+
+type Tab = 'pending' | 'pre-approve';
+
+const TAB_LABELS: Record<Tab, string> = {
+  pending:     'Pending Approvals',
+  'pre-approve': 'Pre-Approve Visitor',
+};
 
 export default function HODApprovals(): React.ReactElement {
-  const [visits,   setVisits]   = useState<Visit[]>([]);
-  const [loading,  setLoading]  = useState(true);
-  const [reasons,  setReasons]  = useState<Record<string, string>>({});
-  const [acting,   setActing]   = useState<string | null>(null);
-  const [error,    setError]    = useState('');
+  const [tab,        setTab]        = useState<Tab>('pending');
+  const [visits,     setVisits]     = useState<Visit[]>([]);
+  const [loading,    setLoading]    = useState(true);
+  const [reasons,    setReasons]    = useState<Record<string, string>>({});
+  const [acting,     setActing]     = useState<string | null>(null);
+  const [error,      setError]      = useState('');
+  const [successMsg, setSuccessMsg] = useState('');
 
   const loadPending = useCallback(async () => {
     setLoading(true); setError('');
@@ -106,6 +116,14 @@ export default function HODApprovals(): React.ReactElement {
         </div>
       </div>
 
+      {successMsg && (
+        <div className="rounded-xl bg-brand-50 border border-brand-200 px-4 py-3 text-sm text-brand-800 flex items-center gap-2">
+          <span className="h-5 w-5 rounded-full bg-brand-100 flex items-center justify-center text-brand-700 text-xs font-bold shrink-0">✓</span>
+          {successMsg}
+          <button onClick={() => setSuccessMsg('')} className="ml-auto text-brand-500 hover:text-brand-700 text-xs font-medium">Dismiss</button>
+        </div>
+      )}
+
       {error && (
         <div className="rounded-xl bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700 flex items-center gap-2">
           <span className="h-5 w-5 rounded-full bg-red-100 flex items-center justify-center text-red-600 text-xs font-bold shrink-0">!</span>
@@ -113,6 +131,24 @@ export default function HODApprovals(): React.ReactElement {
         </div>
       )}
 
+      {/* Tabs */}
+      <div className="tab-group">
+        {(['pending', 'pre-approve'] as Tab[]).map((t) => (
+          <button key={t} onClick={() => setTab(t)} className={tab === t ? 'tab-active' : 'tab-inactive'}>
+            {TAB_LABELS[t]}
+          </button>
+        ))}
+      </div>
+
+      {tab === 'pre-approve' && (
+        <PreApproveForm onPreApproved={(name, refNumber) => {
+          setSuccessMsg(`"${name}" pre-approved — ref ${refNumber}`);
+          setTimeout(() => setSuccessMsg(''), 6000);
+        }} />
+      )}
+
+      {tab === 'pending' && (
+        <>
       {loading && (
         <div className="space-y-4">
           {[1, 2].map((i) => (
@@ -188,6 +224,8 @@ export default function HODApprovals(): React.ReactElement {
           </div>
         );
       })}
+      </>
+      )}
     </div>
   );
 }

@@ -29,6 +29,19 @@ export function canTransition(from: VisitStatus, to: VisitStatus): boolean {
   return TRANSITIONS[from].includes(to);
 }
 
+type PreApprovalInput = {
+  department_id: string;
+  host_id: string;
+  purpose: string;
+};
+
+export function validatePreApproval(input: PreApprovalInput): string | null {
+  if (!input.department_id) return 'Department is required';
+  if (!input.host_id) return 'Host is required';
+  if (!input.purpose) return 'Purpose is required';
+  return null;
+}
+
 // FR-VIS-08: close any still-inside visit at day end and flag exit as unverified.
 export function autoCloseAtDayEnd(visit: Visit, timestamp: string): Visit {
   if (visit.status !== 'checked_in') return visit;

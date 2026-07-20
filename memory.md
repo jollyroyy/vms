@@ -14,18 +14,19 @@
 
 | Tag | Entries |
 |-----|---------|
-| `#typescript` | [TS-01](#ts-01), [TS-02](#ts-02), [TS-03](#ts-03) |
+| `#typescript` | [TS-01](#ts-01), [TS-02](#ts-02), [TS-03](#ts-03), [SB-09](#sb-09) |
 | `#vitest` | [VT-01](#vt-01), [VT-02](#vt-02) |
-| `#supabase` | [SB-01](#sb-01), [SB-02](#sb-02), [SB-03](#sb-03), [SB-04](#sb-04), [SB-05](#sb-05) |
-| `#react` | [RE-01](#re-01) |
-| `#camera` | [CA-01](#ca-01), [CA-02](#ca-02) |
+| `#supabase` | [SB-01](#sb-01), [SB-02](#sb-02), [SB-03](#sb-03), [SB-04](#sb-04), [SB-05](#sb-05), [SB-06](#sb-06), [SB-07](#sb-07), [SB-08](#sb-08), [SB-09](#sb-09), [SB-10](#sb-10) |
+| `#react` | [RE-01](#re-01), [RE-02](#re-02), [SB-08](#sb-08) |
+| `#camera` | [CA-01](#ca-01), [CA-02](#ca-02), [SB-10](#sb-10) |
 | `#schema` | [SB-03](#sb-03), [SB-04](#sb-04) |
-| `#rls` | [SB-02](#sb-02), [SB-05](#sb-05) |
+| `#rls` | [SB-02](#sb-02), [SB-05](#sb-05), [SB-06](#sb-06), [SB-07](#sb-07) |
 | `#seed` | [SB-02](#sb-02), [SB-04](#sb-04) |
 | `#build` | [TS-02](#ts-02), [TS-03](#ts-03) |
 | `#loop` | [VT-01](#vt-01), [VT-02](#vt-02) |
 | `#security` | [SEC-01](#sec-01) |
 | `#routing` | [SEC-01](#sec-01) |
+| `#postgres` | [SB-06](#sb-06) |
 
 ---
 
@@ -213,6 +214,82 @@ return () => { channel.unsubscribe(); };
 - When role is null/loading, render nothing; do not let children flash before the role is resolved.
 **Tags:** `#security` `#routing` `#react`
 **First seen:** post-iter-06, 2026-07-20
+
+---
+
+### SB-06
+
+**Pattern:** `ERROR: infinite recursion detected in policy for relation "profiles"` on any query involving the `profiles` table (SELECT, FK join, or subquery).
+**Cause:** PG15+ changed how `security definer` and RLS interact. The `current_user_role()` function reads from `auth.jwt()` but when called inside an RLS policy's `USING`/`WITH CHECK` clause on `visits` or `gate_passes` that subqueries `profiles`, the chain `profiles_policy → current_user_role() → auth.jwt() → ??? → profiles_policy` creates infinite recursion. Even a `USING (true)` SELECT policy on `profiles` doesn't prevent this when UPDATE policies call `current_user_role()`.
+**Fix:**
+1. **Never subquery `profiles` inside an RLS policy.** Instead, read `department_id`/`role` from `auth.jwt() -> 'user_metadata'`: `(auth.jwt() -> 'user_metadata' ->> 'department_id')::uuid`.
+2. **For complex operations (approve/reject):** Drop the RLS policy entirely and create a `security definer` RPC function that validates access via `auth.jwt()` directly, then performs the operation bypassing RLS.
+3. **For fetching host names:** Remove FK joins like `profiles!visits_host_id_fkey` from `.select()` calls. Use a `security definer` RPC function (`get_profile_names`) to fetch needed profile data after the main query.
+**Prevention:**
+- Before adding any RLS policy, grep for all existing policies that reference the same table — a subquery in a policy can cascade even with `USING (true)`.
+- When you see "infinite recursion detected in policy for relation 'X'", the FIRST place to look is any RLS subquery that reads from `X` — not just the policies ON `X` but also policies ON OTHER TABLES that reference `X`.
+- Whenever possible, use `auth.jwt()` instead of subquerying tables in RLS policies. JWT metadata is loaded once per request and never recurses.
+- For mutation operations (UPDATE/DELETE) that need role/permission checks, prefer `security definer` RPCs over RLS policies — they are simpler to debug and never recurse.
+**Tags:** `#rls` `#supabase` `#postgres`
+**First seen:** iter-06/07/08, 2026-07-20
+
+---
+
+### SB-07
+
+**Pattern:** After fixing the SELECT query (FK join), the UPDATE/INSERT through RLS policy still fails with recursion error.
+**Cause:** Multiple RLS policies on different tables (`visits`, `gate_passes`) use the same recursive subquery pattern (`select department_id from public.profiles where id = auth.uid()`). Fixing only one table's policy leaves others still broken.
+**Fix:** Grep ALL `*.sql` migration files for `select.*from.*profiles` to find every recursive subquery. Fix ALL of them in the same migration.
+**Prevention:** When hunting a recursion error, search the ENTIRE codebase (all SQL files) for `select.*from.*<table_name>` in one grep, not just the file you're currently editing.
+**Tags:** `#rls` `#supabase`
+**First seen:** iter-08, 2026-07-20
+
+---
+
+### SB-08
+
+**Pattern:** `supabase.rpc('function_name', {...})` call succeeds but the component stays in a loading/disabled state — buttons unclickable, spinner never stops.
+**Cause:** The `rpc` call threw a JavaScript exception (not a Supabase error response with `.error`), so `setActing(null)` or `setLoading(false)` in the `.then()` / `if (err)` branch was never called.
+**Fix:** Wrap every `await supabase.rpc(...)` call in a `try/catch` block. In the `catch`, reset all loading/disabled state flags and display the error message.
+**Prevention:** `supabase.rpc()` can throw for reasons other than a Supabase error (network failure, function not found, timeout). The catch block is mandatory — not optional.
+**Tags:** `#supabase` `#react`
+**First seen:** iter-08, 2026-07-20
+
+---
+
+### RE-02
+
+**Pattern:** Button is permanently disabled (`disabled={true}`) and the user cannot interact with it — stuck in loading state.
+**Cause:** The `disabled` prop depends on a complex condition that can evaluate to `true` and never reset (e.g., `disabled={acting === v.id || !reason.trim()}`). If `acting` is set but never cleared (because an async call throws without a catch), the button stays disabled forever.
+**Fix:**
+1. Keep `disabled` logic simple — only disable when the action is in progress (`disabled={acting === v.id}`).
+2. Move input validation into the click handler (`if (!reason) { setError('Required'); return; }`).
+3. Always wrap async operations in try/catch to reset `acting` state.
+**Prevention:** The `disabled` prop on action buttons should only depend on `acting` state (is this specific action running?). Do not mix input validation into disabled logic — validate in the handler and show errors inline.
+**Tags:** `#react`
+**First seen:** iter-09, 2026-07-20
+
+---
+
+### SB-09
+
+**Pattern:** `supabase.rpc()` TypeScript error: `not assignable to parameter of type 'undefined'` when calling a user-defined function.
+**Cause:** The `Database` type (passed to `createClient<Database>()`) does not include the custom function signature. The strict typing expects only known functions.
+**Fix:** Cast to `any`: `(supabase as any).rpc('function_name', { args })`.
+**Prevention:** For custom RPC functions not in the generated Database type, always use `(supabase as any).rpc(...)`. Do not try to extend the Database type for every ad-hoc function.
+**Tags:** `#typescript` `#supabase`
+**First seen:** iter-06, 2026-07-20
+
+---
+
+### SB-10
+
+**Pattern:** Insert creates a visit but the photo (`photo_data`) is null or the photo doesn't display in any view.
+**Cause:** `uploadPhoto()` function only converted to base64 when storage upload failed. If storage upload succeeded but `createSignedUrl()` failed, `photoData` was `null`.
+**Fix:** Always convert the blob to base64 FIRST (for reliable storage), then try storage upload as a secondary step. Return the base64 as `photoData` regardless of storage outcome.
+**Prevention:** Never make display-critical data dependent on an optional cloud storage step. Always compute the reliable fallback first.
+**Tags:** `#supabase` `#camera`
+**First seen:** iter-06, 2026-07-20
 
 ---
 
