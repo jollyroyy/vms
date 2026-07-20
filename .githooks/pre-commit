@@ -1,13 +1,4 @@
 #!/bin/sh
-# Automated CHECK gate (goal.md §2.1 / §7) — runs on EVERY commit, no exceptions.
-# Red check = commit blocked. Do not bypass with --no-verify; fix the code.
-echo "[pre-commit] running npm run check (goal.md hard gate)..."
-npm run check
-status=$?
-if [ $status -ne 0 ]; then
-  echo ""
-  echo "[pre-commit] RED — commit blocked. Make the active tests green first."
-  echo "[pre-commit] (Activated suites live outside tests/pending.list.)"
-  exit $status
-fi
-echo "[pre-commit] GREEN — commit allowed."
+# VMS pre-commit gate — runs checker.ts on every commit, no exceptions.
+# Red = commit blocked. Never bypass with --no-verify; fix the code.
+npx tsx checker.ts

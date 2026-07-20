@@ -5,14 +5,16 @@
   "type": "module",
   "description": "Visitor & Material Gate Pass Management System — mall management office",
   "scripts": {
-    "test": "vitest run",
-    "test:watch": "vitest",
-    "check": "tsc --noEmit && vitest run",
-    "check:security": "vitest run tests/security",
-    "test:e2e": "playwright test tests/e2e"
+    "verify":        "npx tsx checker.ts",
+    "test":          "vitest run",
+    "test:unit":     "vitest run tests/unit",
+    "test:security": "vitest run tests/security",
+    "test:e2e":      "playwright test tests/e2e",
+    "test:watch":    "vitest"
   },
   "devDependencies": {
+    "tsx":        "^4.16.0",
     "typescript": "^5.5.0",
-    "vitest": "^3.0.0"
+    "vitest":     "^3.0.0"
   }
 }
