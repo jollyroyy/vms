@@ -247,3 +247,6 @@ class, make sure it is defined within a `@layer` directive.[39m
 [2m8:39:17 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/Guard/Console.tsx[22m
 [2m8:40:08 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/HOD/Approvals.tsx[22m
 [2m8:40:30 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/HOD/Approvals.tsx[22m
+[2m12:05:15 AM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/App.tsx[22m
+[2m12:05:17 AM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/App.tsx[22m
+[2m12:05:25 AM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/HOD/Approvals.tsx[22m

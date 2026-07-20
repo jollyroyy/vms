@@ -37,7 +37,7 @@ export default function PreApproveForm({ onPreApproved }: Props): React.ReactEle
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
-      const meta = data.user?.user_metadata ?? {};
+      const meta = data.user?.app_metadata ?? {};
       setUserRole((meta.role as string) ?? '');
       const dept = (meta.department_id as string) ?? '';
       setUserDept(dept);

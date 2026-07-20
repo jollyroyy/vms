@@ -42,15 +42,15 @@ export default function App(): React.ReactElement {
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
       setSession(data.session);
-      if (data.session?.user?.user_metadata?.role) {
-        setRole(data.session.user.user_metadata.role as UserRole);
+      if (data.session?.user?.app_metadata?.role) {
+        setRole(data.session.user.app_metadata.role as UserRole);
       }
       setLoading(false);
     });
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, s) => {
       setSession(s);
-      if (s?.user?.user_metadata?.role) {
-        setRole(s.user.user_metadata.role as UserRole);
+      if (s?.user?.app_metadata?.role) {
+        setRole(s.user.app_metadata.role as UserRole);
       }
     });
     return () => subscription.unsubscribe();

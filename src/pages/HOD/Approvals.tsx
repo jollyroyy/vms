@@ -27,9 +27,9 @@ export default function HODApprovals(): React.ReactElement {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { setError('Not authenticated.'); setLoading(false); return; }
 
-      const departmentId = user.user_metadata?.department_id as string | undefined;
+      const departmentId = user.app_metadata?.department_id as string | undefined;
       if (!departmentId) {
-        console.warn('[HOD] No department_id in JWT. Try: refresh session or run migration 004.');
+        console.warn('[HOD] No department_id in JWT app_metadata. Try: refresh session or run migration 010.');
         setError('Your account is not assigned to any department. Contact admin.');
         setLoading(false);
         return;
