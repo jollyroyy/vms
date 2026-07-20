@@ -64,14 +64,21 @@ export default function HODApprovals(): React.ReactElement {
   }, [loadPending]);
 
   const decide = async (visitId: string, approved: boolean) => {
+    const reason = reasons[visitId]?.trim();
+    if (!approved && !reason) { setError('Please enter a rejection reason.'); return; }
     setActing(visitId);
     setError('');
-    const rpc = (supabase as any).rpc.bind(supabase);
-    const { error: err } = approved
-      ? await rpc('approve_visit', { visit_id: visitId })
-      : await rpc('reject_visit', { visit_id: visitId, reason: reasons[visitId] ?? 'Rejected by HOD' });
-    if (err) { console.error('[HOD] Decision error:', err.message); setError(err.message); setActing(null); return; }
-    setVisits((prev) => prev.filter((v) => v.id !== visitId));
+    try {
+      const rpc = (supabase as any).rpc.bind(supabase);
+      const { error: err } = approved
+        ? await rpc('approve_visit', { visit_id: visitId })
+        : await rpc('reject_visit', { visit_id: visitId, reason: reason || 'Rejected by HOD' });
+      if (err) { console.error('[HOD] Decision error:', err.message); setError(err.message); setActing(null); return; }
+      setVisits((prev) => prev.filter((v) => v.id !== visitId));
+    } catch (err) {
+      console.error('[HOD] Unexpected error:', err);
+      setError(err instanceof Error ? err.message : String(err));
+    }
     setActing(null);
   };
 
@@ -161,7 +168,7 @@ export default function HODApprovals(): React.ReactElement {
 
               <input
                 type="text"
-                placeholder="Rejection reason (required to reject)"
+                placeholder="Reason for rejection (required)"
                 value={reasons[v.id] ?? ''}
                 onChange={(e) => setReasons((r) => ({ ...r, [v.id]: e.target.value }))}
                 className="input"
@@ -172,7 +179,7 @@ export default function HODApprovals(): React.ReactElement {
                   className="flex-1 bg-brand-600 text-white rounded-xl py-3.5 text-base font-bold hover:bg-brand-700 disabled:opacity-50 shadow-sm transition-all">
                   Approve
                 </button>
-                <button onClick={() => decide(v.id, false)} disabled={acting === v.id || !(reasons[v.id]?.trim())}
+                <button onClick={() => decide(v.id, false)} disabled={acting === v.id}
                   className="flex-1 bg-red-600 text-white rounded-xl py-3.5 text-base font-bold hover:bg-red-700 disabled:opacity-50 shadow-sm transition-all">
                   Reject
                 </button>

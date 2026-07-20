@@ -1,7 +1,7 @@
 # progress.md — VMS Loop State
 
 > Updated every iteration. Never delete sections — only append and move items.
-> Tally at a glance: **Iterations completed: 6** | **🎯 criteria checked: 2/24** | **Blocked: 1 (needs human)**
+> Tally at a glance: **Iterations completed: 8** | **🎯 criteria checked: 2/24** | **Blocked: 0**
 
 ---
 
@@ -14,6 +14,8 @@
 | Criterion | Proof / Notes | Iteration |
 |-----------|---------------|-----------|
 | **SLA-W1** — Escalation logic unit-tested | `getEscalationTarget` returns hod/delegate/admin at correct thresholds; 5 tests pass in `tests/unit/escalation.test.ts` | iter-03 |
+| **RLS recursion on profiles** — Eliminated across all pages | Created `get_profile_names` RPC (005), `approve_visit`/`reject_visit` RPCs (007), fixed HOD policy to use JWT (006); all 4 pages now bypass profiles FK joins | iter-06/07/08 |
+| **Photo capture** — Camera UI improved, base64 always stored | `PhotoCapture.tsx` enlarged, `VisitorForm.tsx` uploadPhoto always stores base64 | iter-06 |
 
 ---
 
