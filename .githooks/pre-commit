@@ -1,4 +1,4 @@
 #!/bin/sh
-# VMS pre-commit gate — runs checker.ts on every commit, no exceptions.
-# Red = commit blocked. Never bypass with --no-verify; fix the code.
-npx tsx checker.ts
+# VMS pre-commit gate — runs verify.py on every commit, no exceptions.
+# NOT PASSED = commit blocked. Never bypass with --no-verify; fix the code.
+py verify.py

@@ -5,7 +5,8 @@
   "type": "module",
   "description": "Visitor & Material Gate Pass Management System — mall management office",
   "scripts": {
-    "verify":        "npx tsx checker.ts",
+    "verify":        "py verify.py",
+    "verify:goal":   "py verify.py --goal",
     "test":          "vitest run",
     "test:unit":     "vitest run tests/unit",
     "test:security": "vitest run tests/security",
