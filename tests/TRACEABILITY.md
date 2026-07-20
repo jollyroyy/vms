@@ -12,7 +12,7 @@
 | S1 walk-in flow end-to-end | 🎯 A | PRD §3.2, FR-CAM-05 | `tests/e2e/demo-path.e2e.ts` | e2e | 🟡 |
 | S2a rejection | 🎯 A | PRD §3.2 | `tests/unit/visitLifecycle.test.ts`, e2e | unit+e2e | ⏸/🟡 |
 | S2b escalation timers | 🏭 B | FR-VIS-07, SLA-W1 | *(to write in Milestone B)* | unit | — |
-| S3 ref numbers & timestamps | 🎯 A | NFR-07 | `tests/unit/refNumber.test.ts` + `tests/security/rls.test.ts` (SEC-3) | unit+sec | ⏸/🟡 |
+| S3 ref numbers & timestamps | 🎯 A | NFR-07 | `tests/unit/refNumber.test.ts` + `tests/security/rls.test.ts` (SEC-3) | unit+sec | 🟢/🟡 |
 | S4 gate pass state machine | 🎯 A | PRD §4.4, FR-GP-06/07 | `tests/unit/gatePassStatus.test.ts` + e2e | unit+e2e | ⏸/🟡 |
 | S5 RGP due/overdue | 🎯 A | FR-GP-01/02, SLA-W4 | `tests/unit/rgpDueDate.test.ts` | unit | ⏸ |
 | S6 who's-inside realtime | 🎯 A | FR-VIS-01 | `tests/e2e/demo-path.e2e.ts` | e2e | 🟡 |
