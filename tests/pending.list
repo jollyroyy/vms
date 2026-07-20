@@ -2,8 +2,3 @@
 # RED STEP (goal.md §3.3): delete ONE line to activate that suite → it fails →
 # implement to green → commit (pre-commit hook enforces green).
 # Never delete a test file to "fix" red — only implementation makes green.
-tests/unit/visitLifecycle.test.ts
-tests/unit/gatePassStatus.test.ts
-tests/unit/rgpDueDate.test.ts
-tests/unit/blacklist.test.ts
-tests/unit/photoCapture.test.ts

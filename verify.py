@@ -54,6 +54,11 @@ CHECKS = [
         "goal":        "RLS denials, photo-privacy 403s, server-auth data  (goal.md SEC-1/2/3/5)",
         "cmd":         ["npx", "vitest", "run", "tests/security"],
     },
+    {
+        "label":       "Milestone A goals",
+        "goal":        "All 🎯 criteria in goal.md §2.2 checked off — DEMO-READY",
+        "fn":          "milestone_a",
+    },
 ]
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -86,8 +91,24 @@ def unmet_goals() -> list[str]:
         if re.search(r"- \[ \] 🎯", l)
     ]
 
+def run_milestone_a_check() -> bool:
+    """Inline check: every 🎯 criterion in goal.md §2.2 must be ticked [x]."""
+    unmet = unmet_goals()
+    if not unmet:
+        print(green("  All Milestone A (🎯) criteria are checked off in goal.md."))
+        return True
+    print(red(f"\n  {len(unmet)} Milestone A criterion/criteria NOT yet met:"))
+    for i, g in enumerate(unmet, 1):
+        print(red(f"     {i}. {g}"))
+    print(yellow("\n  → Tick each checkbox in goal.md §2.2 ONLY after observing the"))
+    print(yellow("     behaviour end-to-end in a running browser (goal.md §3 Step 6)."))
+    print(yellow("     'ALL TESTS PASSED' cannot be true while goals remain unmet."))
+    return False
+
 def run_check(check: dict) -> bool:
     """Run one check. Print its output live. Return True if passed."""
+    if check.get("fn") == "milestone_a":
+        return run_milestone_a_check()
     env = {**os.environ, "FORCE_COLOR": "1"}
     # On Windows, npx/tsc/vitest are .cmd files — must use shell=True.
     # Join to a single string so no argument escaping issues arise
@@ -117,7 +138,8 @@ def main() -> int:
         print(bold(f"\n{LINE}"))
         print(bold(f"  Check {i} of {len(CHECKS)}  —  {check['label']}"))
         print(dim( f"  {check['goal']}"))
-        print(dim( f"  $ {' '.join(check['cmd'])}"))
+        if "cmd" in check:
+            print(dim(f"  $ {' '.join(check['cmd'])}"))
         print(bold(f"{LINE}\n"))
 
         passed = run_check(check)
@@ -127,7 +149,9 @@ def main() -> int:
             print(green(f"\n  ✔  {check['label']}: PASSED"))
         else:
             print(red(   f"\n  ✖  {check['label']}: NOT PASSED"))
-            print(yellow(  "     → Fix the failure above, then run verify.py again."))
+            print(yellow(  "     → Before writing a fix: search memory.md for a matching error pattern."))
+            print(yellow(  "     → If a pattern matches, apply the listed Fix directly (do not experiment)."))
+            print(yellow(  "     → If no pattern matches, fix it, then record the new pattern in memory.md."))
             print(yellow(  "     → Do not move to the next goal until this passes."))
 
     # ── Summary ───────────────────────────────────────────────────────────────

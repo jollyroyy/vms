@@ -1,4 +1,37 @@
-#!/bin/sh
-# VMS pre-commit gate — runs verify.py on every commit, no exceptions.
-# NOT PASSED = commit blocked. Never bypass with --no-verify; fix the code.
-py verify.py
+#!/usr/bin/env node
+/**
+ * pre-commit hook — TDD enforcement (goal.md §7 / /tdd-loop skill §36-39)
+ *
+ * Runs `npm run check` (tsc --noEmit + all active tests) on EVERY commit.
+ * Blocks the commit if ANY check fails.
+ *
+ * Never bypass with --no-verify. If a legitimate case arises,
+ * fix the failing test instead — deleting/skipping is forbidden.
+ */
+
+import { spawnSync } from 'node:child_process';
+
+const RED    = (s) => `\x1b[31m${s}\x1b[0m`;
+const GREEN  = (s) => `\x1b[32m${s}\x1b[0m`;
+const BOLD   = (s) => `\x1b[1m${s}\x1b[0m`;
+const DIM    = (s) => `\x1b[2m${s}\x1b[0m`;
+
+console.log(BOLD('\n╔══════════════════════════════════════════════════════╗'));
+console.log(BOLD(  '║    pre-commit: TDD gate — running npm run check…    ║'));
+console.log(BOLD(  '╚══════════════════════════════════════════════════════╝\n'));
+
+const result = spawnSync('npm run check', {
+  stdio: 'inherit',
+  shell: true,
+  env: { ...process.env, FORCE_COLOR: '1' },
+});
+
+if (result.status !== 0) {
+  console.error(RED(BOLD('\n  ✖  TDD gate FAILED — commit blocked.\n')));
+  console.error(DIM('     Fix the failing tests, then commit again.'));
+  console.error(DIM('     Never use --no-verify to bypass the TDD gate.\n'));
+  process.exit(1);
+}
+
+console.log(GREEN(BOLD('\n  ✔  TDD gate passed — commit allowed.\n')));
+process.exit(0);

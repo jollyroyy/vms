@@ -45,6 +45,9 @@ Security is **not** an operational nicety that waits for Milestone B. A visitor 
 - `SEC-4` **Secrets hygiene.** `.env` git-ignored from iteration 0; `.env.example` committed; anon key only in the client; service key only in server-side scripts.
 - `SEC-5` **Role separation is real.** Guard/HOD/Staff/Admin are backend-enforced roles (`NFR-04`) — different screens is UI, different *permissions* is security, and both are Milestone A.
 - `SEC-6` **Every iteration's step 4 includes a security check**: run the security tests (see §7) and, when schema changed, Supabase advisors (`get_advisors`) for missing policies.
+- `SEC-7` **Frontend route protection.** Navigating to a URL that belongs to a different role (e.g., a guard typing `/admin`, a staff typing `/approvals`) must immediately sign the user out. No redirects, no "access denied" page — the session is terminated. This prevents URL-manipulation probing of unauthorized screens. Must be tested with automated assertions (`tests/security/routeProtection.test.ts`).
+  - **Implementation rule:** `ProtectedRoute` must look up permissions from `ROLE_ROUTES` in `src/lib/roleRoutes.ts` (single source of truth). It must NOT accept a per-route `allowedRoutes` prop — that pattern always passes because the URL matches by definition. Every authenticated route must be wrapped; no exceptions for "shared" routes. When the user's role is not yet loaded (`null`), render nothing.
+  - **Test rule:** `routeProtection.test.ts` must import `isForbidden` and `ROLE_ROUTES` from `src/lib/roleRoutes.ts` — never define a local copy. A local copy in the test silently drifts from the implementation and gives false confidence.
 
 **Deferred-but-tracked rule:** nothing is deleted — PRD §10 (SLAs) and §11 (Handover) and all Milestone B criteria live in `progress.md` under a permanent **`Deferred → Milestone B`** section so they cannot be forgotten. Every iteration's step 5 must preserve that section. When a shortcut is taken to go faster (e.g., basic RLS instead of hardened policies), log it there as a named debt item.
 
@@ -80,6 +83,25 @@ The loop (for the **full product**) is finished when every checkbox below is TRU
 - [ ] 🎯 **S14 — Seed & demo ready**: `npm run seed` creates 3 departments, HODs + delegates, a guard, an admin, sample visits and gate passes in every status; **plus `DEMO-SCRIPT.md`** — the exact click-path, which browser windows to pre-open (guard console + HOD phone view + who's-inside board), and a reset command to restore pristine demo data between runs.
 - [ ] 🏭 **S15 — Test coverage where it matters**: unit tests for ref-number generation, status machines, RGP due-date logic, escalation timing; Playwright E2E for S1 and S4.
 
+#### 2.2A — PRD Feature Detail Map (Milestone A granular — mirrors PRD §3–§7)
+
+> Each line below maps directly to one `FR-*` / `NFR-*` / `SLA-*` tag from the PRD.
+> A checkbox is ticked when that specific behaviour is observable in the running app.
+
+- [ ] 🎯 **FR-VIS-03 — Repeat-visitor recall**: typing a known phone number auto-fills name, company, and shows the previous-visit photo — guard review in seconds, no re-typing.
+- [ ] 🎯 **FR-VIS-05 — Badge page**: rendered badge shows visitor photo, ref number, department, host name, validity, and a QR code; `window.print()` produces a badge-sized slip suitable for thermal printers.
+- [ ] 🎯 **FR-VIS-06 — Visit history search**: guard / admin can search visits by name, phone, department, HOD, date range; results paginated.
+- [ ] 🎯 **FR-CAM-05 — Webcam UI**: live preview with a face-position oval overlay; single **Capture** button freezes the frame; unlimited **Retake** until saved; no page reload between retakes.
+- [ ] 🎯 **FR-CAM-06 — Camera-denied banner**: if `getUserMedia` is denied or no camera is detected, a persistent red banner with fix instructions appears — the registration form is still usable (file-input fallback, `FR-CAM-10`).
+- [ ] 🎯 **FR-GP-04 — Printable gate pass**: rendered gate pass page has a QR code, full item list, approver details, and carrier info; `window.print()` produces a pass suitable for the guard's printer.
+- [ ] 🎯 **FR-GP-05 — Mismatch handling**: guard can record a quantity or item discrepancy at the gate return with a note; the approving HOD is notified in-app.
+- [ ] 🎯 **FR-NOT-03 — Checked-in notification**: when the guard logs entry (check-in), the host/HOD receives an in-app "visitor on the way" notification in real time.
+- [ ] 🎯 **NFR-01 — Responsive layout**: guard console renders correctly at 1280 px desktop width; HOD approval page renders correctly at 375 px (iPhone) — all interactive elements are tap-friendly.
+- [ ] 🎯 **Admin module — Departments & users**: Admin can create / edit departments, assign HODs and delegates, create/deactivate user accounts, assign roles; blacklist entries (phone + reason) can be added or removed.
+- [x] 🎯 **SEC-7 — Frontend route protection**: URL manipulation to another role's page signs the user out immediately (see `tests/security/routeProtection.test.ts`).
+- [x] 🎯 **SLA-W1 — Escalation logic unit-tested**: the pure function `getEscalationTarget(pendingAt, now, roles)` returns `'hod' | 'delegate' | 'admin'` correctly at t<5 min, t∈[5,10) min, t≥10 min (see `tests/unit/escalation.test.ts`).
+- [x] 🎯 **S14a — DEMO-SCRIPT.md exists** with the exact guard-console → HOD-phone → who's-inside click-path, the list of browser tabs to pre-open, and a one-command reset (`npm run seed`).
+
 **Milestone A is DONE when all 🎯 boxes are checked** → update `progress.md` status to `DEMO-READY`, stop, and wait for human review. Milestone B resumes after the demo feedback is folded in.
 
 ### 2.3 Quality bar
@@ -104,9 +126,10 @@ Ask one question: **"What observable behaviour, visible in a running app, would 
 That answer defines the work — not the other way round.
 
 ### Step 2 — ORIENT
-Read `progress.md`, then `learnings.md`.
+Read `progress.md`, then `learnings.md`, then `memory.md`.
 Confirm the criterion is not already partially done.
-Scan learnings for any rule that applies to this goal area before touching a file.
+In `memory.md`, identify the tags for the current task area (e.g., `#typescript`, `#supabase`, `#react`, `#camera`, `#rls`, `#seed`) and read every matching entry.
+A pattern match in `memory.md` means: apply the Fix directly — **do not retry the same mistake**.
 
 ### Step 3 — CHECK (run the checker first, before writing a line of code)
 ```
@@ -131,7 +154,12 @@ A criterion without a failing test first may not proceed to Step 5.
 Write the minimum implementation in `src/` that makes the criterion's tests pass.
 After each implementation attempt, run `npm run verify` and read every result:
 - **PASSED** → step is done.
-- **NOT PASSED** → fix it and run again. Do **not** move to the next criterion with a failing test.
+- **NOT PASSED** → before writing a single line of fix code:
+  1. Identify the error's category tags (e.g., `#typescript`, `#supabase`, `#react`).
+  2. Search `memory.md` Quick Index for those tags; read every matching entry.
+  3. If a pattern matches the error → apply the listed **Fix** exactly. Do not invent an alternative.
+  4. If no pattern matches → apply a fix, run verify, then **immediately record the new pattern in `memory.md`** (even on the first failure — do not wait for Step 7).
+  5. Do **not** move to the next criterion with a failing test.
   If the same test fails 3 times with different approaches → add a `learnings.md` entry,
   decompose into smaller pieces in `progress.md`, and try the smaller piece.
   If truly blocked → mark `progress.md → Blocked (needs human)`, then pick the next unblocked criterion.
@@ -151,7 +179,7 @@ If not → the tests were insufficient. Go back to Step 4 and add the missing te
 - Tick the §2.2 checkbox in `goal.md`.
 - Update `progress.md`: move criterion to *Done* with a one-line proof of observed behaviour.
 - Update `tests/TRACEABILITY.md`: status → 🟢.
-- If anything surprised you → append a dated entry to `learnings.md`.
+- If anything surprised you → append a dated entry to `learnings.md` **and** add a structured pattern to `memory.md` (use the New Entry Template at the bottom of that file; update the Quick Index).
 
 ### Step 8 — COMMIT
 ```
@@ -167,8 +195,12 @@ If all 🎯 boxes are checked → write `progress.md` status = `DEMO-READY` and 
 
 The loop gets smarter through its files, not through wishful thinking:
 
-- **`learnings.md` is the self-improvement organ.** Before building anything (step 3), scan it for rules that apply to the current task. A mistake made twice is a loop failure — the first occurrence should have produced a rule that prevented the second.
-- **Prune and promote.** When `learnings.md` exceeds ~30 entries, consolidate: merge duplicates, delete obsolete ones, and promote ever-recurring rules into `CLAUDE.md` (project conventions) so they load automatically. This is the ONLY self-editing the loop performs on its own charter ecosystem.
+- **Two-tier self-improvement: `learnings.md` + `memory.md`.** They serve different purposes and both must stay current:
+  - `learnings.md` — the **narrative** log. Append a dated entry when surprised. Human-readable. Tells the story of what went wrong and why.
+  - `memory.md` — the **pattern-indexed lookup**. A machine-searchable registry: Pattern → Cause → Fix → Prevention, tagged by category. Searched at Step 2 (before coding) and Step 5 (before each fix attempt). A pattern match means applying the Fix directly — no experimentation.
+  - **Whenever a new mistake is encountered:** record it in `memory.md` immediately (before continuing), then append the narrative to `learnings.md` at Step 7.
+  - **A mistake made twice is a loop failure.** The first occurrence must produce a `memory.md` pattern that prevents the second.
+- **Prune and promote.** When `learnings.md` exceeds ~30 entries, consolidate: merge duplicates, delete obsolete ones, and promote ever-recurring rules into `CLAUDE.md` (project conventions) so they load automatically. When `memory.md` entries are promoted to `CLAUDE.md`, mark them as `[promoted]` but keep the entry — it remains searchable. This is the ONLY self-editing the loop performs on its own charter ecosystem.
 - **Escalate honestly.** If the same task fails 3 iterations in a row: stop retrying the same approach, write a `learnings.md` entry analyzing why, and either (a) decompose the task into smaller pieces in `progress.md`, or (b) flag it in `progress.md` → *Blocked (needs human)* with exactly what decision/credential/access is missing — then move to the next unblocked task.
 - **Shrink the slices when quality drops.** If hard gates start failing at commit time, the iterations are too big. The correction is smaller tasks, not skipped verification.
 - **Measure the loop itself.** Keep a running tally at the top of `progress.md`: iterations completed, criteria checked off (n/15), tasks blocked. If 5 iterations pass without a new §2.2 checkbox, the plan is wrong — re-plan *Next Up* from scratch against the unchecked criteria.
@@ -196,7 +228,8 @@ The loop gets smarter through its files, not through wishful thinking:
 | `goal.md` | This charter — what/success/process | Human + Agent (via Goal Amendment Protocol, §4) |
 | `PRD.md` | Requirements source of truth | Human |
 | `progress.md` | Live state: Done / In Progress / Next Up / Blocked + tally | Agent, every iteration |
-| `learnings.md` | Dated mistakes → rules; the self-improvement log | Agent, when surprised |
+| `learnings.md` | Dated narrative log: mistake → lesson (human-readable) | Agent, when surprised |
+| `memory.md` | Structured error-pattern registry: Pattern → Cause → Fix → Prevention, tagged + indexed; searched before every fix attempt | Agent, immediately when any new error is encountered |
 | `CLAUDE.md` | Promoted permanent conventions for this repo | Agent (via promotion rule §4) |
 | `tests/` | The CHECK phase — executable form of §2's success criteria | Agent (red-first, per §3 step 3) |
 | `tests/TRACEABILITY.md` | Map: S-criterion → FR tags → test file → status | Agent, whenever tests change |
@@ -222,6 +255,9 @@ The loop runs **goal → build → CHECK → adjust**, and the CHECK phase is ex
 | 2026-07-20 | pre-0 | v1.2: added Security Baseline §2.0.1 (always-on, never deferred); moved S9/S10 into Milestone A; loop protocol made TDD (red→green); added Goal Amendment Protocol + §7 check harness | Security at the forefront even pre-production; make CHECK executable; let the loop improve its own charter |
 | 2026-07-20 | pre-0 | v1.3: check automated — `/tdd-loop` skill installed (test derivation is the loop's duty), `tests/pending.list` activation queue + vitest exclusion, git pre-commit hook blocks red commits; dedicated git repo initialized | Tests must run automatically via the loop's own machinery, not agent memory |
 | 2026-07-20 | pre-0 | v1.4: loop protocol rebuilt around the GOAL (§3 rewritten as 9 goal-first steps); checker.ts rewritten to run ALL tests and report each PASSED/NOT PASSED before summarising — never stops early; loop told to fix NOT PASSED before moving to next criterion, not skip | Loop must be driven by unmet goals, not by code; all test results visible even when some fail |
+| 2026-07-20 | iter-04 | v1.5: §2.2A added — PRD Feature Detail Map; 12 granular 🎯 criteria (FR-VIS-03/05/06, FR-CAM-05/06, FR-GP-04/05, FR-NOT-03, NFR-01, Admin module, SLA-W1 escalation, S14a DEMO-SCRIPT); verify.py gained a 4th check (Milestone A goals) that hard-fails on any unchecked 🎯 criterion | PRD features were referenced but not individually trackable; goal.md now mirrors PRD §3–§7 at criterion granularity |
+| 2026-07-20 | iter-06 | S14a ticked — DEMO-SCRIPT.md created with full click-path, browser-tabs list, and one-command reset; Database Relationships fix in types/index.ts (required by GenericTable); vite-env.d.ts added; 002_rls.sql, scripts/seed.ts, progress.md, learnings.md created; npm run build ✓ | All code-level deliverables complete; remaining 22 criteria blocked on Supabase credentials + browser run (needs human) |
+| 2026-07-20 | post-06 | v1.6: memory.md created — structured error-pattern registry (Pattern/Cause/Fix/Prevention, tagged + indexed); §3 Steps 2/5/7 updated to search memory.md before each fix; §4 self-improvement upgraded to two-tier (narrative learnings.md + indexed memory.md); §6 File Manifest updated; verify.py failure message now prompts memory.md lookup; 12 existing patterns backfilled from learnings.md | A mistake made twice is a loop failure; memory.md makes the first occurrence prevent the second |
 
-**Bootstrap (iteration 0):** if `progress.md` / `learnings.md` don't exist, create them. `progress.md` must contain the permanent `Deferred → Milestone B` section from day one (pre-populated with all 🏭 criteria + PRD §10 SLAs + PRD §11 Handover). Seed *Next Up* by decomposing the **🎯 Milestone A** criteria into ordered tasks along the demo path:
+**Bootstrap (iteration 0):** if `progress.md` / `learnings.md` / `memory.md` don't exist, create them. `progress.md` must contain the permanent `Deferred → Milestone B` section from day one (pre-populated with all 🏭 criteria + PRD §10 SLAs + PRD §11 Handover). Seed *Next Up* by decomposing the **🎯 Milestone A** criteria into ordered tasks along the demo path:
 `project scaffold → Supabase schema + basic roles → guard console + webcam capture → HOD mobile approval (realtime) → badge + exit flow → who's-inside live board → blacklist + repeat recall → gate passes (4 types) → RGP dashboard → visitor register report → seed script + DEMO-SCRIPT.md → full demo dry-run ×2`.
