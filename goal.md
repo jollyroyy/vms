@@ -88,16 +88,80 @@ The loop (for the **full product**) is finished when every checkbox below is TRU
 
 ---
 
-## 3. THE LOOP PROTOCOL (one iteration = one pass through this list)
+## 3. THE LOOP PROTOCOL — built around the GOAL, not the code
 
-1. **Orient** — read `goal.md`, then `progress.md`, then `learnings.md`. Never rely on memory of a previous iteration; the files are the memory.
-2. **Pick ONE task** — the topmost unblocked item in `progress.md` → *Next Up*. One coherent slice per iteration (one screen, one flow, one policy set). Never start two.
-3. **Red (TDD)** — invoke the **`/tdd-loop` skill** (`.claude/skills/tdd-loop/SKILL.md`) and follow it: DERIVE tests from the S-criterion if none are traced yet (deriving tests from this goal is the loop's own duty, not a human's), then ACTIVATE exactly one suite by removing its line from `tests/pending.list`, and confirm it FAILS. A task with no failing test first is not allowed to start.
-4. **Green, then verify ruthlessly** — implement until the tests pass, then run the hard gates (§2.1) **plus the security tests (`SEC-*`)**. For UI work, additionally drive the actual browser (dev server + click through). A task is not done because the code compiles; it is done when its tests pass AND the behavior was observed. The **pre-commit hook** (`.githooks/pre-commit`) re-runs `npm run check` automatically and blocks the commit if anything active is red — never bypass it with `--no-verify`.
-5. **Record** — update `progress.md`: move the task to *Done* with a one-line proof ("verified: registered visitor, photo saved 142 KB, HOD approved on mobile viewport"). Add newly discovered tasks to *Next Up* in priority order.
-6. **Learn** — if anything surprised you (a bug, a dead end, a Supabase gotcha, a flaky test), append a dated entry to `learnings.md`: what happened → root cause → the rule that prevents it next time.
-7. **Commit** — one git commit per iteration, message: `iter-NN: <task> [FR-tags touched]`.
-8. **Stop or continue** — if all §2.2 boxes are checked, write `progress.md` → status `COMPLETE` and stop. Otherwise the loop re-enters at step 1.
+> The loop does not ask "what should I build next?"
+> It asks "which goal is not yet met, and what would prove it is?"
+> Code is just the means. The goal criterion is the north star.
+
+One iteration = one pass through these steps, always in this order:
+
+### Step 1 — LOOK AT THE GOAL
+Open `goal.md` §2.2. Find the **first unchecked 🎯 criterion** in order.
+That criterion IS the iteration. Do not read the codebase first.
+Read the criterion's text and every `FR-*`/`SEC-*` tag it references.
+Ask one question: **"What observable behaviour, visible in a running app, would prove this criterion is met?"**
+That answer defines the work — not the other way round.
+
+### Step 2 — ORIENT
+Read `progress.md`, then `learnings.md`.
+Confirm the criterion is not already partially done.
+Scan learnings for any rule that applies to this goal area before touching a file.
+
+### Step 3 — CHECK (run the checker first, before writing a line of code)
+```
+npm run verify
+```
+`checker.ts` runs all active tests and reports each one: **PASSED** or **NOT PASSED**.
+It never stops early — every result is reported.
+
+Read the results:
+- If every test for this criterion is already **PASSED** → go directly to Step 6 (verify in the running app).
+- If any test is **NOT PASSED** → that is the gap to close. Go to Step 4.
+- If no test exists yet for this criterion → go to Step 4 (derive first).
+
+### Step 4 — RED (derive + activate one test suite)
+Invoke the `/tdd-loop` skill:
+- DERIVE tests from the criterion text (the loop's own duty — not a human's).
+- ACTIVATE by removing the file's line from `tests/pending.list`.
+- Run `npm run verify` → confirm the suite is **NOT PASSED**. If it passes without implementation the tests are wrong; fix them.
+A criterion without a failing test first may not proceed to Step 5.
+
+### Step 5 — GREEN (implement, then fix until all PASSED)
+Write the minimum implementation in `src/` that makes the criterion's tests pass.
+After each implementation attempt, run `npm run verify` and read every result:
+- **PASSED** → step is done.
+- **NOT PASSED** → fix it and run again. Do **not** move to the next criterion with a failing test.
+  If the same test fails 3 times with different approaches → add a `learnings.md` entry,
+  decompose into smaller pieces in `progress.md`, and try the smaller piece.
+  If truly blocked → mark `progress.md → Blocked (needs human)`, then pick the next unblocked criterion.
+
+The pre-commit hook calls `checker.ts` automatically on every commit.
+A commit is only possible when `checker.ts` ends with **ALL TESTS PASSED**.
+Never use `--no-verify`.
+
+### Step 6 — VERIFY IN THE RUNNING APP
+Tests passing proves the logic is correct. This step proves the goal is met.
+Start the dev server, drive the criterion's flow end-to-end in a real browser.
+Observe exactly what the criterion says ("HOD sees the photo", "badge QR renders", "who's-inside updates live").
+If the observed behaviour matches → the criterion is done.
+If not → the tests were insufficient. Go back to Step 4 and add the missing test.
+
+### Step 7 — RECORD
+- Tick the §2.2 checkbox in `goal.md`.
+- Update `progress.md`: move criterion to *Done* with a one-line proof of observed behaviour.
+- Update `tests/TRACEABILITY.md`: status → 🟢.
+- If anything surprised you → append a dated entry to `learnings.md`.
+
+### Step 8 — COMMIT
+```
+git commit -m "iter-NN: <criterion name> met [FR-tags]"
+```
+The hook runs `checker.ts` automatically. You will see **ALL TESTS PASSED** or the commit is blocked.
+
+### Step 9 — LOOP
+Go back to Step 1 with the next unchecked 🎯 criterion.
+If all 🎯 boxes are checked → write `progress.md` status = `DEMO-READY` and stop.
 
 ## 4. HOW THE LOOP IMPROVES ITSELF
 
@@ -157,6 +221,7 @@ The loop runs **goal → build → CHECK → adjust**, and the CHECK phase is ex
 | 2026-07-20 | pre-0 | v1.1: split milestones A/B (demo-first); deferred SLA/handover | Launch ASAP for customer demo |
 | 2026-07-20 | pre-0 | v1.2: added Security Baseline §2.0.1 (always-on, never deferred); moved S9/S10 into Milestone A; loop protocol made TDD (red→green); added Goal Amendment Protocol + §7 check harness | Security at the forefront even pre-production; make CHECK executable; let the loop improve its own charter |
 | 2026-07-20 | pre-0 | v1.3: check automated — `/tdd-loop` skill installed (test derivation is the loop's duty), `tests/pending.list` activation queue + vitest exclusion, git pre-commit hook blocks red commits; dedicated git repo initialized | Tests must run automatically via the loop's own machinery, not agent memory |
+| 2026-07-20 | pre-0 | v1.4: loop protocol rebuilt around the GOAL (§3 rewritten as 9 goal-first steps); checker.ts rewritten to run ALL tests and report each PASSED/NOT PASSED before summarising — never stops early; loop told to fix NOT PASSED before moving to next criterion, not skip | Loop must be driven by unmet goals, not by code; all test results visible even when some fail |
 
 **Bootstrap (iteration 0):** if `progress.md` / `learnings.md` don't exist, create them. `progress.md` must contain the permanent `Deferred → Milestone B` section from day one (pre-populated with all 🏭 criteria + PRD §10 SLAs + PRD §11 Handover). Seed *Next Up* by decomposing the **🎯 Milestone A** criteria into ordered tasks along the demo path:
 `project scaffold → Supabase schema + basic roles → guard console + webcam capture → HOD mobile approval (realtime) → badge + exit flow → who's-inside live board → blacklist + repeat recall → gate passes (4 types) → RGP dashboard → visitor register report → seed script + DEMO-SCRIPT.md → full demo dry-run ×2`.

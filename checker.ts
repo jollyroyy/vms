@@ -1,88 +1,150 @@
 /**
- * checker.ts — VMS automated test runner
+ * checker.ts — VMS automated test gate
  *
- * Runs every check in sequence. First failure stops everything and prints
- * exactly what broke. If everything passes, prints "ALL TESTS PASSED".
+ * Runs every check in sequence. NEVER stops early — every step always runs
+ * and every result is reported. At the end:
+ *   • All passed  → "ALL TESTS PASSED"
+ *   • Any failed  → lists exactly which steps were NOT PASSED, exits non-zero
+ *                   (pre-commit hook blocks the commit)
  *
- * Run:   npx tsx checker.ts
- * Hook:  called automatically by .githooks/pre-commit on every commit
- * Loop:  the loop calls this at the end of every iteration (step 4, goal.md §3)
+ * The loop calls this at Step 3 (before coding) and Step 5 (after each fix).
+ * The git pre-commit hook calls it automatically on every commit.
+ *
+ * Usage:  npm run verify
  */
 
 import { spawnSync } from 'node:child_process';
 import { readFileSync, existsSync } from 'node:fs';
 
 // ─── colour helpers ──────────────────────────────────────────────────────────
-const G = (s: string) => `\x1b[32m${s}\x1b[0m`;  // green
-const R = (s: string) => `\x1b[31m${s}\x1b[0m`;  // red
-const B = (s: string) => `\x1b[1m${s}\x1b[0m`;   // bold
-const D = (s: string) => `\x1b[2m${s}\x1b[0m`;   // dim
+const GREEN  = (s: string) => `\x1b[32m${s}\x1b[0m`;
+const RED    = (s: string) => `\x1b[31m${s}\x1b[0m`;
+const YELLOW = (s: string) => `\x1b[33m${s}\x1b[0m`;
+const BOLD   = (s: string) => `\x1b[1m${s}\x1b[0m`;
+const DIM    = (s: string) => `\x1b[2m${s}\x1b[0m`;
+const LINE   = '─'.repeat(56);
 
-// ─── helpers ─────────────────────────────────────────────────────────────────
-function run(label: string, cmd: string, args: string[]): void {
-  console.log(`\n${B(`▶ ${label}`)}`);
-  console.log(D(`  $ ${cmd} ${args.join(' ')}`));
-
-  // On Windows npx/tsc are .cmd files; pass as a single joined string so
-  // shell:true is safe (args are controlled constants, not user input).
-  const fullCmd = [cmd, ...args].join(' ');
-  const result = spawnSync(fullCmd, {
-    stdio: 'inherit',
-    shell: true,
-    env: { ...process.env, FORCE_COLOR: '1' },
-  } as Parameters<typeof spawnSync>[1]);
-
-  if (result.status !== 0) {
-    console.log(`\n${R(B('✖ FAILED:'))} ${R(label)}`);
-    console.log(R('─'.repeat(60)));
-    console.log(R('Stopped. Fix the failure above then re-run checker.ts.'));
-    process.exit(result.status ?? 1);
-  }
-
-  console.log(G(`  ✔ ${label} passed`));
+// ─── check definition ────────────────────────────────────────────────────────
+interface Check {
+  label: string;          // short name shown in the summary table
+  description: string;    // what this check verifies (from goal.md)
+  cmd: string;
+  args: string[];
 }
 
+const CHECKS: Check[] = [
+  {
+    label: 'TypeScript',
+    description: 'No type errors anywhere in src/ (goal.md §2.1)',
+    cmd: 'npx', args: ['tsc', '--noEmit'],
+  },
+  {
+    label: 'Unit tests',
+    description: 'Pure logic: ref numbers, status machines, due dates, blacklist, photo math (goal.md §7)',
+    cmd: 'npx', args: ['vitest', 'run', 'tests/unit'],
+  },
+  {
+    label: 'Security tests',
+    description: 'RLS denial cases, photo-privacy 403s, server-auth data (goal.md SEC-1/2/3/5)',
+    cmd: 'npx', args: ['vitest', 'run', 'tests/security'],
+  },
+];
+
+// ─── helpers ─────────────────────────────────────────────────────────────────
 function pendingCount(): number {
-  const file = 'tests/pending.list';
-  if (!existsSync(file)) return 0;
-  return readFileSync(file, 'utf8')
-    .split(/\r?\n/)
-    .filter((l) => l.trim() && !l.startsWith('#'))
-    .length;
+  try {
+    return readFileSync('tests/pending.list', 'utf8')
+      .split(/\r?\n/)
+      .filter((l) => l.trim() && !l.startsWith('#'))
+      .length;
+  } catch { return 0; }
+}
+
+function goalCriteriaMet(): { total: number; done: number } {
+  if (!existsSync('goal.md')) return { total: 0, done: 0 };
+  const lines = readFileSync('goal.md', 'utf8').split(/\r?\n/);
+  const criteria = lines.filter((l) => /- \[[ x]\] 🎯/.test(l));
+  const done     = criteria.filter((l) => /- \[x\]/.test(l));
+  return { total: criteria.length, done: done.length };
+}
+
+function runCheck(check: Check): 'PASSED' | 'NOT PASSED' {
+  const full = [check.cmd, ...check.args].join(' ');
+  const result = spawnSync(full, { stdio: 'inherit', shell: true,
+    env: { ...process.env, FORCE_COLOR: '1' } });
+  return result.status === 0 ? 'PASSED' : 'NOT PASSED';
 }
 
 // ─── main ────────────────────────────────────────────────────────────────────
-console.log(B('\n╔══════════════════════════════════════╗'));
-console.log(B(  '║   VMS Checker — automated test gate  ║'));
-console.log(B(  '╚══════════════════════════════════════╝'));
-
 const pending = pendingCount();
-if (pending > 0) {
-  console.log(D(`\n  ${pending} suite(s) still in tests/pending.list (not yet activated)`));
+const { total: goalTotal, done: goalDone } = goalCriteriaMet();
+
+console.log(BOLD('\n╔══════════════════════════════════════════════════════╗'));
+console.log(BOLD(  '║          VMS Checker — goal-driven test gate         ║'));
+console.log(BOLD(  '╚══════════════════════════════════════════════════════╝'));
+console.log(DIM(`\n  Goal progress : ${goalDone} / ${goalTotal} Milestone A criteria met`));
+console.log(DIM(`  Pending suites: ${pending} queued in tests/pending.list (not yet activated)\n`));
+console.log(DIM('  Loop question before each run:'));
+console.log(DIM('  "Which goal is not yet met, and what would prove it is?"\n'));
+
+// Run every check — never stop early
+const results: Array<{ check: Check; status: 'PASSED' | 'NOT PASSED' }> = [];
+
+for (let i = 0; i < CHECKS.length; i++) {
+  const check = CHECKS[i]!;
+  console.log(BOLD(`\n${LINE}`));
+  console.log(BOLD(`  Check ${i + 1} of ${CHECKS.length} — ${check.label}`));
+  console.log(DIM(`  ${check.description}`));
+  console.log(DIM(`  $ ${check.cmd} ${check.args.join(' ')}`));
+  console.log(BOLD(`${LINE}\n`));
+
+  const status = runCheck(check);
+  results.push({ check, status });
+
+  if (status === 'PASSED') {
+    console.log(GREEN(`\n  ✔  ${check.label}: PASSED`));
+  } else {
+    console.log(RED(`\n  ✖  ${check.label}: NOT PASSED`));
+    console.log(YELLOW(`     → Fix the failure above, then run npm run verify again.`));
+    console.log(YELLOW(`     → Do not move to the next goal criterion until this passes.`));
+  }
 }
 
-// Step 1 — TypeScript: no type errors allowed
-run(
-  'Step 1 of 3 — TypeScript (tsc --noEmit)',
-  'npx', ['tsc', '--noEmit'],
-);
+// ─── summary ─────────────────────────────────────────────────────────────────
+const failed  = results.filter((r) => r.status === 'NOT PASSED');
+const passed  = results.filter((r) => r.status === 'PASSED');
 
-// Step 2 — Unit tests: pure logic, no network, must pass in milliseconds
-run(
-  'Step 2 of 3 — Unit tests (vitest run tests/unit)',
-  'npx', ['vitest', 'run', 'tests/unit'],
-);
+console.log(BOLD(`\n${'═'.repeat(56)}`));
+console.log(BOLD('  SUMMARY'));
+console.log(BOLD('═'.repeat(56)));
 
-// Step 3 — Security tests: RLS denial cases, photo-privacy 403s
-run(
-  'Step 3 of 3 — Security tests (vitest run tests/security)',
-  'npx', ['vitest', 'run', 'tests/security'],
-);
-
-// ─── All passed ──────────────────────────────────────────────────────────────
-console.log(`\n${G(B('═'.repeat(60)))}`);
-console.log(G(B('  ✔  ALL TESTS PASSED')));
-if (pending > 0) {
-  console.log(G(`     (${pending} suite(s) queued in tests/pending.list — not yet activated)`));
+for (const { check, status } of results) {
+  const icon  = status === 'PASSED' ? GREEN('✔') : RED('✖');
+  const label = status === 'PASSED' ? GREEN(check.label) : RED(check.label);
+  const tag   = status === 'PASSED' ? GREEN('PASSED') : RED('NOT PASSED');
+  console.log(`  ${icon}  ${label.padEnd(30)} ${tag}`);
 }
-console.log(`${G(B('═'.repeat(60)))}\n`);
+
+console.log(BOLD('═'.repeat(56)));
+
+if (failed.length === 0) {
+  console.log(GREEN(BOLD('\n  ✔  ALL TESTS PASSED')));
+  if (pending > 0) {
+    console.log(GREEN(DIM(`     (${pending} suite(s) still queued — activate the next one for the next goal)`)));
+  }
+  console.log(GREEN(BOLD(`     Goal: ${goalDone} / ${goalTotal} Milestone A criteria checked off\n`)));
+  process.exit(0);
+} else {
+  console.log(RED(BOLD(`\n  ✖  ${failed.length} CHECK(S) NOT PASSED:`)));
+  for (const { check } of failed) {
+    console.log(RED(`     • ${check.label}`));
+    console.log(RED(DIM(`       ${check.description}`)));
+  }
+  console.log('');
+  console.log(YELLOW(BOLD('  Loop action (goal.md §3 Step 5):')));
+  console.log(YELLOW('  Fix the failing check(s) above and run npm run verify again.'));
+  console.log(YELLOW('  Do not move to the next goal criterion with a failing check.'));
+  console.log(YELLOW('  After 3 failed attempts → decompose or flag as Blocked (needs human).'));
+  console.log('');
+  process.exit(1);
+}
