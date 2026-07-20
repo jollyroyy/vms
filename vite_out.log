@@ -234,3 +234,4 @@ class, make sure it is defined within a `@layer` directive.[39m
 (file:///C:/Users/ASUS/Desktop/VMS/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:51978:27)
       at async viteTransformMiddleware 
 (file:///C:/Users/ASUS/Desktop/VMS/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:62106:24)
+[2m7:58:58 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/HOD/Approvals.tsx[22m

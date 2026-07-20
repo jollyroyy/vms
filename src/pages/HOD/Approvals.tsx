@@ -66,11 +66,11 @@ export default function HODApprovals(): React.ReactElement {
   const decide = async (visitId: string, approved: boolean) => {
     setActing(visitId);
     setError('');
-    const { error: err } = await supabase.from('visits').update({
-      status: approved ? 'approved' : 'rejected',
-      rejection_reason: approved ? null : (reasons[visitId] ?? 'Rejected by HOD'),
-    }).eq('id', visitId);
-    if (err) { console.error('[HOD] Decision error:', err.message); setError('Failed to update: ' + err.message); setActing(null); return; }
+    const rpc = (supabase as any).rpc.bind(supabase);
+    const { error: err } = approved
+      ? await rpc('approve_visit', { visit_id: visitId })
+      : await rpc('reject_visit', { visit_id: visitId, reason: reasons[visitId] ?? 'Rejected by HOD' });
+    if (err) { console.error('[HOD] Decision error:', err.message); setError(err.message); setActing(null); return; }
     setVisits((prev) => prev.filter((v) => v.id !== visitId));
     setActing(null);
   };
