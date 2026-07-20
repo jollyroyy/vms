@@ -65,11 +65,11 @@ export default function PhotoCapture({ onCapture }: Props): React.ReactElement {
           {state === 'denied' ? 'Camera access denied — allow permission and refresh' : `Camera error: ${errMsg}`}
         </p>
         <p className="text-sm text-red-600">Use the file picker as a fallback:</p>
-        <input type="file" accept="image/*" capture="user" onChange={handleFileInput} className="text-sm" />
+        <input type="file" accept="image/*" capture="environment" onChange={handleFileInput} className="text-sm w-full" />
         {preview && (
           <div className="mt-2 space-y-2">
-            <img src={preview} alt="Captured" className="w-36 rounded-xl border" />
-            <button onClick={accept} className="btn-primary text-sm">Use this photo</button>
+            <img src={preview} alt="Captured" className="w-full max-w-xs rounded-xl border mx-auto" />
+            <button onClick={accept} className="btn-primary text-sm w-full">Use this photo</button>
           </div>
         )}
       </div>
@@ -79,10 +79,10 @@ export default function PhotoCapture({ onCapture }: Props): React.ReactElement {
   if (state === 'frozen' && preview) {
     return (
       <div className="space-y-3">
-        <img src={preview} alt="Captured" className="w-44 rounded-xl border-2 border-brand-500 mx-auto block" />
+        <img src={preview} alt="Captured" className="w-full max-w-xs rounded-xl border-2 border-brand-500 mx-auto block shadow-md" />
         <div className="flex gap-2 justify-center">
-          <button onClick={retake} className="btn-secondary text-sm">Retake</button>
-          <button onClick={accept} className="btn-accent text-sm">Use Photo</button>
+          <button onClick={retake} className="btn-secondary text-sm px-5 py-2">Retake</button>
+          <button onClick={accept} className="btn-accent text-sm px-5 py-2">Use Photo</button>
         </div>
       </div>
     );
@@ -90,19 +90,28 @@ export default function PhotoCapture({ onCapture }: Props): React.ReactElement {
 
   return (
     <div className="space-y-3">
-      <div className="relative w-44 mx-auto">
-        <video ref={videoRef} muted playsInline className="w-full rounded-xl bg-navy-950" style={{ aspectRatio: '3/4', objectFit: 'cover' }} />
+      <div className="relative w-full max-w-xs mx-auto">
+        <video ref={videoRef} autoPlay muted playsInline className="w-full rounded-xl bg-navy-950 ring-2 ring-brand-200" style={{ aspectRatio: '3/4', objectFit: 'cover' }} />
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-          <div className="border-[3px] border-white/50 rounded-full w-28 h-36" />
+          <div className="border-[3px] border-white/60 rounded-full w-3/4 h-3/4" />
         </div>
+        {state === 'idle' && (
+          <div className="absolute inset-0 flex items-center justify-center bg-navy-950/70 rounded-xl">
+            <div className="text-center text-white text-sm">
+              <div className="animate-spin h-6 w-6 border-2 border-white border-t-transparent rounded-full mx-auto mb-2" />
+              Starting camera...
+            </div>
+          </div>
+        )}
       </div>
       <canvas ref={canvasRef} className="hidden" />
       {state === 'streaming' && (
         <div className="flex justify-center">
-          <button onClick={capture} className="rounded-full bg-red-600 hover:bg-red-700 text-white px-6 py-2 text-sm font-semibold shadow-sm transition-all">Capture</button>
+          <button onClick={capture} className="rounded-full bg-red-600 hover:bg-red-700 text-white px-8 py-2.5 text-sm font-semibold shadow-md transition-all active:scale-95">
+            <span className="inline-flex items-center gap-2"><span className="h-3 w-3 rounded-full bg-white animate-pulse" />Capture Photo</span>
+          </button>
         </div>
       )}
-      {state === 'idle' && <p className="text-center text-sm text-navy-400">Starting camera...</p>}
     </div>
   );
 }

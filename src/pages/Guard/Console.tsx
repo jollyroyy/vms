@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../../supabaseClient';
 import type { Visit } from '../../types/index';
+import { attachHostNames } from '../../lib/hostNames';
 import VisitorForm from './VisitorForm';
 import Badge      from '../../components/Badge';
 
@@ -25,15 +26,13 @@ export default function GuardConsole(): React.ReactElement {
     setLoading(true);
     const { data, error } = await supabase
       .from('visits')
-      .select(`*, visitor:visitors(*), department:departments(id, name, code, created_at), host:profiles!visits_host_id_fkey(id, full_name)`)
+      .select(`*, visitor:visitors(*), department:departments(id, name, code, created_at)`)
       .gte('created_at', `${today}T00:00:00Z`)
       .order('created_at', { ascending: false });
     if (error) { console.error('[Console] loadVisits error:', error.message); }
-    const rows = ((data as unknown as Visit[]) ?? []).map((v) => ({
-      ...v,
-      photo_url: v.photo_data ?? undefined,
-    }));
-    setVisits(rows);
+    let rows = ((data as unknown as Visit[]) ?? []);
+    rows = await attachHostNames(rows);
+    setVisits(rows.map((v) => ({ ...v, photo_url: v.photo_data ?? undefined })));
     setLoading(false);
   }, [today]);
 

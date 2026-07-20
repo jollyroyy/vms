@@ -5,6 +5,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { supabase } from '../../supabaseClient';
 import type { Visit, GatePass } from '../../types/index';
 import { getRgpState } from '../../lib/rgpDueDate';
+import { attachHostNames } from '../../lib/hostNames';
 
 const TODAY = new Date().toISOString().slice(0, 10);
 
@@ -16,13 +17,17 @@ export default function ReportsPage(): React.ReactElement {
 
   const load = useCallback(async () => {
     setLoading(true);
-    const [{ data: v }, { data: gp }] = await Promise.all([
-      supabase.from('visits').select(`*, visitor:visitors(*), department:departments(id,name,code,created_at), host:profiles!visits_host_id_fkey(id,full_name)`)
-        .gte('created_at', `${date}T00:00:00Z`).lte('created_at', `${date}T23:59:59Z`).order('created_at', { ascending: true }),
+    const [visitRows, { data: gp }] = await Promise.all([
+      (async (): Promise<Visit[]> => {
+        const { data, error } = await supabase.from('visits').select(`*, visitor:visitors(*), department:departments(id,name,code,created_at)`)
+          .gte('created_at', `${date}T00:00:00Z`).lte('created_at', `${date}T23:59:59Z`).order('created_at', { ascending: true });
+        if (error) { console.error('[Reports] visits error:', error.message); return []; }
+        return attachHostNames((data ?? []) as unknown as Visit[]);
+      })(),
       supabase.from('gate_passes').select(`*, items:gate_pass_items(*), department:departments(id,name,code,created_at)`)
         .eq('type', 'RGP').in('status', ['awaiting_return', 'partially_returned']),
     ]);
-    setVisits((v as unknown as Visit[]) ?? []);
+    setVisits(visitRows);
     setOpenPasses((gp as unknown as GatePass[]) ?? []);
     setLoading(false);
   }, [date]);

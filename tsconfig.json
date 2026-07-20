@@ -10,6 +10,6 @@
     "noEmit": true,
     "types": []
   },
-  "include": ["src/lib/**/*.ts"],
+  "include": ["src/lib/**/*.ts", "src/vite-env.d.ts", "src/supabaseClient.ts"],
   "exclude": ["node_modules"]
 }

@@ -67,29 +67,30 @@ export default function VisitorForm({ onRegistered }: Props): React.ReactElement
   }, [phone, blacklist]);
 
   const uploadPhoto = useCallback(async (blob: Blob): Promise<{ photoPath: string | null; photoData: string | null }> => {
-    // Try uploading to Supabase Storage first
+    // Always store base64 for reliable display (works without storage bucket)
+    const base64 = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = () => reject(new Error('Failed to read photo'));
+      reader.readAsDataURL(blob);
+    });
+
+    // Try uploading to Supabase Storage for signed URL (optional enhancement)
     const filePath = `visits/${Date.now()}.webp`;
     const { error: uploadErr } = await supabase.storage
       .from('visitor-photos')
       .upload(filePath, blob, { contentType: 'image/webp', upsert: true });
 
     if (uploadErr) {
-      console.warn('[photo] Storage upload failed, falling back to base64:', uploadErr.message);
-      // Fallback: convert blob to base64 and store in photo_data
-      const base64 = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result as string);
-        reader.onerror = () => reject(new Error('Failed to read photo'));
-        reader.readAsDataURL(blob);
-      });
+      console.warn('[photo] Storage upload failed, using base64 only:', uploadErr.message);
       return { photoPath: null, photoData: base64 };
     }
 
-    // Generate a signed URL for display (7 day expiry)
+    // Storage upload succeeded — try signed URL; fall back to base64 for display
     const { data: urlData } = await supabase.storage
       .from('visitor-photos')
       .createSignedUrl(filePath, 60 * 60 * 24 * 7);
-    return { photoPath: filePath, photoData: urlData?.signedUrl ?? null };
+    return { photoPath: filePath, photoData: urlData?.signedUrl ?? base64 };
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {

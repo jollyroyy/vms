@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { supabase } from '../../supabaseClient';
 import type { Visit } from '../../types/index';
+import { attachHostNames } from '../../lib/hostNames';
 
 export default function WhosInside(): React.ReactElement {
   const [visits, setVisits] = useState<Visit[]>([]);
@@ -11,14 +12,13 @@ export default function WhosInside(): React.ReactElement {
     setLoading(true); setError('');
     const { data, error: err } = await supabase
       .from('visits')
-      .select(`*, visitor:visitors(*), department:departments(id, name, code, created_at), host:profiles!visits_host_id_fkey(id, full_name)`)
+      .select(`*, visitor:visitors(*), department:departments(id, name, code, created_at)`)
       .in('status', ['pending_approval', 'approved', 'checked_in'])
       .order('created_at', { ascending: false });
     if (err) { console.error('[WhosInside] Query error:', err.message); setError(err.message); }
-    const enriched = ((data as unknown as Visit[]) ?? []).map((v) => ({
-      ...v,
-      photo_url: v.photo_data ?? undefined,
-    }));
+    let raw = ((data as unknown as Visit[]) ?? []);
+    raw = await attachHostNames(raw);
+    const enriched = raw.map((v) => ({ ...v, photo_url: v.photo_data ?? undefined }));
     setVisits(enriched);
     setLoading(false);
   }, []);

@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { supabase } from '../../supabaseClient';
 import type { Visit } from '../../types/index';
 import { getEscalationTarget } from '../../lib/escalation';
+import { attachHostNames } from '../../lib/hostNames';
 
 export default function HODApprovals(): React.ReactElement {
   const [visits,   setVisits]   = useState<Visit[]>([]);
@@ -25,36 +26,22 @@ export default function HODApprovals(): React.ReactElement {
       }
       console.log('[HOD] Using department_id from JWT:', departmentId);
 
-      const { data, error: visitsErr } = await supabase
+      let { data, error: visitsErr } = await supabase
         .from('visits')
-        .select(`*, visitor:visitors(*), department:departments(id, name, code, created_at), host:profiles!visits_host_id_fkey(id, full_name)`)
+        .select(`*, visitor:visitors(*), department:departments(id, name, code, created_at)`)
         .eq('department_id', departmentId)
         .in('status', ['pending_approval'])
         .order('created_at', { ascending: true });
       if (visitsErr) {
         console.error('[HOD] Visits query error:', visitsErr.message);
-        // Fallback: try without joins
-        const { data: fallback } = await supabase
-          .from('visits')
-          .select('*')
-          .eq('department_id', departmentId)
-          .in('status', ['pending_approval'])
-          .order('created_at', { ascending: true });
-        if (fallback && fallback.length > 0) {
-          setError('Main query failed but found visits without joined data. Check FK constraint names.');
-        }
-        const enriched = ((fallback as unknown as Visit[]) ?? []).map((v) => ({
-          ...v, photo_url: v.photo_data ?? undefined,
-        }));
-        setVisits(enriched);
+        setError('Failed to load pending approvals: ' + visitsErr.message);
         setLoading(false);
         return;
       }
 
-      const enriched = ((data as unknown as Visit[]) ?? []).map((v) => ({
-        ...v,
-        photo_url: v.photo_data ?? undefined,
-      }));
+      let raw = ((data as unknown as Visit[]) ?? []);
+      raw = await attachHostNames(raw);
+      const enriched = raw.map((v) => ({ ...v, photo_url: v.photo_data ?? undefined }));
       setVisits(enriched);
       if (enriched.length === 0) {
         console.log('[HOD] No pending approvals found for department', departmentId);
@@ -78,13 +65,14 @@ export default function HODApprovals(): React.ReactElement {
 
   const decide = async (visitId: string, approved: boolean) => {
     setActing(visitId);
+    setError('');
     const { error: err } = await supabase.from('visits').update({
       status: approved ? 'approved' : 'rejected',
       rejection_reason: approved ? null : (reasons[visitId] ?? 'Rejected by HOD'),
     }).eq('id', visitId);
-    if (err) { console.error('[HOD] Decision error:', err.message); setError('Failed to update: ' + err.message); }
+    if (err) { console.error('[HOD] Decision error:', err.message); setError('Failed to update: ' + err.message); setActing(null); return; }
+    setVisits((prev) => prev.filter((v) => v.id !== visitId));
     setActing(null);
-    void loadPending();
   };
 
   const escalationLabel = (v: Visit): { text: string; urgent: boolean } => {
