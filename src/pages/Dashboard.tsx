@@ -17,13 +17,6 @@ interface StatDef {
   to?: string;
 }
 
-interface QuickAction {
-  to: string;
-  title: string;
-  desc: string;
-  icon: React.ReactNode;
-}
-
 const STATUS_CHIP: Record<Visit['status'], { label: string; cls: string }> = {
   pending_approval: { label: 'Pending',      cls: 'bg-warning-500/15 text-warning-600 dark:text-warning-400 border-warning-500/25' },
   approved:         { label: 'Pre-Approved', cls: 'bg-success-500/15 text-success-600 dark:text-success-400 border-success-500/25' },
@@ -49,7 +42,6 @@ export default function DashboardPage({ role }: Props): React.ReactElement {
   const [recent, setRecent] = useState<Visit[]>([]);
   const [week, setWeek] = useState<number[]>([0, 0, 0, 0, 0, 0, 0]);
   const [clock, setClock] = useState(() => new Date());
-  const [firstName, setFirstName] = useState('');
 
   useEffect(() => {
     const t = setInterval(() => setClock(new Date()), 1000);
@@ -119,20 +111,12 @@ export default function DashboardPage({ role }: Props): React.ReactElement {
   }, [today, role]);
 
   useEffect(() => {
-    supabase.auth.getUser().then((res) => {
-      const user = res?.data?.user;
-      const full = (user?.user_metadata?.full_name as string) ?? user?.email ?? '';
-      setFirstName(full.split(' ')[0]?.split('@')[0] ?? '');
-    }).catch(() => undefined);
     void load();
     const ch = supabase.channel('dashboard-live')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'visits' }, () => { void load(); })
       .subscribe();
     return () => { void supabase.removeChannel(ch); };
   }, [load]);
-
-  const hour = clock.getHours();
-  const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
 
   const stats: StatDef[] = useMemo(() => {
     const c = counts;
@@ -174,41 +158,6 @@ export default function DashboardPage({ role }: Props): React.ReactElement {
     }
   }, [counts, role]);
 
-  const quickActions: QuickAction[] = useMemo(() => {
-    switch (role) {
-      case 'guard':
-        return [
-          { to: '/guard', title: 'Guard Console', desc: 'Register visitors, check-in & exits', icon: ICONS.chart },
-          { to: '/kiosk', title: 'Kiosk Mode', desc: 'Self-service visitor kiosk', icon: ICONS.users },
-          { to: '/whos-inside', title: "Who's Inside", desc: 'Live occupancy board', icon: ICONS.clock },
-          { to: '/gate-passes', title: 'Gate Passes', desc: 'Material movement passes', icon: ICONS.doc },
-        ];
-      case 'hod':
-        return [
-          { to: '/approvals', title: 'Approvals', desc: 'Review pending visit requests', icon: ICONS.check },
-          { to: '/whos-inside', title: "Who's Inside", desc: 'Live occupancy board', icon: ICONS.users },
-          { to: '/reports', title: 'Reports', desc: 'Daily visitor register', icon: ICONS.chart },
-          { to: '/gate-passes', title: 'Gate Passes', desc: 'Material movement passes', icon: ICONS.doc },
-        ];
-      case 'staff':
-        return [
-          { to: '/gate-passes/new', title: 'New Gate Pass', desc: 'Create a material pass', icon: ICONS.doc },
-          { to: '/whos-inside', title: "Who's Inside", desc: 'Live occupancy board', icon: ICONS.users },
-          { to: '/reports', title: 'Reports', desc: 'Daily visitor register', icon: ICONS.chart },
-        ];
-      case 'admin':
-      case 'super_admin':
-        return [
-          { to: '/admin', title: 'Admin Panel', desc: 'Users, departments & blacklist', icon: ICONS.check },
-          { to: '/reports', title: 'Reports', desc: 'Daily visitor register', icon: ICONS.chart },
-          { to: '/analytics', title: 'Analytics', desc: 'Trends & insights', icon: ICONS.users },
-          { to: '/admin/activity', title: 'Activity Log', desc: 'System audit trail', icon: ICONS.clock },
-        ];
-      default:
-        return [];
-    }
-  }, [role]);
-
   const maxWeek = Math.max(...week, 1);
   const weekLabels = useMemo(() => {
     const labels: string[] = [];
@@ -222,7 +171,7 @@ export default function DashboardPage({ role }: Props): React.ReactElement {
 
   return (
     <div className="space-y-8 animate-fade-in">
-      {/* Hero greeting */}
+      {/* Hero section */}
       <div className="card-premium p-6 sm:p-8 overflow-hidden relative">
         <div className="absolute -top-24 -right-16 w-72 h-72 rounded-full bg-gradient-to-br from-brand-500/20 to-accent-500/20 blur-3xl pointer-events-none" />
         <div className="relative flex flex-wrap items-end justify-between gap-6">
@@ -231,9 +180,8 @@ export default function DashboardPage({ role }: Props): React.ReactElement {
               {clock.toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' })}
             </p>
             <h1 className="font-display text-3xl sm:text-4xl font-bold tracking-tight text-navy-950">
-              {greeting}{firstName ? `, ` : ''}<span className="gradient-text">{firstName}</span>
+              Dashboard
             </h1>
-            <p className="text-sm text-navy-400 mt-2">Here is what's happening at your gates today.</p>
           </div>
           <div className="text-right">
             <p className="font-display text-4xl sm:text-5xl font-bold tracking-tight text-navy-950 tabular-nums">
@@ -303,30 +251,6 @@ export default function DashboardPage({ role }: Props): React.ReactElement {
                 </div>
                 <span className="text-[11px] font-medium text-navy-400">{weekLabels[i]}</span>
               </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Quick actions */}
-        <div className="card p-6">
-          <h2 className="font-display text-base font-bold text-navy-950 tracking-tight mb-1">Quick Actions</h2>
-          <p className="text-xs text-navy-400 mb-5">Jump to your frequent tasks</p>
-          <div className="space-y-2.5">
-            {quickActions.map((a) => (
-              <Link
-                key={a.to + a.title}
-                to={a.to}
-                className="flex items-center gap-3.5 p-3 rounded-xl border border-surface-200/60 dark:border-white/[0.06] hover:border-brand-500/40 hover:bg-brand-500/[0.06] hover:shadow-glow-sm transition-all duration-200 group"
-              >
-                <div className="h-9 w-9 rounded-lg bg-gradient-to-br from-brand-500/15 to-accent-500/15 text-brand-500 dark:text-brand-300 flex items-center justify-center shrink-0 group-hover:from-brand-500 group-hover:to-accent-500 group-hover:text-white transition-all duration-200">
-                  {a.icon}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-semibold text-navy-800 truncate">{a.title}</p>
-                  <p className="text-[11px] text-navy-400 truncate">{a.desc}</p>
-                </div>
-                <span className="text-navy-300 group-hover:text-brand-500 group-hover:translate-x-0.5 transition-all">{ICONS.arrow}</span>
-              </Link>
             ))}
           </div>
         </div>
