@@ -47,8 +47,16 @@ export default function GatePassForm(): React.ReactElement {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="max-w-2xl card p-6 sm:p-8 space-y-6">
-      <div><h2 className="text-lg font-bold text-navy-950">New Gate Pass</h2><p className="text-sm text-navy-400 mt-1">Create a material gate pass</p></div>
+    <form onSubmit={handleSubmit} className="max-w-2xl card-premium p-6 sm:p-8 space-y-6 animate-fade-in">
+      <div className="flex items-center gap-3.5">
+        <div className="h-11 w-11 rounded-xl bg-gradient-to-br from-brand-500 to-accent-500 text-white flex items-center justify-center shadow-glow-sm ring-1 ring-white/20">
+          <svg className="w-5.5 h-5.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M8.25 18.75a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 01-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h1.125c.621 0 1.129-.504 1.09-1.124a17.902 17.902 0 00-3.213-9.193 2.056 2.056 0 00-1.58-.86H14.25M16.5 18.75h-2.25m0-11.177v-.958c0-.568-.422-1.048-.987-1.106a48.554 48.554 0 00-10.026 0 1.106 1.106 0 00-.987 1.106v7.635m12-6.677v6.677m0 4.5v-4.5m0 0h-12" /></svg>
+        </div>
+        <div>
+          <h2 className="page-title">New Gate Pass</h2>
+          <p className="page-subtitle">Create a material gate pass</p>
+        </div>
+      </div>
 
       <div className="grid sm:grid-cols-2 gap-x-5 gap-y-4">
         <div>
@@ -56,7 +64,7 @@ export default function GatePassForm(): React.ReactElement {
           <div className="flex gap-2">
             {(['RGP', 'NRGP'] as GatePassType[]).map((t) => (
               <button key={t} type="button" onClick={() => setType(t)}
-                className={`flex-1 rounded-xl py-2.5 text-sm font-semibold transition-all ${type === t ? 'bg-navy-800 text-white shadow-sm' : 'bg-surface-50 text-navy-500 hover:bg-surface-100 border border-surface-200'}`}>{t}</button>
+                className={`flex-1 rounded-xl py-2.5 text-sm font-semibold transition-all duration-200 ${type === t ? 'bg-gradient-to-r from-brand-600 to-accent-500 text-white shadow-glow-sm ring-1 ring-white/20' : 'bg-surface-100 text-navy-500 hover:bg-surface-200 border border-surface-200/60'}`}>{t}</button>
             ))}
           </div>
         </div>
@@ -65,7 +73,7 @@ export default function GatePassForm(): React.ReactElement {
           <div className="flex gap-2">
             {(['IN', 'OUT'] as GatePassDir[]).map((d) => (
               <button key={d} type="button" onClick={() => setDirection(d)}
-                className={`flex-1 rounded-xl py-2.5 text-sm font-semibold transition-all ${direction === d ? 'bg-navy-800 text-white shadow-sm' : 'bg-surface-50 text-navy-500 hover:bg-surface-100 border border-surface-200'}`}>{d}</button>
+                className={`flex-1 rounded-xl py-2.5 text-sm font-semibold transition-all duration-200 ${direction === d ? 'bg-gradient-to-r from-brand-600 to-accent-500 text-white shadow-glow-sm ring-1 ring-white/20' : 'bg-surface-100 text-navy-500 hover:bg-surface-200 border border-surface-200/60'}`}>{d}</button>
             ))}
           </div>
         </div>
@@ -78,7 +86,7 @@ export default function GatePassForm(): React.ReactElement {
       <div>
         <div className="flex items-center justify-between mb-3">
           <label className="section-title">Item Lines *</label>
-          <button type="button" onClick={addItem} className="text-sm text-brand-700 hover:text-brand-800 font-medium transition-colors">+ Add item</button>
+          <button type="button" onClick={addItem} className="text-sm text-brand-600 hover:text-brand-500 font-medium transition-colors">+ Add item</button>
         </div>
         <div className="space-y-2">
           {items.map((it, idx) => (
@@ -86,14 +94,19 @@ export default function GatePassForm(): React.ReactElement {
               <input placeholder="Description" required maxLength={200} value={it.description} onChange={(e) => updateItem(idx, 'description', e.target.value)} className="input col-span-5" />
               <input type="number" placeholder="Qty" required min={1} max={99999} value={it.qty} onChange={(e) => updateItem(idx, 'qty', Number(e.target.value))} className="input col-span-2" />
               <input placeholder="Serial no." maxLength={100} value={it.serial_no ?? ''} onChange={(e) => updateItem(idx, 'serial_no', e.target.value || null)} className="input col-span-3" />
-              <button type="button" onClick={() => removeItem(idx)} disabled={items.length === 1} className="col-span-2 text-red-500 hover:text-red-700 text-xs font-medium disabled:opacity-30 transition-colors">Remove</button>
+              <button type="button" onClick={() => removeItem(idx)} disabled={items.length === 1} className="col-span-2 text-danger-600 hover:text-danger-500 text-xs font-medium disabled:opacity-30 transition-colors">Remove</button>
             </div>
           ))}
         </div>
       </div>
 
-      {error && (<div className="rounded-xl bg-red-50 border border-red-100 px-4 py-3"><p className="text-sm text-red-600">{error}</p></div>)}
-      <div className="flex gap-3 pt-2">
+      {error && (
+        <div className="alert-error">
+          <svg className="w-4 h-4 text-danger-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" /></svg>
+          {error}
+        </div>
+      )}
+      <div className="flex gap-3 pt-5 border-t border-surface-200/60 dark:border-white/[0.06]">
         <button type="button" onClick={() => nav('/gate-passes')} className="btn-secondary flex-1">Cancel</button>
         <button type="submit" disabled={submitting} className="btn-primary flex-1">{submitting ? 'Saving...' : 'Create Draft'}</button>
       </div>

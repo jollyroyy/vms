@@ -11,10 +11,17 @@ export default function AdminPanel(): React.ReactElement {
   const [tab, setTab] = useState<Tab>('departments');
   return (
     <div className="space-y-6">
-      <div className="page-header !mb-6">
-        <h1 className="page-title">Admin Panel</h1>
-        <p className="page-subtitle">Manage departments, approvers, users, and security</p>
-        <Link to="/admin/activity" className="text-sm text-brand-600 hover:text-brand-700 font-medium mt-2 inline-flex items-center gap-1.5">
+      <div className="page-header !mb-6 flex items-start justify-between flex-wrap gap-4">
+        <div className="flex items-center gap-4">
+          <div className="h-11 w-11 rounded-xl bg-gradient-to-br from-brand-500 to-accent-500 text-white flex items-center justify-center shadow-glow-sm ring-1 ring-white/20">
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.24-.438.613-.431.992a6.759 6.759 0 010 .255c-.007.378.138.75.43.99l1.005.828c.424.35.534.954.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.28c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.992a6.932 6.932 0 010-.255c.007-.378-.138-.75-.43-.99l-1.004-.828a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.128.332-.183.582-.495.644-.869l.214-1.281z" /><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+          </div>
+          <div>
+            <h1 className="page-title">Admin Panel</h1>
+            <p className="page-subtitle">Manage departments, approvers, users, and security</p>
+          </div>
+        </div>
+        <Link to="/admin/activity" className="glass-chip text-navy-600 hover:text-brand-600 hover:border-brand-500/30 transition-all mt-1">
           <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
           Activity Log
         </Link>
@@ -178,11 +185,11 @@ function DepartmentsTab(): React.ReactElement {
 
   return (
     <div className="space-y-5">
-      {successMsg && (<div className="rounded-xl bg-brand-50 border border-brand-200 px-4 py-3 text-sm text-brand-800 flex items-center gap-2"><span className="h-5 w-5 rounded-full bg-brand-100 flex items-center justify-center text-brand-700 text-xs font-bold shrink-0">✓</span>{successMsg}</div>)}
-      {errorMsg && (<div className="rounded-xl bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700 flex items-center gap-2"><span className="h-5 w-5 rounded-full bg-red-100 flex items-center justify-center text-red-600 text-xs font-bold shrink-0">!</span>{errorMsg}</div>)}
+      {successMsg && (<div className="alert-success"><svg className="w-4 h-4 text-success-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>{successMsg}</div>)}
+      {errorMsg && (<div className="alert-error"><svg className="w-4 h-4 text-danger-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" /></svg>{errorMsg}</div>)}
 
       {/* Add department form */}
-      <form onSubmit={add} className="card p-5 flex gap-3 flex-wrap items-end">
+      <form onSubmit={add} className="card-premium p-5 flex gap-3 flex-wrap items-end animate-fade-in">
         <div className="flex-1 min-w-40"><label className="label">Department Name</label><input required placeholder="e.g. Human Resources" value={newName} onChange={(e) => setNewName(e.target.value)} className="input" /></div>
         <div className="w-28"><label className="label">Code</label><input required placeholder="HR" value={newCode} onChange={(e) => setNewCode(e.target.value)} maxLength={10} className="input uppercase" /></div>
         <button type="submit" disabled={saving} className="btn-primary">{saving ? 'Adding...' : 'Add'}</button>
@@ -190,11 +197,11 @@ function DepartmentsTab(): React.ReactElement {
 
       {/* Department list */}
       <div className="space-y-3">
-        {depts.map((d) => {
+        {depts.map((d, idx) => {
           const hods = getHODsForDept(d.id);
           const isEditing = editingDept?.id === d.id;
           return (
-            <div key={d.id} className="card p-5">
+            <div key={d.id} className={`card card-hover p-5 animate-slide-up stagger-${Math.min(idx + 1, 5)}`}>
               {isEditing ? (
                 <form onSubmit={saveEdit} className="flex gap-3 flex-wrap items-end">
                   <div className="flex-1 min-w-40"><label className="label">Department Name</label><input required value={editName} onChange={(e) => setEditName(e.target.value)} className="input" /></div>
@@ -205,31 +212,31 @@ function DepartmentsTab(): React.ReactElement {
               ) : (
                 <>
                   <div className="flex items-center justify-between mb-3">
-                    <div>
-                      <span className="font-medium text-navy-800">{d.name}</span>
-                      <span className="text-xs text-navy-400 font-mono bg-surface-100 px-2 py-1 rounded-md ml-2">{d.code}</span>
+                    <div className="flex items-center gap-2.5">
+                      <span className="font-semibold text-navy-900">{d.name}</span>
+                      <span className="glass-chip !px-2 !py-0.5 !text-[11px] font-mono text-navy-500">{d.code}</span>
                     </div>
-                    <div className="flex gap-2">
-                      <button onClick={() => startEdit(d)} className="text-xs font-medium text-navy-500 hover:text-navy-700 px-3 py-1.5 rounded-lg hover:bg-surface-100 transition-colors" title="Edit department">Edit</button>
-                      <button onClick={() => setDeletingDeptId(d.id)} className="text-xs font-medium text-red-500 hover:text-red-700 px-3 py-1.5 rounded-lg hover:bg-red-50 transition-colors" title="Delete department">Delete</button>
+                    <div className="flex gap-1.5">
+                      <button onClick={() => startEdit(d)} className="btn-ghost !px-3 !py-1.5 !text-xs" title="Edit department">Edit</button>
+                      <button onClick={() => setDeletingDeptId(d.id)} className="text-xs font-medium text-danger-600 hover:text-danger-700 px-3 py-1.5 rounded-xl hover:bg-danger-50 active:scale-[0.97] transition-all" title="Delete department">Delete</button>
                     </div>
                   </div>
 
                   {/* Approvers section */}
-                  <div className="border-t border-surface-100 pt-3 mt-1">
-                    <p className="text-xs font-medium text-navy-400 uppercase tracking-wider mb-2">Approvers</p>
+                  <div className="border-t border-surface-200/60 dark:border-white/[0.06] pt-3 mt-1">
+                    <p className="section-title mb-2">Approvers</p>
                     {hods.length === 0 && <p className="text-sm text-navy-300 italic mb-2">No approvers assigned</p>}
                     {hods.map((hod) => (
-                      <div key={hod.id} className="flex items-center justify-between py-1.5 px-2 rounded-lg hover:bg-surface-50 group">
+                      <div key={hod.id} className="flex items-center justify-between py-1.5 px-2 rounded-xl hover:bg-surface-100/60 dark:hover:bg-white/[0.03] transition-colors group">
                         <div className="flex items-center gap-2.5">
-                          <div className="h-7 w-7 rounded-full bg-brand-100 flex items-center justify-center">
-                            <span className="text-brand-600 text-[10px] font-semibold">{hod.full_name?.slice(0, 2).toUpperCase() ?? '??'}</span>
+                          <div className="h-8 w-8 rounded-full avatar-gradient flex items-center justify-center">
+                            <span className="text-[10px] font-semibold">{hod.full_name?.slice(0, 2).toUpperCase() ?? '??'}</span>
                           </div>
                           <div>
-                            <p className="text-sm font-medium text-navy-700">{hod.full_name}</p>
+                            <p className="text-sm font-medium text-navy-800">{hod.full_name}</p>
                             <p className="text-xs text-navy-400">{hod.email}</p>
                           </div>
-                          {hod.delegate_id && <span className="text-[10px] text-navy-300 bg-surface-100 px-1.5 py-0.5 rounded">has delegate</span>}
+                          {hod.delegate_id && <span className="glass-chip !px-1.5 !py-0.5 !text-[10px] text-navy-400">has delegate</span>}
                         </div>
                         <div className="flex items-center gap-1">
                           {settingDelegateFor === hod.id ? (
@@ -241,14 +248,14 @@ function DepartmentsTab(): React.ReactElement {
                               ))}
                             </select>
                           ) : (
-                            <button onClick={() => setSettingDelegateFor(hod.id)} className="text-xs text-navy-400 hover:text-navy-600 opacity-0 group-hover:opacity-100 transition-all px-2 py-1 rounded hover:bg-surface-100">Delegate</button>
+                            <button onClick={() => setSettingDelegateFor(hod.id)} className="text-xs text-navy-400 hover:text-navy-700 opacity-0 group-hover:opacity-100 transition-all px-2 py-1 rounded-lg hover:bg-surface-100">Delegate</button>
                           )}
-                          <button onClick={() => removeApprover(hod.id, hod.full_name ?? '')} className="text-xs text-red-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-all px-2 py-1 rounded hover:bg-red-50">Remove</button>
+                          <button onClick={() => removeApprover(hod.id, hod.full_name ?? '')} className="text-xs text-danger-600/70 hover:text-danger-700 opacity-0 group-hover:opacity-100 transition-all px-2 py-1 rounded-lg hover:bg-danger-50">Remove</button>
                         </div>
                       </div>
                     ))}
                     {addingApproverFor === d.id ? (
-                      <div className="mt-2 border border-surface-200 rounded-lg p-3 bg-surface-50">
+                      <div className="mt-2 rounded-xl border border-surface-200/70 dark:border-white/[0.08] p-3 bg-surface-50/60 dark:bg-white/[0.03]">
                         <select
                           className="input w-full text-sm mb-2"
                           defaultValue=""
@@ -262,7 +269,7 @@ function DepartmentsTab(): React.ReactElement {
                         <button onClick={() => setAddingApproverFor(null)} className="text-xs text-navy-400 hover:text-navy-600">Cancel</button>
                       </div>
                     ) : (
-                      <button onClick={() => setAddingApproverFor(d.id)} className="mt-2 text-xs font-medium text-brand-600 hover:text-brand-700 px-2 py-1.5 rounded-lg hover:bg-brand-50 transition-colors inline-flex items-center gap-1">
+                      <button onClick={() => setAddingApproverFor(d.id)} className="mt-2 text-xs font-semibold px-2.5 py-1.5 rounded-lg inline-flex items-center gap-1 bg-gradient-to-r from-brand-500/10 to-accent-500/10 text-brand-600 dark:text-brand-300 border border-brand-500/20 hover:border-brand-500/40 transition-all">
                         <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
                         Add Approver
                       </button>
@@ -273,18 +280,25 @@ function DepartmentsTab(): React.ReactElement {
             </div>
           );
         })}
-        {depts.length === 0 && <p className="text-sm text-navy-300 text-center py-8">No departments yet. Add one above.</p>}
+        {depts.length === 0 && (
+          <div className="empty-state">
+            <p className="text-sm text-navy-300">No departments yet. Add one above.</p>
+          </div>
+        )}
       </div>
 
       {/* Delete confirmation modal */}
       {deletingDeptId && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-          <div className="bg-white rounded-2xl shadow-xl max-w-sm w-full mx-4 p-6">
-            <h3 className="text-lg font-semibold text-navy-900 mb-2">Delete Department?</h3>
+        <div className="modal-overlay">
+          <div className="modal-content p-6">
+            <div className="h-11 w-11 rounded-xl bg-danger-50 text-danger-600 border border-danger-500/20 flex items-center justify-center mb-4">
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" /></svg>
+            </div>
+            <h3 className="text-lg font-semibold text-navy-900 font-display mb-2">Delete Department?</h3>
             <p className="text-sm text-navy-500 mb-6">This will unlink all users from this department and remove their HOD role. Visits and gate passes linked to this department may prevent deletion.</p>
             <div className="flex gap-3 justify-end">
               <button onClick={() => setDeletingDeptId(null)} className="btn-secondary">Cancel</button>
-              <button onClick={confirmDelete} disabled={deleteSaving} className="bg-red-600 text-white rounded-xl px-5 py-2.5 text-sm font-semibold hover:bg-red-700 disabled:opacity-50 shadow-sm transition-all">{deleteSaving ? 'Deleting...' : 'Delete'}</button>
+              <button onClick={confirmDelete} disabled={deleteSaving} className="btn-danger">{deleteSaving ? 'Deleting...' : 'Delete'}</button>
             </div>
           </div>
         </div>
@@ -337,10 +351,10 @@ function UsersTab(): React.ReactElement {
   return (
     <div className="space-y-5">
       {/* Invite user form (C-03) */}
-      <form onSubmit={sendInvite} className="card p-5 space-y-4">
-        <h3 className="text-sm font-bold text-navy-900">Invite New User</h3>
-        {inviteSuccess && <div className="rounded-xl bg-brand-50 border border-brand-200 px-4 py-3 text-sm text-brand-800 flex items-center gap-2"><span className="shrink-0">✓</span>{inviteSuccess}</div>}
-        {inviteError && <div className="rounded-xl bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">{inviteError}</div>}
+      <form onSubmit={sendInvite} className="card-premium p-5 space-y-4 animate-fade-in">
+        <h3 className="section-title !text-navy-700">Invite New User</h3>
+        {inviteSuccess && <div className="alert-success"><svg className="w-4 h-4 text-success-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>{inviteSuccess}</div>}
+        {inviteError && <div className="alert-error">{inviteError}</div>}
         <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
           <div><label className="label">Full Name</label><input required value={inviteName} onChange={(e) => setInviteName(e.target.value)} className="input" placeholder="John Doe" /></div>
           <div><label className="label">Email</label><input required type="email" value={inviteEmail} onChange={(e) => setInviteEmail(e.target.value)} className="input" placeholder="john@company.com" /></div>
@@ -356,13 +370,16 @@ function UsersTab(): React.ReactElement {
       </form>
 
       <div className="space-y-2">
-      {users.map((u) => (
-        <div key={u.id} className="card px-5 py-3.5 flex items-center gap-4">
-          <div className="h-9 w-9 rounded-full bg-navy-800 flex items-center justify-center shrink-0">
-            <span className="text-brand-300 text-[11px] font-semibold">{u.full_name?.slice(0, 2).toUpperCase() ?? '??'}</span>
+      {users.map((u, idx) => (
+        <div key={u.id} className={`card card-hover px-5 py-3.5 flex items-center gap-4 animate-slide-up stagger-${Math.min(idx + 1, 5)}`}>
+          <div className="avatar-md avatar-gradient">
+            <span>{u.full_name?.slice(0, 2).toUpperCase() ?? '??'}</span>
           </div>
           <div className="flex-1 min-w-0">
-            <p className="font-medium text-navy-800 truncate">{u.full_name}</p>
+            <div className="flex items-center gap-2">
+              <p className="font-medium text-navy-900 truncate">{u.full_name}</p>
+              <span className="inline-flex items-center rounded-full text-[10px] font-semibold px-2 py-0.5 bg-gradient-to-r from-brand-500/15 to-accent-500/15 text-brand-600 dark:text-brand-300 border border-brand-500/20">{u.role.replace('_', ' ')}</span>
+            </div>
             <p className="text-xs text-navy-400">{u.email}</p>
             <p className="text-xs text-navy-300">{u.department_id ? (deptMap[u.department_id]?.name ?? 'Unknown Department') : 'No department'}</p>
           </div>
@@ -404,20 +421,32 @@ function BlacklistTab(): React.ReactElement {
 
   return (
     <div className="space-y-5">
-      {error && <div className="rounded-xl bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">{error}</div>}
-      <form onSubmit={add} className="card p-5 flex gap-3 flex-wrap items-end">
+      {error && <div className="alert-error">{error}</div>}
+      <form onSubmit={add} className="card-premium p-5 flex gap-3 flex-wrap items-end animate-fade-in border-danger-500/20">
         <div className="flex-1 min-w-40"><label className="label">Phone Number</label><input required type="tel" maxLength={20} placeholder="+91 98765 43210" value={phone} onChange={(e) => setPhone(e.target.value)} className="input" /></div>
         <div className="flex-1 min-w-40"><label className="label">Reason</label><input required maxLength={500} placeholder="Reason for blacklisting" value={reason} onChange={(e) => setReason(e.target.value)} className="input" /></div>
-        <button type="submit" disabled={saving} className="bg-red-600 text-white rounded-xl px-5 py-2.5 text-sm font-semibold hover:bg-red-700 disabled:opacity-50 shadow-sm transition-all">{saving ? 'Adding...' : 'Blacklist'}</button>
+        <button type="submit" disabled={saving} className="btn-danger">{saving ? 'Adding...' : 'Blacklist'}</button>
       </form>
       <div className="space-y-2">
-        {entries.map((e) => (
-          <div key={e.id} className="card border-red-100 bg-red-50/30 px-5 py-3.5 flex items-center justify-between">
-            <div><p className="font-medium text-navy-800">{e.full_name}</p><p className="text-xs text-navy-400 mt-0.5">{e.phone} · {e.blacklist_reason}</p></div>
-            <button onClick={() => remove(e.id)} className="text-xs font-medium text-red-600 hover:text-red-700 px-3 py-1.5 rounded-lg hover:bg-red-100 transition-colors">Remove</button>
+        {entries.map((e, idx) => (
+          <div key={e.id} className={`card px-5 py-3.5 flex items-center justify-between gap-4 border-danger-500/20 bg-danger-50/40 dark:bg-danger-500/[0.05] animate-slide-up stagger-${Math.min(idx + 1, 5)}`}>
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="h-9 w-9 rounded-xl bg-danger-50 text-danger-600 border border-danger-500/20 flex items-center justify-center shrink-0">
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" /></svg>
+              </div>
+              <div className="min-w-0">
+                <p className="font-medium text-navy-900 truncate">{e.full_name}</p>
+                <p className="text-xs text-navy-400 mt-0.5 truncate">{e.phone} · {e.blacklist_reason}</p>
+              </div>
+            </div>
+            <button onClick={() => remove(e.id)} className="text-xs font-medium text-danger-600 hover:text-danger-700 px-3 py-1.5 rounded-xl hover:bg-danger-100/60 dark:hover:bg-danger-500/10 active:scale-[0.97] transition-all shrink-0">Remove</button>
           </div>
         ))}
-        {entries.length === 0 && <p className="text-sm text-navy-300 text-center py-8">No blacklist entries</p>}
+        {entries.length === 0 && (
+          <div className="empty-state">
+            <p className="text-sm text-navy-300">No blacklist entries</p>
+          </div>
+        )}
       </div>
     </div>
   );

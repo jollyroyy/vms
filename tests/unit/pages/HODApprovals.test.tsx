@@ -6,6 +6,7 @@ import HODApprovals from '../../../src/pages/HOD/Approvals';
 
 const mockGetUser = vi.hoisted(() => vi.fn());
 const mockOrder = vi.hoisted(() => vi.fn());
+const mockGte = vi.hoisted(() => vi.fn(() => ({ order: mockOrder })));
 const mockRpc = vi.hoisted(() => vi.fn());
 const mockChannel = vi.hoisted(() => vi.fn());
 
@@ -19,10 +20,23 @@ vi.mock('../../../src/lib/formatDate', () => ({
   formatDuration: () => null,
 }));
 
+let mockData: any;
+const mockEqChain = vi.hoisted(() => vi.fn(() => ({
+  in: vi.fn(() => ({ order: (col: string, opts: any) => Promise.resolve(mockData) })),
+  gte: (col: string, val: any) => ({ order: (c: string, o: any) => Promise.resolve(mockData) }),
+  eq: mockEqChain,
+  order: (col: string, opts: any) => ({ limit: (n: number) => Promise.resolve(mockData) }),
+  limit: (n: number) => Promise.resolve(mockData),
+})));
+
 vi.mock('../../../src/supabaseClient', () => ({
   supabase: {
     auth: { getUser: mockGetUser },
-    from: () => ({ select: () => ({ eq: () => ({ in: () => ({ order: mockOrder }) }) }) }),
+    from: () => ({
+      select: () => ({
+        eq: mockEqChain,
+      }),
+    }),
     rpc: mockRpc,
     channel: mockChannel,
     removeChannel: vi.fn(),
@@ -55,34 +69,33 @@ const mockRejected = {
   visitor: { ...mockPending.visitor, full_name: 'Rejected Visitor' },
 };
 
-const setup = () => {
+const setup = (data?: { data: any[]; error: null }) => {
   mockGetUser.mockResolvedValue({ data: { user: { id: 'u1', app_metadata: { department_id: 'dept1' } } } });
   mockChannel.mockReturnValue({ on: () => ({ subscribe: vi.fn().mockReturnValue('sub-1') }) });
+  const resolved = data ?? { data: [], error: null };
+  mockData = resolved;
 };
 
 describe('M12-HOD: HODApprovals', () => {
   it('renders title', async () => {
     setup();
-    mockOrder.mockResolvedValue({ data: [], error: null });
     render(<MemoryRouter><HODApprovals /></MemoryRouter>);
-    await waitFor(() => expect(screen.getByText('Approvals')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText('Dashboard')).toBeInTheDocument());
   });
 
   it('shows all four tabs', async () => {
     setup();
-    mockOrder.mockResolvedValue({ data: [], error: null });
     render(<MemoryRouter><HODApprovals /></MemoryRouter>);
     await waitFor(() => {
-      expect(screen.getByText('Pending Approvals')).toBeInTheDocument();
-      expect(screen.getByText('Approved')).toBeInTheDocument();
-      expect(screen.getByText('Rejected')).toBeInTheDocument();
+      expect(screen.getAllByText('Pending').length).toBeGreaterThanOrEqual(1);
+      expect(screen.getAllByText('Approved').length).toBeGreaterThanOrEqual(1);
+      expect(screen.getAllByText('Rejected').length).toBeGreaterThanOrEqual(1);
       expect(screen.getByText('Pre-Approve')).toBeInTheDocument();
     });
   });
 
   it('shows empty state when no pending visits', async () => {
     setup();
-    mockOrder.mockResolvedValue({ data: [], error: null });
     render(<MemoryRouter><HODApprovals /></MemoryRouter>);
     await waitFor(() => {
       expect(screen.getByText('No pending approvals right now')).toBeInTheDocument();
@@ -90,8 +103,7 @@ describe('M12-HOD: HODApprovals', () => {
   });
 
   it('renders pending visit rows', async () => {
-    setup();
-    mockOrder.mockResolvedValue({ data: [mockPending], error: null });
+    setup({ data: [mockPending], error: null });
     render(<MemoryRouter><HODApprovals /></MemoryRouter>);
     await waitFor(() => {
       expect(screen.getByText('VIS-001')).toBeInTheDocument();
@@ -99,25 +111,23 @@ describe('M12-HOD: HODApprovals', () => {
   });
 
   it('shows approved visits in Approved tab', async () => {
-    setup();
-    mockOrder.mockResolvedValue({ data: [mockApproved], error: null });
+    setup({ data: [mockApproved], error: null });
     render(<MemoryRouter><HODApprovals /></MemoryRouter>);
     await waitFor(() => {
-      expect(screen.getByText('Pending Approvals')).toBeInTheDocument();
+      expect(screen.getAllByText('Pending').length).toBeGreaterThanOrEqual(1);
     });
-    fireEvent.click(screen.getByText('Approved'));
+    fireEvent.click(screen.getAllByText('Approved')[0]);
     await waitFor(() => {
-      expect(screen.getByText('Approved Visitor')).toBeInTheDocument();
+      expect(screen.getAllByText('Approved Visitor').length).toBeGreaterThanOrEqual(1);
     });
   });
 
   it('shows rejected visits with reason in Rejected tab', async () => {
-    setup();
-    mockOrder.mockResolvedValue({ data: [mockRejected], error: null });
+    setup({ data: [mockRejected], error: null });
     render(<MemoryRouter><HODApprovals /></MemoryRouter>);
-    fireEvent.click(screen.getByText('Rejected'));
+    fireEvent.click(screen.getAllByText('Rejected')[0]);
     await waitFor(() => {
-      expect(screen.getByText('Rejected Visitor')).toBeInTheDocument();
+      expect(screen.getAllByText('Rejected Visitor').length).toBeGreaterThanOrEqual(1);
       expect(screen.getByText(/Not authorized/)).toBeInTheDocument();
     });
   });
@@ -128,6 +138,25 @@ describe('M12-HOD: HODApprovals', () => {
     render(<MemoryRouter><HODApprovals /></MemoryRouter>);
     await waitFor(() => {
       expect(screen.getByText('Not authenticated.')).toBeInTheDocument();
+    });
+  });
+
+  it('renders stat cards', async () => {
+    setup();
+    render(<MemoryRouter><HODApprovals /></MemoryRouter>);
+    await waitFor(() => {
+      expect(screen.getByText('Approved Today')).toBeInTheDocument();
+      expect(screen.getByText('Rejected Today')).toBeInTheDocument();
+      expect(screen.getByText('Avg. Response')).toBeInTheDocument();
+    });
+  });
+
+  it('renders recent activity sidebar', async () => {
+    setup();
+    render(<MemoryRouter><HODApprovals /></MemoryRouter>);
+    await waitFor(() => {
+      expect(screen.getByText('Recent Activity')).toBeInTheDocument();
+      expect(screen.getByText("Today's Summary")).toBeInTheDocument();
     });
   });
 });

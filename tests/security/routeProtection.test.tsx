@@ -4,18 +4,34 @@
 // This guarantees that passing tests mean the actual component enforces the correct rules.
 // If ROLE_ROUTES changes in roleRoutes.ts, these tests automatically reflect the change.
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import React from 'react';
+import { render, screen, cleanup, waitFor } from '@testing-library/react';
 import { isForbidden, ROLE_ROUTES } from '../../src/lib/roleRoutes';
+import App from '../../src/App';
 
 // Mock supabase (imported transitively; ensures signOut spy works in component tests if added later)
-const signOut = vi.fn();
+const { signOut, getSession, onAuthStateChange } = vi.hoisted(() => ({
+  signOut: vi.fn(),
+  getSession: vi.fn(),
+  onAuthStateChange: vi.fn(() => ({ data: { subscription: { unsubscribe: vi.fn() } } })),
+}));
 vi.mock('../../src/supabaseClient', () => ({
-  supabase: { auth: { signOut } },
+  supabase: { auth: { signOut, getSession, onAuthStateChange } },
+}));
+
+vi.mock('../../src/lib/theme', () => ({
+  ThemeProvider: (props: { children: any }) => props.children,
+  useTheme: () => ({ theme: 'dark', toggleTheme: vi.fn() }),
 }));
 
 beforeEach(() => {
   signOut.mockClear();
+  getSession.mockClear();
+  onAuthStateChange.mockClear();
 });
+
+afterEach(cleanup);
 
 describe('SEC-7: frontend route protection', () => {
   // ── Guard ──────────────────────────────────────────────────
@@ -149,5 +165,57 @@ describe('SEC-7: frontend route protection', () => {
     for (const role of nonAdminRoles) {
       expect(isForbidden('/admin', role), `${role} must be forbidden on /admin`).toBe(true);
     }
+  });
+
+  // ── /dashboard route — every role is allowed ───────────────
+  describe('/dashboard route', () => {
+    it('every authenticated role is allowed on /dashboard', () => {
+      for (const role of Object.keys(ROLE_ROUTES) as (keyof typeof ROLE_ROUTES)[]) {
+        expect(isForbidden('/dashboard', role), `${role} must be allowed on /dashboard`).toBe(false);
+      }
+    });
+  });
+
+  // ── Unauthenticated component gate — App.tsx session guard ──
+  describe('unauthenticated users (component gate)', () => {
+    it('renders the login page instead of dashboard when session is null', async () => {
+      getSession.mockResolvedValue({ data: { session: null } });
+
+      window.history.pushState({}, '', '/dashboard');
+      render(<App />);
+
+      // The login page has a login button; the dashboard does NOT appear
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: 'Sign in' })).toBeInTheDocument();
+      });
+      expect(screen.queryByText("Today's Visits")).not.toBeInTheDocument();
+    });
+
+    it('shows login page elements and never the authenticated sidebar when unauthenticated', async () => {
+      getSession.mockResolvedValue({ data: { session: null } });
+
+      window.history.pushState({}, '', '/');
+      render(<App />);
+
+      await waitFor(() => {
+        expect(screen.getByText('Forgot password?')).toBeInTheDocument();
+      });
+      // Sidebar-specific section header must not appear
+      expect(screen.queryByText('Menu')).not.toBeInTheDocument();
+      // Sidebar sign-out button must not appear
+      expect(screen.queryByTitle('Sign out')).not.toBeInTheDocument();
+    });
+
+    it('redirects /dashboard to / when user is not authenticated', async () => {
+      getSession.mockResolvedValue({ data: { session: null } });
+
+      window.history.pushState({}, '', '/dashboard');
+      render(<App />);
+
+      await waitFor(() => {
+        expect(screen.getByText('Forgot password?')).toBeInTheDocument();
+      });
+      expect(window.location.pathname).toBe('/');
+    });
   });
 });

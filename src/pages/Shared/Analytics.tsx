@@ -106,16 +106,18 @@ export default function AnalyticsPage(): React.ReactElement {
     <div className="space-y-6 animate-fade-in">
       {/* Header */}
       <div className="flex items-start justify-between flex-wrap gap-4">
-        <div>
-          <h1 className="page-title flex items-center gap-3">
-            <svg className="w-6 h-6 text-brand-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+        <div className="flex items-center gap-3.5">
+          <div className="h-11 w-11 rounded-xl bg-gradient-to-br from-brand-500 to-accent-500 text-white flex items-center justify-center shadow-glow-sm ring-1 ring-white/20">
+            <svg className="w-5.5 h-5.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.455 2.456L21.75 6l-1.036.259a3.375 3.375 0 00-2.455 2.456z" />
             </svg>
-            Analytics
-          </h1>
-          <p className="page-subtitle">
-            {userRole === 'hod' ? 'Your department insights' : 'Organization-wide visitor intelligence'}
-          </p>
+          </div>
+          <div>
+            <h1 className="page-title">Analytics</h1>
+            <p className="page-subtitle">
+              {userRole === 'hod' ? 'Your department insights' : 'Organization-wide visitor intelligence'}
+            </p>
+          </div>
         </div>
         <div className="tab-group">
           {(['7d', '30d', '90d'] as const).map((p) => (
@@ -139,30 +141,30 @@ export default function AnalyticsPage(): React.ReactElement {
         <>
           {/* KPI Cards */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="stat-card">
-              <div className="h-9 w-9 rounded-xl bg-brand-50 flex items-center justify-center mb-2">
+            <div className="stat-card card-hover animate-slide-up stagger-1">
+              <div className="h-9 w-9 rounded-xl bg-brand-50 flex items-center justify-center mb-2 ring-1 ring-brand-500/10">
                 <svg className="w-4.5 h-4.5 text-brand-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" /></svg>
               </div>
               <p className="stat-value">{totalVisits}</p>
               <p className="stat-label">Total Visitors</p>
             </div>
-            <div className="stat-card">
-              <div className="h-9 w-9 rounded-xl bg-success-50 flex items-center justify-center mb-2">
+            <div className="stat-card card-hover animate-slide-up stagger-2">
+              <div className="h-9 w-9 rounded-xl bg-success-50 flex items-center justify-center mb-2 ring-1 ring-success-500/10">
                 <svg className="w-4.5 h-4.5 text-success-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
               </div>
               <p className="stat-value">{approvalRate}%</p>
               <p className="stat-label">Approval Rate</p>
             </div>
-            <div className="stat-card">
-              <div className="h-9 w-9 rounded-xl bg-warning-50 flex items-center justify-center mb-2">
+            <div className="stat-card card-hover animate-slide-up stagger-3">
+              <div className="h-9 w-9 rounded-xl bg-warning-50 flex items-center justify-center mb-2 ring-1 ring-warning-500/10">
                 <svg className="w-4.5 h-4.5 text-warning-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
               </div>
               <p className="stat-value">{peakHour > 0 ? `${peakHour}:00` : '--'}</p>
               <p className="stat-label">Peak Hour</p>
             </div>
-            <div className="stat-card">
-              <div className="h-9 w-9 rounded-xl bg-purple-50 flex items-center justify-center mb-2">
-                <svg className="w-4.5 h-4.5 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 3v11.25A2.25 2.25 0 006 16.5h2.25M3.75 3h-1.5m1.5 0h16.5m0 0h1.5m-1.5 0v11.25A2.25 2.25 0 0118 16.5h-2.25m-7.5 0h7.5m-7.5 0l-1 3m8.5-3l1 3m0 0l.5 1.5m-.5-1.5h-9.5m0 0l-.5 1.5m.75-9l3-3 2.148 2.148A12.061 12.061 0 0116.5 7.605" /></svg>
+            <div className="stat-card card-hover animate-slide-up stagger-4">
+              <div className="h-9 w-9 rounded-xl bg-brand-100 flex items-center justify-center mb-2 ring-1 ring-brand-500/10">
+                <svg className="w-4.5 h-4.5 text-brand-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 3v11.25A2.25 2.25 0 006 16.5h2.25M3.75 3h-1.5m1.5 0h16.5m0 0h1.5m-1.5 0v11.25A2.25 2.25 0 0118 16.5h-2.25m-7.5 0h7.5m-7.5 0l-1 3m8.5-3l1 3m0 0l.5 1.5m-.5-1.5h-9.5m0 0l-.5 1.5m.75-9l3-3 2.148 2.148A12.061 12.061 0 0116.5 7.605" /></svg>
               </div>
               <p className="stat-value">{avgDurationMins > 0 ? `${avgDurationMins}m` : '--'}</p>
               <p className="stat-label">Avg Duration</p>
@@ -181,7 +183,7 @@ export default function AnalyticsPage(): React.ReactElement {
                   {dailyTrend.slice(-14).map(([day, count]) => (
                     <div key={day} className="flex items-center gap-3">
                       <span className="text-[10px] text-navy-400 font-mono w-16 shrink-0">{day.slice(5)}</span>
-                      <div className="flex-1 h-5 bg-surface-50 rounded-md overflow-hidden">
+                      <div className="flex-1 h-5 bg-surface-100 rounded-md overflow-hidden">
                         <div
                           className="h-full bg-gradient-to-r from-brand-400 to-brand-600 rounded-md transition-all duration-500"
                           style={{ width: `${(count / maxDaily) * 100}%` }}
@@ -208,9 +210,9 @@ export default function AnalyticsPage(): React.ReactElement {
                         <span className="text-xs text-navy-500 font-medium w-14 shrink-0">
                           {hour.toString().padStart(2, '0')}:00
                         </span>
-                        <div className="flex-1 h-6 bg-surface-50 rounded-lg overflow-hidden">
+                        <div className="flex-1 h-6 bg-surface-100 rounded-lg overflow-hidden">
                           <div
-                            className="h-full bg-gradient-to-r from-warning-300 to-warning-500 rounded-lg transition-all duration-500 flex items-center justify-end pr-2"
+                            className="h-full bg-gradient-to-r from-warning-500 to-warning-600 rounded-lg transition-all duration-500 flex items-center justify-end pr-2"
                             style={{ width: `${(count / maxCount) * 100}%` }}
                           >
                             {count > 2 && <span className="text-[10px] font-bold text-white">{count}</span>}
@@ -259,7 +261,7 @@ export default function AnalyticsPage(): React.ReactElement {
                 ) : (
                   <div className="space-y-3">
                     {deptStats.map((dept) => (
-                      <div key={dept.name} className="flex items-center justify-between py-2 border-b border-surface-100 last:border-0">
+                      <div key={dept.name} className="flex items-center justify-between py-2 border-b border-surface-200/50 dark:border-white/[0.05] last:border-0">
                         <div>
                           <p className="text-sm font-medium text-navy-800">{dept.name}</p>
                           <div className="flex gap-3 mt-0.5">

@@ -50,7 +50,7 @@ export default function GuardConsole(): React.ReactElement {
     setActionErr('');
     try {
       const { error } = await supabase.from('visits').update({ status: 'checked_out', checked_out_at: new Date().toISOString(), exit_verified: true }).eq('id', visit.id);
-      if (error) { setActionErr(error.message); return; }
+      if (error) { setActionErr(safeErrorMessage(error, 'Failed to log exit.')); return; }
       void loadVisits();
     } catch (err) { setActionErr(safeErrorMessage(err, 'Failed to log exit.')); }
   };
@@ -60,7 +60,7 @@ export default function GuardConsole(): React.ReactElement {
     setActionErr('');
     try {
       const { error } = await supabase.from('visits').update({ status: 'checked_in', checked_in_at: new Date().toISOString() }).eq('id', visit.id);
-      if (error) { setActionErr(error.message); return; }
+      if (error) { setActionErr(safeErrorMessage(error, 'Failed to check in.')); return; }
       void loadVisits();
     } catch (err) { setActionErr(safeErrorMessage(err, 'Failed to check in.')); }
   };
@@ -328,7 +328,7 @@ export default function GuardConsole(): React.ReactElement {
               <div className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-surface-100 mb-3">
                 <svg className="w-6 h-6 text-navy-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" /></svg>
               </div>
-              <p className="text-navy-400 font-medium">No visitors currently inside</p>
+              <p className="text-navy-400 font-medium">No checked-in visitors</p>
             </div>
           )}
         </div>

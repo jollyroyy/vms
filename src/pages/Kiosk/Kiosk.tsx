@@ -19,6 +19,18 @@ const PURPOSES: { value: VisitorPurpose; label: string }[] = [
 
 type Step = 'idle' | 'phone' | 'form' | 'badge';
 
+const DARK_STAGE = 'relative min-h-screen bg-gradient-to-br from-brand-950 via-brand-900 to-accent-900 overflow-hidden';
+
+function AuroraBackdrop(): React.ReactElement {
+  return (
+    <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden="true">
+      <div className="absolute -top-32 -left-32 w-96 h-96 rounded-full bg-brand-500/25 blur-3xl animate-aurora" />
+      <div className="absolute top-1/3 -right-32 w-[28rem] h-[28rem] rounded-full bg-accent-500/20 blur-3xl animate-aurora-alt" />
+      <div className="absolute -bottom-32 left-1/3 w-96 h-96 rounded-full bg-brand-700/25 blur-3xl animate-aurora" />
+    </div>
+  );
+}
+
 export default function Kiosk(): React.ReactElement {
   const [step, setStep] = useState<Step>('idle');
 
@@ -249,76 +261,78 @@ export default function Kiosk(): React.ReactElement {
   };
 
   const renderIdle = () => (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-navy-950 via-navy-900 to-brand-950 p-8">
-      <div className="animate-fade-in text-center max-w-lg">
-        <div className="h-20 w-20 rounded-3xl bg-gradient-to-br from-brand-500 to-brand-700 flex items-center justify-center mx-auto shadow-glow ring-4 ring-brand-500/20 mb-8">
+    <div className={`${DARK_STAGE} flex flex-col items-center justify-center p-8`}>
+      <AuroraBackdrop />
+      <div className="relative animate-fade-in text-center max-w-lg">
+        <div className="h-20 w-20 rounded-3xl bg-gradient-to-br from-brand-500 to-accent-500 flex items-center justify-center mx-auto shadow-glow-mix ring-4 ring-white/10 mb-8">
           <svg className="w-10 h-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
           </svg>
         </div>
-        <h1 className="text-4xl font-bold text-white tracking-tight mb-2">SecureGate</h1>
-        <p className="text-lg text-brand-300/80 mb-2">Visitor Self Check-in Kiosk</p>
-        <p className="text-sm text-navy-400 mb-12">Touch the screen to begin</p>
+        <h1 className="text-4xl font-bold text-white tracking-tight font-display mb-2">SecureGate</h1>
+        <p className="text-lg text-brand-200/80 mb-2">Visitor Self Check-in Kiosk</p>
+        <p className="text-sm text-white/50 mb-12">Touch the screen to begin</p>
         <button onClick={() => { clearIdleTimer(); setStep('phone'); }}
-          className="w-64 bg-gradient-to-r from-brand-500 to-brand-600 text-white rounded-2xl px-8 py-5 text-xl font-bold hover:from-brand-600 hover:to-brand-700 active:scale-[0.97] shadow-soft hover:shadow-glow transition-all duration-200 animate-soft-pulse">
+          className="w-64 bg-gradient-to-r from-brand-500 to-accent-500 text-white rounded-2xl px-8 py-5 text-xl font-bold hover:shadow-glow-accent active:scale-[0.97] shadow-glow-mix transition-all duration-200 animate-pulse-soft">
           Tap to Start
         </button>
-        <p className="text-xs text-navy-500 mt-8">Tap anywhere or press any key</p>
+        <p className="text-xs text-white/40 mt-8">Tap anywhere or press any key</p>
       </div>
     </div>
   );
 
   const renderPhone = () => (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-navy-950 via-navy-900 to-brand-950 p-8">
-      <div className="w-full max-w-md animate-fade-in">
-        <button onClick={() => resetAll()} className="text-brand-300 hover:text-white text-sm mb-8 flex items-center gap-1 transition-colors">
+    <div className={`${DARK_STAGE} flex flex-col items-center justify-center p-8`}>
+      <AuroraBackdrop />
+      <div className="relative w-full max-w-md animate-fade-in">
+        <button onClick={() => resetAll()} className="text-brand-200 hover:text-white text-sm mb-8 flex items-center gap-1 transition-colors">
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" /></svg>
           Back
         </button>
         <div className="text-center mb-8">
-          <h2 className="text-2xl font-bold text-white mb-2">Welcome</h2>
-          <p className="text-brand-300/80">Enter your mobile number to check in</p>
+          <h2 className="text-2xl font-bold text-white font-display mb-2">Welcome</h2>
+          <p className="text-brand-200/80">Enter your mobile number to check in</p>
         </div>
         <input type="tel" autoFocus maxLength={20} value={phone}
           onChange={(e) => { setPhone(e.target.value); setRecalledName(null); setBlacklistHit(null); setPreApprovedVisit(null); }}
           onKeyDown={(e) => { if (e.key === 'Enter') handlePhoneSubmit(); if (e.key === 'Escape') resetAll(); }}
           placeholder="+91 98765 43210"
-          className="w-full text-center text-2xl bg-white/10 border-2 border-white/20 rounded-2xl px-6 py-5 text-white placeholder-white/30 outline-none focus:border-brand-400 focus:bg-white/15 transition-all" />
+          className="w-full text-center text-2xl bg-white/10 backdrop-blur-xl border-2 border-white/20 rounded-2xl px-6 py-5 text-white placeholder-white/30 outline-none focus:border-brand-300 focus:bg-white/15 transition-all" />
         <div className="flex gap-3 mt-6">
-          <button onClick={() => resetAll()} className="flex-1 bg-white/10 text-white rounded-xl px-6 py-4 text-lg font-semibold hover:bg-white/20 active:scale-[0.98] transition-all">Cancel</button>
-          <button onClick={handlePhoneSubmit} className="flex-1 bg-gradient-to-r from-brand-500 to-brand-600 text-white rounded-xl px-6 py-4 text-lg font-bold hover:from-brand-600 hover:to-brand-700 active:scale-[0.98] shadow-soft transition-all">Check In</button>
+          <button onClick={() => resetAll()} className="flex-1 bg-white/10 backdrop-blur border border-white/10 text-white rounded-xl px-6 py-4 text-lg font-semibold hover:bg-white/20 active:scale-[0.98] transition-all">Cancel</button>
+          <button onClick={handlePhoneSubmit} className="flex-1 bg-gradient-to-r from-brand-500 to-accent-500 text-white rounded-xl px-6 py-4 text-lg font-bold active:scale-[0.98] shadow-glow transition-all">Check In</button>
         </div>
         {recalledName && !blacklistHit && !preApprovedVisit && (
-          <div className="mt-6 p-4 bg-white/10 rounded-xl border border-white/10 text-center">
+          <div className="mt-6 p-4 bg-white/10 backdrop-blur-xl rounded-xl border border-white/15 text-center">
             <p className="text-white font-medium">Welcome back, {recalledName}</p>
-            <p className="text-brand-300 text-sm mt-1">Fill in the details to continue</p>
+            <p className="text-brand-200 text-sm mt-1">Fill in the details to continue</p>
           </div>
         )}
         {preApprovedVisit && (
-          <div className="mt-6 p-6 bg-success-900/40 rounded-2xl border border-success-500/30 space-y-4 text-center">
+          <div className="mt-6 p-6 bg-success-500/10 backdrop-blur-xl rounded-2xl border border-success-500/30 space-y-4 text-center">
             <div className="h-14 w-14 rounded-full bg-success-500/20 flex items-center justify-center mx-auto">
-              <svg className="w-7 h-7 text-success-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+              <svg className="w-7 h-7 text-success-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
             </div>
             <div>
               <p className="text-white text-xl font-bold">{preApprovedVisit.visitor_name}</p>
-              <p className="text-success-300 text-sm mt-1">Pre-approved for {preApprovedVisit.dept_name}</p>
-              <p className="text-success-300/70 text-xs mt-1">Ref: {preApprovedVisit.ref_number}</p>
+              <p className="text-success-500 text-sm mt-1">Pre-approved for {preApprovedVisit.dept_name}</p>
+              <p className="text-white/50 text-xs mt-1">Ref: {preApprovedVisit.ref_number}</p>
             </div>
             <button onClick={checkInPreApproved} disabled={checkingInPreApproved}
-              className="w-full bg-gradient-to-r from-success-500 to-success-600 text-white rounded-xl px-6 py-4 text-lg font-bold hover:from-success-600 hover:to-success-700 active:scale-[0.98] disabled:opacity-50 transition-all">
+              className="w-full bg-gradient-to-r from-success-500 to-success-600 text-white rounded-xl px-6 py-4 text-lg font-bold hover:brightness-110 active:scale-[0.98] disabled:opacity-50 transition-all">
               {checkingInPreApproved ? 'Checking in...' : 'Tap to Check In'}
             </button>
           </div>
         )}
         {blacklistHit && (
-          <div className="mt-6 p-4 bg-danger-900/40 rounded-xl border border-danger-500/30 text-center">
-            <p className="text-danger-300 font-bold">ACCESS DENIED</p>
-            <p className="text-danger-400 text-sm mt-1">{blacklistHit}</p>
+          <div className="mt-6 p-4 bg-danger-500/10 backdrop-blur-xl rounded-xl border border-danger-500/30 text-center">
+            <p className="text-danger-500 font-bold">ACCESS DENIED</p>
+            <p className="text-white/60 text-sm mt-1">{blacklistHit}</p>
           </div>
         )}
         {error && (
-          <div className="mt-6 p-4 bg-danger-900/40 rounded-xl border border-danger-500/30 text-center">
-            <p className="text-danger-300">{error}</p>
+          <div className="mt-6 p-4 bg-danger-500/10 backdrop-blur-xl rounded-xl border border-danger-500/30 text-center">
+            <p className="text-danger-500">{error}</p>
           </div>
         )}
       </div>
@@ -326,14 +340,15 @@ export default function Kiosk(): React.ReactElement {
   );
 
   const renderForm = () => (
-    <div className="min-h-screen bg-surface-50 overflow-y-auto">
-      <div className="max-w-2xl mx-auto px-4 py-8">
+    <div className="relative min-h-screen overflow-y-auto">
+      <AuroraBackdrop />
+      <div className="relative max-w-2xl mx-auto px-4 py-8">
         <div className="flex items-center gap-3 mb-6">
-          <button onClick={() => { setStep('phone'); setError(''); }} className="btn-ghost p-2 -ml-2" title="Back">
-            <svg className="w-5 h-5 text-navy-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" /></svg>
+          <button onClick={() => { setStep('phone'); setError(''); }} className="btn-icon -ml-2" title="Back">
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" /></svg>
           </button>
           <div>
-            <h1 className="text-lg font-bold text-navy-950">Visitor Registration</h1>
+            <h1 className="text-lg font-bold text-navy-950 font-display">Visitor Registration</h1>
             <p className="text-sm text-navy-400">Complete the form to register your visit</p>
           </div>
         </div>

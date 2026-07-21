@@ -2,22 +2,16 @@ import React from 'react';
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { render, screen, cleanup, fireEvent } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
-import Navbar from '../../../src/components/Navbar';
+import Sidebar from '../../../src/components/layout/Sidebar';
 
 vi.mock('../../../src/supabaseClient', () => ({
   supabase: {
     auth: { signOut: vi.fn().mockResolvedValue({ error: null }) },
-    from: vi.fn(() => ({
-      select: vi.fn().mockReturnThis(),
-      eq: vi.fn().mockReturnThis(),
-      order: vi.fn().mockReturnThis(),
-      limit: vi.fn().mockResolvedValue({ data: [], error: null }),
-      update: vi.fn().mockReturnThis(),
-      in: vi.fn().mockResolvedValue({ error: null }),
-    })),
-    channel: vi.fn(() => ({ on: vi.fn(() => ({ subscribe: vi.fn().mockReturnValue('sub-1') })) })),
-    removeChannel: vi.fn().mockResolvedValue(undefined),
   },
+}));
+
+vi.mock('../../../src/lib/theme', () => ({
+  useTheme: () => ({ theme: 'dark', toggleTheme: vi.fn() }),
 }));
 
 afterEach(cleanup);
@@ -28,20 +22,22 @@ const staffSession = { user: { email: 'staff@example.com' } } as any;
 
 function renderWithRouter(
   ui: React.ReactElement,
-  { route = '/guard' } = {},
+  { route = '/dashboard' } = {},
 ) {
   return render(<MemoryRouter initialEntries={[route]}>{ui}</MemoryRouter>);
 }
 
-describe('M11-NAVBAR: Navbar component', () => {
+describe('M11-SIDEBAR: Sidebar component', () => {
   it('renders brand logo and SecureGate text', () => {
-    renderWithRouter(<Navbar session={guardSession} role="guard" />);
+    renderWithRouter(<Sidebar session={guardSession} role="guard" />);
     expect(screen.getByText('SecureGate')).toBeInTheDocument();
   });
 
   it('renders correct nav links for guard role', () => {
-    renderWithRouter(<Navbar session={guardSession} role="guard" />);
+    renderWithRouter(<Sidebar session={guardSession} role="guard" />);
+    expect(screen.getByText('Dashboard')).toBeInTheDocument();
     expect(screen.getByText('Console')).toBeInTheDocument();
+    expect(screen.getByText('Kiosk')).toBeInTheDocument();
     expect(screen.getByText("Who's Inside")).toBeInTheDocument();
     expect(screen.getByText('Gate Passes')).toBeInTheDocument();
     expect(screen.queryByText('Reports')).not.toBeInTheDocument();
@@ -50,10 +46,16 @@ describe('M11-NAVBAR: Navbar component', () => {
   });
 
   it('renders correct nav links for admin role', () => {
-    renderWithRouter(<Navbar session={adminSession} role="admin" />);
+    renderWithRouter(<Sidebar session={adminSession} role="admin" />);
+    // "Admin" text appears both as nav link text and as role badge label
+    const adminEls = screen.getAllByText('Admin');
+    expect(adminEls.length).toBeGreaterThanOrEqual(1);
+    // Verify the nav link element points to /admin
+    const adminLink = adminEls.find((el) => el.closest('a')?.getAttribute('href') === '/admin');
+    expect(adminLink).toBeTruthy();
+    expect(screen.getByText('Dashboard')).toBeInTheDocument();
     expect(screen.getByText('Reports')).toBeInTheDocument();
     expect(screen.getByText('Analytics')).toBeInTheDocument();
-    expect(screen.getAllByText('Admin')[0]).toBeInTheDocument();
     expect(screen.queryByText('Console')).not.toBeInTheDocument();
     expect(screen.queryByText('Approvals')).not.toBeInTheDocument();
     expect(screen.queryByText("Who's Inside")).not.toBeInTheDocument();
@@ -61,7 +63,8 @@ describe('M11-NAVBAR: Navbar component', () => {
   });
 
   it('renders correct nav links for staff role', () => {
-    renderWithRouter(<Navbar session={staffSession} role="staff" />);
+    renderWithRouter(<Sidebar session={staffSession} role="staff" />);
+    expect(screen.getByText('Dashboard')).toBeInTheDocument();
     expect(screen.getByText("Who's Inside")).toBeInTheDocument();
     expect(screen.getByText('Gate Passes')).toBeInTheDocument();
     expect(screen.getByText('Reports')).toBeInTheDocument();
@@ -71,63 +74,58 @@ describe('M11-NAVBAR: Navbar component', () => {
   });
 
   it('highlights active link based on current route', () => {
-    renderWithRouter(<Navbar session={guardSession} role="guard" />, { route: '/guard' });
+    renderWithRouter(<Sidebar session={guardSession} role="guard" />, { route: '/guard' });
     const consoleLinks = screen.getAllByText('Console');
-    const activeLink = consoleLinks.find((el) => el.className.includes('bg-brand-50'));
+    const activeLink = consoleLinks.find((el) => el.closest('a')?.className.includes('sidebar-link-active'));
     expect(activeLink).toBeTruthy();
   });
 
   it('does not highlight inactive links', () => {
-    renderWithRouter(<Navbar session={guardSession} role="guard" />, { route: '/whos-inside' });
+    renderWithRouter(<Sidebar session={guardSession} role="guard" />, { route: '/whos-inside' });
     const consoleLinks = screen.getAllByText('Console');
-    const inactiveLink = consoleLinks.find((el) => el.className.includes('text-navy-500'));
+    const inactiveLink = consoleLinks.find((el) => !el.closest('a')?.className.includes('sidebar-link-active'));
     expect(inactiveLink).toBeTruthy();
   });
 
   it('shows role badge when role is provided', () => {
-    renderWithRouter(<Navbar session={guardSession} role="guard" />);
-    const guardTexts = screen.getAllByText('Guard');
-    expect(guardTexts.length).toBeGreaterThanOrEqual(1);
-    // one in the badge span, one in the dropdown — both sufficient to prove role is shown
+    renderWithRouter(<Sidebar session={guardSession} role="guard" />);
+    expect(screen.getByText('Guard')).toBeInTheDocument();
   });
 
   it('shows default role label for unknown role', () => {
-    renderWithRouter(<Navbar session={guardSession} role={null} />);
+    renderWithRouter(<Sidebar session={guardSession} role={null} />);
     expect(screen.getByText('Unknown role')).toBeInTheDocument();
   });
 
-  it('renders email in dropdown', () => {
-    renderWithRouter(<Navbar session={guardSession} role="guard" />);
+  it('renders email in sidebar', () => {
+    renderWithRouter(<Sidebar session={guardSession} role="guard" />);
     expect(screen.getByText('guard@example.com')).toBeInTheDocument();
   });
 
   it('renders initials from email', () => {
-    renderWithRouter(<Navbar session={guardSession} role="guard" />);
+    renderWithRouter(<Sidebar session={guardSession} role="guard" />);
     const initials = screen.getByText('GU');
     expect(initials).toBeInTheDocument();
   });
 
   it('renders sign out button', () => {
-    renderWithRouter(<Navbar session={guardSession} role="guard" />);
-    expect(screen.getByText('Sign out')).toBeInTheDocument();
+    renderWithRouter(<Sidebar session={guardSession} role="guard" />);
+    expect(screen.getByTitle('Sign out')).toBeInTheDocument();
   });
 
   it('toggles mobile menu on hamburger click', () => {
-    renderWithRouter(<Navbar session={guardSession} role="guard" />);
-    // Console only in desktop nav before toggle
-    const beforeCount = screen.getAllByText('Console').length;
-    const buttons = screen.getAllByRole('button');
-    const toggleBtn = buttons.find((b) => b.innerHTML.includes('M3.75 6.75h16.5'));
-    expect(toggleBtn).toBeTruthy();
-    fireEvent.click(toggleBtn!);
-    // Console appears in both desktop and mobile after toggle
-    expect(screen.getAllByText('Console').length).toBe(beforeCount + 1);
+    renderWithRouter(<Sidebar session={guardSession} role="guard" />);
+    const beforeCount = screen.getAllByText('Dashboard').length;
+    const toggleBtn = screen.getByLabelText('Open menu');
+    expect(toggleBtn).toBeInTheDocument();
+    fireEvent.click(toggleBtn);
+    expect(screen.getAllByText('Dashboard').length).toBeGreaterThan(beforeCount);
   });
 
   it('handles sign out click', async () => {
     const { supabase } = await import('../../../src/supabaseClient');
-    renderWithRouter(<Navbar session={guardSession} role="guard" />);
-    fireEvent.click(screen.getByText('Sign out'));
+    renderWithRouter(<Sidebar session={guardSession} role="guard" />);
+    fireEvent.click(screen.getByTitle('Sign out'));
     expect(supabase.auth.signOut).toHaveBeenCalledTimes(1);
   });
 });

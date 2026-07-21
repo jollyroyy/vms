@@ -109,10 +109,17 @@ export default function PreApproveForm({ onPreApproved }: Props): React.ReactEle
   };
 
   return (
-    <form onSubmit={handleSubmit} className="card p-6 sm:p-8 space-y-6 max-w-2xl animate-fade-in">
-      <div>
-        <h2 className="text-lg font-bold text-navy-950">Pre-Approve Visitor</h2>
-        <p className="text-sm text-navy-400 mt-1">Pre-register a visitor — they will be pre-approved and can be checked in at the gate without waiting</p>
+    <form onSubmit={handleSubmit} className="card-premium p-6 sm:p-8 space-y-6 max-w-2xl animate-fade-in">
+      <div className="flex items-start gap-3.5">
+        <div className="h-11 w-11 rounded-xl bg-gradient-to-br from-brand-500 to-accent-500 text-white flex items-center justify-center shadow-glow-sm ring-1 ring-white/20 shrink-0">
+          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M18 7.5v3m0 0v3m0-3h3m-3 0h-3m-2.25-4.125a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zM3 19.235v-.11a6.375 6.375 0 0112.75 0v.109A12.318 12.318 0 019.374 21c-2.331 0-4.512-.645-6.374-1.766z" />
+          </svg>
+        </div>
+        <div>
+          <h2 className="text-lg font-bold text-navy-950 font-display tracking-tight">Pre-Approve Visitor</h2>
+          <p className="text-sm text-navy-400 mt-1">Pre-register a visitor — they will be pre-approved and can be checked in at the gate without waiting</p>
+        </div>
       </div>
 
       {blacklistHit && (
@@ -182,7 +189,7 @@ export default function PreApproveForm({ onPreApproved }: Props): React.ReactEle
       )}
 
       <button type="submit" disabled={submitting || !!blacklistHit}
-        className="w-full bg-gradient-to-r from-brand-600 to-brand-700 text-white rounded-xl px-5 py-3.5 text-sm font-bold hover:from-brand-700 hover:to-brand-800 active:scale-[0.98] disabled:opacity-50 disabled:active:scale-100 shadow-soft hover:shadow-glow transition-all duration-200">
+        className="btn-primary w-full !py-3.5">
         {submitting ? 'Submitting...' : 'Pre-Approve Visitor'}
       </button>
 

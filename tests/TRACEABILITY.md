@@ -19,7 +19,7 @@
 | S7 blacklist + recall | 🎯 A | FR-VIS-02/03 | `tests/unit/blacklist.test.ts` (5 tests 🟢) + e2e | unit+e2e | 🟢/🟡 (unit green; e2e awaits Supabase) |
 | S8 auto-checkout day close | 🏭 B | FR-VIS-08 | `tests/unit/visitLifecycle.test.ts` (2 tests, 🟢 — written early as pure logic) | unit | 🟢 (pure logic only; cron scheduling is Milestone B) |
 | S9 backend role enforcement | 🎯 A | NFR-04, SEC-1/3/5 | `tests/security/rls.test.ts` | security | 🟡 (17 todo — activates when Supabase project URL is configured) |
-| SEC-7 frontend route protection | 🎯 A | SEC-7 | `tests/security/routeProtection.test.ts` | security | 🟢 (20 tests pass) |
+| SEC-7 frontend route protection | 🎯 A | SEC-7 | `tests/security/routeProtection.test.tsx` | security | 🟢 (31 tests pass; covers /dashboard auth gate, URL redirect on logout, all role-route pairs) |
 | SLA-W1 escalation logic | 🎯 A | SLA-W1, FR-VIS-07 | `tests/unit/escalation.test.ts` | unit | 🟢 (5 tests pass; criterion ✅ done) |
 | S10 photo privacy | 🎯 A | FR-CAM-13, SEC-2 | `tests/security/rls.test.ts` | security | 🟡 (todo — activates with Supabase project) |
 | S11 webcam resilience | 🏭 B | FR-CAM-06/10 | *(to write in Milestone B: e2e with camera denied)* | e2e | — |

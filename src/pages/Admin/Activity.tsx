@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../../supabaseClient';
 import type { AuditLog } from '../../types/index';
+import { safeErrorMessage } from '../../lib/errors';
 
 export default function ActivityPage(): React.ReactElement {
   const [logs, setLogs] = useState<(AuditLog & { profile?: { full_name: string; email: string } })[]>([]);
@@ -14,26 +15,36 @@ export default function ActivityPage(): React.ReactElement {
       .order('created_at', { ascending: false })
       .limit(200)
       .then(({ data, error: err }) => {
-        if (err) { setError(err.message); } else { setLogs((data ?? []) as any); }
+        if (err) { setError(safeErrorMessage(err, 'Failed to load activity log.')); } else { setLogs((data ?? []) as any); }
         setLoading(false);
       });
   }, []);
 
   const actionLabel = (a: string): { text: string; color: string } => {
     const map: Record<string, { text: string; color: string }> = {
-      visit_approved:     { text: 'Visit Approved', color: 'bg-success-50 text-success-700' },
-      visit_rejected:     { text: 'Visit Rejected', color: 'bg-danger-50 text-danger-700' },
-      visit_checked_in:   { text: 'Checked In', color: 'bg-brand-50 text-brand-700' },
-      visit_checked_out:  { text: 'Checked Out', color: 'bg-navy-50 text-navy-700' },
+      visit_approved:     { text: 'Visit Approved', color: 'bg-success-50 text-success-700 border border-success-500/20' },
+      visit_rejected:     { text: 'Visit Rejected', color: 'bg-danger-50 text-danger-700 border border-danger-500/20' },
+      visit_checked_in:   { text: 'Checked In', color: 'bg-brand-50 text-brand-700 border border-brand-500/20' },
+      visit_checked_out:  { text: 'Checked Out', color: 'bg-navy-50 text-navy-700 border border-navy-200/40' },
     };
-    return map[a] ?? { text: a, color: 'bg-surface-100 text-navy-600' };
+    return map[a] ?? { text: a, color: 'bg-surface-100 text-navy-600 border border-surface-200/60' };
   };
 
   return (
     <div className="space-y-6">
-      <div className="page-header !mb-6">
-        <h1 className="page-title">Activity Log</h1>
-        <p className="page-subtitle">Audit trail of all visit actions</p>
+      <div className="page-header !mb-6 flex items-start justify-between flex-wrap gap-4">
+        <div className="flex items-center gap-4">
+          <div className="h-11 w-11 rounded-xl bg-gradient-to-br from-brand-500 to-accent-500 text-white flex items-center justify-center shadow-glow-sm ring-1 ring-white/20">
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+          </div>
+          <div>
+            <h1 className="page-title">Activity Log</h1>
+            <p className="page-subtitle">Audit trail of all visit actions</p>
+          </div>
+        </div>
+        {!loading && logs.length > 0 && (
+          <span className="glass-chip text-navy-500 mt-1">{logs.length} events</span>
+        )}
       </div>
 
       {error && (
@@ -61,22 +72,22 @@ export default function ActivityPage(): React.ReactElement {
 
       {!loading && logs.length === 0 && !error && (
         <div className="empty-state py-20">
-          <div className="inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-surface-100 mb-4">
-            <svg className="w-8 h-8 text-navy-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+          <div className="inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-brand-500/10 to-accent-500/10 border border-brand-500/15 mb-4">
+            <svg className="w-8 h-8 text-brand-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
           </div>
-          <p className="text-lg font-semibold text-navy-600">No activity yet</p>
+          <p className="text-lg font-semibold text-navy-600 font-display">No activity yet</p>
           <p className="text-sm text-navy-400 mt-1">Visit actions will appear here</p>
         </div>
       )}
 
       {!loading && logs.length > 0 && (
         <div className="space-y-2">
-          {logs.map((log) => {
+          {logs.map((log, idx) => {
             const lbl = actionLabel(log.action);
             const det = log.details as Record<string, unknown> | null;
             return (
-              <div key={log.id} className="card p-4 flex items-start gap-4 animate-fade-in">
-                <div className={`h-10 w-10 rounded-full flex items-center justify-center shrink-0 ${lbl.color}`}>
+              <div key={log.id} className={`card card-hover p-4 flex items-start gap-4 animate-slide-up stagger-${Math.min(idx + 1, 5)}`}>
+                <div className={`h-10 w-10 rounded-xl flex items-center justify-center shrink-0 ${lbl.color}`}>
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     {log.action.includes('approved') ? (
                       <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />

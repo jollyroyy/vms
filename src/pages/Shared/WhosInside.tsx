@@ -31,7 +31,7 @@ export default function WhosInside(): React.ReactElement {
       query = query.eq('department_id', userDeptId);
     }
     const { data, error: err } = await query.order('created_at', { ascending: false });
-    if (err) { setError(err.message); }
+    if (err) { setError(safeErrorMessage(err, 'Failed to load visits.')); }
     let raw = ((data as unknown as Visit[]) ?? []);
     raw = await attachHostNames(raw);
     const enriched = raw.map((v) => ({ ...v, photo_url: v.photo_data ?? undefined }));
@@ -92,7 +92,7 @@ export default function WhosInside(): React.ReactElement {
     setClearing(true);
     try {
       const { error: err } = await (supabase as any).rpc('clear_pre_approved');
-      if (err) { setClearError(err.message); setClearing(false); return; }
+      if (err) { setClearError(safeErrorMessage(err, 'Failed to clear pre-approved.')); setClearing(false); return; }
       void load();
     } catch (err) { setClearError(safeErrorMessage(err, 'Failed to clear pre-approved.')); }
     finally { setClearing(false); }
@@ -104,14 +104,19 @@ export default function WhosInside(): React.ReactElement {
 
       {/* Header */}
       <div className="flex items-start justify-between flex-wrap gap-4">
-        <div>
-          <h1 className="page-title">Who's Inside</h1>
-          <p className="page-subtitle flex items-center gap-2">
+        <div className="flex items-center gap-3.5">
+          <div className="h-11 w-11 rounded-xl bg-gradient-to-br from-brand-500 to-accent-500 text-white flex items-center justify-center shadow-glow-sm ring-1 ring-white/20">
+            <svg className="w-5.5 h-5.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" /></svg>
+          </div>
+          <div>
+            <h1 className="page-title">Who's Inside</h1>
+            <p className="page-subtitle flex items-center gap-2">
             <span className={`h-2 w-2 rounded-full ${visits.length > 0 ? 'bg-brand-500 animate-pulse-soft' : 'bg-navy-300'}`} />
             {checkedIn.length} inside · {preApproved.length} pre-approved · {walkinApproved.length} approved{pending.length > 0 ? ` · ${pending.length} pending` : ''}
-          </p>
+            </p>
+          </div>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           <button onClick={() => void load()} className="no-print btn-secondary text-sm flex items-center gap-2">
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" /></svg>
             Refresh
@@ -131,25 +136,25 @@ export default function WhosInside(): React.ReactElement {
         </div>
       </div>
 
-      {/* Stat summary with gradient backgrounds */}
-      <div className="grid grid-cols-4 gap-3">
+      {/* Stat summary */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <button onClick={() => { setTab('checked_in'); setActiveFilter(activeFilter === 'checked_in' ? null : 'checked_in'); }}
-          className={`stat-card items-center text-center cursor-pointer hover:shadow-elevated transition-all bg-gradient-to-b from-brand-50/50 to-white ${activeFilter === 'checked_in' ? 'ring-2 ring-brand-500 shadow-glow-sm' : ''}`}>
+          className={`stat-card items-center text-center cursor-pointer card-hover animate-slide-up stagger-1 bg-gradient-to-b from-brand-50/60 to-transparent ${activeFilter === 'checked_in' ? 'ring-2 ring-brand-500 shadow-glow-sm' : ''}`}>
           <p className="stat-value text-brand-600">{checkedIn.length}</p>
           <p className="stat-label">Inside</p>
         </button>
         <button onClick={() => { setTab('pre_approved'); setActiveFilter(activeFilter === 'pre_approved' ? null : 'pre_approved'); }}
-          className={`stat-card items-center text-center cursor-pointer hover:shadow-elevated transition-all bg-gradient-to-b from-success-50/50 to-white ${activeFilter === 'pre_approved' ? 'ring-2 ring-brand-500 shadow-glow-sm' : ''}`}>
+          className={`stat-card items-center text-center cursor-pointer card-hover animate-slide-up stagger-2 bg-gradient-to-b from-success-50/60 to-transparent ${activeFilter === 'pre_approved' ? 'ring-2 ring-brand-500 shadow-glow-sm' : ''}`}>
           <p className="stat-value text-success-600">{preApproved.length}</p>
           <p className="stat-label">Pre-Approved</p>
         </button>
         <button onClick={() => { setTab('walkin_approved'); setActiveFilter(activeFilter === 'walkin_approved' ? null : 'walkin_approved'); }}
-          className={`stat-card items-center text-center cursor-pointer hover:shadow-elevated transition-all bg-gradient-to-b from-brand-50/30 to-white ${activeFilter === 'walkin_approved' ? 'ring-2 ring-brand-500 shadow-glow-sm' : ''}`}>
+          className={`stat-card items-center text-center cursor-pointer card-hover animate-slide-up stagger-3 bg-gradient-to-b from-brand-50/40 to-transparent ${activeFilter === 'walkin_approved' ? 'ring-2 ring-brand-500 shadow-glow-sm' : ''}`}>
           <p className="stat-value text-brand-600">{walkinApproved.length}</p>
           <p className="stat-label">Approved</p>
         </button>
         <button onClick={() => { setTab('checked_in'); setActiveFilter(activeFilter === 'pending_approval' ? null : 'pending_approval'); }}
-          className={`stat-card items-center text-center cursor-pointer hover:shadow-elevated transition-all bg-gradient-to-b from-warning-50/50 to-white ${activeFilter === 'pending_approval' ? 'ring-2 ring-brand-500 shadow-glow-sm' : ''}`}>
+          className={`stat-card items-center text-center cursor-pointer card-hover animate-slide-up stagger-4 bg-gradient-to-b from-warning-50/60 to-transparent ${activeFilter === 'pending_approval' ? 'ring-2 ring-brand-500 shadow-glow-sm' : ''}`}>
           <p className="stat-value text-warning-600">{pending.length}</p>
           <p className="stat-label">Pending</p>
         </button>
@@ -157,46 +162,34 @@ export default function WhosInside(): React.ReactElement {
 
       {/* Active filter indicator */}
       {activeFilter && (
-        <div className="flex items-center justify-between text-sm">
-          <p className="text-navy-500 font-medium">
-            Showing: <span className="text-navy-700">{activeFilter === 'checked_in' ? 'Currently Inside' : activeFilter === 'pre_approved' ? 'Pre-Approved' : activeFilter === 'walkin_approved' ? 'Walk-in Approved' : 'Pending Approval'}</span>
-          </p>
-          <button onClick={() => setActiveFilter(null)} className="text-brand-600 hover:text-brand-700 font-medium text-xs">Clear filter</button>
+        <div className="flex items-center justify-between text-sm animate-fade-in">
+          <span className="glass-chip text-navy-500">
+            Showing: <span className="text-navy-800 font-semibold">{activeFilter === 'checked_in' ? 'Currently Inside' : activeFilter === 'pre_approved' ? 'Pre-Approved' : activeFilter === 'walkin_approved' ? 'Walk-in Approved' : 'Pending Approval'}</span>
+          </span>
+          <button onClick={() => setActiveFilter(null)} className="text-brand-600 hover:text-brand-500 font-medium text-xs transition-colors">Clear filter</button>
         </div>
       )}
 
       {/* Tabs */}
-      <div className="flex border-b border-navy-200">
+      <div className="tab-group no-print">
         <button
           onClick={() => { setTab('checked_in'); setActiveFilter(null); }}
           aria-label="Checked In tab"
-          className={`px-5 py-2.5 text-sm font-semibold border-b-2 transition-colors ${
-            tab === 'checked_in'
-              ? 'border-brand-600 text-brand-700'
-              : 'border-transparent text-navy-400 hover:text-navy-600'
-          }`}
+          className={tab === 'checked_in' ? 'tab-active' : 'tab-inactive'}
         >
           Checked In ({checkedIn.length})
         </button>
         <button
           onClick={() => { setTab('pre_approved'); setActiveFilter(null); }}
           aria-label="Pre-Approved tab"
-          className={`px-5 py-2.5 text-sm font-semibold border-b-2 transition-colors ${
-            tab === 'pre_approved'
-              ? 'border-brand-600 text-brand-700'
-              : 'border-transparent text-navy-400 hover:text-navy-600'
-          }`}
+          className={tab === 'pre_approved' ? 'tab-active' : 'tab-inactive'}
         >
           Pre-Approved ({preApproved.length})
         </button>
         <button
           onClick={() => { setTab('walkin_approved'); setActiveFilter(null); }}
           aria-label="Walk-in Approved tab"
-          className={`px-5 py-2.5 text-sm font-semibold border-b-2 transition-colors ${
-            tab === 'walkin_approved'
-              ? 'border-brand-600 text-brand-700'
-              : 'border-transparent text-navy-400 hover:text-navy-600'
-          }`}
+          className={tab === 'walkin_approved' ? 'tab-active' : 'tab-inactive'}
         >
           Approved ({walkinApproved.length})
         </button>
@@ -221,7 +214,7 @@ export default function WhosInside(): React.ReactElement {
       {/* Print header */}
       <div className="print-only mb-4">
         <h1 className="text-2xl font-bold">EVACUATION LIST</h1>
-        <p className="text-sm text-gray-600">Generated: {new Date().toLocaleString('en-IN')} · Total inside: {checkedIn.length}</p>
+        <p className="text-sm text-navy-400">Generated: {new Date().toLocaleString('en-IN')} · Total inside: {checkedIn.length}</p>
       </div>
 
       {clearError && (
@@ -276,14 +269,14 @@ export default function WhosInside(): React.ReactElement {
           const dur = v.status === 'checked_in' && v.checked_in_at ? formatDuration(v.checked_in_at) : null;
           return (
             <div key={v.id}
-              className="card p-4 cursor-pointer hover:shadow-elevated hover:-translate-y-0.5 transition-all duration-200 animate-fade-in"
+              className="card card-hover p-4 cursor-pointer animate-fade-in"
               style={{ animationDelay: `${idx * 0.03}s` }}
               onClick={() => setDetailVisit(v)}
             >
               <div className="flex gap-3 items-start">
                 <div className="shrink-0 relative">
                   {v.photo_url ? (
-                    <img src={v.photo_url} alt="" className="w-12 h-16 object-cover rounded-xl" style={{ boxShadow: '0 0 0 2px rgba(51,150,255,0.08)' }} />
+                    <img src={v.photo_url} alt="" className="w-12 h-16 object-cover rounded-xl ring-2 ring-brand-500/10" />
                   ) : (
                     <div className="w-12 h-16 bg-gradient-to-br from-surface-100 to-surface-200 rounded-xl flex items-center justify-center">
                       <svg className="w-5 h-5 text-navy-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0" /></svg>
@@ -295,15 +288,14 @@ export default function WhosInside(): React.ReactElement {
                     <p className="font-semibold text-navy-900 truncate text-sm">{v.visitor?.full_name ?? '—'}</p>
                     <span className={`shrink-0 status-badge ${style.bg} ${style.text}`}>
                       <span
-                        className={`h-1.5 w-1.5 rounded-full ${style.dot}`}
-                        style={v.status === 'checked_in' ? { animation: 'pulseRing 2s ease-in-out infinite', color: 'rgb(51,150,255)' } : undefined}
+                        className={`h-1.5 w-1.5 rounded-full ${style.dot} ${v.status === 'checked_in' ? 'animate-pulse-soft' : ''}`}
                       />
                       {style.label}
                     </span>
                   </div>
                   <p className="text-xs text-navy-400 truncate">{v.visitor?.company}</p>
                   {/* Separator line */}
-                  <div className="mt-2 pt-2" style={{ borderTop: '1px solid rgba(228,228,231,0.4)' }}>
+                  <div className="mt-2 pt-2 border-t border-surface-200/60 dark:border-white/[0.06]">
                     <p className="text-xs text-navy-300 truncate">{v.department?.name} · {v.host?.full_name}</p>
                     <p className="text-xs text-navy-300 mt-0.5">Reg: {formatTime(v.created_at)}</p>
                     {v.checked_in_at && <p className="text-xs text-navy-300">In: {formatTime(v.checked_in_at)}</p>}
