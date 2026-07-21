@@ -5,7 +5,9 @@ import { canTransition, validatePreApproval, autoCloseAtDayEnd, type Visit } fro
 describe('S1/S2a: visit lifecycle', () => {
   it('follows the happy path: pending → approved → checked_in → checked_out', () => {
     expect(canTransition('pending_approval', 'approved')).toBe(true);
+    expect(canTransition('pending_approval', 'walkin_approved')).toBe(true);
     expect(canTransition('approved', 'checked_in')).toBe(true);
+    expect(canTransition('walkin_approved', 'checked_in')).toBe(true);
     expect(canTransition('checked_in', 'checked_out')).toBe(true);
   });
 

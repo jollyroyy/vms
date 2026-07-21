@@ -31,8 +31,8 @@ describe('SEC-7: frontend route protection', () => {
     it('guard is allowed on /gate-passes', () => {
       expect(isForbidden('/gate-passes', role)).toBe(false);
     });
-    it('guard is allowed on /reports', () => {
-      expect(isForbidden('/reports', role)).toBe(false);
+    it('guard is FORBIDDEN on /reports', () => {
+      expect(isForbidden('/reports', role)).toBe(true);
     });
 
     it('guard is FORBIDDEN on /admin', () => {

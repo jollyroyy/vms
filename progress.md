@@ -1,7 +1,7 @@
 # progress.md — VMS Loop State
 
 > Updated every iteration. Never delete sections — only append and move items.
-> Tally at a glance: **Iterations completed: 8** | **🎯 criteria checked: 2/24** | **Blocked: 0**
+> Tally at a glance: **Iterations completed: 9** | **🎯 criteria checked: 2/24** | **Blocked: 0**
 
 ---
 
@@ -112,3 +112,4 @@ All 🏭 criteria and PRD §10 SLA / §11 Handover items:
 | iter-04 | verify.py 4th check (Milestone A goals); goal.md §2.2A added; SLA-W1 escalation | 48/48 | SLA-W1 ✅ |
 | iter-05 | Full React app scaffold — all pages, components, Supabase client, Tailwind | 48/48 | — |
 | iter-06 | Database schema (001_schema.sql), RLS policies (002_rls.sql), seed script, DEMO-SCRIPT.md | 48/48 | S14a pending browser verify |
+| iter-12 | Guard report tab removed + walkin_approved status for on-the-fly vs pre-approved distinction | 229/229 | Guard no longer sees reports; walk-in approvals appear in separate tab in WhosInside |

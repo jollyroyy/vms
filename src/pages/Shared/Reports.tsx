@@ -36,7 +36,7 @@ export default function ReportsPage(): React.ReactElement {
   const overdueCount = openPasses.filter((p) => p.expected_return_date && getRgpState(p.expected_return_date, TODAY) === 'overdue').length;
 
   const STATUS_COLORS: Record<string, string> = {
-    rejected: 'text-red-600', checked_out: 'text-navy-300', checked_in: 'text-brand-700', approved: 'text-brand-700', pending_approval: 'text-amber-600',
+    rejected: 'text-red-600', checked_out: 'text-navy-300', checked_in: 'text-brand-700', approved: 'text-brand-700', walkin_approved: 'text-brand-700', pending_approval: 'text-amber-600',
   };
 
   return (

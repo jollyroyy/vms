@@ -5,6 +5,7 @@
 export type VisitStatus =
   | 'pending_approval'
   | 'approved'
+  | 'walkin_approved'
   | 'checked_in'
   | 'checked_out'
   | 'rejected';
@@ -18,8 +19,9 @@ export type Visit = {
 };
 
 const TRANSITIONS: Record<VisitStatus, VisitStatus[]> = {
-  pending_approval: ['approved', 'rejected'],
+  pending_approval: ['approved', 'walkin_approved', 'rejected'],
   approved:         ['checked_in'],
+  walkin_approved:  ['checked_in'],
   checked_in:       ['checked_out'],
   checked_out:      [],
   rejected:         [],

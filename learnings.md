@@ -58,3 +58,45 @@ Key: **Fixed** = code change made in this iteration. Won't fix = acceptable beha
 **Also fixed**: WhosInside.tsx separated the clear-error state from the load-error state (was sharing `setError`, showing misleading "Failed to load:" prefix for clear failures). Added 3 new tests covering Clear All click, RPC error display, and cancel confirmation. 9 tests total for WhosInside, all green.
 
 **Memory.md pattern added**: SB-11 — document the rule: always check both metadata locations with coalesce when reading JWT claims in PL/pgSQL.
+
+## 2026-07-21 — Login redirect loop & host names not loading
+
+**Login redirect loop**: When logging in as guard, the app briefly showed the navbar then redirected back to the login screen.
+
+**Root cause**: `App.tsx` reads role only from `session.user.app_metadata.role`. If the JWT has role in `user_metadata` instead (e.g., `raw_user_meta_data` set but `raw_app_meta_data` not synced), `role` stays `null`. ProtectedRoute returns `null` (blank content area). Navbar still renders (outside ProtectedRoute). User sees brief flash of app shell. Page refresh could terminate the session entirely.
+
+The seed script fixed this: it updates profiles via the admin API, which triggers `sync_profile_role_to_auth()` (migration 010), which writes role + department_id to `raw_app_meta_data`. After re-login, the fresh JWT includes the role in `app_metadata`.
+
+**Lesson**: Before debugging login issues in React code, first inspect the Supabase session in browser DevTools (`session.user.app_metadata` vs `session.user.user_metadata`) to confirm the role location.
+
+**Host names not loading**: VisitorForm's "Person to Meet" dropdown stayed empty after selecting a department, both with `fetch('/api/hosts/...')` (Vite dev proxy using service_role) and `supabase.from('profiles')`.
+
+**Root cause**: The `profiles` table had zero rows with populated `department_id`. The `handle_new_user` trigger creates profiles with `department_id = NULL`. Only the seed script (`npm run seed`) sets `department_id` via `admin.from('profiles').update(...)`. Without running the seed (or after a database reset), no profiles match any department filter.
+
+**Fix**: Ran `npm run seed` — updates all 13 profiles with correct `department_id` from the departments table, plus syncs role to `app_metadata`.
+
+**Lesson**: Seed data must be re-run after schema changes, database resets, or when moving to a new environment. The seed script is not optional — it's the only mechanism that links profiles to departments.
+
+**Premature App.tsx fix reverted**: I proposed modifying App.tsx to add `user_metadata` fallback for role extraction (same coalesce pattern as migration 012). The user had me revert and test properly. The actual root cause was missing seed data, not the App.tsx code. If I had investigated the browser console/network tab first, I would have seen either the empty profiles query or the Supabase authentication session details.
+
+**Lesson**: Always investigate the observable symptom in the running app (browser console, network requests, Supabase session inspection) before proposing code changes. Fixes based on code reading alone can miss the real cause.
+
+**Memory.md pattern added**: 
+- SB-12 — App.tsx role extraction only checks `app_metadata`, leaving `role` null if user's JWT has it in `user_metadata`.
+- SB-13 — profiles table lacks `department_id` because seed script needs to be run.
+
+## 2026-07-21 — Report tab removed from Guard + walkin_approved status added
+
+**Change 1: Guard no longer sees Reports tab**
+- Removed `/reports` from guard's `ROLE_ROUTES` in `roleRoutes.ts`
+- Removed `'guard'` from the `/reports` navbar link roles
+- HOD, staff, admin, super_admin still have full access with date selection
+
+**Change 2: On-the-fly approvals now appear in separate tab**
+- Created `migrations/014_walkin_approved.sql` — adds `walkin_approved` to `visit_status` enum
+- Updated `approve_visit` RPC to set status to `walkin_approved` (was `approved`)
+- Updated `enforce_visit_update_rules` trigger to handle `walkin_approved` transitions
+- Pre-approved visitors stay as `approved`; walk-in HOD-approved visitors become `walkin_approved`
+- WhosInside.tsx: Added third tab "Approved" for walkin_approved visitors alongside "Pre-Approved" and "Checked In"
+- Guard Console: Both `approved` and `walkin_approved` are treated as ready-for-check-in
+- Updated types, visitLifecycle, Reports, Analytics to handle new status

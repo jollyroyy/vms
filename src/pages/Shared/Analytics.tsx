@@ -55,7 +55,7 @@ export default function AnalyticsPage(): React.ReactElement {
 
   // Compute analytics
   const totalVisits = visits.length;
-  const approvedVisits = visits.filter((v) => ['approved', 'checked_in', 'checked_out'].includes(v.status)).length;
+  const approvedVisits = visits.filter((v) => ['approved', 'walkin_approved', 'checked_in', 'checked_out'].includes(v.status)).length;
   const rejectedVisits = visits.filter((v) => v.status === 'rejected').length;
   const approvalRate = totalVisits > 0 ? Math.round((approvedVisits / totalVisits) * 100) : 0;
 
@@ -83,7 +83,7 @@ export default function AnalyticsPage(): React.ReactElement {
     deptMap.get(key)!.visits.push(v);
   });
   const deptStats: DeptStat[] = Array.from(deptMap.entries()).map(([, { name, visits: dv }]) => {
-    const approved = dv.filter((v) => ['approved', 'checked_in', 'checked_out'].includes(v.status)).length;
+    const approved = dv.filter((v) => ['approved', 'walkin_approved', 'checked_in', 'checked_out'].includes(v.status)).length;
     const rejected = dv.filter((v) => v.status === 'rejected').length;
     return { name, total: dv.length, approved, rejected, avgApprovalMins: 0 };
   }).sort((a, b) => b.total - a.total);

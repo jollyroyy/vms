@@ -301,8 +301,8 @@ The loop runs **goal → build → CHECK → adjust**, and the CHECK phase is ex
 - Traced by: `tests/unit/components/` suite (tests TBD)
 
 ### M12 — MODULE: Page Flows
-- [ ] 🎯 **M12-LOGIN**: LoginPage renders form, handles submit, shows error on failure, loading state while authenticating.
-- [ ] 🎯 **M12-GUARD**: Guard console shows active visits, register form, exit log; handles check-in/check-out state.
+- [ ] 🎯 **M12-LOGIN**: LoginPage renders form, handles submit, shows error on failure, loading state while authenticating. All role types (guard, hod, staff, admin) sign in and land on their correct default route without redirect loop or blank content area. Role is correctly extracted from JWT session on sign-in. Verified by logging in as each role.
+- [ ] 🎯 **M12-GUARD**: Guard console shows active visits, register form, exit log; handles check-in/check-out state. VisitorForm loads department contacts (profiles with matching department_id) when department is selected; shows full_name in the "Person to Meet" dropdown.
 - [ ] 🎯 **M12-HOD**: HOD approvals shows pending visits; approve/reject flow works.
 - [ ] 🎯 **M12-WHOSINSIDE**: Who's Inside board shows checked-in visitors.
 - [ ] 🎯 **M12-REPORTS**: Reports page renders daily visitor register.

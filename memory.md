@@ -16,17 +16,18 @@
 |-----|---------|
 | `#typescript` | [TS-01](#ts-01), [TS-02](#ts-02), [TS-03](#ts-03), [SB-09](#sb-09) |
 | `#vitest` | [VT-01](#vt-01), [VT-02](#vt-02) |
-| `#supabase` | [SB-01](#sb-01), [SB-02](#sb-02), [SB-03](#sb-03), [SB-04](#sb-04), [SB-05](#sb-05), [SB-06](#sb-06), [SB-07](#sb-07), [SB-08](#sb-08), [SB-09](#sb-09), [SB-10](#sb-10) |
+| `#supabase` | [SB-01](#sb-01), [SB-02](#sb-02), [SB-03](#sb-03), [SB-04](#sb-04), [SB-05](#sb-05), [SB-06](#sb-06), [SB-07](#sb-07), [SB-08](#sb-08), [SB-09](#sb-09), [SB-10](#sb-10), [SB-11](#sb-11), [SB-12](#sb-12), [SB-13](#sb-13) |
 | `#react` | [RE-01](#re-01), [RE-02](#re-02), [SB-08](#sb-08) |
 | `#camera` | [CA-01](#ca-01), [CA-02](#ca-02), [SB-10](#sb-10) |
 | `#schema` | [SB-03](#sb-03), [SB-04](#sb-04) |
 | `#rls` | [SB-02](#sb-02), [SB-05](#sb-05), [SB-06](#sb-06), [SB-07](#sb-07) |
-| `#seed` | [SB-02](#sb-02), [SB-04](#sb-04) |
+| `#seed` | [SB-02](#sb-02), [SB-04](#sb-04), [SB-13](#sb-13) |
 | `#build` | [TS-02](#ts-02), [TS-03](#ts-03) |
 | `#loop` | [VT-01](#vt-01), [VT-02](#vt-02) |
 | `#security` | [SEC-01](#sec-01) |
 | `#routing` | [SEC-01](#sec-01) |
 | `#postgres` | [SB-06](#sb-06) |
+| `#auth` | [SB-12](#sb-12) |
 
 ---
 
@@ -301,6 +302,28 @@ return () => { channel.unsubscribe(); };
 **Prevention:** Never make display-critical data dependent on an optional cloud storage step. Always compute the reliable fallback first.
 **Tags:** `#supabase` `#camera`
 **First seen:** iter-06, 2026-07-20
+
+---
+
+### SB-12
+
+**Pattern:** User signs in successfully but sees a blank content area (or gets redirected to login on page refresh). App briefly shows Navbar then nothing.
+**Cause:** `App.tsx` reads role only from `session.user.app_metadata.role`. If the user's JWT has the role in `user_metadata` instead (e.g., `raw_user_meta_data` was set but `raw_app_meta_data` wasn't synced), `role` state stays `null`. `ProtectedRoute` returns `null` (blank content). Navbar still renders because it's outside `ProtectedRoute`. On page refresh, the session may terminate entirely.
+**Fix:** Either (a) ensure migration 010 has been applied and profiles are synced (the `sync_profile_role_to_auth` trigger must write to `raw_app_meta_data`), then log out and log in again to get a fresh JWT; or (b) add a fallback in `App.tsx` to also check `user_metadata.role` when `app_metadata.role` is absent (same coalesce pattern as SB-11).
+**Prevention:** After applying migrations or updating profiles, existing JWT tokens are stale — users must log out and log in again. To inspect: open browser DevTools → Application → Local Storage → `sb-<ref>-auth-token` → parse the JWT to check `user.app_metadata.role` vs `user.user_metadata.role`.
+**Tags:** `#supabase` `#auth`
+**First seen:** 2026-07-21
+
+---
+
+### SB-13
+
+**Pattern:** VisitorForm "Person to Meet" dropdown stays empty after selecting a department, both with direct `supabase.from('profiles')` query and with the `/api/hosts/:deptId` Vite proxy (service_role key).
+**Cause:** The `profiles` table lacks `department_id` values. The `handle_new_user` trigger creates profiles with `department_id = NULL`. Only the seed script (`npm run seed`) updates profiles with the correct `department_id`. If the seed was never run (or the database was reset), no profiles match any department filter.
+**Fix:** Run `npm run seed` — this updates all profiles with the correct `department_id` from the departments table via `admin.from('profiles').update(...)` using the service-role key.
+**Prevention:** After creating the database schema, always run `npm run seed` to populate profile data including department assignments. Re-run after any database reset or when migrating to a new environment.
+**Tags:** `#supabase` `#seed`
+**First seen:** 2026-07-21
 
 ---
 

@@ -51,7 +51,7 @@ export default function GuardConsole(): React.ReactElement {
   };
 
   const checkIn = async (visit: Visit) => {
-    if (visit.status !== 'approved') { setActionErr('Only approved visits can be checked in.'); return; }
+    if (visit.status !== 'approved' && visit.status !== 'walkin_approved') { setActionErr('Only approved visits can be checked in.'); return; }
     setActionErr('');
     try {
       const { error } = await supabase.from('visits').update({ status: 'checked_in', checked_in_at: new Date().toISOString() }).eq('id', visit.id);
@@ -63,6 +63,7 @@ export default function GuardConsole(): React.ReactElement {
   const STATUS_STYLES: Record<Visit['status'], { bg: string; text: string; dot: string }> = {
     pending_approval: { bg: 'bg-warning-50', text: 'text-warning-700', dot: 'bg-warning-500' },
     approved:         { bg: 'bg-success-50', text: 'text-success-700', dot: 'bg-success-500' },
+    walkin_approved:  { bg: 'bg-success-50', text: 'text-success-700', dot: 'bg-success-500' },
     checked_in:       { bg: 'bg-brand-50', text: 'text-brand-700', dot: 'bg-brand-500' },
     checked_out:      { bg: 'bg-surface-100', text: 'text-navy-400', dot: 'bg-navy-300' },
     rejected:         { bg: 'bg-danger-50', text: 'text-danger-700', dot: 'bg-danger-500' },
@@ -70,7 +71,9 @@ export default function GuardConsole(): React.ReactElement {
 
   const checkedIn = visits.filter((v) => v.status === 'checked_in');
   const pending = visits.filter((v) => v.status === 'pending_approval');
-  const approved = visits.filter((v) => v.status === 'approved');
+  const approved = visits.filter((v) => v.status === 'approved' || v.status === 'walkin_approved');
+  const [detailVisits, setDetailVisits] = useState<Visit[] | null>(null);
+  const [detailTitle, setDetailTitle] = useState('');
 
   return (
     <div className="space-y-6">
@@ -92,22 +95,22 @@ export default function GuardConsole(): React.ReactElement {
 
       {/* Summary strip */}
       <div className="grid grid-cols-4 gap-3">
-        <div className="stat-card text-center">
+        <button onClick={() => { setDetailVisits(visits); setDetailTitle('All Today\'s Visits'); }} className="stat-card text-center cursor-pointer hover:shadow-elevated transition-shadow">
           <p className="stat-value">{visits.length}</p>
           <p className="stat-label">Total</p>
-        </div>
-        <div className="stat-card text-center">
+        </button>
+        <button onClick={() => { setDetailVisits(checkedIn); setDetailTitle('Currently Inside'); }} className="stat-card text-center cursor-pointer hover:shadow-elevated transition-shadow">
           <p className="stat-value text-brand-600">{checkedIn.length}</p>
           <p className="stat-label">Inside</p>
-        </div>
-        <div className="stat-card text-center">
+        </button>
+        <button onClick={() => { setDetailVisits(pending); setDetailTitle('Pending Approval'); }} className="stat-card text-center cursor-pointer hover:shadow-elevated transition-shadow">
           <p className="stat-value text-warning-600">{pending.length}</p>
           <p className="stat-label">Pending</p>
-        </div>
-        <div className="stat-card text-center">
+        </button>
+        <button onClick={() => { setDetailVisits(approved); setDetailTitle('Approved (awaiting check-in)'); }} className="stat-card text-center cursor-pointer hover:shadow-elevated transition-shadow">
           <p className="stat-value text-success-600">{approved.length}</p>
           <p className="stat-label">Approved</p>
-        </div>
+        </button>
       </div>
 
       {/* Alerts */}
@@ -284,6 +287,39 @@ export default function GuardConsole(): React.ReactElement {
               <p className="text-navy-400 font-medium">No visitors currently inside</p>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Visitor detail modal */}
+      {detailVisits && (
+        <div className="fixed inset-0 bg-navy-950/60 backdrop-blur-md flex items-center justify-center z-50 p-4" onClick={() => setDetailVisits(null)}>
+          <div className="bg-white rounded-3xl p-6 max-w-lg w-full max-h-[80vh] overflow-y-auto shadow-modal space-y-3" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between">
+              <h3 className="font-bold text-navy-900 text-lg">{detailTitle}</h3>
+              <button onClick={() => setDetailVisits(null)} className="btn-ghost p-1"><svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg></button>
+            </div>
+            {detailVisits.length === 0 ? (
+              <p className="text-navy-400 text-sm py-8 text-center">No visitors in this category</p>
+            ) : (
+              detailVisits.map((v) => (
+                <div key={v.id} className="flex items-center gap-3 p-3 bg-surface-50 rounded-xl">
+                  {v.photo_url ? (
+                    <img src={v.photo_url} alt="" className="w-10 h-12 object-cover rounded-lg shrink-0" />
+                  ) : (
+                    <div className="w-10 h-12 bg-surface-100 rounded-lg flex items-center justify-center shrink-0">
+                      <svg className="w-4 h-4 text-navy-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0" /></svg>
+                    </div>
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-navy-900 text-sm truncate">{v.visitor?.full_name ?? '—'}</p>
+                    <p className="text-xs text-navy-400 truncate">{v.visitor?.company} · {v.department?.name}</p>
+                    <p className="text-xs text-navy-300 font-mono">{v.ref_number}</p>
+                  </div>
+                  <span className={`status-badge shrink-0 ${STATUS_STYLES[v.status].bg} ${STATUS_STYLES[v.status].text}`}>{v.status.replace('_', ' ')}</span>
+                </div>
+              ))
+            )}
+          </div>
         </div>
       )}
 

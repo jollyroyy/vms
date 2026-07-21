@@ -7,6 +7,16 @@ import Navbar from '../../../src/components/Navbar';
 vi.mock('../../../src/supabaseClient', () => ({
   supabase: {
     auth: { signOut: vi.fn().mockResolvedValue({ error: null }) },
+    from: vi.fn(() => ({
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      order: vi.fn().mockReturnThis(),
+      limit: vi.fn().mockResolvedValue({ data: [], error: null }),
+      update: vi.fn().mockReturnThis(),
+      in: vi.fn().mockResolvedValue({ error: null }),
+    })),
+    channel: vi.fn(() => ({ on: vi.fn(() => ({ subscribe: vi.fn().mockReturnValue('sub-1') })) })),
+    removeChannel: vi.fn().mockResolvedValue(undefined),
   },
 }));
 
@@ -34,7 +44,7 @@ describe('M11-NAVBAR: Navbar component', () => {
     expect(screen.getByText('Console')).toBeInTheDocument();
     expect(screen.getByText("Who's Inside")).toBeInTheDocument();
     expect(screen.getByText('Gate Passes')).toBeInTheDocument();
-    expect(screen.getByText('Reports')).toBeInTheDocument();
+    expect(screen.queryByText('Reports')).not.toBeInTheDocument();
     expect(screen.queryByText('Approvals')).not.toBeInTheDocument();
     expect(screen.queryByText('Admin')).not.toBeInTheDocument();
   });
@@ -67,7 +77,7 @@ describe('M11-NAVBAR: Navbar component', () => {
   });
 
   it('does not highlight inactive links', () => {
-    renderWithRouter(<Navbar session={guardSession} role="guard" />, { route: '/reports' });
+    renderWithRouter(<Navbar session={guardSession} role="guard" />, { route: '/whos-inside' });
     const consoleLinks = screen.getAllByText('Console');
     const inactiveLink = consoleLinks.find((el) => el.className.includes('text-navy-500'));
     expect(inactiveLink).toBeTruthy();

@@ -41,7 +41,7 @@ export type Visitor = {
   created_at: string;
 };
 
-export type VisitStatus = 'pending_approval' | 'approved' | 'checked_in' | 'checked_out' | 'rejected';
+export type VisitStatus = 'pending_approval' | 'approved' | 'walkin_approved' | 'checked_in' | 'checked_out' | 'rejected';
 
 export type Visit = {
   id: string;

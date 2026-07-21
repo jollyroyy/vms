@@ -84,10 +84,10 @@ describe('M12-GUARD: WhosInside', () => {
     render(<MemoryRouter><WhosInside /></MemoryRouter>);
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: /pre-approved/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /pre-approved tab/i })).toBeInTheDocument();
     });
 
-    fireEvent.click(screen.getByRole('button', { name: /pre-approved/i }));
+    fireEvent.click(screen.getByRole('button', { name: /pre-approved tab/i }));
 
     await waitFor(() => {
       expect(screen.getByText('Bob')).toBeInTheDocument();
@@ -98,7 +98,7 @@ describe('M12-GUARD: WhosInside', () => {
     setup();
     mockOrder.mockResolvedValue({ data: [mockPreApproved], error: null });
     render(<MemoryRouter><WhosInside /></MemoryRouter>);
-    fireEvent.click(screen.getByRole('button', { name: /pre-approved/i }));
+    fireEvent.click(screen.getByRole('button', { name: /pre-approved tab/i }));
     await waitFor(() => {
       expect(screen.getByRole('button', { name: /clear all/i })).toBeInTheDocument();
     });
@@ -111,7 +111,7 @@ describe('M12-GUARD: WhosInside', () => {
     mockRpc.mockResolvedValue({ data: 1, error: null });
     mockOrder.mockResolvedValue({ data: [mockPreApproved], error: null });
     render(<MemoryRouter><WhosInside /></MemoryRouter>);
-    fireEvent.click(screen.getByRole('button', { name: /pre-approved/i }));
+    fireEvent.click(screen.getByRole('button', { name: /pre-approved tab/i }));
     await waitFor(() => {
       expect(screen.getByRole('button', { name: /clear all/i })).toBeInTheDocument();
     });
@@ -129,7 +129,7 @@ describe('M12-GUARD: WhosInside', () => {
     mockRpc.mockResolvedValue({ data: null, error: new Error('Only Guard, HOD, or Admin can clear pre-approvals.') });
     mockOrder.mockResolvedValue({ data: [mockPreApproved], error: null });
     render(<MemoryRouter><WhosInside /></MemoryRouter>);
-    fireEvent.click(screen.getByRole('button', { name: /pre-approved/i }));
+    fireEvent.click(screen.getByRole('button', { name: /pre-approved tab/i }));
     await waitFor(() => {
       expect(screen.getByRole('button', { name: /clear all/i })).toBeInTheDocument();
     });
@@ -146,7 +146,7 @@ describe('M12-GUARD: WhosInside', () => {
     window.confirm = vi.fn(() => false);
     mockOrder.mockResolvedValue({ data: [mockPreApproved], error: null });
     render(<MemoryRouter><WhosInside /></MemoryRouter>);
-    fireEvent.click(screen.getByRole('button', { name: /pre-approved/i }));
+    fireEvent.click(screen.getByRole('button', { name: /pre-approved tab/i }));
     await waitFor(() => {
       expect(screen.getByRole('button', { name: /clear all/i })).toBeInTheDocument();
     });
@@ -164,7 +164,7 @@ describe('M12-GUARD: WhosInside', () => {
       expect(screen.getByText('Alice')).toBeInTheDocument();
     });
 
-    fireEvent.click(screen.getByRole('button', { name: /pre-approved/i }));
+    fireEvent.click(screen.getByRole('button', { name: /pre-approved tab/i }));
 
     await waitFor(() => {
       expect(screen.getByText('No pre-approved visitors')).toBeInTheDocument();
