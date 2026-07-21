@@ -2,8 +2,10 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { supabase } from '../../supabaseClient';
 import type { Visit } from '../../types/index';
 import { attachHostNames } from '../../lib/hostNames';
+import { formatTime, formatDuration } from '../../lib/formatDate';
+import VisitorDetails from '../../components/VisitorDetails';
 
-type ActiveTab = 'checked_in' | 'pre_approved' | 'walkin_approved';
+type ActiveTab = 'checked_in' | 'pre_approved' | 'walkin_approved' | 'pending_approval';
 
 export default function WhosInside(): React.ReactElement {
   const [visits, setVisits] = useState<Visit[]>([]);
@@ -44,8 +46,8 @@ export default function WhosInside(): React.ReactElement {
     rejected:         { bg: 'bg-danger-50', text: 'text-danger-700', dot: 'bg-danger-500', label: 'Rejected' },
   };
 
-  const [detailVisits, setDetailVisits] = useState<Visit[] | null>(null);
-  const [detailTitle, setDetailTitle] = useState('');
+  const [detailVisit, setDetailVisit] = useState<Visit | null>(null);
+  const [activeFilter, setActiveFilter] = useState<ActiveTab | null>(null);
   const [clearing, setClearing] = useState(false);
 
   const checkedIn = visits.filter((v) => v.status === 'checked_in');
@@ -53,7 +55,14 @@ export default function WhosInside(): React.ReactElement {
   const preApproved = visits.filter((v) => v.status === 'approved');
   const walkinApproved = visits.filter((v) => v.status === 'walkin_approved');
 
-  const displayed = tab === 'checked_in' ? checkedIn : tab === 'walkin_approved' ? walkinApproved : preApproved;
+  const displayed = activeFilter
+    ? activeFilter === 'checked_in' ? checkedIn
+      : activeFilter === 'pre_approved' ? preApproved
+      : activeFilter === 'walkin_approved' ? walkinApproved
+      : pending
+    : tab === 'checked_in' ? checkedIn
+      : tab === 'walkin_approved' ? walkinApproved
+      : preApproved;
 
   const handleClearAll = async () => {
     if (!window.confirm(`Clear all ${preApproved.length} pre-approved visitors? This action cannot be undone.`)) return;
@@ -65,6 +74,8 @@ export default function WhosInside(): React.ReactElement {
 
   return (
     <div className="space-y-6 animate-fade-in">
+      {detailVisit && <VisitorDetails visit={detailVisit} onClose={() => setDetailVisit(null)} />}
+
       {/* Header */}
       <div className="flex items-start justify-between flex-wrap gap-4">
         <div>
@@ -88,28 +99,42 @@ export default function WhosInside(): React.ReactElement {
 
       {/* Stat summary */}
       <div className="grid grid-cols-4 gap-3">
-        <button onClick={() => { setDetailVisits(checkedIn); setDetailTitle('Currently Inside'); }} className="stat-card items-center text-center cursor-pointer hover:shadow-elevated transition-shadow">
+        <button onClick={() => { setTab('checked_in'); setActiveFilter(activeFilter === 'checked_in' ? null : 'checked_in'); }}
+          className={`stat-card items-center text-center cursor-pointer hover:shadow-elevated transition-shadow ${activeFilter === 'checked_in' ? 'ring-2 ring-brand-500' : ''}`}>
           <p className="stat-value text-brand-600">{checkedIn.length}</p>
           <p className="stat-label">Inside</p>
         </button>
-        <button onClick={() => { setDetailVisits(preApproved); setDetailTitle('Pre-Approved Visitors'); }} className="stat-card items-center text-center cursor-pointer hover:shadow-elevated transition-shadow">
+        <button onClick={() => { setTab('pre_approved'); setActiveFilter(activeFilter === 'pre_approved' ? null : 'pre_approved'); }}
+          className={`stat-card items-center text-center cursor-pointer hover:shadow-elevated transition-shadow ${activeFilter === 'pre_approved' ? 'ring-2 ring-brand-500' : ''}`}>
           <p className="stat-value text-success-600">{preApproved.length}</p>
           <p className="stat-label">Pre-Approved</p>
         </button>
-        <button onClick={() => { setDetailVisits(walkinApproved); setDetailTitle('Walk-in Approved'); }} className="stat-card items-center text-center cursor-pointer hover:shadow-elevated transition-shadow">
+        <button onClick={() => { setTab('walkin_approved'); setActiveFilter(activeFilter === 'walkin_approved' ? null : 'walkin_approved'); }}
+          className={`stat-card items-center text-center cursor-pointer hover:shadow-elevated transition-shadow ${activeFilter === 'walkin_approved' ? 'ring-2 ring-brand-500' : ''}`}>
           <p className="stat-value text-brand-600">{walkinApproved.length}</p>
           <p className="stat-label">Approved</p>
         </button>
-        <button onClick={() => { setDetailVisits(pending); setDetailTitle('Pending Approval'); }} className="stat-card items-center text-center cursor-pointer hover:shadow-elevated transition-shadow">
+        <button onClick={() => { setTab('checked_in'); setActiveFilter(activeFilter === 'pending_approval' ? null : 'pending_approval'); }}
+          className={`stat-card items-center text-center cursor-pointer hover:shadow-elevated transition-shadow ${activeFilter === 'pending_approval' ? 'ring-2 ring-brand-500' : ''}`}>
           <p className="stat-value text-warning-600">{pending.length}</p>
           <p className="stat-label">Pending</p>
         </button>
       </div>
 
+      {/* Active filter indicator */}
+      {activeFilter && (
+        <div className="flex items-center justify-between text-sm">
+          <p className="text-navy-500 font-medium">
+            Showing: <span className="text-navy-700">{activeFilter === 'checked_in' ? 'Currently Inside' : activeFilter === 'pre_approved' ? 'Pre-Approved' : activeFilter === 'walkin_approved' ? 'Walk-in Approved' : 'Pending Approval'}</span>
+          </p>
+          <button onClick={() => setActiveFilter(null)} className="text-brand-600 hover:text-brand-700 font-medium text-xs">Clear filter</button>
+        </div>
+      )}
+
       {/* Tabs */}
       <div className="flex border-b border-navy-200">
         <button
-          onClick={() => setTab('checked_in')}
+          onClick={() => { setTab('checked_in'); setActiveFilter(null); }}
           aria-label="Checked In tab"
           className={`px-5 py-2.5 text-sm font-semibold border-b-2 transition-colors ${
             tab === 'checked_in'
@@ -120,7 +145,7 @@ export default function WhosInside(): React.ReactElement {
           Checked In ({checkedIn.length})
         </button>
         <button
-          onClick={() => setTab('pre_approved')}
+          onClick={() => { setTab('pre_approved'); setActiveFilter(null); }}
           aria-label="Pre-Approved tab"
           className={`px-5 py-2.5 text-sm font-semibold border-b-2 transition-colors ${
             tab === 'pre_approved'
@@ -131,7 +156,7 @@ export default function WhosInside(): React.ReactElement {
           Pre-Approved ({preApproved.length})
         </button>
         <button
-          onClick={() => setTab('walkin_approved')}
+          onClick={() => { setTab('walkin_approved'); setActiveFilter(null); }}
           aria-label="Walk-in Approved tab"
           className={`px-5 py-2.5 text-sm font-semibold border-b-2 transition-colors ${
             tab === 'walkin_approved'
@@ -145,8 +170,8 @@ export default function WhosInside(): React.ReactElement {
 
       {/* No "Clear All" for walkin_approved — only pre-approved can be batch-cleared */}
 
-      {/* Clear all (pre-approved tab only) */}
-      {tab === 'pre_approved' && preApproved.length > 0 && (
+      {/* Clear all (pre-approved tab or filter) */}
+      {(tab === 'pre_approved' || activeFilter === 'pre_approved') && preApproved.length > 0 && (
         <div className="flex items-center justify-end">
           <button
             onClick={handleClearAll}
@@ -214,8 +239,9 @@ export default function WhosInside(): React.ReactElement {
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {displayed.map((v) => {
           const style = STATUS_STYLES[v.status];
+          const dur = v.status === 'checked_in' && v.checked_in_at ? formatDuration(v.checked_in_at) : null;
           return (
-            <div key={v.id} className="card-hover p-4">
+            <div key={v.id} className="card-hover p-4 cursor-pointer" onClick={() => setDetailVisit(v)}>
               <div className="flex gap-3 items-start">
                 <div className="shrink-0">
                   {v.photo_url ? (
@@ -236,53 +262,21 @@ export default function WhosInside(): React.ReactElement {
                   </div>
                   <p className="text-xs text-navy-400 truncate">{v.visitor?.company}</p>
                   <p className="text-xs text-navy-300 mt-1.5 truncate">{v.department?.name} · {v.host?.full_name}</p>
-                  <p className="text-xs text-navy-300 mt-0.5">
-                    Reg: {new Date(v.created_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
-                    {v.checked_in_at ? ` · In: ${new Date(v.checked_in_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}` : ''}
-                  </p>
+                  <p className="text-xs text-navy-300 mt-0.5">Reg: {formatTime(v.created_at)}</p>
+                  {v.checked_in_at && <p className="text-xs text-navy-300">In: {formatTime(v.checked_in_at)}</p>}
+                  {v.checked_out_at && <p className="text-xs text-navy-300">Out: {formatTime(v.checked_out_at)}</p>}
                   <p className="text-[10px] text-navy-300 font-mono mt-1">{v.ref_number}</p>
+                  {dur && (
+                    <p className={`text-xs mt-0.5 ${dur.isOvertime ? 'text-danger-600 font-bold' : 'text-navy-400'}`}>
+                      Duration: {dur.text}{dur.isOvertime ? ' ⚠️' : ''}
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
           );
         })}
       </div>
-
-      {/* Visitor detail modal */}
-      {detailVisits && (
-        <div className="fixed inset-0 bg-navy-950/60 backdrop-blur-md flex items-center justify-center z-50 p-4" onClick={() => setDetailVisits(null)}>
-          <div className="bg-white rounded-3xl p-6 max-w-lg w-full max-h-[80vh] overflow-y-auto shadow-modal space-y-3" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between">
-              <h3 className="font-bold text-navy-900 text-lg">{detailTitle}</h3>
-              <button onClick={() => setDetailVisits(null)} className="btn-ghost p-1"><svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg></button>
-            </div>
-            {detailVisits.length === 0 ? (
-              <p className="text-navy-400 text-sm py-8 text-center">No visitors in this category</p>
-            ) : (
-              detailVisits.map((v) => {
-                const style = STATUS_STYLES[v.status];
-                return (
-                  <div key={v.id} className="flex items-center gap-3 p-3 bg-surface-50 rounded-xl">
-                    {v.photo_url ? (
-                      <img src={v.photo_url} alt="" className="w-10 h-12 object-cover rounded-lg shrink-0" />
-                    ) : (
-                      <div className="w-10 h-12 bg-surface-100 rounded-lg flex items-center justify-center shrink-0">
-                        <svg className="w-4 h-4 text-navy-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0" /></svg>
-                      </div>
-                    )}
-                    <div className="flex-1 min-w-0">
-                      <p className="font-semibold text-navy-900 text-sm truncate">{v.visitor?.full_name ?? '—'}</p>
-                      <p className="text-xs text-navy-400 truncate">{v.visitor?.company} · {v.department?.name}</p>
-                      <p className="text-xs text-navy-300 font-mono">{v.ref_number}</p>
-                    </div>
-                    <span className={`status-badge shrink-0 ${style.bg} ${style.text}`}>{style.label}</span>
-                  </div>
-                );
-              })
-            )}
-          </div>
-        </div>
-      )}
     </div>
   );
 }

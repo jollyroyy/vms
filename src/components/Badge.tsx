@@ -1,15 +1,25 @@
 /**
  * Badge — FR-VIS-05
  */
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+import QRCode from 'qrcode';
 import type { Visit } from '../types/index';
 
 type Props = { visit: Visit };
 
 export default function Badge({ visit }: Props): React.ReactElement {
+  const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
   const visitor = visit.visitor;
   const dept = visit.department;
   const host = visit.host;
+
+  useEffect(() => {
+    if (visit?.ref_number) {
+      QRCode.toDataURL(`vms://visit/${visit.ref_number}`, { width: 128, margin: 1, color: { dark: '#1e293b', light: '#ffffff' } })
+        .then(setQrDataUrl)
+        .catch(() => setQrDataUrl(null));
+    }
+  }, [visit?.ref_number]);
 
   return (
     <div className="print-only mx-auto w-72 rounded-2xl border-2 border-navy-800 bg-white shadow-elevated overflow-hidden">
@@ -36,7 +46,11 @@ export default function Badge({ visit }: Props): React.ReactElement {
           <div className="flex justify-between"><span className="text-navy-400">Status</span><span className="capitalize font-semibold text-brand-700">{visit.status.replace('_', ' ')}</span></div>
         </div>
         <div className="flex flex-col items-center gap-1.5 pt-2">
-          <div className="w-16 h-16 border-2 border-navy-800 rounded-xl flex items-center justify-center text-xs text-navy-400 bg-surface-50">QR</div>
+          {qrDataUrl ? (
+            <img src={qrDataUrl} alt="QR Code" className="w-16 h-16" />
+          ) : (
+            <div className="w-16 h-16 border-2 border-navy-800 rounded-xl flex items-center justify-center text-xs text-navy-400 bg-surface-50 animate-pulse">QR</div>
+          )}
           <p className="text-[10px] text-navy-300">Scan at exit</p>
         </div>
       </div>

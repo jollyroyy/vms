@@ -35,6 +35,7 @@ export default function PreApproveForm({ onPreApproved }: Props): React.ReactEle
   const [error,         setError]         = useState('');
   const [userRole,      setUserRole]      = useState<string>('');
   const [userDept,      setUserDept]      = useState<string>('');
+  const [activeVisitCheck, setActiveVisitCheck] = useState<{ checking: boolean; message: string | null }>({ checking: false, message: null });
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
@@ -81,6 +82,16 @@ export default function PreApproveForm({ onPreApproved }: Props): React.ReactEle
     try {
       let normalized: string;
       try { normalized = normalizePhone(phone); } catch { throw new Error('Invalid phone number.'); }
+      // SEC-17: Check for existing active visit before pre-approval
+      setActiveVisitCheck({ checking: true, message: null });
+      const { data: existingVisit } = await (supabase as any)
+        .rpc('get_active_visit_for_phone', { p_phone: normalized });
+      if (existingVisit) {
+        setActiveVisitCheck({ checking: false, message: `This phone number already has an active visit (Ref: ${existingVisit.ref_number}, Status: ${existingVisit.status.replace('_', ' ')}). Cannot pre-approve.` });
+        setSubmitting(false);
+        return;
+      }
+      setActiveVisitCheck({ checking: false, message: null });
       const { data, error: rpcErr } = await (supabase as any).rpc('pre_approve_visitor', {
         p_phone: normalized,
         p_full_name: fullName,
@@ -158,6 +169,14 @@ export default function PreApproveForm({ onPreApproved }: Props): React.ReactEle
         <div className="alert-error">
           <svg className="w-4 h-4 text-danger-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" /></svg>
           {error}
+        </div>
+      )}
+
+      {activeVisitCheck.message && (
+        <div className="alert-warning">
+          <svg className="w-4 h-4 text-warning-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" /></svg>
+          <span className="flex-1">{activeVisitCheck.message}</span>
+          <button onClick={() => setActiveVisitCheck({ checking: false, message: null })} className="text-warning-500 hover:text-warning-700 text-xs font-medium ml-auto">Dismiss</button>
         </div>
       )}
 

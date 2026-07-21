@@ -51,7 +51,11 @@ function setupDefaultMocks() {
     ok: true,
     json: () => Promise.resolve([{ id: 'h1', full_name: 'Test Host' }]),
   });
-  mockRpc.mockResolvedValue({ data: { ref_number: 'VIS-20260721-0001' }, error: null });
+  // SEC-17: get_active_visit_for_phone returns null (no active visit), pre_approve_visitor succeeds
+  mockRpc.mockImplementation((name: string) => {
+    if (name === 'get_active_visit_for_phone') return Promise.resolve({ data: null, error: null });
+    return Promise.resolve({ data: { ref_number: 'VIS-20260721-0001' }, error: null });
+  });
 }
 
 describe('PreApproveForm submission', () => {

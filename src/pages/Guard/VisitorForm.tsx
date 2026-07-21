@@ -40,6 +40,7 @@ export default function VisitorForm({ onRegistered }: Props): React.ReactElement
   const [recalledName,  setRecalledName]  = useState<string | null>(null);
   const [submitting,    setSubmitting]    = useState(false);
   const [error,         setError]         = useState('');
+  const [activeVisitCheck, setActiveVisitCheck] = useState<{ checking: boolean; message: string | null }>({ checking: false, message: null });
 
   useEffect(() => {
     supabase.from('departments').select('*').order('name').then(({ data }) => setDepartments(data ?? []));
@@ -99,6 +100,16 @@ export default function VisitorForm({ onRegistered }: Props): React.ReactElement
     try {
       let normalized: string;
       try { normalized = normalizePhone(phone); } catch { throw new Error('Invalid phone number.'); }
+      // SEC-17: Check for existing active visit before registration
+      setActiveVisitCheck({ checking: true, message: null });
+      const { data: existingVisit } = await (supabase as any)
+        .rpc('get_active_visit_for_phone', { p_phone: normalized });
+      if (existingVisit) {
+        setActiveVisitCheck({ checking: false, message: `This phone number already has an active visit (Ref: ${existingVisit.ref_number}, Status: ${existingVisit.status.replace('_', ' ')}). Please complete that visit first.` });
+        setSubmitting(false);
+        return;
+      }
+      setActiveVisitCheck({ checking: false, message: null });
       const { data: vis, error: visErr } = await supabase.from('visitors').upsert(
         { phone: normalized, full_name: fullName, company: company || null, id_type: idType || null, id_last4: idLast4 || null },
         { onConflict: 'phone' },
@@ -210,7 +221,15 @@ export default function VisitorForm({ onRegistered }: Props): React.ReactElement
         </div>
       )}
 
-      <button type="submit" disabled={submitting || !!blacklistHit || !photoBlob}
+      {activeVisitCheck.message && (
+        <div className="alert-warning">
+          <svg className="w-4 h-4 text-warning-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" /></svg>
+          <span className="flex-1">{activeVisitCheck.message}</span>
+          <button onClick={() => setActiveVisitCheck({ checking: false, message: null })} className="text-warning-500 hover:text-warning-700 text-xs font-medium ml-auto">Dismiss</button>
+        </div>
+      )}
+
+      <button type="submit" disabled={submitting || !!blacklistHit || !photoBlob || activeVisitCheck.checking}
         className="w-full bg-gradient-to-r from-brand-600 to-brand-700 text-white rounded-xl px-5 py-3.5 text-sm font-bold hover:from-brand-700 hover:to-brand-800 active:scale-[0.98] disabled:opacity-50 disabled:active:scale-100 shadow-soft hover:shadow-glow transition-all duration-200">
         {submitting ? (
           <span className="flex items-center justify-center gap-2.5">

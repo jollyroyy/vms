@@ -14,17 +14,20 @@
 
 | Tag | Entries |
 |-----|---------|
-| `#typescript` | [TS-01](#ts-01), [TS-02](#ts-02), [TS-03](#ts-03), [SB-09](#sb-09) |
+| `#typescript` | [TS-01](#ts-01), [TS-02](#ts-02), [TS-03](#ts-03), [TS-04](#ts-04), [SB-09](#sb-09) |
 | `#vitest` | [VT-01](#vt-01), [VT-02](#vt-02) |
-| `#supabase` | [SB-01](#sb-01), [SB-02](#sb-02), [SB-03](#sb-03), [SB-04](#sb-04), [SB-05](#sb-05), [SB-06](#sb-06), [SB-07](#sb-07), [SB-08](#sb-08), [SB-09](#sb-09), [SB-10](#sb-10), [SB-11](#sb-11), [SB-12](#sb-12), [SB-13](#sb-13) |
-| `#react` | [RE-01](#re-01), [RE-02](#re-02), [SB-08](#sb-08) |
+| `#supabase` | [SB-01](#sb-01), [SB-02](#sb-02), [SB-03](#sb-03), [SB-04](#sb-04), [SB-05](#sb-05), [SB-06](#sb-06), [SB-07](#sb-07), [SB-08](#sb-08), [SB-09](#sb-09), [SB-10](#sb-10), [SB-11](#sb-11), [SB-12](#sb-12), [SB-13](#sb-13), [SB-14](#sb-14) |
+| `#react` | [RE-01](#re-01), [RE-02](#re-02), [RE-03](#re-03), [SB-08](#sb-08) |
 | `#camera` | [CA-01](#ca-01), [CA-02](#ca-02), [SB-10](#sb-10) |
-| `#schema` | [SB-03](#sb-03), [SB-04](#sb-04) |
+| `#schema` | [SB-03](#sb-03), [SB-04](#sb-04), [SB-14](#sb-14) |
 | `#rls` | [SB-02](#sb-02), [SB-05](#sb-05), [SB-06](#sb-06), [SB-07](#sb-07) |
 | `#seed` | [SB-02](#sb-02), [SB-04](#sb-04), [SB-13](#sb-13) |
-| `#build` | [TS-02](#ts-02), [TS-03](#ts-03) |
+| `#build` | [TS-02](#ts-02), [TS-03](#ts-03), [TS-04](#ts-04) |
 | `#loop` | [VT-01](#vt-01), [VT-02](#vt-02) |
 | `#security` | [SEC-01](#sec-01), [SEC-02](#sec-02), [SEC-03](#sec-03), [SEC-04](#sec-04), [SEC-05](#sec-05), [SEC-06](#sec-06), [SEC-07](#sec-07), [SEC-08](#sec-08), [SEC-09](#sec-09) |
+| `#migration` | [SB-14](#sb-14) |
+| `#ui` | [RE-03](#re-03) |
+| `#ux` | [RE-03](#re-03) |
 | `#routing` | [SEC-01](#sec-01) |
 | `#postgres` | [SB-06](#sb-06) |
 | `#auth` | [SB-12](#sb-12) |
@@ -425,6 +428,50 @@ return () => { channel.unsubscribe(); };
 **Prevention:** Every new project should set CSP at iteration 0. Verify with browser DevTools → Network → Response Headers.
 **Tags:** `#security` `#csp` `#xss-mitigation`
 **First seen:** iter-09, 2026-07-21
+
+---
+
+---
+
+### SB-14
+
+**Pattern:** `CREATE POLICY IF NOT EXISTS` SQL statement fails with syntax error when run in Supabase dashboard SQL editor.
+**Cause:** Supabase's PostgreSQL version does not support `IF NOT EXISTS` for `CREATE POLICY`. This is a PostgreSQL version limitation — `IF NOT EXISTS` for policies was added in PG15 but Supabase may use an earlier version or a fork that doesn't include it.
+**Fix:** Replace with:
+```sql
+DROP POLICY IF EXISTS policy_name ON table_name;
+CREATE POLICY policy_name ON table_name FOR ... USING (...);
+```
+**Prevention:** Never use `CREATE POLICY IF NOT EXISTS` in Supabase migrations. Always use the `DROP IF EXISTS` + `CREATE POLICY` two-statement pattern for idempotency.
+**Tags:** `#supabase` `#schema` `#migration`
+**First seen:** 2026-07-21
+
+---
+
+### TS-04
+
+**Pattern:** All 254 tests pass (green) but `npm run build` fails with TypeScript errors that are not related to the current changes.
+**Cause:** Pre-existing TypeScript errors in files that were never built or were excluded from the test environment. Tests run via vitest with jsdom which does not type-check the same way as `tsc`. Common culprits: missing `@types/` packages, `noUncheckedIndexedAccess` violations in old code, `(supabase as any).rpc()` missing casts on newly added RPC calls.
+**Fix:**
+1. Run `npm run build` (not just `npm test`) before every commit.
+2. Fix all TS errors, not just the ones you introduced — a broken build blocks commits.
+3. Common fixes: install missing `@types/*` packages, add `!` assertions for indexed access, add `(supabase as any)` casts.
+**Prevention:** The pre-commit hook runs `checker.ts` which should include `tsc --noEmit` — verify this. If it runs tests only, add the type-check step. Never assume tests passing = build passing.
+**Tags:** `#typescript` `#build`
+**First seen:** 2026-07-21
+
+---
+
+### RE-03
+
+**Pattern:** Clear All / Reset filter button in a tabbed list view is hidden when clicked from a different tab even though the filter is active.
+**Cause:** The Clear All button's visibility is gated on a single condition (e.g., `tab === 'pre_approved'`) but the filter can be activated from multiple tabs via stat cards or other controls that toggle `activeFilter` without switching `tab`.
+**Fix:**
+1. Make stat cards call BOTH `setTab()` and `setActiveFilter()` so the tab matches the filter.
+2. Expand the Clear All condition: `(tab === 'pre_approved' || activeFilter === 'pre_approved')`.
+**Prevention:** When a UI element's visibility depends on filter state, identify ALL code paths that can set that filter state. Gate on the filter value itself (not just the tab) if the two can be out of sync.
+**Tags:** `#react` `#ui` `#ux`
+**First seen:** 2026-07-21
 
 ---
 

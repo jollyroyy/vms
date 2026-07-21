@@ -51,7 +51,7 @@ export default function ReportsPage(): React.ReactElement {
         <button onClick={() => window.print()} className="no-print btn-secondary text-sm ml-auto">Print Register</button>
       </div>
 
-      <div className="print-only"><h2 className="text-xl font-bold">Daily Visitor Register — {date}</h2><p className="text-sm text-gray-500">VMS — Mall Management Office</p></div>
+      <div className="print-only"><h2 className="text-xl font-bold">Daily Visitor Register — {date}</h2><p className="text-sm text-gray-500">SecureGate — Mall Management Office</p></div>
 
       <section>
         <div className="flex items-center gap-3 mb-4">

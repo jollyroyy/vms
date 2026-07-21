@@ -34,9 +34,9 @@ function renderWithRouter(
 }
 
 describe('M11-NAVBAR: Navbar component', () => {
-  it('renders brand logo and VMS text', () => {
+  it('renders brand logo and SecureGate text', () => {
     renderWithRouter(<Navbar session={guardSession} role="guard" />);
-    expect(screen.getByText('VMS')).toBeInTheDocument();
+    expect(screen.getByText('SecureGate')).toBeInTheDocument();
   });
 
   it('renders correct nav links for guard role', () => {

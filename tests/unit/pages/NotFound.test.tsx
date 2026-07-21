@@ -7,9 +7,9 @@ import NotFoundPage from '../../../src/pages/NotFound';
 afterEach(cleanup);
 
 describe('M12-NOTFOUND: NotFoundPage', () => {
-  it('renders 404 heading', () => {
+  it('renders brand heading', () => {
     render(<MemoryRouter><NotFoundPage /></MemoryRouter>);
-    expect(screen.getByText('404')).toBeInTheDocument();
+    expect(screen.getByText('SecureGate')).toBeInTheDocument();
   });
 
   it('renders "Page not found" message', () => {

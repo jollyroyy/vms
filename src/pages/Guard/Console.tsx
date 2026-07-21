@@ -3,19 +3,31 @@ import { supabase } from '../../supabaseClient';
 import type { Visit } from '../../types/index';
 import { attachHostNames } from '../../lib/hostNames';
 import { safeErrorMessage } from '../../lib/errors';
+import { formatDateTime, formatTime, formatDuration } from '../../lib/formatDate';
 import VisitorForm from './VisitorForm';
-import Badge      from '../../components/Badge';
+import Badge from '../../components/Badge';
+import VisitorDetails from '../../components/VisitorDetails';
 
 type Tab = 'active' | 'register' | 'exit';
+type FilterKey = 'all' | 'checked_in' | 'pending_approval' | 'approved';
+
+const FILTER_LABELS: Record<FilterKey, string> = {
+  all: "All Today's Visits",
+  checked_in: 'Currently Inside',
+  pending_approval: 'Pending Approval',
+  approved: 'Approved (awaiting check-in)',
+};
 
 export default function GuardConsole(): React.ReactElement {
-  const [tab,         setTab]         = useState<Tab>('active');
-  const [visits,      setVisits]      = useState<Visit[]>([]);
-  const [loading,     setLoading]     = useState(true);
-  const [badgeVisit,  setBadgeVisit]  = useState<Visit | null>(null);
-  const [today]                        = useState(() => new Date().toISOString().slice(0, 10));
-  const [successMsg,  setSuccessMsg]  = useState('');
-  const [actionErr,   setActionErr]   = useState('');
+  const [tab, setTab] = useState<Tab>('active');
+  const [visits, setVisits] = useState<Visit[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [badgeVisit, setBadgeVisit] = useState<Visit | null>(null);
+  const [detailVisit, setDetailVisit] = useState<Visit | null>(null);
+  const [today] = useState(() => new Date().toISOString().slice(0, 10));
+  const [successMsg, setSuccessMsg] = useState('');
+  const [actionErr, setActionErr] = useState('');
+  const [activeFilter, setActiveFilter] = useState<FilterKey | null>(null);
 
   const loadVisits = useCallback(async () => {
     setLoading(true);
@@ -62,21 +74,32 @@ export default function GuardConsole(): React.ReactElement {
 
   const STATUS_STYLES: Record<Visit['status'], { bg: string; text: string; dot: string }> = {
     pending_approval: { bg: 'bg-warning-50', text: 'text-warning-700', dot: 'bg-warning-500' },
-    approved:         { bg: 'bg-success-50', text: 'text-success-700', dot: 'bg-success-500' },
-    walkin_approved:  { bg: 'bg-success-50', text: 'text-success-700', dot: 'bg-success-500' },
-    checked_in:       { bg: 'bg-brand-50', text: 'text-brand-700', dot: 'bg-brand-500' },
-    checked_out:      { bg: 'bg-surface-100', text: 'text-navy-400', dot: 'bg-navy-300' },
-    rejected:         { bg: 'bg-danger-50', text: 'text-danger-700', dot: 'bg-danger-500' },
+    approved: { bg: 'bg-success-50', text: 'text-success-700', dot: 'bg-success-500' },
+    walkin_approved: { bg: 'bg-success-50', text: 'text-success-700', dot: 'bg-success-500' },
+    checked_in: { bg: 'bg-brand-50', text: 'text-brand-700', dot: 'bg-brand-500' },
+    checked_out: { bg: 'bg-surface-100', text: 'text-navy-400', dot: 'bg-navy-300' },
+    rejected: { bg: 'bg-danger-50', text: 'text-danger-700', dot: 'bg-danger-500' },
   };
 
   const checkedIn = visits.filter((v) => v.status === 'checked_in');
   const pending = visits.filter((v) => v.status === 'pending_approval');
   const approved = visits.filter((v) => v.status === 'approved' || v.status === 'walkin_approved');
-  const [detailVisits, setDetailVisits] = useState<Visit[] | null>(null);
-  const [detailTitle, setDetailTitle] = useState('');
+
+  const filteredVisits = activeFilter
+    ? activeFilter === 'all' ? visits
+      : activeFilter === 'checked_in' ? checkedIn
+      : activeFilter === 'pending_approval' ? pending
+      : approved
+    : visits;
+
+  const handleFilter = (key: FilterKey) => {
+    setActiveFilter(activeFilter === key ? null : key);
+  };
 
   return (
     <div className="space-y-6">
+      {detailVisit && <VisitorDetails visit={detailVisit} onClose={() => setDetailVisit(null)} />}
+
       {/* Header */}
       <div className="flex items-start justify-between flex-wrap gap-4">
         <div>
@@ -95,19 +118,19 @@ export default function GuardConsole(): React.ReactElement {
 
       {/* Summary strip */}
       <div className="grid grid-cols-4 gap-3">
-        <button onClick={() => { setDetailVisits(visits); setDetailTitle('All Today\'s Visits'); }} className="stat-card text-center cursor-pointer hover:shadow-elevated transition-shadow">
+        <button onClick={() => handleFilter('all')} className={`stat-card text-center cursor-pointer hover:shadow-elevated transition-shadow ${activeFilter === 'all' ? 'ring-2 ring-brand-500' : ''}`}>
           <p className="stat-value">{visits.length}</p>
           <p className="stat-label">Total</p>
         </button>
-        <button onClick={() => { setDetailVisits(checkedIn); setDetailTitle('Currently Inside'); }} className="stat-card text-center cursor-pointer hover:shadow-elevated transition-shadow">
+        <button onClick={() => handleFilter('checked_in')} className={`stat-card text-center cursor-pointer hover:shadow-elevated transition-shadow ${activeFilter === 'checked_in' ? 'ring-2 ring-brand-500' : ''}`}>
           <p className="stat-value text-brand-600">{checkedIn.length}</p>
           <p className="stat-label">Inside</p>
         </button>
-        <button onClick={() => { setDetailVisits(pending); setDetailTitle('Pending Approval'); }} className="stat-card text-center cursor-pointer hover:shadow-elevated transition-shadow">
+        <button onClick={() => handleFilter('pending_approval')} className={`stat-card text-center cursor-pointer hover:shadow-elevated transition-shadow ${activeFilter === 'pending_approval' ? 'ring-2 ring-brand-500' : ''}`}>
           <p className="stat-value text-warning-600">{pending.length}</p>
           <p className="stat-label">Pending</p>
         </button>
-        <button onClick={() => { setDetailVisits(approved); setDetailTitle('Approved (awaiting check-in)'); }} className="stat-card text-center cursor-pointer hover:shadow-elevated transition-shadow">
+        <button onClick={() => handleFilter('approved')} className={`stat-card text-center cursor-pointer hover:shadow-elevated transition-shadow ${activeFilter === 'approved' ? 'ring-2 ring-brand-500' : ''}`}>
           <p className="stat-value text-success-600">{approved.length}</p>
           <p className="stat-label">Approved</p>
         </button>
@@ -130,7 +153,6 @@ export default function GuardConsole(): React.ReactElement {
       )}
 
       {/* === PRIMARY ACTION TABS === */}
-      {/* Large, clearly separated buttons so the guard never hesitates */}
       <div className="grid grid-cols-3 gap-3">
         <button
           onClick={() => setTab('active')}
@@ -175,6 +197,12 @@ export default function GuardConsole(): React.ReactElement {
       {/* Active visits tab */}
       {tab === 'active' && (
         <div className="space-y-3">
+          {activeFilter && (
+            <div className="flex items-center justify-between text-sm">
+              <p className="text-navy-500 font-medium">Showing: <span className="text-navy-700">{FILTER_LABELS[activeFilter]}</span></p>
+              <button onClick={() => setActiveFilter(null)} className="text-brand-600 hover:text-brand-700 font-medium text-xs">Clear filter</button>
+            </div>
+          )}
           {loading ? (
             <div className="space-y-3">
               {[1, 2, 3].map((i) => (
@@ -190,21 +218,22 @@ export default function GuardConsole(): React.ReactElement {
                 </div>
               ))}
             </div>
-          ) : visits.length === 0 ? (
+          ) : filteredVisits.length === 0 ? (
             <div className="empty-state py-16">
               <div className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-surface-100 mb-3">
                 <svg className="w-6 h-6 text-navy-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0" /></svg>
               </div>
-              <p className="text-navy-500 font-medium">No visits today yet</p>
+              <p className="text-navy-500 font-medium">{activeFilter ? `No visitors in "${FILTER_LABELS[activeFilter]}"` : 'No visits today yet'}</p>
               <button onClick={() => setTab('register')} className="mt-2 btn-accent text-sm">
                 Register First Visitor
               </button>
             </div>
           ) : (
-            visits.map((v) => {
+            filteredVisits.map((v) => {
               const style = STATUS_STYLES[v.status];
+              const dur = v.status === 'checked_in' ? formatDuration(v.checked_in_at) : null;
               return (
-                <div key={v.id} className="card p-4 hover:shadow-elevated transition-shadow">
+                <div key={v.id} className="card p-4 hover:shadow-elevated transition-shadow cursor-pointer" onClick={() => setDetailVisit(v)}>
                   <div className="flex gap-4 items-start">
                     <div className="shrink-0">
                       {v.photo_url ? (
@@ -229,13 +258,30 @@ export default function GuardConsole(): React.ReactElement {
                           {v.status.replace('_', ' ')}
                         </span>
                       </div>
-                      <div className="flex items-center gap-2 mt-1">
+                      <div className="flex items-center gap-2 mt-1.5">
                         <p className="text-[11px] text-navy-300 font-mono">{v.ref_number}</p>
                         <span className="text-navy-200">·</span>
-                        <p className="text-[11px] text-navy-300">{new Date(v.created_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</p>
+                        <p className="text-[11px] text-navy-300">Reg: {formatTime(v.created_at)}</p>
+                        {v.checked_in_at && (
+                          <>
+                            <span className="text-navy-200">·</span>
+                            <p className="text-[11px] text-navy-300">In: {formatTime(v.checked_in_at)}</p>
+                          </>
+                        )}
+                        {v.checked_out_at && (
+                          <>
+                            <span className="text-navy-200">·</span>
+                            <p className="text-[11px] text-navy-300">Out: {formatTime(v.checked_out_at)}</p>
+                          </>
+                        )}
                       </div>
+                      {dur && (
+                        <p className={`text-[11px] mt-1 ${dur.isOvertime ? 'text-danger-600 font-bold' : 'text-navy-400'}`}>
+                          Duration: {dur.text}{dur.isOvertime ? ' ⚠️ Over 9 hours' : ''}
+                        </p>
+                      )}
                       {/* Action buttons */}
-                      <div className="flex gap-2 mt-3">
+                      <div className="flex gap-2 mt-3" onClick={(e) => e.stopPropagation()}>
                         {v.status === 'approved' && (
                           <>
                             <button onClick={() => checkIn(v)} className="btn-accent text-xs px-4 py-2">Check In</button>
@@ -261,24 +307,32 @@ export default function GuardConsole(): React.ReactElement {
           {checkedIn.length > 0 && (
             <p className="text-sm text-navy-400">Tap "Log Exit" when the visitor leaves.</p>
           )}
-          {checkedIn.map((v) => (
-            <div key={v.id} className="card p-4 flex items-center justify-between gap-4">
-              <div className="flex items-center gap-3">
-                {v.photo_url ? (
-                  <img src={v.photo_url} alt="" className="w-10 h-10 object-cover rounded-lg" />
-                ) : (
-                  <div className="w-10 h-10 bg-surface-100 rounded-lg flex items-center justify-center">
-                    <svg className="w-4 h-4 text-navy-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0" /></svg>
+          {checkedIn.map((v) => {
+            const dur = formatDuration(v.checked_in_at);
+            return (
+              <div key={v.id} className="card p-4 flex items-center justify-between gap-4 cursor-pointer hover:shadow-elevated transition-shadow" onClick={() => setDetailVisit(v)}>
+                <div className="flex items-center gap-3">
+                  {v.photo_url ? (
+                    <img src={v.photo_url} alt="" className="w-10 h-10 object-cover rounded-lg" />
+                  ) : (
+                    <div className="w-10 h-10 bg-surface-100 rounded-lg flex items-center justify-center">
+                      <svg className="w-4 h-4 text-navy-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0" /></svg>
+                    </div>
+                  )}
+                  <div>
+                    <p className="font-semibold text-navy-900 text-sm">{v.visitor?.full_name ?? '—'}</p>
+                    <p className="text-xs text-navy-400">{v.ref_number} · In: {formatTime(v.checked_in_at)}</p>
+                    <p className={`text-[11px] ${dur.isOvertime ? 'text-danger-600 font-bold' : 'text-navy-400'}`}>
+                      Duration: {dur.text}{dur.isOvertime ? ' ⚠️' : ''}
+                    </p>
                   </div>
-                )}
-                <div>
-                  <p className="font-semibold text-navy-900 text-sm">{v.visitor?.full_name ?? '—'}</p>
-                  <p className="text-xs text-navy-400">{v.ref_number} · In: {v.checked_in_at ? new Date(v.checked_in_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) : '—'}</p>
+                </div>
+                <div onClick={(e) => e.stopPropagation()}>
+                  <button onClick={() => logExit(v)} className="btn-primary text-sm px-5 py-2.5">Log Exit</button>
                 </div>
               </div>
-              <button onClick={() => logExit(v)} className="btn-primary text-sm px-5 py-2.5">Log Exit</button>
-            </div>
-          ))}
+            );
+          })}
           {checkedIn.length === 0 && (
             <div className="empty-state py-16">
               <div className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-surface-100 mb-3">
@@ -287,39 +341,6 @@ export default function GuardConsole(): React.ReactElement {
               <p className="text-navy-400 font-medium">No visitors currently inside</p>
             </div>
           )}
-        </div>
-      )}
-
-      {/* Visitor detail modal */}
-      {detailVisits && (
-        <div className="fixed inset-0 bg-navy-950/60 backdrop-blur-md flex items-center justify-center z-50 p-4" onClick={() => setDetailVisits(null)}>
-          <div className="bg-white rounded-3xl p-6 max-w-lg w-full max-h-[80vh] overflow-y-auto shadow-modal space-y-3" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between">
-              <h3 className="font-bold text-navy-900 text-lg">{detailTitle}</h3>
-              <button onClick={() => setDetailVisits(null)} className="btn-ghost p-1"><svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg></button>
-            </div>
-            {detailVisits.length === 0 ? (
-              <p className="text-navy-400 text-sm py-8 text-center">No visitors in this category</p>
-            ) : (
-              detailVisits.map((v) => (
-                <div key={v.id} className="flex items-center gap-3 p-3 bg-surface-50 rounded-xl">
-                  {v.photo_url ? (
-                    <img src={v.photo_url} alt="" className="w-10 h-12 object-cover rounded-lg shrink-0" />
-                  ) : (
-                    <div className="w-10 h-12 bg-surface-100 rounded-lg flex items-center justify-center shrink-0">
-                      <svg className="w-4 h-4 text-navy-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0" /></svg>
-                    </div>
-                  )}
-                  <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-navy-900 text-sm truncate">{v.visitor?.full_name ?? '—'}</p>
-                    <p className="text-xs text-navy-400 truncate">{v.visitor?.company} · {v.department?.name}</p>
-                    <p className="text-xs text-navy-300 font-mono">{v.ref_number}</p>
-                  </div>
-                  <span className={`status-badge shrink-0 ${STATUS_STYLES[v.status].bg} ${STATUS_STYLES[v.status].text}`}>{v.status.replace('_', ' ')}</span>
-                </div>
-              ))
-            )}
-          </div>
         </div>
       )}
 

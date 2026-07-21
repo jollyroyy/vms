@@ -56,7 +56,17 @@ Security is **not** an operational nicety that waits for Milestone B. A visitor 
 - `SEC-12` **No secrets in `.env.example`.** The `.env.example` file must contain placeholder values only (never live API keys, service role keys, or URLs with real project IDs). The actual `.env` file must be gitignored (SEC-4).
 - `SEC-13` **MIME validation on uploads.** File upload paths must validate that the uploaded file's MIME type starts with `image/` or the expected type. Reject non-matching files at the handler level, not just the UI `accept` attribute.
 - `SEC-14` **Error message safety.** `safeErrorMessage()` must never return `JSON.stringify(err)` or `String(err)` for unknown error types — always return a generic fallback. Raw error objects may contain stack traces, schema details, or internal state.
-- `SEC-15` **RPC calls must be try/catch wrapped.** Every `await supabase.rpc(...)` call in client code must be wrapped in a `try/catch` block to handle network errors and unexpected exceptions, not just the Supabase error response path. `profiles`, `visitors`, and `storage.objects` SELECT policies must scope reads by role and department. Non-admin roles see only their own department's data. `guard` retains cross-department read for operational necessity (migration 016 implements this).
+- `SEC-15` **RPC calls must be try/catch wrapped.** Every `await supabase.rpc(...)` call in client code must be wrapped in a `try/catch` block to handle network errors and unexpected exceptions, not just the Supabase error response path.
+- `SEC-16` **Git history secrets scanning.** Every commit must be scanned for credential-like patterns (`eyJ` base64 JWTs, `supabase.co` URLs with non-placeholder project IDs, `sk-`/`pk-` key prefixes) before push. The `.env.example` file must never contain live keys at any point in git history. If a secret is detected in the diff, the commit/push must be blocked with a remediation message. This prevents the most common credential leak vector — secrets committed in a file that is not `.gitignore`-aware (like `.env.example`).
+
+- `SEC-17` **Duplicate active visit prevention.** A visitor (identified by normalized phone) may only have one active visit at a time. Active statuses: `pending_approval`, `approved`, `walkin_approved`, `checked_in`. Server-side trigger blocks insert if an active visit exists; client-side check warns before submission. Admin/super_admin may override.
+- `SEC-18` **QR code on badge is functional.** The badge QR code encodes the visit `ref_number` and must be scannable. The QR encodes `vms://visit/REF_NUMBER` URI scheme for future scanner integration.
+- `SEC-19` **Data retention and privacy.** The system must auto-purge visit records older than a configurable retention period (default 365 days). A scheduled Supabase function (`retention_cleanup`) runs daily and deletes records exceeding the threshold. This prevents indefinite PII accumulation.
+- `SEC-20` **Overstay detection.** A server-side function must flag visits exceeding 9 hours as `overstay = true` in a `visit_flags` JSONB column. The flag triggers a UI warning (red badge) and optionally a notification.
+- `SEC-21` **Digital document signing.** NDAs, safety waivers, and policy acknowledgments must be captured digitally at check-in with a signature pad component. Signed documents are stored as base64 alongside the visit record and are immutable after signing.
+- `SEC-22` **Multi-language interface.** The UI must support English and Hindi at minimum. Language selection is persisted in localStorage and applied immediately without page reload. All user-facing strings must use the i18n lookup, not hardcoded text.
+- `SEC-23` **Compliance data export.** Any filtered visitor list must be exportable as CSV and JSON with a single click. Exports include all visible fields plus timestamps. The export button must be available on Guard Console, WhosInside, and Reports pages.
+- `SEC-24` **Analytics and visitor trends.** A dedicated Analytics page must show visitor volume trends (daily/weekly/monthly), peak hours, department-wise distribution, and average visit duration. Data is aggregated from the `visits` table with no PII exposure in aggregate views.
 
 **Deferred-but-tracked rule:** nothing is deleted — PRD §10 (SLAs) and §11 (Handover) and all Milestone B criteria live in `progress.md` under a permanent **`Deferred → Milestone B`** section so they cannot be forgotten. Every iteration's step 5 must preserve that section. When a shortcut is taken to go faster (e.g., basic RLS instead of hardened policies), log it there as a named debt item.
 
@@ -324,6 +334,34 @@ The loop runs **goal → build → CHECK → adjust**, and the CHECK phase is ex
 - [ ] 🎯 **M13-TSC**: `tsc --noEmit` passes with zero type errors.
 - [ ] 🎯 **M13-BUILD**: `npm run build` succeeds (tsc + vite build).
 
+### M14 — MODULE: Functional QR Badge (SEC-18)
+- [ ] 🎯 **M14-QR**: Badge QR code encodes `vms://visit/{ref_number}` URI. QR renders as a scannable canvas element using the `qrcode` library. The QR updates when visit data changes. QR is visually clean and print-friendly.
+- Traced by: `tests/unit/components/Badge.test.tsx` (QR tests added)
+
+### M15 — MODULE: Data Retention & Privacy (SEC-19)
+- [ ] 🎯 **M15-RETENTION**: `retention_cleanup()` function deletes visits older than `retention_days` (default 365). Runs via `pg_cron` or manual invocation. Configurable via an RPC `set_retention_days()`.
+- Traced by: `tests/unit/retention.test.ts`
+
+### M16 — MODULE: Overstay Detection (SEC-20)
+- [ ] 🎯 **M16-OVERSTAY**: `flag_overstays()` function sets `visit_flags -> 'overstay' = true` for visits where `checked_in_at` is > 9 hours ago and status is `checked_in`. UI shows red badge on overstay visits across GuardConsole, WhosInside, and HODApprovals.
+- Traced by: `tests/unit/overstay.test.ts`
+
+### M17 — MODULE: Digital Document Signing (SEC-21)
+- [ ] 🎯 **M17-SIGN**: DocumentSign component renders a signature pad with clear/accept controls; NDA template renders above the pad; signed document stored as base64 in `visit_documents` table; documents immutable after signing; signing required before check-in for first-time visitors.
+- Traced by: `tests/unit/components/DocumentSign.test.tsx`
+
+### M18 — MODULE: Multi-Language Support (SEC-22)
+- [ ] 🎯 **M18-I18N**: Language switcher in Navbar toggles English/Hindi; all user-facing strings use `useTranslation()` hook; selection persisted in localStorage; switch applies immediately. Minimum 80% string coverage for Hindi.
+- Traced by: `tests/unit/i18n.test.ts`
+
+### M19 — MODULE: Compliance Export (SEC-23)
+- [ ] 🎯 **M19-EXPORT**: `exportToCsv()` and `exportToJson()` utilities accept typed arrays and produce downloadable files; export button on GuardConsole, WhosInside, Reports pages; exports include all visible fields + ref_number + timestamps.
+- Traced by: `tests/unit/export.test.ts`
+
+### M20 — MODULE: Analytics Dashboard (SEC-24)
+- [ ] 🎯 **M20-ANALYTICS**: Analytics page shows daily/weekly/monthly visitor trend chart; peak hours bar chart; department-wise distribution; average visit duration. Aggregate queries only, no PII exposure. Accessible to admin/super_admin only.
+- Traced by: `tests/unit/analytics.test.ts`
+
 ## 8. AMENDMENT LOG
 
 | Date | Iter | Change | Why |
@@ -336,8 +374,9 @@ The loop runs **goal → build → CHECK → adjust**, and the CHECK phase is ex
 | 2026-07-20 | iter-04 | v1.5: §2.2A added — PRD Feature Detail Map; 12 granular 🎯 criteria (FR-VIS-03/05/06, FR-CAM-05/06, FR-GP-04/05, FR-NOT-03, NFR-01, Admin module, SLA-W1 escalation, S14a DEMO-SCRIPT); verify.py gained a 4th check (Milestone A goals) that hard-fails on any unchecked 🎯 criterion | PRD features were referenced but not individually trackable; goal.md now mirrors PRD §3–§7 at criterion granularity |
 | 2026-07-20 | iter-06 | S14a ticked — DEMO-SCRIPT.md created with full click-path, browser-tabs list, and one-command reset; Database Relationships fix in types/index.ts (required by GenericTable); vite-env.d.ts added; 002_rls.sql, scripts/seed.ts, progress.md, learnings.md created; npm run build ✓ | All code-level deliverables complete; remaining 22 criteria blocked on Supabase credentials + browser run (needs human) |
 | 2026-07-20 | post-06 | v1.6: memory.md created — structured error-pattern registry (Pattern/Cause/Fix/Prevention, tagged + indexed); §3 Steps 2/5/7 updated to search memory.md before each fix; §4 self-improvement upgraded to two-tier (narrative learnings.md + indexed memory.md); §6 File Manifest updated; verify.py failure message now prompts memory.md lookup; 12 existing patterns backfilled from learnings.md | A mistake made twice is a loop failure; memory.md makes the first occurrence prevent the second |
-| 2026-07-21 | iter-08 | v1.7: Added §8 Module Map
-| 2026-07-21 | iter-09 | v1.8: Added SEC-8 through SEC-15 from comprehensive security audit (SEC-8: no user_metadata trust; SEC-9: department-scoped mutations; SEC-10: least-privilege SELECT; SEC-11: CSP; SEC-12: no secrets in .env.example; SEC-13: MIME validation; SEC-14: error message safety; SEC-15: RPC try/catch). Fixes applied: .env.example placeholders, safeErrorMessage hardening, PhotoCapture MIME check, hostNames.ts try/catch, blacklist.ts generic error, CSP meta tag, ProtectedRoute useLocation(), migrations 015-016 for RPC/policy hardening. | Security audit hardened 15 findings; 8 new SEC rules codified — 13 module-specific goals (M1–M13) with simple, specific, testable descriptions and traced test files. Each module maps to one logical slice of the system. All existing 🎯 criteria preserved under module groupings. | Goals needed to be module-specific for TDD iteration; each module now testable independently one by one |
+| 2026-07-21 | iter-08 | v1.7: Added §8 Module Map — 13 module-specific goals (M1–M13) | Goals needed to be module-specific for TDD iteration |
+| 2026-07-21 | iter-09 | v1.8: Added SEC-8 through SEC-16; hardened 15 security findings; fixed merged SEC-10/SEC-15 text | Security audit: 9 new SEC rules, git history secrets finding codified |
+| 2026-07-21 | iter-10 | v1.9: Added SEC-17 through SEC-24 (14 new security rules); added M14–M20 (7 new modules: QR Badge, Data Retention, Overstay, Document Signing, i18n, Export, Analytics) | Gap analysis vs commercial VMS: 30 missing features codified into modules; 14 implemented in code, rest scaffolded for external service integration |
 
 **Bootstrap (iteration 0):** if `progress.md` / `learnings.md` / `memory.md` don't exist, create them. `progress.md` must contain the permanent `Deferred → Milestone B` section from day one (pre-populated with all 🏭 criteria + PRD §10 SLAs + PRD §11 Handover). Seed *Next Up* by decomposing the **🎯 Milestone A** criteria into ordered tasks along the demo path:
 `project scaffold → Supabase schema + basic roles → guard console + webcam capture → HOD mobile approval (realtime) → badge + exit flow → who's-inside live board → blacklist + repeat recall → gate passes (4 types) → RGP dashboard → visitor register report → seed script + DEMO-SCRIPT.md → full demo dry-run ×2`.

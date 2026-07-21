@@ -1,7 +1,8 @@
 import React from 'react';
-import { describe, it, expect, vi, afterEach } from 'vitest';
+import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest';
 import { render, screen, cleanup, fireEvent, waitFor } from '@testing-library/react';
 import LoginPage from '../../../src/pages/Login';
+import { resetRateLimit } from '../../../src/lib/rateLimiter';
 
 const mockSignIn = vi.hoisted(() => vi.fn());
 
@@ -16,10 +17,14 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
+beforeEach(() => {
+  resetRateLimit();
+});
+
 describe('M12-LOGIN: LoginPage', () => {
   it('renders sign-in form', () => {
     render(<LoginPage />);
-    expect(screen.getByText('Welcome back')).toBeInTheDocument();
+    expect(screen.getByText('SecureGate')).toBeInTheDocument();
     expect(screen.getByPlaceholderText('you@company.com')).toBeInTheDocument();
     expect(screen.getByPlaceholderText('Enter your password')).toBeInTheDocument();
     expect(screen.getByText('Sign in')).toBeInTheDocument();

@@ -1,139 +1,317 @@
-# learnings.md — VMS Loop Narrative
+# learnings.md — Self-Learning Project Reference
 
-> Append a dated entry whenever something surprising happens.
-> The loop reads this at Step 2 (Orient) before starting new work.
-> Max ~30 entries before consolidation.
+> **Purpose**: One read = understand the entire project + all past mistakes + scaffolding for future projects.
+> **How to use**: Any agent (or human) starting work reads this file first. Future projects copy the structure.
+> **Sibling files**: [`memory.md`](memory.md) (searchable error patterns, tagged) · [`goal.md`](goal.md) (charter) · [`progress.md`](progress.md) (live state) · [`PRD.md`](PRD.md) (requirements)
 
 ---
 
-## 2026-07-20 — Edge case inventory and fixes
+## 1. IDENTITY & STACK
 
-After building the HOD pre-approval feature, I audited the entire system for edge cases.
+**SecureGate** — Visitor & Material Gate Pass Management System for mall management offices.
+- **Stack**: React 19 + Vite 5 + Tailwind 3 + TypeScript (strict) · Supabase (Postgres + Auth + Realtime + Storage)
+- **Roles**: Guard, HOD, Staff, Admin, Super Admin
+- **Phase**: 1 (MVP, Milestone A = customer demo)
+- **Testing**: Vitest (unit + component + security) · Playwright (E2E, deferred)
 
-### Edge Cases Identified
+---
 
-| # | Edge Case | Severity | Files Affected | Status |
-|---|-----------|----------|----------------|--------|
-| EC-01 | Guard checks in visit that's already checked in | Medium | Guard/Console.tsx | **Fixed** |
-| EC-02 | Guard checks out visit already checked out | Medium | Guard/Console.tsx | **Fixed** |
-| EC-03 | No error handling in guard checkIn/checkOut | High | Guard/Console.tsx | **Fixed** |
-| EC-04 | Pre-approve visitor with same phone as existing pending visit | Low | HOD/PreApproveForm.tsx | Won't fix — upsert handles it |
-| EC-05 | HOD pre-approves for a department they don't belong to | Medium | HOD/PreApproveForm.tsx | **Fixed** |
-| EC-06 | Session expires mid-submission — no auth check before API calls | High | All forms | **Fixed** in Console/VisitorForm/PreApproveForm |
-| EC-07 | Visitor phone normalization fails silently | Medium | VisitorForm.tsx, PreApproveForm.tsx | Won't fix — shows error |
-| EC-08 | Pre-approved visit with no photo when guard tries to check in | Low | Guard/Console.tsx | Won't fix — photo optional at check-in |
-| EC-09 | Multiple rapid clicks on Approve/Reject | Low | HOD/Approvals.tsx | Already handled (acting state) |
-| EC-10 | Realtime subscription delivers stale data after approve/reject | Low | HOD/Approvals.tsx, Guard/Console.tsx | Already handled (local state filter) |
-| EC-11 | Guard Console shows visits from all departments (should only show guard's department) | Low | Guard/Console.tsx | Won't fix — current behavior allows all-dept view |
-| EC-12 | Who's Inside shows pre-approved but not-yet-arrived visitors | Medium | Shared/WhosInside.tsx | **Fixed** — shows accurate status badges |
+## 2. PROJECT ARCHITECTURE MAP
 
-## 2026-07-21 — Pre-approve submission RLS + [object Object] fix
+```
+vms/
+├── src/
+│   ├── lib/              PURE LOGIC — zero React, zero Vite globals
+│   │   ├── refNumber.ts, visitLifecycle.ts, gatePassStatus.ts     # State machines
+│   │   ├── blacklist.ts, rgpDueDate.ts, escalation.ts             # Business rules
+│   │   ├── photoCapture.ts, hostNames.ts, exportUtils.ts          # Utilities
+│   │   ├── roleRoutes.ts, formatDate.ts, i18n.ts, errors.ts       # Cross-cutting
+│   │   ├── rateLimiter.ts                                         # Login brute-force protection
+│   │   └── supabaseClient.ts                                      # Anon client only
+│   ├── components/       REUSABLE UI — no page-specific imports
+│   │   ├── Badge.tsx, Navbar.tsx, PhotoCapture.tsx
+│   │   ├── VisitorDetails.tsx, DocumentSign.tsx
+│   │   ├── NotificationBell.tsx, SessionTimeout.tsx
+│   ├── pages/
+│   │   ├── Login.tsx              # Rate-limited, branded "SecureGate"
+│   │   ├── NotFound.tsx
+│   │   ├── Guard/                Console.tsx, VisitorForm.tsx     # Gate operations
+│   │   ├── HOD/                  Approvals.tsx, PreApproveForm.tsx
+│   │   ├── Shared/               WhosInside.tsx, Reports.tsx, Analytics.tsx
+│   │   │   └── GatePassList/     Form.tsx, GatePassForm.tsx
+│   │   └── Admin/                AdminPanel.tsx, Analytics.tsx
+│   └── types/index.ts            Database types (supabase-to-typescript generated)
+├── supabase/migrations/    001–020 SQL (schema → RLS → RPCs → triggers → retention → rate limit)
+├── tests/
+│   ├── unit/               Pure logic tests (lib/), runs offline
+│   ├── unit/pages/         Component/page tests, needs jsdom
+│   ├── unit/components/    UI component tests, needs jsdom
+│   ├── security/           routeProtection.test.ts, rls.test.ts (needs live Supabase)
+│   └── e2e/                Playwright specs (deferred to Milestone B)
+├── scripts/seed.ts         Demo data seeder (uses service_role key — never import in src/)
+├── .githooks/pre-commit    Auto-runs checker.ts — blocks on red
+├── CLAUDE.md               Agent config: skills, conventions, project context
+├── checker.ts              Multi-step gate: tsc → unit → route protection
+├── verify.py               Milestone goal verifier
+└── vitest.config.ts        Excludes tests listed in tests/pending.list
+```
 
-PreApproveForm submission was failing with `[object Object]` and later "new row violates row-level security policy for table 'visitors'". Two root causes:
+**Key architectural decisions:**
 
-**RLS gap (primary)**: The `visitors` INSERT/UPDATE policy blocked HODs. The initial fix (broadening RLS policies) wasn't applied. **Final fix**: Created a `pre_approve_visitor` security-definer RPC (`migrations/011_visitors_hod_policy.sql`) that upserts the visitor AND creates the pre-approved visit in one atomic transaction — same pattern as `approve_visit`/`reject_visit`. The RPC:
-- Authenticates the caller (must be HOD/Admin/SuperAdmin)
-- Scopes HOD to their own department
-- Upserts visitor with `on conflict (phone) do update` (bypasses RLS via SECURITY DEFINER)
-- Inserts visit with `status = 'approved'`
-- Returns `{ ref_number }` in one DB round-trip
+| Decision | Rationale |
+|----------|-----------|
+| Security-definer RPCs for mutations | Avoids RLS recursion; simpler than complex policies |
+| `app_metadata` ONLY for JWT role | `user_metadata` is forgeable via `auth.updateUser()` |
+| Server-side ref numbers & timestamps | Postgres triggers — client can't tamper |
+| Base64 photos stored inline | Display never depends on cloud storage availability |
+| Two tsconfigs: root (`src/lib/`) + app (`src/`) | Root avoids React/JSX/Vite types; app tsconfig covers full build |
+| `ROLE_ROUTES` as single source of truth | Route protection, nav links, and tests import same file |
+| `(supabase as any).rpc()` for custom RPCs | Database types don't include all function signatures; cast is intentional |
+| Rate limiter: localStorage client + DB server | Defense-in-depth; client prevents UX frustration, server prevents bypass |
 
-**Brittle error serialization (secondary)**: `String(err)` in catch blocks produced `[object Object]`. Created `src/lib/errors.ts` → `safeErrorMessage()` (handles Error, objects with `.message`, null, plain objects). Replaced in PreApproveForm, Approvals, GuardConsole, VisitorForm. Tested in `tests/unit/errors.test.ts` (9 tests, never emits `[object Object]`).
+---
 
-Key: **Fixed** = code change made in this iteration. Won't fix = acceptable behavior for Milestone A.
+## 3. SECURITY BLUEPRINT
 
-### Lessons applied from memory.md
-- **SB-08** (RPC throws without catch): Applied try-catch to guard checkIn/checkOut
-- **RE-02** (button stuck disabled): Already fixed in Approvals.tsx
-- **SB-09** (RPC TypeScript cast): Applied `(supabase as any).rpc()` everywhere
+### 3.1 Security Rules (SEC-1 through SEC-24)
 
-## 2026-07-21 — clear_pre_approved JWT role metadata mismatch
+| Rule | What | Implementation |
+|------|------|---------------|
+| SEC-1 | RLS on from first table | Every migration enables RLS immediately; verified by rls.test.ts |
+| SEC-2 | Photos in private bucket | `visitor-photos` = Private; signed URLs only; never public |
+| SEC-3 | Server-authoritative data | Ref numbers, timestamps generated server-side; client cannot override |
+| SEC-4 | Secrets hygiene | `.env` gitignored; `.env.example` has placeholders only |
+| SEC-5 | Role separation | Backend-enforced via RLS + RPCs; verified by rls.test.ts |
+| SEC-6 | Security check every iteration | `npm run test:security` after schema changes |
+| SEC-7 | Frontend route protection | URL manipulation to forbidden role → immediate sign out |
+| SEC-8 | No user_metadata trust | `app_metadata` only; `user_metadata` is forgeable |
+| SEC-9 | Department-scoped mutations | RPCs filter by `department_id` from JWT |
+| SEC-10 | Least-privilege SELECT | No `USING (true)` on PII-containing tables |
+| SEC-11 | Content Security Policy | Meta tag in index.html; restricts scripts + connect-src |
+| SEC-12 | No secrets in .env.example | Placeholders only; pipeline scans for live keys |
+| SEC-13 | MIME validation on uploads | `file.type.startsWith('image/')` check on every upload |
+| SEC-14 | Error message safety | `safeErrorMessage()` never leaks stack/schema; generic fallback only |
+| SEC-15 | try/catch on every rpc() | Every `await supabase.rpc(...)` wrapped in try/catch |
+| SEC-16 | Git history secrets scanning | Pre-commit hook scans for `eyJ` JWTs, `sk-`/`pk-` keys |
+| SEC-17 | Duplicate visit prevention | Server trigger + client check before registration |
+| SEC-18 | QR on badge is functional | `vms://visit/{ref_number}` URI; scannable canvas via qrcode lib |
+| SEC-19 | Data retention auto-purge | `retention_cleanup()` deletes visits > 365 days |
+| SEC-20 | Overstay detection | `visit_flags -> 'overstay'` set for visits > 9h checked-in |
+| SEC-21 | Digital document signing | Signature pad component; base64 stored immutable |
+| SEC-22 | Multi-language (EN/HI) | `useTranslation()` hook; persisted in localStorage |
+| SEC-23 | CSV/JSON export | All filtered views exportable with one click |
+| SEC-24 | Analytics dashboard | Volume trends, peak hours, department distribution (no PII) |
 
-**Bug**: `clear_pre_approved` RPC raised "Only Guard, HOD, or Admin can clear pre-approvals" even for logged-in HODs.
+### 3.2 Security Anti-Patterns (what NOT to do)
 
-**Root cause**: The RPC read the role from `auth.jwt() -> 'app_metadata' ->> 'role'`, but security-definer RPCs and triggers throughout the codebase inconsistently use either `app_metadata` or `user_metadata`. Supabase stores the app-level role in `raw_user_meta_data` (mapped to JWT `user_metadata`) for users created via the Admin Panel, while `raw_app_meta_data` typically only has provider info. When `app_metadata` returned NULL, the RPC's `if null not in (...)` evaluated as false (PostgreSQL behavior), bypassing the guard — but the trigger caught it with its own check.
+| Anti-pattern | Why it's dangerous | Correct approach |
+|---|---|---|
+| Read role from `user_metadata` | End user forges it via `auth.updateUser()` → privilege escalation | Use `app_metadata` only (SEC-8) |
+| Fallback to `user_metadata` in RPC coalesce | Same as above — makes app_metadata check useless | Remove the user_metadata path entirely |
+| `USING (true)` on PII table SELECT | Every auth user sees everything — no data isolation | Scope by role + department (SEC-10) |
+| Direct `supabase.from('profiles')` in RLS | Infinite recursion (PG15+) | Use `auth.jwt()` subquery instead |
+| Leaving any route unwrapped | URL manipulation → unauthorized page access | Every route must go through ProtectedRoute |
+| Passing `allowedRoutes` as prop | Always passes (current URL always matches) | Look up from single `ROLE_ROUTES` registry |
+| `JSON.stringify(err)` in error messages | Leaks stack traces, schema, internal state | Use `safeErrorMessage` with generic fallback |
+| Live keys in `.env.example` | Committed to git, visible in repo history | Placeholders only + pre-commit scan |
+| "We'll add RLS later" mentality | Data exposed from day one; migration painful | RLS on from first create table statement |
+| Public storage bucket for photos | Any URL works; no access control possible | Private bucket + signed URLs |
+| Client-generated timestamps/ref numbers | Tamperable; defeats audit trail | Server triggers always; client omits these fields |
+| Single tsconfig for all src/ files | React/Vite types conflict with lib-only builds | Two tsconfigs: lib-only (root) + app-level |
+| Using `npm` instead of `pnpm` | `npm` may not exist on other dev machines | Check actual package manager used; use `pnpm` if that's what's there |
+| `CREATE POLICY IF NOT EXISTS` | Syntax not supported in Supabase PG | `DROP POLICY IF EXISTS` + `CREATE POLICY` |
 
-**Fix**: Changed all role-checking functions to use `coalesce(auth.jwt() -> 'app_metadata' ->> 'role', auth.jwt() -> 'user_metadata' ->> 'role', '')`. **Critical**: `app_metadata` must be checked FIRST because it is server-controlled — `user_metadata` is user-editable via `supabase.auth.updateUser()` and would allow privilege escalation if it took priority. The `user_metadata` fallback is only for legacy users whose roles were stored there before migration 010 moved them to `app_metadata`.
+### 3.3 Rate Limiting Pattern (new addition)
 
-**Also fixed**: WhosInside.tsx separated the clear-error state from the load-error state (was sharing `setError`, showing misleading "Failed to load:" prefix for clear failures). Added 3 new tests covering Clear All click, RPC error display, and cancel confirmation. 9 tests total for WhosInside, all green.
+| Layer | Mechanism | Threshold | Lockout |
+|-------|-----------|-----------|---------|
+| Client | localStorage counter + timer | 5 failed attempts | 60s (doubles up to 30min max) |
+| Server | `login_attempts` table + RPC | Per-email + per-IP | Emails rate-limited; RPC returns block boolean |
 
-**Memory.md pattern added**: SB-11 — document the rule: always check both metadata locations with coalesce when reading JWT claims in PL/pgSQL.
+**Rationale**: DDoS/brute-force mitigation. Client prevents UX frustration; server prevents bypass via API calls.
 
-## 2026-07-21 — Login redirect loop & host names not loading
+---
 
-**Login redirect loop**: When logging in as guard, the app briefly showed the navbar then redirected back to the login screen.
+## 4. UI/UX PATTERNS & ANTI-PATTERNS
 
-**Root cause**: `App.tsx` reads role only from `session.user.app_metadata.role`. If the JWT has role in `user_metadata` instead (e.g., `raw_user_meta_data` set but `raw_app_meta_data` not synced), `role` stays `null`. ProtectedRoute returns `null` (blank content area). Navbar still renders (outside ProtectedRoute). User sees brief flash of app shell. Page refresh could terminate the session entirely.
+### 4.1 Patterns that work
 
-The seed script fixed this: it updates profiles via the admin API, which triggers `sync_profile_role_to_auth()` (migration 010), which writes role + department_id to `raw_app_meta_data`. After re-login, the fresh JWT includes the role in `app_metadata`.
+| Pattern | Where applied | Why it works |
+|---------|--------------|--------------|
+| Stat cards toggle inline filter + switch tab | WhosInside.tsx | Direct feedback on main list; Clear All always reachable |
+| Live countdown for rate-limit lockout | Login.tsx | User sees exactly when they can retry; reduces frustration |
+| Inline validation in click handler, not disabled prop | Approvals.tsx | Button never permanently stuck; validation shown as inline errors |
+| Single `ROLE_ROUTES` for nav + protection + tests | roleRoutes.ts | One source of truth; no drift between routes and permissions |
+| RPC try/catch with state reset | Every page with RPC calls | No stuck loading states; user gets error message |
+| Base64 as primary, storage as secondary | PhotoCapture | Badge never depends on cloud storage availability |
 
-**Lesson**: Before debugging login issues in React code, first inspect the Supabase session in browser DevTools (`session.user.app_metadata` vs `session.user.user_metadata`) to confirm the role location.
+### 4.2 Anti-patterns (things that break)
 
-**Host names not loading**: VisitorForm's "Person to Meet" dropdown stayed empty after selecting a department, both with `fetch('/api/hosts/...')` (Vite dev proxy using service_role) and `supabase.from('profiles')`.
+| Anti-pattern | What broke | Fix |
+|---|---|---|
+| Conditional Clear All on `tab` only | Button disappeared when stat was clicked from Checked In tab | Check both `tab` and `activeFilter` |
+| `disabled` prop with inline validation | Button permanently stuck disabled | Valid in handler, not in disabled prop |
+| User-facing error with `JSON.stringify` | Internal schema leaked to user | `safeErrorMessage` with generic fallback |
+| `crossOrigin` on getUserMedia video | Canvas tainted by cross-origin data | Remove `crossOrigin` from local streams |
+| Protocol guard (`https:`) in camera code | Camera blocked on localhost dev | Remove guard; browsers allow localhost HTTP |
+| Camera denied catch with no state update | Red banner never appears; user thinks camera is working | Set error flag in catch; render banner |
+| All visitors treated same (pre-approved vs walk-in) | Walk-ins hidden from WhosInside pre-approved tab | `walkin_approved` status + stat cards filter by `visit_type` |
+| Branding in multiple places missed one | Reports print header still showed old brand | grep for old brand name across ALL files after rename |
+| `CREATE POLICY IF NOT EXISTS` syntax | Migration failed to apply | Drop + Create pattern instead |
 
-**Root cause**: The `profiles` table had zero rows with populated `department_id`. The `handle_new_user` trigger creates profiles with `department_id = NULL`. Only the seed script (`npm run seed`) sets `department_id` via `admin.from('profiles').update(...)`. Without running the seed (or after a database reset), no profiles match any department filter.
+---
 
-**Fix**: Ran `npm run seed` — updates all 13 profiles with correct `department_id` from the departments table, plus syncs role to `app_metadata`.
+## 5. ERROR PATTERN CATALOG
 
-**Lesson**: Seed data must be re-run after schema changes, database resets, or when moving to a new environment. The seed script is not optional — it's the only mechanism that links profiles to departments.
+> Each pattern has full details in [`memory.md`](memory.md) (tagged, searchable, with Cause → Fix → Prevention).
+> This section is a **one-glance summary** organized by problem area.
 
-**Premature App.tsx fix reverted**: I proposed modifying App.tsx to add `user_metadata` fallback for role extraction (same coalesce pattern as migration 012). The user had me revert and test properly. The actual root cause was missing seed data, not the App.tsx code. If I had investigated the browser console/network tab first, I would have seen either the empty profiles query or the Supabase authentication session details.
+### TypeScript (`#typescript` → memory.md TS-01/02/03, SB-09)
 
-**Lesson**: Always investigate the observable symptom in the running app (browser console, network requests, Supabase session inspection) before proposing code changes. Fixes based on code reading alone can miss the real cause.
+| Pattern | Quick fix |
+|---------|-----------|
+| `arr[idx]` is `T | undefined` after `!== -1` guard | Use `!` assertion: `arr[idx]!` |
+| `supabase.rpc()` type error "not assignable to undefined" | Cast: `(supabase as any).rpc(...)` |
+| `import.meta.env` in `src/lib/` file | Move file out of lib/ or cast env access |
+| Build fails but tests pass | Always run `npm run build` before commit; pre-existing TS errors must be fixed first |
 
-**Memory.md pattern added**: 
-- SB-12 — App.tsx role extraction only checks `app_metadata`, leaving `role` null if user's JWT has it in `user_metadata`.
-- SB-13 — profiles table lacks `department_id` because seed script needs to be run.
+### Supabase (`#supabase` → memory.md SB-01 through SB-13)
 
-## 2026-07-21 — Report tab removed from Guard + walkin_approved status added
+| Pattern | Quick fix |
+|---------|-----------|
+| RLS infinite recursion on profiles | Never subquery profiles in RLS policies; use `auth.jwt()` |
+| `rpc()` throws → button stuck loading | Always try/catch every `await supabase.rpc()` |
+| Realtime subscription fires twice | Return `channel.unsubscribe()` in useEffect cleanup |
+| Seed script gets RLS 403 | Use service_role client in scripts, not anon |
+| Trigger doesn't fire on bulk insert | Single-insert → read-back → update |
+| Photo null after upload | Compute base64 FIRST, then try storage |
+| JWT role missing from app_metadata | Migration 010 must sync profiles; user must re-login |
+| Drop + Create for policies | `CREATE POLICY IF NOT EXISTS` not supported; use `DROP POLICY IF EXISTS` + `CREATE POLICY` |
 
-**Change 1: Guard no longer sees Reports tab**
-- Removed `/reports` from guard's `ROLE_ROUTES` in `roleRoutes.ts`
-- Removed `'guard'` from the `/reports` navbar link roles
-- HOD, staff, admin, super_admin still have full access with date selection
+### Security (`#security` → memory.md SEC-01 through SEC-09)
 
-**Change 2: On-the-fly approvals now appear in separate tab**
-- Created `migrations/014_walkin_approved.sql` — adds `walkin_approved` to `visit_status` enum
-- Updated `approve_visit` RPC to set status to `walkin_approved` (was `approved`)
-- Updated `enforce_visit_update_rules` trigger to handle `walkin_approved` transitions
-- Pre-approved visitors stay as `approved`; walk-in HOD-approved visitors become `walkin_approved`
-- WhosInside.tsx: Added third tab "Approved" for walkin_approved visitors alongside "Pre-Approved" and "Checked In"
-- Guard Console: Both `approved` and `walkin_approved` are treated as ready-for-check-in
-- Updated types, visitLifecycle, Reports, Analytics to handle new status
+| Pattern | Quick fix |
+|---------|-----------|
+| Route protection bypassed by URL manipulation | Wrap every route in ProtectedRoute with ROLE_ROUTES lookup |
+| Privilege escalation via user_metadata | Remove user_metadata fallback; app_metadata only |
+| Data isolation broken (cross-dept mutation) | Add department_id filter from JWT to EVERY mutation RPC |
+| CSP allows inline scripts | Restrict `script-src 'self'`; use nonce if needed |
+| unsafe error message leak | `safeErrorMessage` — generic fallback only; no JSON.stringify |
+| git-committed secrets | Pre-commit grep for `eyJ`, `sk-`, `pk-`; rotate if compromised |
 
-## 2026-07-21 — Comprehensive security audit (15 findings hardened)
+### React (`#react` → memory.md RE-01/02, SB-05/08)
 
-A full-security audit using 3 parallel exploration agents covering: route protection, auth, XSS/injection, Supabase RLS, storage, SQL migrations, and CSP.
+| Pattern | Quick fix |
+|---------|-----------|
+| Button permanently disabled | Keep disabled simple; validate in handler |
+| Canvas SecurityError with getUserMedia | Remove crossOrigin attribute from local video |
+| Camera denied state never shown | Set error flag in catch; render fallback UI |
 
-### Critical findings (fixed immediately):
-1. **`.env.example` contained live service role key** — replaced with placeholders. The service role key provides full DB admin access and was committed in `.env.example` (not gitignored).
-2. **`clear_pre_approved()` lacked department scoping** — any guard or HOD could mass-reject all pre-approved visits across all departments. Fixed in migration 015 with department_id filter.
-3. **`user_metadata` fallback in RPCs** — migrations 012 and 014 used `coalesce(app_metadata, user_metadata)` which reintroduces the privilege escalation path that migration 010 specifically fixed. `user_metadata` is user-editable via `auth.updateUser()`. Removed in migration 015.
+### Testing (`#vitest` → memory.md VT-01/02)
 
-### High findings (fixed):
-4. **No Content Security Policy** — added strict CSP meta tag to `index.html` restricting scripts to `'self'`, connect-src to Supabase, and blocking inline scripts.
-5. **`safeErrorMessage` could leak object internals** — `JSON.stringify(err)` fallback could expose stack traces and internal state. Changed to return generic fallback for unknown types.
-6. **`PhotoCapture` file input no MIME validation** — file.type preserved user-supplied MIME type without validation. Added `file.type.startsWith('image/')` check.
-7. **`hostNames.ts` RPC not in try/catch** — violated SB-08 pattern. Wrapped in try/catch.
-8. **Storage bucket SELECT policy was `USING (true)`** — any authenticated user could read any photo. Fixed in migration 016 to scope to guard/admin/super_admin.
-9. **`profiles` and `visitors` SELECT wide open** — all authenticated users could see full profile/visitor data including PII. Fixed in migration 016 with department-scoped policies.
+| Pattern | Quick fix |
+|---------|-----------|
+| Vitest exits 0 with 0 tests | Check test count in output; check pending.list |
+| verify.py prints failure but exits 0 | Return False from check function; map to exit 1 |
 
-### Medium findings (fixed):
-10. **Error message contains raw phone input** — `blacklist.ts` exposed `raw` in error message. Changed to generic "Invalid phone number format."
-11. **ProtectedRoute uses `window.location.pathname`** — changed to `useLocation().pathname` for React Router consistency.
+---
 
-### New SEC rules added to goal.md:
-- SEC-8: No user_metadata trust
-- SEC-9: Department-scoped mutations
-- SEC-10: Least-privilege SELECT policies
-- SEC-11: Content Security Policy
-- SEC-12: No secrets in .env.example
-- SEC-13: MIME validation on uploads
-- SEC-14: Error message safety
-- SEC-15: RPC calls must be try/catch wrapped
+## 6. SCAFFOLDING CHECKLIST (for new projects)
 
-### Lessons:
-- Live service keys in `.env.example` is the #1 credential leak risk — always use placeholders from iteration 0.
-- When migration 010 moves role to app_metadata, subsequent migrations must NOT reintroduce user_metadata fallbacks. Review all new RPCs for this pattern.
-- The `current_user_role()` function (migration 010) correctly reads only app_metadata — use it everywhere instead of inline JWT parsing.
-- Storage bucket policies need the same least-privilege treatment as table RLS — `USING (true)` on storage is as dangerous as `USING (true)` on a table with PII.
+When starting a new project from this template, follow these steps:
+
+### Phase 1: Foundation
+- [ ] Set up React + Vite + Tailwind + TypeScript (strict mode)
+- [ ] Configure two tsconfigs: root (`src/lib/`) + app (`src/`)
+- [ ] Create `CLAUDE.md` with project conventions, available skills, and context
+- [ ] Set up Supabase project (or replace with your backend)
+- [ ] Install and configure test framework (Vitest + jsdom)
+- [ ] Create checker / verify scripts (multi-step gate)
+- [ ] Set up pre-commit hook that blocks red builds
+- [ ] Secure `.env.example` with placeholders, gitignore `.env`
+
+### Phase 2: Security Baseline (do BEFORE features)
+- [ ] SEC-1: RLS on from first table
+- [ ] SEC-3: Server-authoritative timestamps + ref numbers
+- [ ] SEC-4: Secrets hygiene
+- [ ] SEC-11: CSP meta tag
+- [ ] SEC-16: Git history secrets scan in pre-commit
+- [ ] Set up `ROLE_ROUTES` + ProtectedRoute + route protection tests
+- [ ] Never read from `user_metadata` in JWT — `app_metadata` only
+
+### Phase 3: Architecture
+- [ ] `src/lib/` for pure logic only (no React, no Vite globals)
+- [ ] `src/components/` for reusable UI
+- [ ] `src/pages/` split by role (Guard/, HOD/, Shared/, Admin/)
+- [ ] Security-definer RPCs for mutations (avoids RLS recursion)
+- [ ] `(supabase as any).rpc()` pattern for custom functions
+- [ ] Base64-first for display-critical data; cloud storage secondary
+
+### Phase 4: TDD Loop
+- [ ] Write test BEFORE feature (red → green)
+- [ ] Use `tests/pending.list` to activate suites one at a time
+- [ ] Maintain memory.md (error pattern registry) alongside learnings.md
+- [ ] Run full suite before every commit; never use `--no-verify`
+
+### Hard Rules Carried Over From This Project
+- Two tsconfigs — never merge them
+- `app_metadata` only for role — never `user_metadata` fallback
+- No `USING (true)` on PII tables — scope by role + department
+- Every route wrapped in ProtectedRoute — no exceptions
+- Every `await supabase.rpc(...)` in try/catch — no exceptions
+- Pre-commit hook runs full check — never skip it
+- Never disable RLS "temporarily" — fix the policy
+- `CREATE POLICY IF NOT EXISTS` is NOT supported — use Drop + Create
+- Keep iter0 plan as one list in goal.md; never lose Deferred section
+
+---
+
+## 7. LEARNING LOG (dated entries)
+
+### 2026-07-21 — Rate Limiting + Migration Fixes + Build Hardening
+
+**What happened**:
+- Added client-side rate limiter (`src/lib/rateLimiter.ts`) with exponential backoff (5 failed → 60s lockout, doubles to 30min max)
+- Integrated into Login.tsx: page load tracking, pre-submit check, lockout UI with countdown, disabled button
+- Created server-side `020_rate_limit.sql`: `login_attempts` table + RPCs for checkpointing and recording attempts
+- Created `019_apply_pending.sql` to apply migrations 014–018 (fixes `walkin_approved` enum error)
+- First migration 019 run failed — `CREATE POLICY IF NOT EXISTS` syntax not supported in Supabase PG; fixed to `DROP POLICY IF EXISTS` + `CREATE POLICY`
+- Build revealed pre-existing TS errors that were being ignored:
+  - Missing `@types/qrcode` dependency (Badge.tsx)
+  - `Object is possibly 'undefined'` in DocumentSign.tsx (touches[0])
+  - `T | undefined` index access in exportUtils.ts
+  - `supabase.rpc()` type cast needed in VisitorForm.tsx and PreApproveForm.tsx
+
+**Lesson**: Tests can pass while TypeScript build fails. Always run BOTH `npm test` AND `npm run build` to verify completeness.
+
+**Pattern added to memory.md**: Rate limiting patterns are documented inline in learnings.md §3.3. Build hardening pattern noted for CLAUDE.md.
+
+### 2026-07-21 — Clear All Button Fix + Branding
+
+**What happened**:
+- Clear All button in WhosInside was hidden when stat cards clicked from Checked In tab
+- Root cause: stat cards toggled `activeFilter` but didn't switch `tab`; Clear All gated on `tab === 'pre_approved'`
+- Fix: stat cards now call `setTab()`; Clear All shows for `(tab === 'pre_approved' || activeFilter === 'pre_approved')`
+- Branding: VMS → SecureGate across Login.tsx, Navbar.tsx, index.html, Reports.tsx
+- Reports print header was nearly missed — grep for old brand name across ALL files after rename
+
+**Pattern**: When a filter/tab combo hides a UI element, always check that the element's visibility condition matches ALL paths that can trigger the filter. Don't assume only one path exists.
+
+### 2026-07-21 — learnings.md Restructured (this entry)
+- learnings.md rewritten from 139-line narrative to comprehensive self-learning document
+- Now includes: architecture map, security blueprint (do + don't), UI/UX anti-patterns, error catalog, scaffolding checklist, learning log
+- memory.md kept as searchable error pattern registry (tagged, detailed)
+- The two files serve different purposes: learnings.md = overview + self-learning + scaffolding; memory.md = searchable fix lookup
+
+---
+
+## TEST COMMANDS
+
+| Command | What it runs | When |
+|---------|-------------|------|
+| `npm test` | All unit tests (vitest) | Every iteration |
+| `npm run build` | tsc + vite build | Before commit |
+| `npm run check` | checker.ts: tsc + unit + routeProtection | Hard gate (pre-commit) |
+| `npm run test:security` | Full security (needs live Supabase) | Before demo |
+| `npm run test:e2e` | E2E Playwright tests | Before demo |
+| `npm run seed` | Seed demo data | After DB reset / new env |
