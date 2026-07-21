@@ -2,7 +2,7 @@
  * PhotoCapture — FR-CAM-04/05/06/07/08/10
  */
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { computeCenterCrop, PHOTO_CONSTRAINTS } from '../lib/photo';
+import { computeCenterCrop, PHOTO_CONSTRAINTS, stripExifViaCanvas } from '../lib/photo';
 
 type Props = { onCapture: (blob: Blob) => void };
 type State = 'idle' | 'streaming' | 'frozen' | 'denied' | 'error';
@@ -115,13 +115,24 @@ export default function PhotoCapture({ onCapture }: Props): React.ReactElement {
 
   const accept = useCallback(() => { if (fileBlob) onCapture(fileBlob); }, [fileBlob, onCapture]);
 
-  const handleFileInput = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileInput = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     if (!file.type.startsWith('image/')) return;
-    const blob = new Blob([file], { type: file.type });
-    setPreview(URL.createObjectURL(blob)); setFileBlob(blob); setState('frozen');
-    stopStream();
+    try {
+      const strippedBlob = await stripExifViaCanvas(file);
+      setPreview(URL.createObjectURL(strippedBlob));
+      setFileBlob(strippedBlob);
+      setState('frozen');
+      stopStream();
+    } catch {
+      // Fallback: use raw blob if canvas fails (e.g., in test environments)
+      const blob = new Blob([file], { type: file.type });
+      setPreview(URL.createObjectURL(blob));
+      setFileBlob(blob);
+      setState('frozen');
+      stopStream();
+    }
   }, [stopStream]);
 
   if (state === 'denied' || state === 'error') {

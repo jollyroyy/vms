@@ -21,8 +21,16 @@ const baseVisit: Visit = {
   exit_verified: null,
   rejection_reason: null,
   carrying_material: false,
+  emergency_contact_name: null,
+  emergency_contact_phone: null,
+  expected_duration_minutes: 90,
+  consent_privacy: true,
+  consent_site_rules: true,
+  nda_signature: null,
+  privacy_signature: null,
+  site_rules_signature: null,
   created_at: '2026-07-20T09:00:00Z',
-  visitor: { id: 'vis1', phone: '9876543210', full_name: 'Rohan Desai', company: 'TechSoft Pvt Ltd', id_type: null, id_last4: null, is_blacklisted: false, blacklist_reason: null, created_at: '2026-01-01T00:00:00Z' },
+  visitor: { id: 'vis1', phone: '9876543210', full_name: 'Rohan Desai', company: 'TechSoft Pvt Ltd', id_type: null, id_last4: null, vehicle_number: null, is_blacklisted: false, blacklist_reason: null, created_at: '2026-01-01T00:00:00Z' },
   department: { id: 'dept1', name: 'Information Technology', code: 'IT', created_at: '2026-01-01T00:00:00Z' },
   host: { id: 'h1', full_name: 'Priya Sharma' },
   photo_url: null,
@@ -72,5 +80,42 @@ describe('M11-BADGE: Badge component', () => {
     const noDept = { ...baseVisit, department: undefined };
     render(<Badge visit={noDept as any} />);
     expect(screen.getByText('—')).toBeInTheDocument();
+  });
+
+  // NEW TESTS - Purpose display
+  it('renders purpose label capitalized', () => {
+    render(<Badge visit={baseVisit} />);
+    expect(screen.getByText('Meeting')).toBeInTheDocument();
+  });
+
+  it('renders vendor purpose correctly', () => {
+    render(<Badge visit={{ ...baseVisit, purpose: 'vendor' }} />);
+    expect(screen.getByText('Vendor')).toBeInTheDocument();
+  });
+
+  // NEW TESTS - Expected duration display
+  it('renders 90 minutes as "1h 30m"', () => {
+    render(<Badge visit={{ ...baseVisit, expected_duration_minutes: 90 }} />);
+    expect(screen.getByText('1h 30m')).toBeInTheDocument();
+  });
+
+  it('renders 60 minutes as "1 hour"', () => {
+    render(<Badge visit={{ ...baseVisit, expected_duration_minutes: 60 }} />);
+    expect(screen.getByText('1 hour')).toBeInTheDocument();
+  });
+
+  it('renders 30 minutes as "30 min"', () => {
+    render(<Badge visit={{ ...baseVisit, expected_duration_minutes: 30 }} />);
+    expect(screen.getByText('30 min')).toBeInTheDocument();
+  });
+
+  it('renders null duration as "Not specified"', () => {
+    render(<Badge visit={{ ...baseVisit, expected_duration_minutes: null }} />);
+    expect(screen.getByText('Not specified')).toBeInTheDocument();
+  });
+
+  it('renders 120 minutes as "2 hours"', () => {
+    render(<Badge visit={{ ...baseVisit, expected_duration_minutes: 120 }} />);
+    expect(screen.getByText('2 hours')).toBeInTheDocument();
   });
 });

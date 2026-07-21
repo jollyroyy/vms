@@ -7,6 +7,20 @@ import type { Visit } from '../types/index';
 
 type Props = { visit: Visit };
 
+function formatDuration(minutes: number | null): string {
+  if (minutes === null || minutes === undefined) return 'Not specified';
+  if (minutes < 60) return `${minutes} min`;
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  if (m === 0) return h === 1 ? '1 hour' : `${h} hours`;
+  return `${h}h ${m}m`;
+}
+
+function formatPurpose(purpose: string): string {
+  if (!purpose) return '—';
+  return purpose.charAt(0).toUpperCase() + purpose.slice(1);
+}
+
 export default function Badge({ visit }: Props): React.ReactElement {
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
   const visitor = visit.visitor;
@@ -59,6 +73,14 @@ export default function Badge({ visit }: Props): React.ReactElement {
           <div className="flex justify-between py-2 border-b border-surface-100">
             <span className="text-navy-400 font-medium">Host</span>
             <span className="font-semibold text-navy-700">{host?.full_name ?? '—'}</span>
+          </div>
+          <div className="flex justify-between py-2 border-b border-surface-100">
+            <span className="text-navy-400 font-medium">Purpose</span>
+            <span className="font-semibold text-navy-700">{formatPurpose(visit.purpose)}</span>
+          </div>
+          <div className="flex justify-between py-2 border-b border-surface-100">
+            <span className="text-navy-400 font-medium">Expected Stay</span>
+            <span className="font-semibold text-navy-700">{formatDuration(visit.expected_duration_minutes)}</span>
           </div>
           <div className="flex justify-between py-2 border-b border-surface-100">
             <span className="text-navy-400 font-medium">Date</span>

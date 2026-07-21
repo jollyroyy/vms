@@ -85,3 +85,33 @@ describe('M7-PHOTO: edge cases', () => {
     expect(crop.y).toBe(0);
   });
 });
+
+// Tests for EXIF stripping - we test the crop math used inside stripExifViaCanvas
+describe('EXIF strip crop math (SEC-EXIF)', () => {
+  it('computes correct crop for portrait phone photo (3024x4032)', () => {
+    const crop = computeCenterCrop(3024, 4032);
+    // 4032 * 3/4 = 3024 exactly, so full-height option applies
+    expect(crop.width).toBe(3024);
+    expect(crop.height).toBe(4032);
+    expect(crop.x).toBe(0);
+    expect(crop.y).toBe(0);
+  });
+
+  it('computes correct crop for landscape phone photo (4032x3024)', () => {
+    const crop = computeCenterCrop(4032, 3024);
+    // 3024 * 3/4 = 2268, which fits in width 4032 → use full height
+    expect(crop.width).toBe(2268);
+    expect(crop.height).toBe(3024);
+    expect(crop.x).toBe(882); // (4032 - 2268) / 2
+    expect(crop.y).toBe(0);
+  });
+
+  it('computes correct crop for 1:1 square image (1000x1000)', () => {
+    const crop = computeCenterCrop(1000, 1000);
+    // Option A: wFromH = 1000 * 3/4 = 750 ≤ 1000 → use full height
+    expect(crop.width).toBe(750);
+    expect(crop.height).toBe(1000);
+    expect(crop.x).toBe(125); // (1000 - 750) / 2
+    expect(crop.y).toBe(0);
+  });
+});

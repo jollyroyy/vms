@@ -41,3 +41,36 @@ export function computeCenterCrop(sourceWidth: number, sourceHeight: number): Cr
     y: Math.floor((sourceHeight - hFromW) / 2),
   };
 }
+
+/**
+ * Strip EXIF/GPS metadata from an image file by re-encoding through canvas.
+ * Returns a new Blob (WebP) with no metadata.
+ * SEC-EXIF: Prevents GPS coordinates and camera metadata from being stored with visitor photos.
+ */
+export async function stripExifViaCanvas(file: File): Promise<Blob> {
+  return new Promise((resolve, reject) => {
+    const objectUrl = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      // Apply center-crop and resize to target dimensions
+      const crop = computeCenterCrop(img.naturalWidth, img.naturalHeight);
+      canvas.width = PHOTO_CONSTRAINTS.width;
+      canvas.height = PHOTO_CONSTRAINTS.height;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) { URL.revokeObjectURL(objectUrl); reject(new Error('Canvas not available')); return; }
+      ctx.drawImage(img, crop.x, crop.y, crop.width, crop.height, 0, 0, canvas.width, canvas.height);
+      canvas.toBlob(
+        (blob) => {
+          URL.revokeObjectURL(objectUrl);
+          if (!blob) { reject(new Error('Canvas toBlob failed')); return; }
+          resolve(blob);
+        },
+        'image/webp',
+        0.8,
+      );
+    };
+    img.onerror = () => { URL.revokeObjectURL(objectUrl); reject(new Error('Image load failed')); };
+    img.src = objectUrl;
+  });
+}

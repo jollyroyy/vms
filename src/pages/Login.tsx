@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../supabaseClient';
 import { getRateLimit, recordFailedAttempt, recordPageLoad } from '../lib/rateLimiter';
+import { safeErrorMessage } from '../lib/errors';
 
 export default function LoginPage(): React.ReactElement {
   const [email,    setEmail]    = useState('');
@@ -48,19 +49,22 @@ export default function LoginPage(): React.ReactElement {
     }
     setLoading(true);
     const { error: err } = await supabase.auth.signInWithPassword({ email, password });
-    if (err) { recordFailedAttempt(); setError(err.message); }
+    if (err) { recordFailedAttempt(); setError(safeErrorMessage(err, 'Sign-in failed. Please try again.')); }
     setLoading(false);
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden bg-navy-950">
+    <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden"
+      style={{ backgroundImage: "url('/securegate-bg.png')", backgroundSize: 'cover', backgroundPosition: 'center', backgroundRepeat: 'no-repeat' }}>
       {/* Background layers */}
       <div className="absolute inset-0">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-navy-900 via-navy-950 to-black" />
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[600px] bg-brand-600/[0.08] rounded-full blur-[120px]" />
-        <div className="absolute bottom-0 right-0 w-[400px] h-[400px] bg-brand-400/[0.04] rounded-full blur-[100px]" />
+        {/* Dark overlay for readability */}
+        <div className="absolute inset-0 bg-navy-950/55" />
+        {/* Gradient accent */}
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[600px] bg-brand-600/[0.06] rounded-full blur-[120px]" />
+        <div className="absolute bottom-0 right-0 w-[400px] h-[400px] bg-brand-400/[0.03] rounded-full blur-[100px]" />
         {/* Grid pattern */}
-        <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.015)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.015)_1px,transparent_1px)] bg-[size:64px_64px]" />
+        <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.012)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.012)_1px,transparent_1px)] bg-[size:64px_64px]" />
       </div>
 
       {/* Floating particles */}
@@ -167,7 +171,7 @@ export default function LoginPage(): React.ReactElement {
                 if (!email) { setError('Enter your email address first.'); return; }
                 setLoading(true); setError('');
                 const { error: pwErr } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: window.location.origin });
-                if (pwErr) { setError(pwErr.message); setLoading(false); return; }
+                if (pwErr) { setError(safeErrorMessage(pwErr, 'Password reset request failed.')); setLoading(false); return; }
                 setError('');
                 setSuccessMsg('Password reset link sent to your email.');
                 setLoading(false);

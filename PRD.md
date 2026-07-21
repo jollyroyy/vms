@@ -511,6 +511,25 @@ Approval links in WhatsApp/SMS must open a mobile page where the HOD sees the vi
 | `FR-FUTURE-19` | **Facial recognition for repeat visitors** — camera matches a returning visitor's face against previous photos for faster check-in | `[EXTERNAL]` | Requires a commercial face recognition API (AWS Rekognition, Azure Face, or on-premise solution). Legal/consent review mandatory (`FR-CAM-16` already flags this). GDPR/biometric data laws apply. |
 | `FR-FUTURE-20` | **Automated visitor satisfaction survey** — post-visit SMS/email survey with rating and feedback, aggregated per department | `[MEDIUM]` | Needs outbound messaging (already planned) + a simple survey form + aggregation dashboard. Could use a third-party survey tool (Typeform, Google Forms) or build in-house. |
 
+
+### 14.6 Security & Infrastructure Enhancements
+
+| ID | Feature | Feasibility | Notes |
+|---|---|---|---|
+| `FR-SEC-01` | **EXIF/GPS metadata stripping** — all visitor photos stripped of EXIF, XMP, GPS, and camera metadata before storage | `[EASY]` | Canvas re-encoding strips all metadata. Already implemented in webcam path; extended to file-input fallback path. SEC-EXIF. |
+| `FR-SEC-02` | **TOTP Multi-Factor Authentication** — admin and HOD roles must use a TOTP authenticator app (Google Authenticator, Authy) in addition to password | `[MEDIUM]` | Supabase Auth has native TOTP MFA support. Requires MFA setup page, enrollment flow, and verification step on login. Critical for roles with PII access. |
+| `FR-SEC-03` | **Email notifications to host** — when a visitor checks in, the host receives an email with visitor name, company, ref number, and photo link | `[MEDIUM]` | Supabase Edge Function triggered by visit status change to `checked_in`. Uses Resend or SMTP. Removes the need for hosts to actively monitor the app. FR-NOT-03 extension. |
+
+### 14.7 Workflow Enhancements
+
+| ID | Feature | Feasibility | Notes |
+|---|---|---|---|
+| `FR-WF-01` | **Recurring visit series** — schedule regular visitors (weekly maintenance contractors, monthly auditors) as a series instead of creating individual visits | `[MEDIUM]` | New `recurring_visits` table with recurrence pattern (daily/weekly/monthly), auto-generates individual visit records on the scheduled date. |
+| `FR-WF-02` | **Configurable check-in window** — guard console shows visits within a configurable window (default 48 hours) instead of today-only, so tomorrow's pre-approved visits are visible | `[EASY]` | UI-only change: replace today-filter with a `windowHours` setting (default 48). Helps guards see pre-approved visitors arriving early or late. |
+| `FR-WF-03` | **Confidential visit flag** — visits can be marked as confidential; reception staff see limited info (visitor checked in, no name/company details) | `[EASY]` | Add `is_confidential boolean` column to visits table. RLS: non-HOD, non-guard roles see only "Confidential visitor" text. |
+| `FR-WF-04` | **Data retention automation** — scheduled daily cleanup of visit records, photos, and audit logs older than the configured retention period | `[MEDIUM]` | Supabase Edge Function invoked daily via pg_cron or Supabase cron schedule. Configurable `RETENTION_DAYS` env var (default 365). SEC-19. |
+
+
 ---
 
 ## Appendix A — Key design decisions & rationale

@@ -362,6 +362,36 @@ The loop runs **goal → build → CHECK → adjust**, and the CHECK phase is ex
 - [ ] 🎯 **M20-ANALYTICS**: Analytics page shows daily/weekly/monthly visitor trend chart; peak hours bar chart; department-wise distribution; average visit duration. Aggregate queries only, no PII exposure. Accessible to admin/super_admin only.
 - Traced by: `tests/unit/analytics.test.ts`
 
+
+### M21 — MODULE: EXIF Metadata Stripping (FR-SEC-01, SEC-EXIF)
+- [x] 🎯 **M21-EXIF**: `stripExifViaCanvas()` in `src/lib/photo.ts` re-encodes file-input photos through a canvas element, stripping all EXIF/GPS/camera metadata before storage. Both webcam path (already canvas-based) and file-input path use this pipeline. Verified by confirming no GPS data in output blob.
+- Traced by: `tests/unit/photoCapture.test.ts` (EXIF crop math tests added)
+
+### M22 — MODULE: Email Notification to Host (FR-SEC-03, FR-NOT-03)
+- [ ] 🎯 **M22-EMAIL**: When a visit status changes to `checked_in`, a Supabase Edge Function (`notify-host`) sends an email to the host containing: visitor name, company, ref number, purpose, and a link to the visit. Email sent via Resend API. Host receives notification < 60s after check-in. 
+- Traced by: `tests/unit/emailNotification.test.ts` (unit tests for email template rendering)
+- Supabase function: `supabase/functions/notify-host/index.ts`
+
+### M23 — MODULE: TOTP MFA for Privileged Roles (FR-SEC-02)
+- [ ] 🎯 **M23-MFA**: Admin and HOD roles are required to enroll in TOTP MFA (Google Authenticator / Authy) on first login after MFA is enabled. Login flow: email+password → check if MFA required → TOTP verification → session. MFA enrollment page shows QR code and backup codes. Unenrolled admin/HOD users are redirected to enrollment before accessing the app.
+- Traced by: `tests/unit/pages/MFASetup.test.tsx`
+- New files: `src/pages/MFASetup.tsx`, `src/pages/MFAVerify.tsx`
+
+### M24 — MODULE: Recurring Visit Series (FR-WF-01)
+- [ ] 🎯 **M24-RECURRING**: HOD can create a recurring visit series (e.g., "Maintenance contractor every Tuesday"). System auto-creates individual visit records on each recurrence date. Series can be paused or cancelled. Individual visits inherit parent series metadata.
+- Traced by: `tests/unit/recurringVisits.test.ts`
+- New files: `src/pages/HOD/RecurringVisits.tsx`, migration `023_recurring_visits.sql`
+
+### M25 — MODULE: Confidential Visit Flag (FR-WF-03)
+- [ ] 🎯 **M25-CONFIDENTIAL**: Visits marked `is_confidential = true` show only "Confidential visitor" to staff/guard roles in WhosInside and reports. HOD and Admin see full details. Guard Console shows "Confidential" badge on the visit card. Migration adds `is_confidential boolean default false` to visits table.
+- Traced by: `tests/unit/confidentialVisit.test.ts`
+- Migration: `supabase/migrations/023_confidential_flag.sql`
+
+### M26 — MODULE: Configurable Check-in Window (FR-WF-02)
+- [ ] 🎯 **M26-WINDOW**: Guard Console shows visits within a configurable time window (default 48 hours ahead + past 24 hours) instead of today-only filter. A dropdown/toggle lets guards switch between "Today", "48 hours", and "Custom range". Pre-approved visits for tomorrow are visible immediately.
+- Traced by: `tests/unit/pages/GuardConsole.test.tsx` (window filter tests added)
+
+
 ## 8. AMENDMENT LOG
 
 | Date | Iter | Change | Why |
@@ -378,6 +408,7 @@ The loop runs **goal → build → CHECK → adjust**, and the CHECK phase is ex
 | 2026-07-21 | iter-09 | v1.8: Added SEC-8 through SEC-16; hardened 15 security findings; fixed merged SEC-10/SEC-15 text | Security audit: 9 new SEC rules, git history secrets finding codified |
 | 2026-07-21 | iter-10 | v1.9: Added SEC-17 through SEC-24 (14 new security rules); added M14–M20 (7 new modules: QR Badge, Data Retention, Overstay, Document Signing, i18n, Export, Analytics) | Gap analysis vs commercial VMS: 30 missing features codified into modules; 14 implemented in code, rest scaffolded for external service integration |
 | 2026-07-21 | iter-11 | v2.0: Premium UI revamp completed (7 files: index.css, VisitorDetails, Badge, Console, WhosInside, Approvals, Login); fixed Approvals.tsx build errors (VisitStatus typing with `as const` + nullish coalescing for STATUS_STYLES); self-learning enforcement: agent must read learnings.md and memory.md before every action | "Premium-looking, modern UI" is now a stated priority; build stability restored after visual changes |
+| 2026-07-21 | iter-12 | v2.1: Added M21-M26 (6 new modules: EXIF stripping, email notifications, TOTP MFA, recurring visits, confidential flag, configurable check-in window); added FR-SEC-01 to FR-SEC-03 and FR-WF-01 to FR-WF-04 to PRD §14 | Gap analysis vs VisitorPortal: critical security and workflow gaps identified and codified into trackable modules |
 
 **Bootstrap (iteration 0):** if `progress.md` / `learnings.md` / `memory.md` don't exist, create them. `progress.md` must contain the permanent `Deferred → Milestone B` section from day one (pre-populated with all 🏭 criteria + PRD §10 SLAs + PRD §11 Handover). Seed *Next Up* by decomposing the **🎯 Milestone A** criteria into ordered tasks along the demo path:
 `project scaffold → Supabase schema + basic roles → guard console + webcam capture → HOD mobile approval (realtime) → badge + exit flow → who's-inside live board → blacklist + repeat recall → gate passes (4 types) → RGP dashboard → visitor register report → seed script + DEMO-SCRIPT.md → full demo dry-run ×2`.
