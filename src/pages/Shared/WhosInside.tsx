@@ -17,14 +17,16 @@ export default function WhosInside(): React.ReactElement {
   const [authReady, setAuthReady] = useState(false);
   const [userRole, setUserRole] = useState<string | null>(null);
   const [userDeptId, setUserDeptId] = useState<string | null>(null);
+  const [today] = useState(() => new Date().toISOString().slice(0, 10));
 
   const load = useCallback(async () => {
     setLoading(true); setError(''); setClearError('');
     let query = supabase
       .from('visits')
       .select(`*, visitor:visitors(*), department:departments(id, name, code, created_at)`)
-      .in('status', ['pending_approval', 'approved', 'walkin_approved', 'checked_in']);
-    if (userDeptId && userRole && !['admin', 'super_admin'].includes(userRole)) {
+      .in('status', ['pending_approval', 'approved', 'walkin_approved', 'checked_in'])
+      .gte('created_at', `${today}T00:00:00Z`);
+    if (userDeptId && userRole && !['admin', 'super_admin', 'guard'].includes(userRole)) {
       query = query.eq('department_id', userDeptId);
     }
     const { data, error: err } = await query.order('created_at', { ascending: false });
@@ -34,7 +36,7 @@ export default function WhosInside(): React.ReactElement {
     const enriched = raw.map((v) => ({ ...v, photo_url: v.photo_data ?? undefined }));
     setVisits(enriched);
     setLoading(false);
-  }, [userDeptId, userRole]);
+  }, [userDeptId, userRole, today]);
 
   useEffect(() => {
     try {

@@ -340,6 +340,17 @@ When starting a new project from this template, follow these steps:
 
 ---
 
+---
+> **2026-07-21** — **Auto-approval for pre-approved visitors (iter-15)**
+> When a guard enters a phone number in VisitorForm and the visitor has a pre-approved visit (`status = 'approved'`), a green banner now appears showing the visitor's details (name, ref, dept, purpose) with a "Check In Now" button. One click transitions the visit from `approved` → `checked_in` without needing HOD re-approval. A "Register as Walk-in" button is also provided to dismiss the banner and use the normal form instead.
+>
+> Implementation: `recallByPhone` now also queries `visits` with `status='approved'` for the matched visitor ID. If found, `preApprovedVisit` state is set, rendering a confirmation card replacing the form fields. `checkInPreApproved` does a direct `supabase.from('visits').update({ status: 'checked_in', checked_in_at: new Date().toISOString() })` — same pattern as Console's `checkIn()`.
+
+> **2026-07-21** — **Counter alignment: WhosInside vs Guard Console (iter-15)**
+> Two root causes fixed:
+> 1. **Date boundary**: WhosInside had no `gte('created_at', today)` filter, showing all-time data, while Console filtered to today only. Added `.gte('created_at', today)` to WhosInside's query, matching Console.
+> 2. **Department scoping**: WhosInside/Reports/GatePassList scoped guards by department via `!['admin', 'super_admin']` filter, but Console shows all departments (guards need cross-dept visibility per SEC-08). Changed to `!['admin', 'super_admin', 'guard']` so guards see all departments consistently everywhere.
+
 ## TEST COMMANDS
 
 | Command | What it runs | When |

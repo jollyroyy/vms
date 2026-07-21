@@ -34,6 +34,9 @@ const mockHosts = [
 ];
 
 function setupDefaultMocks() {
+  const maybeSingle = vi.fn().mockResolvedValue({ data: null, error: null });
+  const visitEq2 = vi.fn().mockReturnValue({ maybeSingle });
+  const visitEq1 = vi.fn().mockReturnValue({ eq: visitEq2, maybeSingle });
   mockFrom.mockImplementation((table: string) => {
     if (table === 'departments') {
       return { select: () => ({ order: vi.fn().mockResolvedValue({ data: mockDepts, error: null }) }) };
@@ -43,7 +46,10 @@ function setupDefaultMocks() {
         select: () => ({ eq: vi.fn().mockResolvedValue({ data: mockBlacklist, error: null }) }),
       };
     }
-    return { select: () => ({ eq: () => ({ maybeSingle: vi.fn().mockResolvedValue({ data: null }) }) }) };
+    if (table === 'visits') {
+      return { select: () => ({ eq: visitEq1 }) };
+    }
+    return { select: () => ({ eq: visitEq1 }) };
   });
   mockFetch.mockResolvedValue({
     ok: true,

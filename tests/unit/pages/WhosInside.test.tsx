@@ -10,7 +10,7 @@ const mockChannel = vi.hoisted(() => vi.fn());
 
 vi.mock('../../../src/supabaseClient', () => ({
   supabase: {
-    from: () => ({ select: () => ({ in: () => ({ order: mockOrder }) }) }),
+    from: () => ({ select: () => ({ in: () => ({ gte: () => ({ order: mockOrder }) }) }) }),
     rpc: mockRpc,
     channel: mockChannel,
     removeChannel: vi.fn(),

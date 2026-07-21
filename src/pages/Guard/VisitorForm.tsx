@@ -57,6 +57,8 @@ export default function VisitorForm({ onRegistered }: Props): React.ReactElement
   const [error,         setError]         = useState('');
   const [hostError,     setHostError]     = useState<string | null>(null);
   const [activeVisitCheck, setActiveVisitCheck] = useState<{ checking: boolean; message: string | null }>({ checking: false, message: null });
+  const [preApprovedVisit, setPreApprovedVisit] = useState<{ id: string; ref_number: string; visitor_name: string; dept_name: string; purpose: string; photo_data: string | null } | null>(null);
+  const [checkingInPreApproved, setCheckingInPreApproved] = useState(false);
 
   useEffect(() => {
     supabase.from('departments').select('*').order('name').then(({ data }) => setDepartments(data ?? []));
@@ -81,8 +83,33 @@ export default function VisitorForm({ onRegistered }: Props): React.ReactElement
     const hit = isBlacklisted(phone, blacklist);
     if (hit) { setBlacklistHit(hit.reason); return; }
     setBlacklistHit(null);
+    setPreApprovedVisit(null);
     const { data } = await supabase.from('visitors').select('*').eq('phone', normalized).maybeSingle();
-    if (data) { const v = data as Visitor; setFullName(v.full_name); setCompany(v.company ?? ''); setRecalledName(v.full_name); }
+    if (data) {
+      const v = data as Visitor;
+      setFullName(v.full_name); setCompany(v.company ?? ''); setRecalledName(v.full_name);
+      const pre = await (async () => {
+        try {
+          const { data: d } = await (supabase as any)
+            .from('visits')
+            .select('id, ref_number, purpose, photo_data, department:departments(name)')
+            .eq('visitor_id', v.id)
+            .eq('status', 'approved')
+            .maybeSingle();
+          return d as { id: string; ref_number: string; purpose: string; photo_data: string | null; department: { name: string } | null } | null;
+        } catch { return null; }
+      })();
+      if (pre) {
+        setPreApprovedVisit({
+          id: pre.id,
+          ref_number: pre.ref_number,
+          visitor_name: v.full_name,
+          dept_name: pre.department?.name ?? '',
+          purpose: pre.purpose,
+          photo_data: pre.photo_data,
+        });
+      }
+    }
   }, [phone, blacklist]);
 
   const uploadPhoto = useCallback(async (blob: Blob): Promise<{ photoPath: string | null; photoData: string | null }> => {
@@ -108,6 +135,23 @@ export default function VisitorForm({ onRegistered }: Props): React.ReactElement
       .createSignedUrl(filePath, 60 * 60 * 24 * 7);
     return { photoPath: filePath, photoData: urlData?.signedUrl ?? base64 };
   }, []);
+
+  const checkInPreApproved = async () => {
+    if (!preApprovedVisit) return;
+    setCheckingInPreApproved(true);
+    setError('');
+    try {
+      const { error: err } = await supabase.from('visits').update({
+        status: 'checked_in',
+        checked_in_at: new Date().toISOString(),
+      }).eq('id', preApprovedVisit.id);
+      if (err) throw err;
+      setPreApprovedVisit(null);
+      setPhone(''); setFullName(''); setCompany(''); setRecalledName(null);
+      onRegistered(preApprovedVisit.visitor_name);
+    } catch (err) { setError(safeErrorMessage(err, 'Failed to check in pre-approved visitor.')); }
+    finally { setCheckingInPreApproved(false); }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -179,14 +223,65 @@ export default function VisitorForm({ onRegistered }: Props): React.ReactElement
         </div>
       )}
 
-      {recalledName && !blacklistHit && (
+      {recalledName && !blacklistHit && !preApprovedVisit && (
         <div className="alert-success">
           <svg className="w-4 h-4 text-success-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
           Returning visitor — details pre-filled
         </div>
       )}
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-5 gap-y-4">
+      {preApprovedVisit && (
+        <div className="rounded-xl border-2 border-success-400/40 bg-gradient-to-br from-success-50 to-white p-5 space-y-4 animate-fade-in">
+          <div className="flex items-start gap-3">
+            <div className="shrink-0 h-10 w-10 rounded-xl bg-success-100 flex items-center justify-center">
+              <svg className="w-5 h-5 text-success-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+            </div>
+            <div className="flex-1">
+              <p className="font-bold text-success-800 text-lg">Pre-Approved Visitor</p>
+              <p className="text-sm text-success-700 mt-0.5">This visitor is pre-approved and ready for check-in.</p>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm bg-white/60 rounded-xl p-4">
+            <div><span className="font-semibold text-navy-700">Name:</span> <span className="text-navy-600">{preApprovedVisit.visitor_name}</span></div>
+            <div><span className="font-semibold text-navy-700">Ref:</span> <span className="text-navy-600 font-mono">{preApprovedVisit.ref_number}</span></div>
+            <div><span className="font-semibold text-navy-700">Department:</span> <span className="text-navy-600">{preApprovedVisit.dept_name}</span></div>
+            <div><span className="font-semibold text-navy-700">Purpose:</span> <span className="text-navy-600 capitalize">{preApprovedVisit.purpose}</span></div>
+          </div>
+          <div className="flex gap-3">
+            <button onClick={checkInPreApproved} disabled={checkingInPreApproved}
+              className="flex-1 bg-gradient-to-r from-success-600 to-success-700 text-white rounded-xl px-5 py-3 text-sm font-bold hover:from-success-700 hover:to-success-800 active:scale-[0.98] disabled:opacity-50 disabled:active:scale-100 shadow-soft hover:shadow-glow transition-all duration-200 flex items-center justify-center gap-2">
+              {checkingInPreApproved ? (
+                <><svg className="animate-spin h-4 w-4" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg> Checking in...</>
+              ) : (
+                <><svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg> Check In Now
+                </>
+              )}
+            </button>
+            <button onClick={() => setPreApprovedVisit(null)} disabled={checkingInPreApproved}
+              className="btn-secondary text-sm px-5 py-3">
+              Register as Walk-in
+            </button>
+          </div>
+        </div>
+      )}
+
+      {error && (
+        <div className="alert-error">
+          <svg className="w-4 h-4 text-danger-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" /></svg>
+          {error}
+        </div>
+      )}
+
+      {activeVisitCheck.message && (
+        <div className="alert-warning">
+          <svg className="w-4 h-4 text-warning-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" /></svg>
+          <span className="flex-1">{activeVisitCheck.message}</span>
+          <button onClick={() => setActiveVisitCheck({ checking: false, message: null })} className="text-warning-500 hover:text-warning-700 text-xs font-medium ml-auto">Dismiss</button>
+        </div>
+      )}
+
+      {!preApprovedVisit && (
+      <><div className="grid grid-cols-1 sm:grid-cols-2 gap-x-5 gap-y-4">
         <div>
           <label className="label">Mobile Number *</label>
           <input type="tel" required maxLength={20} value={phone}
@@ -338,21 +433,6 @@ export default function VisitorForm({ onRegistered }: Props): React.ReactElement
         )}
       </div>
 
-      {error && (
-        <div className="alert-error">
-          <svg className="w-4 h-4 text-danger-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" /></svg>
-          {error}
-        </div>
-      )}
-
-      {activeVisitCheck.message && (
-        <div className="alert-warning">
-          <svg className="w-4 h-4 text-warning-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" /></svg>
-          <span className="flex-1">{activeVisitCheck.message}</span>
-          <button onClick={() => setActiveVisitCheck({ checking: false, message: null })} className="text-warning-500 hover:text-warning-700 text-xs font-medium ml-auto">Dismiss</button>
-        </div>
-      )}
-
       <button type="submit" disabled={submitting || !!blacklistHit || !photoBlob || activeVisitCheck.checking}
         className="w-full bg-gradient-to-r from-brand-600 to-brand-700 text-white rounded-xl px-5 py-3.5 text-sm font-bold hover:from-brand-700 hover:to-brand-800 active:scale-[0.98] disabled:opacity-50 disabled:active:scale-100 shadow-soft hover:shadow-glow transition-all duration-200">
         {submitting ? (
@@ -364,6 +444,7 @@ export default function VisitorForm({ onRegistered }: Props): React.ReactElement
       </button>
 
       <p className="text-xs text-navy-300 text-center">Photographs captured for security purposes only</p>
+      </>)}
     </form>
   );
 }

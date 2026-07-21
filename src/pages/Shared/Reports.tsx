@@ -36,7 +36,7 @@ export default function ReportsPage(): React.ReactElement {
       (async (): Promise<Visit[]> => {
         let query = supabase.from('visits').select(`*, visitor:visitors(*), department:departments(id,name,code,created_at)`)
           .gte('created_at', `${date}T00:00:00Z`).lte('created_at', `${date}T23:59:59Z`);
-        if (userDeptId && userRole && !['admin', 'super_admin'].includes(userRole)) {
+        if (userDeptId && userRole && !['admin', 'super_admin', 'guard'].includes(userRole)) {
           query = query.eq('department_id', userDeptId);
         }
         const { data, error } = await query.order('created_at', { ascending: true });
@@ -46,7 +46,7 @@ export default function ReportsPage(): React.ReactElement {
       (async (): Promise<{ data: unknown; error: unknown }> => {
         let query = supabase.from('gate_passes').select(`*, items:gate_pass_items(*), department:departments(id,name,code,created_at)`)
           .eq('type', 'RGP').in('status', ['awaiting_return', 'partially_returned']);
-        if (userDeptId && userRole && !['admin', 'super_admin'].includes(userRole)) {
+        if (userDeptId && userRole && !['admin', 'super_admin', 'guard'].includes(userRole)) {
           query = query.eq('department_id', userDeptId);
         }
         return await query;
