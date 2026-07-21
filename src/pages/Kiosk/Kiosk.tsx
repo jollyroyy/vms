@@ -229,7 +229,7 @@ export default function Kiosk(): React.ReactElement {
         visitor_id: vis.id, department_id: deptId, host_id: hostId, purpose,
         photo_path: photoPath, photo_data: photoData,
         status: 'pending_approval', carrying_material: false,
-        emergency_contact_name: null, emergency_contact_phone: null, expected_duration_minutes: null,
+        expected_duration_minutes: null,
         checked_in_at: null, checked_out_at: null, exit_verified: null, rejection_reason: null,
       });
       if (visitErr) throw visitErr;

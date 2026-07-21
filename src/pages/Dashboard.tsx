@@ -40,7 +40,6 @@ export default function DashboardPage({ role }: Props): React.ReactElement {
   const [loading, setLoading] = useState(true);
   const [counts, setCounts] = useState<Record<string, number>>({});
   const [recent, setRecent] = useState<Visit[]>([]);
-  const [week, setWeek] = useState<number[]>([0, 0, 0, 0, 0, 0, 0]);
   const [clock, setClock] = useState(() => new Date());
 
   useEffect(() => {
@@ -65,21 +64,6 @@ export default function DashboardPage({ role }: Props): React.ReactElement {
       next.pending = rows.filter((r) => r.status === 'pending_approval').length;
       next.checkedOut = rows.filter((r) => r.status === 'checked_out').length;
       next.preApproved = rows.filter((r) => r.status === 'approved' || r.status === 'walkin_approved').length;
-
-      // Last 7 days trend
-      const weekStart = new Date();
-      weekStart.setDate(weekStart.getDate() - 6);
-      const weekStartIso = weekStart.toISOString().slice(0, 10);
-      const weekRes = await supabase
-        .from('visits')
-        .select('created_at')
-        .gte('created_at', `${weekStartIso}T00:00:00Z`);
-      const buckets = [0, 0, 0, 0, 0, 0, 0];
-      for (const r of (weekRes.data ?? []) as Array<{ created_at: string }>) {
-        const dayIdx = Math.floor((new Date(r.created_at).getTime() - new Date(`${weekStartIso}T00:00:00Z`).getTime()) / 86400000);
-        if (dayIdx >= 0 && dayIdx < 7) buckets[dayIdx] = (buckets[dayIdx] ?? 0) + 1;
-      }
-      setWeek(buckets);
 
       // Gate passes
       const passes = await supabase.from('gate_passes').select('id, status', { count: 'exact' });
@@ -158,66 +142,47 @@ export default function DashboardPage({ role }: Props): React.ReactElement {
     }
   }, [counts, role]);
 
-  const maxWeek = Math.max(...week, 1);
-  const weekLabels = useMemo(() => {
-    const labels: string[] = [];
-    for (let i = 6; i >= 0; i--) {
-      const d = new Date();
-      d.setDate(d.getDate() - i);
-      labels.push(d.toLocaleDateString('en-IN', { weekday: 'short' }));
-    }
-    return labels;
-  }, []);
-
   return (
-    <div className="space-y-8 animate-fade-in">
-      {/* Hero section */}
-      <div className="card-premium p-6 sm:p-8 overflow-hidden relative">
-        <div className="absolute -top-24 -right-16 w-72 h-72 rounded-full bg-gradient-to-br from-brand-500/20 to-accent-500/20 blur-3xl pointer-events-none" />
-        <div className="relative flex flex-wrap items-end justify-between gap-6">
-          <div>
-            <p className="text-xs font-bold uppercase tracking-[0.2em] text-brand-500 dark:text-brand-300 mb-2">
-              {clock.toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' })}
-            </p>
-            <h1 className="font-display text-3xl sm:text-4xl font-bold tracking-tight text-navy-950">
-              Dashboard
-            </h1>
-          </div>
-          <div className="text-right">
-            <p className="font-display text-4xl sm:text-5xl font-bold tracking-tight text-navy-950 tabular-nums">
-              {clock.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
-            </p>
-            <p className="text-xs text-navy-400 mt-1 flex items-center justify-end gap-1.5">
-              <span className="relative flex h-2 w-2">
-                <span className="absolute inline-flex h-full w-full rounded-full bg-success-500 opacity-75 animate-ping" />
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-success-500" />
-              </span>
-              Live
-            </p>
-          </div>
+    <div className="space-y-6 animate-fade-in">
+      {/* Top bar: date + live clock */}
+      <div className="flex items-center justify-between">
+        <p className="text-xs font-bold uppercase tracking-[0.2em] text-brand-500 dark:text-brand-300">
+          {clock.toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' })}
+        </p>
+        <div className="flex items-center gap-2.5">
+          <span className="relative flex h-2 w-2">
+            <span className="absolute inline-flex h-full w-full rounded-full bg-success-500 opacity-75 animate-ping" />
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-success-500" />
+          </span>
+          <span className="text-xs font-semibold text-navy-400 tabular-nums">
+            {clock.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
+          </span>
         </div>
       </div>
 
-      {/* Stat cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
+      {/* Asymmetric stat grid — first card spans 2 cols on xl */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
         {stats.map((s, i) => {
+          const isFeatured = i === 0;
           const inner = (
-            <>
-              <div className="flex items-start justify-between">
-                <div className={`h-11 w-11 rounded-xl bg-gradient-to-br ${s.tint} flex items-center justify-center text-white shadow-glow-sm ring-1 ring-white/20`}>
-                  {s.icon}
+            <div className={`flex flex-col gap-3 ${isFeatured ? 'xl:col-span-2' : ''}`}>
+              <div className={`${isFeatured ? 'flex items-center justify-between' : ''}`}>
+                <div className={`${isFeatured ? 'h-14 w-14' : 'h-11 w-11'} rounded-2xl bg-gradient-to-br ${s.tint} flex items-center justify-center text-white shadow-md ring-1 ring-white/20`}>
+                  <div className={`${isFeatured ? 'scale-125' : ''}`}>{s.icon}</div>
                 </div>
-                {s.to && <span className="text-navy-300 group-hover:text-brand-500 group-hover:translate-x-0.5 transition-all">{ICONS.arrow}</span>}
+                {s.to && <span className="text-navy-300 group-hover:text-navy-500 transition-colors text-xs">{ICONS.arrow}</span>}
               </div>
               {loading ? (
-                <div className="skeleton h-9 w-16 mt-3" />
+                <div className="skeleton h-8 w-20" />
               ) : (
-                <p className="stat-value mt-3 tabular-nums">{s.value}</p>
+                <div className={`font-display font-bold tracking-tight text-navy-950 ${isFeatured ? 'text-4xl' : 'text-2xl'}`}>
+                  {s.value ?? '—'}
+                </div>
               )}
-              <p className="stat-label">{s.label}</p>
-            </>
+              <p className="text-xs text-navy-400 font-medium">{s.label}</p>
+            </div>
           );
-          const cls = `stat-card card-hover group stagger-${i + 1} animate-slide-up`;
+          const cls = `p-5 rounded-2xl border border-surface-200/70 dark:border-white/[0.06] ${isFeatured ? 'xl:col-span-2 row-span-2' : ''} ${isFeatured ? 'bg-gradient-to-br from-white to-surface-50 dark:from-white/5 dark:to-white/[0.02]' : 'bg-white dark:bg-white/[0.04]'} hover:shadow-sm transition-shadow duration-200`;
           return s.to ? (
             <Link key={s.label} to={s.to} className={cls}>{inner}</Link>
           ) : (
@@ -226,76 +191,48 @@ export default function DashboardPage({ role }: Props): React.ReactElement {
         })}
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-        {/* Weekly trend */}
-        <div className="card p-6 xl:col-span-2">
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <h2 className="font-display text-base font-bold text-navy-950 tracking-tight">Visitor Trend</h2>
-              <p className="text-xs text-navy-400 mt-0.5">Visits over the last 7 days</p>
-            </div>
-            <span className="glass-chip text-navy-500">
-              {ICONS.chart}
-              Weekly
-            </span>
-          </div>
-          <div className="flex items-end gap-3 sm:gap-4 h-44">
-            {week.map((v, i) => (
-              <div key={i} className="flex-1 flex flex-col items-center gap-2 group">
-                <span className="text-[11px] font-semibold text-navy-400 opacity-0 group-hover:opacity-100 transition-opacity tabular-nums">{v}</span>
-                <div className="w-full relative rounded-t-xl overflow-hidden bg-surface-100 dark:bg-white/[0.04]" style={{ height: '100%' }}>
-                  <div
-                    className="absolute bottom-0 left-0 right-0 rounded-t-xl bg-gradient-to-t from-brand-500/80 to-accent-500/70 group-hover:from-brand-400 group-hover:to-accent-400 transition-all duration-500 shadow-glow-sm"
-                    style={{ height: `${Math.max((v / maxWeek) * 100, v > 0 ? 8 : 2)}%` }}
-                  />
-                </div>
-                <span className="text-[11px] font-medium text-navy-400">{weekLabels[i]}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
       {/* Recent activity */}
-      <div className="card overflow-hidden">
-        <div className="flex items-center justify-between px-6 pt-6 pb-4">
+      <div className="bg-white dark:bg-white/[0.04] rounded-2xl border border-surface-200/70 dark:border-white/[0.06] overflow-hidden">
+        <div className="flex items-center justify-between px-6 pt-5 pb-3">
           <div>
-            <h2 className="font-display text-base font-bold text-navy-950 tracking-tight">Recent Activity</h2>
-            <p className="text-xs text-navy-400 mt-0.5">Latest visitor events across the gate</p>
+            <h2 className="font-display text-sm font-bold text-navy-950 tracking-tight">Recent Activity</h2>
+            <p className="text-xs text-navy-400 mt-0.5">Latest events</p>
           </div>
-          <span className="glass-chip text-navy-500">
+          <span className="text-[11px] font-semibold text-navy-400 bg-surface-100 dark:bg-white/[0.06] px-3 py-1.5 rounded-full flex items-center gap-1.5">
             <span className="relative flex h-1.5 w-1.5">
               <span className="absolute inline-flex h-full w-full rounded-full bg-success-500 opacity-75 animate-ping" />
               <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-success-500" />
             </span>
-            Realtime
+            Live
           </span>
         </div>
         {loading ? (
-          <div className="px-6 pb-6 space-y-3">
-            {[0, 1, 2].map((i) => <div key={i} className="skeleton h-14 w-full" />)}
+          <div className="px-6 pb-5 space-y-3">
+            {[0, 1, 2].map((i) => <div key={i} className="skeleton h-12 w-full" />)}
           </div>
         ) : recent.length === 0 ? (
-          <div className="empty-state">
-            <p className="text-sm text-navy-400">No recent activity yet.</p>
+          <div className="px-6 pb-8 pt-2 text-center">
+            <p className="text-xs text-navy-400">No recent activity yet.</p>
           </div>
         ) : (
-          <div className="divide-y divide-surface-200/50 dark:divide-white/[0.05]">
+          <div className="divide-y divide-surface-200/40 dark:divide-white/[0.05]">
             {recent.map((v) => {
               const chip = STATUS_CHIP[v.status];
               const name = v.visitor?.full_name ?? 'Visitor';
               const initial = name.slice(0, 1).toUpperCase();
               return (
-                <div key={v.id} className="flex items-center gap-4 px-6 py-3.5 hover:bg-surface-100/60 dark:hover:bg-white/[0.03] transition-colors">
-                  <div className="avatar-md avatar-gradient text-sm">{initial}</div>
+                <div key={v.id} className="flex items-center gap-3 px-6 py-3 hover:bg-surface-100/50 dark:hover:bg-white/[0.02] transition-colors">
+                  <div className="h-8 w-8 rounded-full bg-gradient-to-br from-brand-500/20 to-accent-500/20 flex items-center justify-center text-xs font-bold text-brand-600 shrink-0">
+                    {initial}
+                  </div>
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-semibold text-navy-900 truncate">{name}</p>
                     <p className="text-xs text-navy-400 truncate">
-                      {v.ref_number} · {v.department?.name ?? '—'}{v.host?.full_name ? ` · Host: ${v.host.full_name}` : ''}
+                      {v.ref_number}{v.department?.name ? ` · ${v.department.name}` : ''}
                     </p>
                   </div>
-                  <div className="hidden sm:block text-xs text-navy-400 tabular-nums">{formatTime(v.created_at)}</div>
-                  <span className={`text-[11px] font-semibold px-2.5 py-1 rounded-full border ${chip.cls}`}>{chip.label}</span>
+                  <div className="hidden sm:block text-xs text-navy-400 tabular-nums mr-2">{formatTime(v.created_at)}</div>
+                  <span className={`text-[10px] font-semibold px-2.5 py-1 rounded-md border ${chip.cls}`}>{chip.label}</span>
                 </div>
               );
             })}

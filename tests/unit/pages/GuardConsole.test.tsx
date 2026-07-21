@@ -7,14 +7,11 @@ import GuardConsole from '../../../src/pages/Guard/Console';
 const mockOrder = vi.hoisted(() => vi.fn());
 const mockChannel = vi.hoisted(() => vi.fn());
 const mockSubscribe = vi.hoisted(() => vi.fn());
-const mockOn = vi.hoisted(() => vi.fn());
 const mockExportCsv = vi.hoisted(() => vi.fn());
-const mockExportJson = vi.hoisted(() => vi.fn());
 const mockUpdate = vi.hoisted(() => vi.fn());
 
 vi.mock('../../../src/lib/exportUtils', () => ({
   exportToCsv: mockExportCsv,
-  exportToJson: mockExportJson,
 }));
 
 vi.mock('../../../src/supabaseClient', () => ({
@@ -77,16 +74,6 @@ describe('M12-GUARD: GuardConsole', () => {
     render(<MemoryRouter><GuardConsole /></MemoryRouter>);
     await waitFor(() => {
       expect(screen.getByRole('button', { name: /export csv/i })).toBeInTheDocument();
-    });
-  });
-
-  it('shows Export JSON button', async () => {
-    mockOrder.mockResolvedValue({ data: [], error: null });
-    mockChannel.mockReturnValue({ on: () => ({ subscribe: mockSubscribe }) });
-    mockSubscribe.mockReturnValue('sub-1');
-    render(<MemoryRouter><GuardConsole /></MemoryRouter>);
-    await waitFor(() => {
-      expect(screen.getByRole('button', { name: /export json/i })).toBeInTheDocument();
     });
   });
 

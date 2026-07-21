@@ -37,8 +37,6 @@ export default function VisitorForm({ onRegistered }: Props): React.ReactElement
   const [carryingMaterial, setCarryingMaterial] = useState(false);
   const [photoBlob,   setPhotoBlob]   = useState<Blob | null>(null);
 
-  const [emergencyName, setEmergencyName] = useState('');
-  const [emergencyPhone, setEmergencyPhone] = useState('');
   const [expectedDuration, setExpectedDuration] = useState<number>(30);
 
   const [blacklistHit,  setBlacklistHit]  = useState<string | null>(null);
@@ -175,8 +173,6 @@ export default function VisitorForm({ onRegistered }: Props): React.ReactElement
         visitor_id: vis.id, department_id: deptId, host_id: hostId, purpose,
         photo_path: photoPath, photo_data: photoData,
         status: 'pending_approval', carrying_material: carryingMaterial,
-        emergency_contact_name: emergencyName || null,
-        emergency_contact_phone: emergencyPhone || null,
         expected_duration_minutes: expectedDuration || null,
         checked_in_at: null, checked_out_at: null, exit_verified: null, rejection_reason: null,
       });
@@ -338,11 +334,9 @@ export default function VisitorForm({ onRegistered }: Props): React.ReactElement
       <div className="card p-5 space-y-4 bg-amber-50/30 border border-amber-200 rounded-xl">
         <h3 className="text-sm font-bold text-navy-900 flex items-center gap-2">
           <svg className="w-4 h-4 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" /></svg>
-          Emergency Contact & Visit Info
+          Visit Info
         </h3>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div><label className="label">Emergency Contact Name</label><input type="text" maxLength={100} value={emergencyName} onChange={(e) => setEmergencyName(e.target.value)} className="input" placeholder="Next of kin" /></div>
-          <div><label className="label">Emergency Contact Phone</label><input type="tel" maxLength={20} value={emergencyPhone} onChange={(e) => setEmergencyPhone(e.target.value)} className="input" placeholder="+91 98765 43210" /></div>
           <div><label className="label">Expected Duration (min)</label><input type="number" min={5} max={480} value={expectedDuration} onChange={(e) => setExpectedDuration(Number(e.target.value))} className="input" /></div>
         </div>
       </div>

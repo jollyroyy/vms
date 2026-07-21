@@ -5,16 +5,18 @@ import { attachHostNames } from '../../lib/hostNames';
 import { safeErrorMessage } from '../../lib/errors';
 import { formatDateTime, formatTime, formatDuration } from '../../lib/formatDate';
 import { maskPhone } from '../../lib/pii';
-import { exportToCsv, exportToJson } from '../../lib/exportUtils';
+import { exportToCsv } from '../../lib/exportUtils';
 import { Link } from 'react-router-dom';
 import VisitorForm from './VisitorForm';
 import Badge from '../../components/Badge';
 import VisitorDetails from '../../components/VisitorDetails';
 
 type Tab = 'active' | 'register' | 'exit';
+type StatusFilter = 'all' | Visit['status'];
 
 export default function GuardConsole(): React.ReactElement {
   const [tab, setTab] = useState<Tab>('active');
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [visits, setVisits] = useState<Visit[]>([]);
   const [loading, setLoading] = useState(true);
   const [badgeVisit, setBadgeVisit] = useState<Visit | null>(null);
@@ -75,18 +77,29 @@ export default function GuardConsole(): React.ReactElement {
   };
 
   const checkedIn = visits.filter((v) => v.status === 'checked_in');
+  const pending = visits.filter((v) => v.status === 'pending_approval');
+  const rejected = visits.filter((v) => v.status === 'rejected');
+  const approved = visits.filter((v) => v.status === 'approved' || v.status === 'walkin_approved');
+  const checkedOut = visits.filter((v) => v.status === 'checked_out');
+
+  const filtered = statusFilter === 'all' ? visits : visits.filter((v) => v.status === statusFilter);
+
+  const stats = [
+    { key: 'checked_in' as const, label: 'Inside', count: checkedIn.length, color: 'bg-brand-50 text-brand-700 border-brand-200', activeColor: 'bg-brand-100 border-brand-500 ring-2 ring-brand-200', dot: 'bg-brand-500' },
+    { key: 'pending_approval' as const, label: 'Pending', count: pending.length, color: 'bg-warning-50 text-warning-700 border-warning-200', activeColor: 'bg-warning-100 border-warning-500 ring-2 ring-warning-200', dot: 'bg-warning-500' },
+    { key: 'approved' as const, label: 'Approved', count: approved.length, color: 'bg-success-50 text-success-700 border-success-200', activeColor: 'bg-success-100 border-success-500 ring-2 ring-success-200', dot: 'bg-success-500' },
+    { key: 'rejected' as const, label: 'Rejected', count: rejected.length, color: 'bg-danger-50 text-danger-700 border-danger-200', activeColor: 'bg-danger-100 border-danger-500 ring-2 ring-danger-200', dot: 'bg-danger-500' },
+    { key: 'checked_out' as const, label: 'Checked Out', count: checkedOut.length, color: 'bg-surface-100 text-navy-500 border-surface-200', activeColor: 'bg-surface-200 border-navy-400 ring-2 ring-surface-300', dot: 'bg-navy-400' },
+  ];
 
   return (
     <div className="space-y-6">
       {detailVisit && <VisitorDetails visit={detailVisit} onClose={() => setDetailVisit(null)} />}
 
       {/* Header */}
-      <div className="flex items-start justify-between flex-wrap gap-4">
-        <div>
+      <div className="flex items-center justify-between flex-wrap gap-4">
+        <div className="flex items-center gap-4">
           <h1 className="page-title">Guard Console</h1>
-          <p className="page-subtitle">
-            {new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'short', year: 'numeric' })}
-          </p>
         </div>
         <div className="flex items-center gap-2">
           <Link to="/kiosk" className="btn-secondary text-sm flex items-center gap-2" title="Open Kiosk Mode">
@@ -107,19 +120,26 @@ export default function GuardConsole(): React.ReactElement {
             </svg>
             Export CSV
           </button>
-          <button onClick={() => exportToJson(visits, `console-visits-${today}.json`)} className="btn-secondary text-sm flex items-center gap-2" title="Export JSON">
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
-            </svg>
-            Export JSON
-          </button>
         </div>
       </div>
 
-      {/* Today's total count */}
-      <div className="stat-card bg-gradient-to-b from-navy-50 to-white">
-        <p className="stat-value">{visits.length}</p>
-        <p className="stat-label">Today's Visits</p>
+      {/* Stat cards */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+        {stats.map((s) => (
+          <button
+            key={s.key}
+            onClick={() => { setStatusFilter(statusFilter === s.key ? 'all' : s.key); setTab('active'); }}
+            className={`rounded-xl p-3.5 border text-left transition-all duration-200 hover:shadow-md ${
+              statusFilter === s.key ? s.activeColor : s.color
+            }`}
+          >
+            <div className="flex items-center gap-2 mb-1.5">
+              <span className={`h-2 w-2 rounded-full ${s.dot} ${statusFilter === s.key ? 'animate-pulse-soft' : ''}`} />
+              <span className="text-xs font-semibold uppercase tracking-wide opacity-70">{s.label}</span>
+            </div>
+            <p className="text-2xl font-bold tabular-nums">{s.count}</p>
+          </button>
+        ))}
       </div>
 
       {/* Alerts */}
@@ -198,18 +218,20 @@ export default function GuardConsole(): React.ReactElement {
                 </div>
               ))}
             </div>
-          ) : visits.length === 0 ? (
+          ) : filtered.length === 0 ? (
             <div className="empty-state py-16">
               <div className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-surface-100 mb-3">
                 <svg className="w-6 h-6 text-navy-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0" /></svg>
               </div>
-              <p className="text-navy-500 font-medium">No visits today yet</p>
-              <button onClick={() => setTab('register')} className="mt-2 btn-accent text-sm">
-                Register First Visitor
-              </button>
+              <p className="text-navy-500 font-medium">{statusFilter === 'all' ? 'No visits today yet' : `No ${statusFilter.replace(/_/g, ' ')} visitors`}</p>
+              {statusFilter === 'all' && (
+                <button onClick={() => setTab('register')} className="mt-2 btn-accent text-sm">
+                  Register First Visitor
+                </button>
+              )}
             </div>
           ) : (
-            visits.map((v, idx) => {
+            filtered.map((v, idx) => {
               const style = STATUS_STYLES[v.status];
               const dur = v.status === 'checked_in' ? formatDuration(v.checked_in_at) : null;
               return (

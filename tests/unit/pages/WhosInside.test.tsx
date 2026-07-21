@@ -171,15 +171,6 @@ describe('M12-GUARD: WhosInside', () => {
     });
   });
 
-  it('shows Export JSON button', async () => {
-    setup();
-    mockOrder.mockResolvedValue({ data: [], error: null });
-    render(<MemoryRouter><WhosInside /></MemoryRouter>);
-    await waitFor(() => {
-      expect(screen.getByRole('button', { name: /export json/i })).toBeInTheDocument();
-    });
-  });
-
   it('shows Pre-Approved empty state when no pre-approved visitors', async () => {
     setup();
     mockOrder.mockResolvedValue({ data: [mockCheckedIn], error: null });

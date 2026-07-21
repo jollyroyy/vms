@@ -59,8 +59,6 @@ export type Visit = {
   exit_verified: boolean | null;
   rejection_reason: string | null;
   carrying_material: boolean;
-  emergency_contact_name: string | null;
-  emergency_contact_phone: string | null;
   expected_duration_minutes: number | null;
   created_at: string;
   // joined fields (populated by views/RPCs)

@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from 'react';
-import { useLocation } from 'react-router-dom';
 import type { Session } from '@supabase/supabase-js';
 import type { UserRole } from '../../types/index';
 import Sidebar from './Sidebar';
@@ -14,27 +13,7 @@ type Props = {
 
 const COLLAPSE_KEY = 'securegate-sidebar-collapsed';
 
-const PAGE_TITLES: Array<[string, string]> = [
-  ['/dashboard', 'Dashboard'],
-  ['/guard', 'Guard Console'],
-  ['/kiosk', 'Kiosk Mode'],
-  ['/approvals', 'Approvals'],
-  ['/whos-inside', "Who's Inside"],
-  ['/gate-passes/new', 'New Gate Pass'],
-  ['/gate-passes', 'Gate Passes'],
-  ['/reports', 'Reports'],
-  ['/analytics', 'Analytics'],
-  ['/admin/activity', 'Activity Log'],
-  ['/admin', 'Admin Panel'],
-];
-
-function pageTitleFor(pathname: string): string {
-  const match = PAGE_TITLES.find(([prefix]) => pathname.startsWith(prefix));
-  return match ? match[1] : 'SecureGate';
-}
-
 export default function AppShell({ session, role, children }: Props): React.ReactElement {
-  const loc = useLocation();
   const [collapsed, setCollapsed] = useState<boolean>(() => {
     try { return window.localStorage.getItem(COLLAPSE_KEY) === '1'; } catch { return false; }
   });
@@ -54,12 +33,6 @@ export default function AppShell({ session, role, children }: Props): React.Reac
         <header className="no-print sticky top-0 z-30 card-glass !rounded-none !border-x-0 !border-t-0">
           <div className="flex items-center gap-3 h-16 px-4 sm:px-6 lg:px-8 pl-16 lg:pl-8">
             <div className="min-w-0 flex-1">
-              <h1 className="font-display text-lg font-bold text-navy-950 tracking-tight truncate">
-                {pageTitleFor(loc.pathname)}
-              </h1>
-              <p className="text-[11px] text-navy-400 hidden sm:block leading-tight">
-                {new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
-              </p>
             </div>
             <NotificationBell userId={session.user.id} role={role} />
           </div>

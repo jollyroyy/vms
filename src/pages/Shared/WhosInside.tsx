@@ -4,7 +4,7 @@ import type { Visit } from '../../types/index';
 import { attachHostNames } from '../../lib/hostNames';
 import { safeErrorMessage } from '../../lib/errors';
 import { formatTime, formatDuration } from '../../lib/formatDate';
-import { exportToCsv, exportToJson } from '../../lib/exportUtils';
+import { exportToCsv } from '../../lib/exportUtils';
 import VisitorDetails from '../../components/VisitorDetails';
 
 type ActiveTab = 'checked_in' | 'pre_approved' | 'walkin_approved' | 'pending_approval';
@@ -112,7 +112,6 @@ export default function WhosInside(): React.ReactElement {
             <h1 className="page-title">Who's Inside</h1>
             <p className="page-subtitle flex items-center gap-2">
             <span className={`h-2 w-2 rounded-full ${visits.length > 0 ? 'bg-brand-500 animate-pulse-soft' : 'bg-navy-300'}`} />
-            {checkedIn.length} inside · {preApproved.length} pre-approved · {walkinApproved.length} approved{pending.length > 0 ? ` · ${pending.length} pending` : ''}
             </p>
           </div>
         </div>
@@ -128,10 +127,6 @@ export default function WhosInside(): React.ReactElement {
           <button onClick={() => exportToCsv(displayed, `whosinside-${today}.csv`)} className="no-print btn-secondary text-sm flex items-center gap-2" title="Export CSV">
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" /></svg>
             Export CSV
-          </button>
-          <button onClick={() => exportToJson(displayed, `whosinside-${today}.json`)} className="no-print btn-secondary text-sm flex items-center gap-2" title="Export JSON">
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" /></svg>
-            Export JSON
           </button>
         </div>
       </div>
