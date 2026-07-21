@@ -62,11 +62,6 @@ export type Visit = {
   emergency_contact_name: string | null;
   emergency_contact_phone: string | null;
   expected_duration_minutes: number | null;
-  consent_privacy: boolean;
-  consent_site_rules: boolean;
-  nda_signature: string | null;
-  privacy_signature: string | null;
-  site_rules_signature: string | null;
   created_at: string;
   // joined fields (populated by views/RPCs)
   visitor?: Visitor;

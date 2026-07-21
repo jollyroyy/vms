@@ -3,7 +3,6 @@ import { supabase } from '../../supabaseClient';
 import { normalizePhone, isBlacklisted } from '../../lib/blacklist';
 import { safeErrorMessage } from '../../lib/errors';
 import PhotoCapture from '../../components/PhotoCapture';
-import DocumentSign from '../../components/DocumentSign';
 import Badge from '../../components/Badge';
 import type { Department, Profile, Visit, VisitorPurpose } from '../../types/index';
 
@@ -43,11 +42,6 @@ export default function Kiosk(): React.ReactElement {
   const [departments, setDepartments] = useState<Department[]>([]);
   const [hosts, setHosts] = useState<Profile[]>([]);
   const [photoBlob, setPhotoBlob] = useState<Blob | null>(null);
-  const [consentPrivacy, setConsentPrivacy] = useState(false);
-  const [privacySignature, setPrivacySignature] = useState<string | null>(null);
-  const [consentSiteRules, setConsentSiteRules] = useState(false);
-  const [siteRulesSignature, setSiteRulesSignature] = useState<string | null>(null);
-  const [ndaSignature, setNdaSignature] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
@@ -88,11 +82,6 @@ export default function Kiosk(): React.ReactElement {
     setDeptId('');
     setHostId('');
     setPhotoBlob(null);
-    setConsentPrivacy(false);
-    setPrivacySignature(null);
-    setConsentSiteRules(false);
-    setSiteRulesSignature(null);
-    setNdaSignature(null);
     setError('');
     setSuccessMsg('');
     setRecalledName(null);
@@ -241,9 +230,6 @@ export default function Kiosk(): React.ReactElement {
         photo_path: photoPath, photo_data: photoData,
         status: 'pending_approval', carrying_material: false,
         emergency_contact_name: null, emergency_contact_phone: null, expected_duration_minutes: null,
-        consent_privacy: consentPrivacy, consent_site_rules: consentSiteRules,
-        nda_signature: ndaSignature, privacy_signature: privacySignature,
-        site_rules_signature: siteRulesSignature,
         checked_in_at: null, checked_out_at: null, exit_verified: null, rejection_reason: null,
       });
       if (visitErr) throw visitErr;
@@ -412,36 +398,6 @@ export default function Kiosk(): React.ReactElement {
               </div>
             )}
           </div>
-
-          <div className="space-y-3">
-            <label className="flex items-start gap-3 cursor-pointer">
-              <input type="checkbox" checked={consentPrivacy} onChange={(e) => { setConsentPrivacy(e.target.checked); if (!e.target.checked) setPrivacySignature(null); }} className="mt-1 h-4 w-4 rounded border-surface-300 text-brand-600" />
-              <div>
-                <p className="text-sm font-medium text-navy-800">I consent to the Privacy Policy</p>
-                <p className="text-xs text-navy-400">I understand how my personal data will be processed</p>
-              </div>
-            </label>
-            {consentPrivacy && !privacySignature && (
-              <DocumentSign documentTitle="Privacy Policy" documentText="This Visitor Management System collects and processes your personal data for security and record-keeping purposes. Your data is stored securely and never shared with third parties." onSign={(sig) => setPrivacySignature(sig)} required />
-            )}
-          </div>
-
-          <div className="space-y-3">
-            <label className="flex items-start gap-3 cursor-pointer">
-              <input type="checkbox" checked={consentSiteRules} onChange={(e) => { setConsentSiteRules(e.target.checked); if (!e.target.checked) setSiteRulesSignature(null); }} className="mt-1 h-4 w-4 rounded border-surface-300 text-brand-600" />
-              <div>
-                <p className="text-sm font-medium text-navy-800">I acknowledge the Site Rules</p>
-                <p className="text-xs text-navy-400">I agree to follow all site safety and security rules</p>
-              </div>
-            </label>
-            {consentSiteRules && !siteRulesSignature && (
-              <DocumentSign documentTitle="Site Rules" documentText="1. Wear visitor badge at all times. 2. Do not access restricted areas. 3. Follow fire safety procedures. 4. Report suspicious activity. 5. No photography without authorization." onSign={(sig) => setSiteRulesSignature(sig)} required />
-            )}
-          </div>
-
-          {purpose === 'vendor' && !ndaSignature && (
-            <DocumentSign documentTitle="NDA" documentText="You agree to maintain confidentiality of all proprietary information observed during the visit." onSign={(sig) => setNdaSignature(sig)} required />
-          )}
 
           <button type="submit" disabled={submitting || !photoBlob}
             className="w-full bg-gradient-to-r from-brand-600 to-brand-700 text-white rounded-xl px-5 py-4 text-base font-bold hover:from-brand-700 hover:to-brand-800 active:scale-[0.98] disabled:opacity-50 shadow-soft transition-all">
