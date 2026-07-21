@@ -138,10 +138,9 @@ export default function GuardConsole(): React.ReactElement {
       </div>
 
       {/* Summary strip with gradient stat cards */}
-      <div className="grid grid-cols-5 gap-3">
+      <div className="grid grid-cols-4 gap-3">
         {([
           { key: 'all' as FilterKey, value: visits.length, label: 'Total', color: '' },
-          { key: 'checked_in' as FilterKey, value: checkedIn.length, label: 'Inside', color: 'text-brand-600' },
           { key: 'pending_approval' as FilterKey, value: pending.length, label: 'Pending', color: 'text-warning-600' },
           { key: 'approved' as FilterKey, value: approved.length, label: 'Approved', color: 'text-success-600' },
           { key: 'rejected' as FilterKey, value: rejected.length, label: 'Rejected', color: 'text-danger-600' },

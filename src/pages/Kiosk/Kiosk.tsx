@@ -156,7 +156,8 @@ export default function Kiosk(): React.ReactElement {
   const handlePhoneSubmit = async () => {
     if (!phone) return;
     const result = await recallByPhone();
-    if (result !== 'pre-approved') setStep('form');
+    if (result === 'pre-approved' || result === 'blacklisted') return;
+    setStep('form');
   };
 
   const checkInPreApproved = async () => {
@@ -204,6 +205,7 @@ export default function Kiosk(): React.ReactElement {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (blacklistHit) { setError('Access denied — blacklisted phone.'); return; }
     if (!photoBlob) { setError('Photo is required.'); return; }
     setSubmitting(true); setError('');
     try {
@@ -481,7 +483,7 @@ export default function Kiosk(): React.ReactElement {
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-surface-50" onClick={() => { if (step !== 'idle') startIdleTimer(); }}>
+    <div className="fixed inset-0 z-50 bg-surface-50 overflow-y-auto" onClick={() => { if (step !== 'idle') startIdleTimer(); }}>
       {renderContent()}
     </div>
   );

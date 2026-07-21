@@ -351,6 +351,21 @@ When starting a new project from this template, follow these steps:
 > 1. **Date boundary**: WhosInside had no `gte('created_at', today)` filter, showing all-time data, while Console filtered to today only. Added `.gte('created_at', today)` to WhosInside's query, matching Console.
 > 2. **Department scoping**: WhosInside/Reports/GatePassList scoped guards by department via `!['admin', 'super_admin']` filter, but Console shows all departments (guards need cross-dept visibility per SEC-08). Changed to `!['admin', 'super_admin', 'guard']` so guards see all departments consistently everywhere.
 
+---
+> **2026-07-21** — **Kiosk self-service mode (iter-16)**
+> Full-screen self-service kiosk at `/kiosk` (guard-only route). Step flow: idle → phone entry → form or pre-approved check-in → badge → auto-reset.
+>
+> **Key technical decisions:**
+> - `fixed inset-0 z-50` for full viewport coverage. Outer div MUST have `overflow-y-auto` — without it, form content taller than 100vh gets clipped. Not needed on idle/phone screens (exactly fill viewport).
+> - `handlePhoneSubmit` must use the return value of `recallByPhone`, not setTimeout-on-state. React state setters are async — checking a state variable after `await recallByPhone()` sees the OLD value, not the just-set one.
+> - Pre-approved check-in badge needs `photo_url: photo_data ?? undefined` mapping — the Badge component reads `visit.photo_url` but the Supabase query returns `photo_data`. Without the mapping, the badge shows a placeholder instead of the photo.
+> - Always check `walkin_approved` alongside `approved` in recall queries (missed initially, caught in review).
+> - Blacklisted visitors MUST be blocked from reaching the form. `handlePhoneSubmit` must return early for `'blacklisted'` results, and `handleSubmit` needs a `blacklistHit` guard as belt-and-suspenders.
+> - Kiosk search is submit-button-only (no onBlur). OnBlur is unreliable on touchscreens and caused double-query flash.
+> - Avoid redundant "Inside" counters on non-WhosInside pages — the Guard Console stat strip now excludes the `checked_in` stat card. WhosInside is the single source of truth for "who is inside."
+>
+> **TDD discipline**: Kiosk is a Phase 2 feature built at user's explicit request (override). All other work continues to follow the TDD loop from goal.md §3 — derive tests from §2.2 criteria, activate one suite at a time via pending.list, run `npm run check` before every commit. The pre-commit hook enforces this — never bypass.
+
 ## TEST COMMANDS
 
 | Command | What it runs | When |

@@ -1,7 +1,7 @@
 # progress.md — VMS Loop State
 
 > Updated every iteration. Never delete sections — only append and move items.
-> Tally at a glance: **Iterations completed: 9** | **🎯 criteria checked: 2/24** | **Blocked: 0** | **Security fixes applied in iter-09: 15 findings hardened**
+> Tally at a glance: **Iterations completed: 16** | **🎯 criteria checked: 2/24** | **Blocked: 0** | **Security fixes applied in iter-09: 15 findings hardened**
 
 ---
 
@@ -115,3 +115,4 @@ All 🏭 criteria and PRD §10 SLA / §11 Handover items:
 | iter-06 | Database schema (001_schema.sql), RLS policies (002_rls.sql), seed script, DEMO-SCRIPT.md | 48/48 | S14a pending browser verify |
 | iter-12 | Guard report tab removed + walkin_approved status for on-the-fly vs pre-approved distinction | 229/229 | Guard no longer sees reports; walk-in approvals appear in separate tab in WhosInside |
 | iter-15 | Auto-approval for pre-approved visitors + counter alignment fix | 239/239 | VisitorForm shows "Check In Now" banner for pre-approved visitors; WhosInside date filter added + guard dept scoping removed to match Console counters |
+| iter-16 | Kiosk self-service mode + Console "Inside" stat removed | 241/241 | `/kiosk` full-screen self-service page with idle→phone→form→badge flow; bugs fixed: scroll clipping, photo_url mapping, blacklist bypass, race condition in handlePhoneSubmit, walkin_approved detection; redundant "Inside" counter removed from Guard Console |
