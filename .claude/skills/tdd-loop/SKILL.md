@@ -26,7 +26,8 @@ A criterion with no traced tests in `tests/TRACEABILITY.md` is untestable work �
 ### 3. GREEN (implement)
 - Write the minimum implementation in `src/` that makes the active tests pass.
 - FORBIDDEN ways to reach green: editing assertions to match buggy output, deleting/skipping tests, re-adding files to pending.list, `--no-verify`, hardcoding expected values.
-- Run `npm run check` (typecheck + all active tests). All green before moving on.
+- Run `npm run check` (typecheck + unit + route-protection tests). All green before moving on.
+- Run `npm run test:security` to include live-DB RLS tests (needs `.env` Supabase credentials).
 
 ### 4. SYNC
 - Update `tests/TRACEABILITY.md`: status ⏸ → 🟢 (or 🔴 if genuinely still red — then you are not done).
@@ -34,7 +35,8 @@ A criterion with no traced tests in `tests/TRACEABILITY.md` is untestable work �
 - Tick a goal.md §2.2 checkbox ONLY when ALL its traced tests are green AND behavior was observed in the running app.
 
 ## Automation contract (do not weaken)
-- `npm run check` = `tsc --noEmit && vitest run` — active unit + security tests.
+- `npm run check` = `tsc --noEmit && vitest run tests/unit tests/security/routeProtection.test.ts` — offline-safe unit + route-protection tests.
+- `npm run test:security` = full security suite including live Supabase RLS tests (needs `.env` + seeded data).
 - The **git pre-commit hook** (`.githooks/pre-commit`, wired via `core.hooksPath`) runs `npm run check` on every commit and blocks red. This is the enforcement backstop; never bypass it.
 - `tests/pending.list` is the activation queue. Lines are only ever REMOVED (activation) or ADDED (newly derived suites). A removed line never returns.
 - When goal.md §2.2 changes (amendment), re-derive: diff criteria against TRACEABILITY.md the same iteration and add/adjust tests so no criterion is untraced.

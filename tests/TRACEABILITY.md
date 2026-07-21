@@ -32,8 +32,9 @@
 
 ## Layer commands
 | Layer | Command | Cadence (goal.md §7) |
-|---|---|---|
+|---|---|---|---|
 | unit | `npm test` | every iteration (hard gate) |
-| security | `npm run check:security` | every iteration once schema exists (SEC-6) |
+| security (offline) | `npm run check` (route-protection only) | every iteration (hard gate) |
+| security (live DB) | `npm run test:security` | after schema changes, before demo dry-runs (SEC-6) |
 | e2e | `npm run test:e2e` | before demo dry-runs and milestone close |
 | all gates | `npm run check` | before every commit |

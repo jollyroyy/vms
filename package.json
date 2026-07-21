@@ -9,7 +9,7 @@
     "build": "tsc -p tsconfig.app.json --noEmit && vite build",
     "preview": "vite preview",
     "lint": "tsc --noEmit",
-    "check": "tsc --noEmit && vitest run",
+    "check": "tsc --noEmit && vitest run tests/unit tests/security/routeProtection.test.ts",
     "verify": "node scripts/run-verify.js",
     "verify:goal": "node scripts/run-verify.js --goal",
     "test": "vitest run",
@@ -27,11 +27,14 @@
     "react-router-dom": "^6.26.0"
   },
   "devDependencies": {
+    "@testing-library/jest-dom": "^7.0.0",
+    "@testing-library/react": "^16.3.2",
     "@types/react": "^18.3.0",
     "@types/react-dom": "^18.3.0",
     "@vitejs/plugin-react": "^4.3.0",
     "autoprefixer": "^10.4.0",
     "dotenv": "^16.6.1",
+    "jsdom": "^29.1.1",
     "pg": "^8.22.0",
     "postcss": "^8.4.0",
     "tailwindcss": "^3.4.0",

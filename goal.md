@@ -240,11 +240,80 @@ The loop runs **goal → build → CHECK → adjust**, and the CHECK phase is ex
 
 - Every §2.2 criterion has tests in `tests/`, written **before** the feature (red), traced in `tests/TRACEABILITY.md`.
 - Layers: **unit** (`tests/unit/` — pure logic: ref numbers, status machines, due dates; runs in ms, every iteration), **security** (`tests/security/` — RLS denial cases, photo-privacy 403s; every iteration once the schema exists), **acceptance/E2E** (`tests/e2e/` — Playwright driving the S1/S4 demo flows; before every demo dry-run and at milestone close).
-- `npm run check` = typecheck + unit + security tests. This IS hard gate §2.1 — a red check means the iteration cannot commit.
+- `npm run check` = typecheck + unit + route-protection security tests (offline-safe). This IS hard gate §2.1 — a red check means the iteration cannot commit.
+- `npm run test:security` = full security suite including live Supabase RLS tests (needs `.env` credentials + seeded data). Run this before demo dry-runs.
 - **Automation, not discipline:** the check runs itself. `.githooks/pre-commit` (wired via `git config core.hooksPath .githooks`) executes `npm run check` on **every** commit and blocks red ones — the loop cannot forget to test.
 - **Activation queue:** `tests/pending.list` holds derived-but-not-yet-started suites (excluded from the run by `vitest.config.ts`). The Red step removes one line to activate a suite; lines are only ever removed (activation) or added (newly derived) — a removed line never returns, and deleting a test file to get green is forbidden.
 - **Derivation is the loop's duty:** whenever §2.2 changes or a criterion lacks traced tests, the loop derives new tests from the criterion text per the `/tdd-loop` skill — behavior claims become test cases, including denial/failure directions.
 - Tests are the anti-drift anchor: a §2.2 checkbox may only be ticked when its traced tests pass. If a test is impossible to write, the criterion is too vague — amend it (Goal Amendment Protocol) into something testable.
+
+## 8. MODULE MAP — Module-Specific Goals
+
+> Each module has one simple, specific goal. Modules are ordered by dependency (core logic first, features later).
+> A module is **DONE** when all its 🎯 criteria are checked AND all its traced tests pass.
+> Tests are written BEFORE the feature (TDD: red → green). Each module's test suite must be activated by removing its line from `tests/pending.list`.
+
+### M1 — MODULE: Reference Number Generation (PRD §3.4, §4.3)
+- [ ] 🎯 **M1-REF**: `formatRefNumber()` produces `VIS-YYYYMMDD-NNNN` and `GP-IN|OUT-YYYYMMDD-NNNN` with zero-padded 4-digit sequences; `nextSequence()` resets daily or continues same-day; malformed refs throw errors.
+- Traced by: `tests/unit/refNumber.test.ts` (7 tests, 🟢)
+
+### M2 — MODULE: Visit Lifecycle (PRD §3.2, §3.5)
+- [ ] 🎯 **M2-VISIT**: Visit state machine (`pending_approval → approved → checked_in → checked_out`) enforces valid transitions; rejection is terminal; auto-checkout at day close flags unverified exits; pre-approval validates required fields.
+- Traced by: `tests/unit/visitLifecycle.test.ts` (10 tests, 🟢)
+
+### M3 — MODULE: Gate Pass State Machine (PRD §4.4)
+- [ ] 🎯 **M3-GP**: All 10 statuses (`draft → pending_approval → approved → dispatched → awaiting_return → partially_returned → returned → closed` + `rejected` + `cancelled`) enforce valid transitions; NRGP closes after dispatch; RGP requires return; partial returns tracked per-line; over-returning rejected.
+- Traced by: `tests/unit/gatePassStatus.test.ts` (11 tests, 🟢)
+
+### M4 — MODULE: RGP Due-Date Tracking (FR-GP-01, FR-GP-02, SLA-W4)
+- [ ] 🎯 **M4-RGP**: `getRgpState()` returns correct state (`ok`, `due_soon`, `due_today`, `overdue`) across date/month/year boundaries; `isReminderDay()` fires at T-1, due date, and every 3rd day overdue.
+- Traced by: `tests/unit/rgpDueDate.test.ts` (9 tests, 🟢)
+
+### M5 — MODULE: Blacklist & Phone Normalization (FR-VIS-02, FR-VIS-03)
+- [ ] 🎯 **M5-BLACK**: `normalizePhone()` strips formatting, normalizes country codes, rejects invalid numbers; `isBlacklisted()` matches regardless of phone formatting variant.
+- Traced by: `tests/unit/blacklist.test.ts` (5 tests, 🟢)
+
+### M6 — MODULE: Escalation Logic (SLA-W1, FR-VIS-07)
+- [ ] 🎯 **M6-ESC**: `getEscalationTarget()` returns `hod` before 5 min, `delegate` at 5–9 min, `admin` at 10+ min; skips to admin if no delegate.
+- Traced by: `tests/unit/escalation.test.ts` (5 tests, 🟢)
+
+### M7 — MODULE: Photo Capture Math (FR-CAM-08)
+- [ ] 🎯 **M7-PHOTO**: `computeCenterCrop()` centers a 3:4 portrait crop in any source frame; `PHOTO_CONSTRAINTS` target 480×640 at ≤200 KB; rejects zero/negative dimensions.
+- Traced by: `tests/unit/photoCapture.test.ts` (5 tests, 🟢)
+
+### M8 — MODULE: Host Names Service (PRD §3.2 display)
+- [ ] 🎯 **M8-HOST**: `attachHostNames()` fetches host names via RPC, attaches them to rows by `host_id`; gracefully handles empty arrays, missing hosts, and RPC errors without throwing.
+- Traced by: `tests/unit/hostNames.test.ts` (— tests TBD)
+
+### M9 — MODULE: Role-Based Route Protection (SEC-7)
+- [ ] 🎯 **M9-ROUTE**: `isForbidden()` correctly allows/denies routes per `ROLE_ROUTES` for guard, hod, staff, admin, super_admin, and null roles; shared routes available to all; `/admin` restricted to admin/super_admin only.
+- Traced by: `tests/security/routeProtection.test.ts` (24 tests, 🟢)
+
+### M10 — MODULE: RLS & Backend Security (SEC-1/2/3/5, S9, S10, NFR-04)
+- [ ] 🎯 **M10-RLS**: Staff cannot approve visits or read cross-dept data; guard cannot edit timestamps or approve/reject; HOD restricted to own department; ref numbers and timestamps server-authoritative; bucket is private; unauthenticated access denied.
+- Traced by: `tests/security/rls.test.ts` (18 tests, 🟢, 1 todo)
+
+### M11 — MODULE: UI Components
+- [ ] 🎯 **M11-BADGE**: Badge component renders visitor photo, ref number, department, host, date, status, and QR placeholder without crashing for any valid Visit input.
+- [ ] 🎯 **M11-NAVBAR**: Navbar shows correct links for each role; highlights active link; shows user initials and role badge; mobile menu toggles open/close.
+- [ ] 🎯 **M11-TIMEOUT**: SessionTimeout shows dialog after inactivity; countdown decrements; "Keep session" resets timer; "Sign out" calls supabase signOut.
+- [ ] 🎯 **M11-PHOTO-UI**: PhotoCapture cycles through idle → streaming → frozen → denied/error states correctly; handles capture, retake, accept, file-input fallback.
+- Traced by: `tests/unit/components/` suite (tests TBD)
+
+### M12 — MODULE: Page Flows
+- [ ] 🎯 **M12-LOGIN**: LoginPage renders form, handles submit, shows error on failure, loading state while authenticating.
+- [ ] 🎯 **M12-GUARD**: Guard console shows active visits, register form, exit log; handles check-in/check-out state.
+- [ ] 🎯 **M12-HOD**: HOD approvals shows pending visits; approve/reject flow works.
+- [ ] 🎯 **M12-WHOSINSIDE**: Who's Inside board shows checked-in visitors.
+- [ ] 🎯 **M12-REPORTS**: Reports page renders daily visitor register.
+- [ ] 🎯 **M12-GATEPASS**: Gate pass list and form render and submit correctly.
+- [ ] 🎯 **M12-ADMIN**: Admin panel manages departments, users, blacklist.
+- [ ] 🎯 **M12-NOTFOUND**: 404 page renders.
+- Traced by: `tests/pages/` suite (tests TBD)
+
+### M13 — MODULE: Build & Infrastructure
+- [ ] 🎯 **M13-TSC**: `tsc --noEmit` passes with zero type errors.
+- [ ] 🎯 **M13-BUILD**: `npm run build` succeeds (tsc + vite build).
 
 ## 8. AMENDMENT LOG
 
@@ -258,6 +327,7 @@ The loop runs **goal → build → CHECK → adjust**, and the CHECK phase is ex
 | 2026-07-20 | iter-04 | v1.5: §2.2A added — PRD Feature Detail Map; 12 granular 🎯 criteria (FR-VIS-03/05/06, FR-CAM-05/06, FR-GP-04/05, FR-NOT-03, NFR-01, Admin module, SLA-W1 escalation, S14a DEMO-SCRIPT); verify.py gained a 4th check (Milestone A goals) that hard-fails on any unchecked 🎯 criterion | PRD features were referenced but not individually trackable; goal.md now mirrors PRD §3–§7 at criterion granularity |
 | 2026-07-20 | iter-06 | S14a ticked — DEMO-SCRIPT.md created with full click-path, browser-tabs list, and one-command reset; Database Relationships fix in types/index.ts (required by GenericTable); vite-env.d.ts added; 002_rls.sql, scripts/seed.ts, progress.md, learnings.md created; npm run build ✓ | All code-level deliverables complete; remaining 22 criteria blocked on Supabase credentials + browser run (needs human) |
 | 2026-07-20 | post-06 | v1.6: memory.md created — structured error-pattern registry (Pattern/Cause/Fix/Prevention, tagged + indexed); §3 Steps 2/5/7 updated to search memory.md before each fix; §4 self-improvement upgraded to two-tier (narrative learnings.md + indexed memory.md); §6 File Manifest updated; verify.py failure message now prompts memory.md lookup; 12 existing patterns backfilled from learnings.md | A mistake made twice is a loop failure; memory.md makes the first occurrence prevent the second |
+| 2026-07-21 | iter-08 | v1.7: Added §8 Module Map — 13 module-specific goals (M1–M13) with simple, specific, testable descriptions and traced test files. Each module maps to one logical slice of the system. All existing 🎯 criteria preserved under module groupings. | Goals needed to be module-specific for TDD iteration; each module now testable independently one by one |
 
 **Bootstrap (iteration 0):** if `progress.md` / `learnings.md` / `memory.md` don't exist, create them. `progress.md` must contain the permanent `Deferred → Milestone B` section from day one (pre-populated with all 🏭 criteria + PRD §10 SLAs + PRD §11 Handover). Seed *Next Up* by decomposing the **🎯 Milestone A** criteria into ordered tasks along the demo path:
 `project scaffold → Supabase schema + basic roles → guard console + webcam capture → HOD mobile approval (realtime) → badge + exit flow → who's-inside live board → blacklist + repeat recall → gate passes (4 types) → RGP dashboard → visitor register report → seed script + DEMO-SCRIPT.md → full demo dry-run ×2`.

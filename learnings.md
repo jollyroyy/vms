@@ -27,9 +27,34 @@ After building the HOD pre-approval feature, I audited the entire system for edg
 | EC-11 | Guard Console shows visits from all departments (should only show guard's department) | Low | Guard/Console.tsx | Won't fix — current behavior allows all-dept view |
 | EC-12 | Who's Inside shows pre-approved but not-yet-arrived visitors | Medium | Shared/WhosInside.tsx | **Fixed** — shows accurate status badges |
 
+## 2026-07-21 — Pre-approve submission RLS + [object Object] fix
+
+PreApproveForm submission was failing with `[object Object]` and later "new row violates row-level security policy for table 'visitors'". Two root causes:
+
+**RLS gap (primary)**: The `visitors` INSERT/UPDATE policy blocked HODs. The initial fix (broadening RLS policies) wasn't applied. **Final fix**: Created a `pre_approve_visitor` security-definer RPC (`migrations/011_visitors_hod_policy.sql`) that upserts the visitor AND creates the pre-approved visit in one atomic transaction — same pattern as `approve_visit`/`reject_visit`. The RPC:
+- Authenticates the caller (must be HOD/Admin/SuperAdmin)
+- Scopes HOD to their own department
+- Upserts visitor with `on conflict (phone) do update` (bypasses RLS via SECURITY DEFINER)
+- Inserts visit with `status = 'approved'`
+- Returns `{ ref_number }` in one DB round-trip
+
+**Brittle error serialization (secondary)**: `String(err)` in catch blocks produced `[object Object]`. Created `src/lib/errors.ts` → `safeErrorMessage()` (handles Error, objects with `.message`, null, plain objects). Replaced in PreApproveForm, Approvals, GuardConsole, VisitorForm. Tested in `tests/unit/errors.test.ts` (9 tests, never emits `[object Object]`).
+
 Key: **Fixed** = code change made in this iteration. Won't fix = acceptable behavior for Milestone A.
 
 ### Lessons applied from memory.md
 - **SB-08** (RPC throws without catch): Applied try-catch to guard checkIn/checkOut
 - **RE-02** (button stuck disabled): Already fixed in Approvals.tsx
 - **SB-09** (RPC TypeScript cast): Applied `(supabase as any).rpc()` everywhere
+
+## 2026-07-21 — clear_pre_approved JWT role metadata mismatch
+
+**Bug**: `clear_pre_approved` RPC raised "Only Guard, HOD, or Admin can clear pre-approvals" even for logged-in HODs.
+
+**Root cause**: The RPC read the role from `auth.jwt() -> 'app_metadata' ->> 'role'`, but security-definer RPCs and triggers throughout the codebase inconsistently use either `app_metadata` or `user_metadata`. Supabase stores the app-level role in `raw_user_meta_data` (mapped to JWT `user_metadata`) for users created via the Admin Panel, while `raw_app_meta_data` typically only has provider info. When `app_metadata` returned NULL, the RPC's `if null not in (...)` evaluated as false (PostgreSQL behavior), bypassing the guard — but the trigger caught it with its own check.
+
+**Fix**: Changed both the `clear_pre_approved` RPC and the `enforce_visit_update_rules` trigger to use `coalesce(auth.jwt() -> 'user_metadata' ->> 'role', auth.jwt() -> 'app_metadata' ->> 'role', '')` — checking both metadata locations with a default empty string.
+
+**Also fixed**: WhosInside.tsx separated the clear-error state from the load-error state (was sharing `setError`, showing misleading "Failed to load:" prefix for clear failures). Added 3 new tests covering Clear All click, RPC error display, and cancel confirmation. 9 tests total for WhosInside, all green.
+
+**Memory.md pattern added**: SB-11 — document the rule: always check both metadata locations with coalesce when reading JWT claims in PL/pgSQL.

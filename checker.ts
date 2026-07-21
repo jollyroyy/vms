@@ -44,10 +44,13 @@ const CHECKS: Check[] = [
     cmd: 'npx', args: ['vitest', 'run', 'tests/unit'],
   },
   {
-    label: 'Security tests',
-    description: 'RLS denial cases, photo-privacy 403s, server-auth data (goal.md SEC-1/2/3/5)',
-    cmd: 'npx', args: ['vitest', 'run', 'tests/security'],
+    label: 'Security — route protection',
+    description: 'Frontend route protection (SEC-7) — no live DB needed',
+    cmd: 'npx', args: ['vitest', 'run', 'tests/security/routeProtection.test.ts'],
   },
+  // NOTE: tests/security/rls.test.ts requires a live Supabase project (.env) and
+  // seeded users. Run it manually via: npm run test:security
+  // It is excluded from `npm run check` because the pre-commit hook runs offline.
 ];
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
