@@ -14,29 +14,48 @@ export default function WhosInside(): React.ReactElement {
   const [error, setError] = useState('');
   const [clearError, setClearError] = useState('');
   const [tab, setTab] = useState<ActiveTab>('checked_in');
+  const [authReady, setAuthReady] = useState(false);
+  const [userRole, setUserRole] = useState<string | null>(null);
+  const [userDeptId, setUserDeptId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true); setError(''); setClearError('');
-    const { data, error: err } = await supabase
+    let query = supabase
       .from('visits')
       .select(`*, visitor:visitors(*), department:departments(id, name, code, created_at)`)
-      .in('status', ['pending_approval', 'approved', 'walkin_approved', 'checked_in'])
-      .order('created_at', { ascending: false });
+      .in('status', ['pending_approval', 'approved', 'walkin_approved', 'checked_in']);
+    if (userDeptId && userRole && !['admin', 'super_admin'].includes(userRole)) {
+      query = query.eq('department_id', userDeptId);
+    }
+    const { data, error: err } = await query.order('created_at', { ascending: false });
     if (err) { setError(err.message); }
     let raw = ((data as unknown as Visit[]) ?? []);
     raw = await attachHostNames(raw);
     const enriched = raw.map((v) => ({ ...v, photo_url: v.photo_data ?? undefined }));
     setVisits(enriched);
     setLoading(false);
+  }, [userDeptId, userRole]);
+
+  useEffect(() => {
+    try {
+      supabase.auth.getUser().then((res) => {
+        const user = res?.data?.user;
+        if (user) {
+          setUserRole((user.app_metadata?.role as string) ?? null);
+          setUserDeptId((user.app_metadata?.department_id as string) ?? null);
+        }
+      }).finally(() => setAuthReady(true));
+    } catch { setAuthReady(true); }
   }, []);
 
   useEffect(() => {
+    if (!authReady) return;
     void load();
     const ch = supabase.channel('whos-inside')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'visits' }, () => { void load(); })
       .subscribe();
     return () => { void supabase.removeChannel(ch); };
-  }, [load]);
+  }, [load, authReady]);
 
   const STATUS_STYLES: Record<Visit['status'], { bg: string; text: string; dot: string; label: string }> = {
     pending_approval: { bg: 'bg-warning-50', text: 'text-warning-700', dot: 'bg-warning-500', label: 'Pending' },

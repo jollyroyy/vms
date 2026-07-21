@@ -6,6 +6,7 @@ import { supabase } from '../../supabaseClient';
 import type { Visit, GatePass } from '../../types/index';
 import { getRgpState } from '../../lib/rgpDueDate';
 import { attachHostNames } from '../../lib/hostNames';
+import { maskPhone } from '../../lib/pii';
 
 const TODAY = new Date().toISOString().slice(0, 10);
 
@@ -14,23 +15,47 @@ export default function ReportsPage(): React.ReactElement {
   const [visits, setVisits] = useState<Visit[]>([]);
   const [openPasses, setOpenPasses] = useState<GatePass[]>([]);
   const [loading, setLoading] = useState(true);
+  const [userRole, setUserRole] = useState<string | null>(null);
+  const [userDeptId, setUserDeptId] = useState<string | null>(null);
+
+  useEffect(() => {
+    try {
+      supabase.auth.getUser().then((res) => {
+        const user = res?.data?.user;
+        if (user) {
+          setUserRole((user.app_metadata?.role as string) ?? null);
+          setUserDeptId((user.app_metadata?.department_id as string) ?? null);
+        }
+      });
+    } catch { /* auth not available */ }
+  }, []);
 
   const load = useCallback(async () => {
     setLoading(true);
     const [visitRows, { data: gp }] = await Promise.all([
       (async (): Promise<Visit[]> => {
-        const { data, error } = await supabase.from('visits').select(`*, visitor:visitors(*), department:departments(id,name,code,created_at)`)
-          .gte('created_at', `${date}T00:00:00Z`).lte('created_at', `${date}T23:59:59Z`).order('created_at', { ascending: true });
+        let query = supabase.from('visits').select(`*, visitor:visitors(*), department:departments(id,name,code,created_at)`)
+          .gte('created_at', `${date}T00:00:00Z`).lte('created_at', `${date}T23:59:59Z`);
+        if (userDeptId && userRole && !['admin', 'super_admin'].includes(userRole)) {
+          query = query.eq('department_id', userDeptId);
+        }
+        const { data, error } = await query.order('created_at', { ascending: true });
         if (error) { console.error('[Reports] visits error:', error.message); return []; }
         return attachHostNames((data ?? []) as unknown as Visit[]);
       })(),
-      supabase.from('gate_passes').select(`*, items:gate_pass_items(*), department:departments(id,name,code,created_at)`)
-        .eq('type', 'RGP').in('status', ['awaiting_return', 'partially_returned']),
+      (async (): Promise<{ data: unknown; error: unknown }> => {
+        let query = supabase.from('gate_passes').select(`*, items:gate_pass_items(*), department:departments(id,name,code,created_at)`)
+          .eq('type', 'RGP').in('status', ['awaiting_return', 'partially_returned']);
+        if (userDeptId && userRole && !['admin', 'super_admin'].includes(userRole)) {
+          query = query.eq('department_id', userDeptId);
+        }
+        return await query;
+      })(),
     ]);
     setVisits(visitRows);
     setOpenPasses((gp as unknown as GatePass[]) ?? []);
     setLoading(false);
-  }, [date]);
+  }, [date, userDeptId, userRole]);
 
   useEffect(() => { void load(); }, [load]);
   const overdueCount = openPasses.filter((p) => p.expected_return_date && getRgpState(p.expected_return_date, TODAY) === 'overdue').length;
@@ -78,7 +103,7 @@ export default function ReportsPage(): React.ReactElement {
                       <td className="px-3.5 py-3 text-[11px] font-mono text-navy-400">{v.ref_number}</td>
                       <td className="px-3.5 py-3 font-medium text-navy-800">{v.visitor?.full_name}</td>
                       <td className="px-3.5 py-3 text-navy-500">{v.visitor?.company}</td>
-                      <td className="px-3.5 py-3 text-navy-500">{v.visitor?.phone}</td>
+                      <td className="px-3.5 py-3 text-navy-500 font-mono text-xs">{maskPhone(v.visitor?.phone)}</td>
                       <td className="px-3.5 py-3 text-navy-500">{v.department?.name}</td>
                       <td className="px-3.5 py-3 text-navy-500">{v.host?.full_name}</td>
                       <td className="px-3.5 py-3 text-navy-500 capitalize">{v.purpose}</td>

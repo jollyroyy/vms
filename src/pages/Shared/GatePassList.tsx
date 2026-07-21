@@ -16,16 +16,33 @@ export default function GatePassList(): React.ReactElement {
   const [passes, setPasses] = useState<GatePass[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'open_rgp' | 'overdue'>('all');
+  const [userRole, setUserRole] = useState<string | null>(null);
+  const [userDeptId, setUserDeptId] = useState<string | null>(null);
+
+  useEffect(() => {
+    try {
+      supabase.auth.getUser().then((res) => {
+        const user = res?.data?.user;
+        if (user) {
+          setUserRole((user.app_metadata?.role as string) ?? null);
+          setUserDeptId((user.app_metadata?.department_id as string) ?? null);
+        }
+      });
+    } catch { /* auth not available */ }
+  }, []);
 
   const load = useCallback(async () => {
     setLoading(true);
-    let query = supabase.from('gate_passes').select(`*, items:gate_pass_items(*), department:departments(id, name, code, created_at)`).order('created_at', { ascending: false });
+    let query = supabase.from('gate_passes').select(`*, items:gate_pass_items(*), department:departments(id, name, code, created_at)`);
+    if (userDeptId && userRole && !['admin', 'super_admin'].includes(userRole)) {
+      query = query.eq('department_id', userDeptId);
+    }
     if (filter === 'open_rgp') query = query.eq('type', 'RGP').in('status', ['awaiting_return', 'partially_returned']);
     else if (filter === 'overdue') query = query.eq('type', 'RGP').lt('expected_return_date', TODAY);
-    const { data } = await query;
+    const { data } = await query.order('created_at', { ascending: false });
     setPasses((data as unknown as GatePass[]) ?? []);
     setLoading(false);
-  }, [filter]);
+  }, [filter, userDeptId, userRole]);
 
   useEffect(() => { void load(); }, [load]);
   const getState = (p: GatePass) => p.type === 'RGP' && p.expected_return_date ? getRgpState(p.expected_return_date, TODAY) : 'ok';

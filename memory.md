@@ -486,6 +486,88 @@ CREATE POLICY policy_name ON table_name FOR ... USING (...);
 
 ---
 
+---
+
+### SB-15
+
+**Pattern:** HOD taps Approve/Reject — API returns 200 but status never changes (silent no-op).
+**Cause:** Migration 015's `enforce_visit_update_rules` overwrote 014's version that handled `pending_approval → walkin_approved` transition. The 015 version only checks `pending_approval → approved/rejected`, so when `approve_visit` RPC sets status to `walkin_approved`, the trigger falls through to `ELSE raise exception 'Invalid status transition'`. The exception aborts the UPDATE, but the RPC returned before the trigger fired (the RPC's UPDATE succeeds but the trigger's exception rolls it back — the client sees a generic error or success with no visible change because the subscription reloads the unchanged data).
+**Fix:** Migration 022 restores the `walkin_approved` transitions in `enforce_visit_update_rules`:
+- `pending_approval → walkin_approved` (hod/admin)
+- `walkin_approved → checked_in` (guard/admin)
+- `walkin_approved → rejected` (guard/hod/admin)
+**Prevention:** When overwriting a trigger function that has been updated by a later migration (014), always diff against the LATEST version, not an earlier one. Migration 015 was written against 010's version and accidentally dropped 014's walkin_approved handling.
+**Tags:** `#supabase` `#migration` `#trigger`
+**First seen:** 2026-07-21 (audit C-04)
+
+---
+
+### SB-16
+
+**Pattern:** RPC reads role from `auth.jwt() -> 'user_metadata'` but the role was moved to `app_metadata` by migration 010. Role check passes (NULL in NOT IN → NULL → falsy) but department_id check fails because it's also in user_metadata → "Your account is not assigned to any department" error.
+**Cause:** Migration 007 was written before 010 existed; 010 moved role/department to `app_metadata` and rewrote `current_user_role()` but did not update 007's RPCs to also read from `app_metadata`. Migration 014 introduced a `coalesce` fallback. Migration 015 fully fixed to use `app_metadata` only.
+**Fix:** Ensure migration 015 (or 022) is applied. All RPCs must read role/department from `auth.jwt() -> 'app_metadata'` only.
+**Prevention:** After any JWT metadata restructuring (010), grep ALL SQL files for `user_metadata` in RPCs and triggers — not just the current file.
+**Tags:** `#supabase` `#rls` `#auth`
+**First seen:** 2026-07-21 (audit C-04 related)
+
+---
+
+### SB-17
+
+**Pattern:** RLS policies that subquery `profiles` table (e.g., `select department_id from profiles where id = auth.uid()`) cause infinite recursion in PG15+.
+**Cause:** Even with `USING (true)` on profiles SELECT, an UPDATE policy on `visits` that subqueries `profiles` can trigger recursion when the policy function itself queries `profiles` indirectly via a trigger or RPC.
+**Fix:** Replace ALL RLS policies that subquery `profiles` with direct JWT reads: `(auth.jwt() -> 'app_metadata' ->> 'department_id')::uuid`. Migration 022 does this comprehensively — drops every policy that uses `public.current_user_role()` (which subqueried profiles in old versions) and recreates using `auth.jwt() -> 'app_metadata'` directly.
+**Prevention:** Never subquery any table inside an RLS policy. Use `auth.jwt()` for role/department checks: one JWT read per request, zero recursion risk.
+**Tags:** `#supabase` `#rls` `#postgres`
+**First seen:** 2026-07-21 (audit C-02)
+
+---
+
+### SEC-25
+
+**Pattern:** Audit trail absent — no way to determine who approved/rejected/checked-in a visitor.
+**Cause:** No `audit_logs` table or triggers recording state transitions with user_id.
+**Fix (migration 022):** Create `public.audit_logs` table with `user_id`, `action`, `entity_type`, `entity_id`, `details` (JSONB), `ip_address`, `created_at`. Add AFTER UPDATE trigger on `visits` that logs status transitions (approved, rejected, checked_in, checked_out). Admin/super_admin only can read.
+**Prevention:** Every status transition on critical tables (visits, gate_passes) should have an audit log trigger. Add audit_logs at schema creation time, not as an afterthought.
+**Tags:** `#security` `#audit` `#compliance`
+**First seen:** 2026-07-21 (audit H-05)
+
+---
+
+### SEC-26
+
+**Pattern:** NotificationBell component has early return (`if (!role || ...) return null`) BEFORE React hooks (`useState`, `useEffect`, `useCallback`). React hooks must be called in the same order on every render — conditional returns before hooks violate the Rules of Hooks.
+**Cause:** The guard clause was placed at the top of the component function, before hook declarations. This causes React to see inconsistent hook counts across renders.
+**Fix:** Move the role eligibility check into a variable (`const isEligible = ...`) before hooks, then gate the return AFTER all hooks: `if (!isEligible) return null`.
+**Prevention:** Never place conditional returns before React hooks. Use variables or move the condition below all hook declarations.
+**Tags:** `#react` `#hooks`
+**First seen:** 2026-07-21 (audit H-08)
+
+---
+
+### SEC-27
+
+**Pattern:** Visitor phone numbers displayed in plaintext in Guard Console and Reports — PII exposure.
+**Cause:** Guard Console shows `v.visitor?.phone` inline; Reports shows phone in table column. Both are visible to any authenticated user who has access to those pages.
+**Fix:** Add `maskPhone()` utility in `src/lib/pii.ts` that shows last 4 digits only. Apply to Guard Console and Reports displays.
+**Prevention:** Before displaying any field containing phone, email, or government ID number in a list/table view, check if it should be masked. Use the PII mask library for all non-essential displays.
+**Tags:** `#security` `#pii`
+**First seen:** 2026-07-21 (audit H-02)
+
+---
+
+### SEC-28
+
+**Pattern:** Department data is not scoped per-role — HOD/staff can see all departments' data in WhosInside, Reports, and GatePassList.
+**Cause:** Queries for WhosInside, Reports, and GatePassList don't filter by `department_id` from JWT. All authenticated users see all rows regardless of department.
+**Fix:** For non-admin roles, add `.eq('department_id', userDeptId)` filter, where `userDeptId` is read from `auth.getUser() -> app_metadata.department_id`. Applied in WhosInside, Reports, and GatePassList load functions.
+**Prevention:** Every list/table page that shows multi-department data must scope queries by the user's department. Admin/super_admin are the only roles that see all departments.
+**Tags:** `#security` `#data-isolation` `#supabase`
+**First seen:** 2026-07-21 (audit H-07)
+
+---
+
 ## New Entry Template
 
 Copy this block when recording a new pattern:

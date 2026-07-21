@@ -15,6 +15,7 @@ import GatePassForm       from './pages/Shared/GatePassForm';
 import ReportsPage        from './pages/Shared/Reports';
 import AnalyticsPage      from './pages/Shared/Analytics';
 import AdminPanel         from './pages/Admin/AdminPanel';
+import ActivityPage       from './pages/Admin/Activity';
 import NotFoundPage       from './pages/NotFound';
 import Navbar             from './components/Navbar';
 import SessionTimeout     from './components/SessionTimeout';
@@ -32,7 +33,7 @@ function ProtectedRoute({ children, role }: { children: React.ReactElement; role
     if (forbidden) supabase.auth.signOut();
   }, [forbidden]);
   if (role === null) return null;
-  if (forbidden) return React.createElement('div', { className: 'flex h-screen items-center justify-center text-sm text-gray-500' }, 'Signing out…');
+  if (forbidden) return null;
   return children;
 }
 
@@ -108,6 +109,7 @@ export default function App(): React.ReactElement {
             <Route path="/reports"         element={<ProtectedRoute role={role}><ReportsPage /></ProtectedRoute>} />
             <Route path="/analytics"      element={<ProtectedRoute role={role}><AnalyticsPage /></ProtectedRoute>} />
             <Route path="/admin"           element={<ProtectedRoute role={role}><AdminPanel /></ProtectedRoute>} />
+            <Route path="/admin/activity"  element={<ProtectedRoute role={role}><ActivityPage /></ProtectedRoute>} />
             <Route path="*"                element={<NotFoundPage />} />
           </Routes>
         </main>

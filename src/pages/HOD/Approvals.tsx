@@ -36,16 +36,19 @@ export default function HODApprovals(): React.ReactElement {
   const [userDeptId, setUserDeptId] = useState<string | null>(null);
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (!user) { setError('Not authenticated.'); return; }
-      const deptId = user.app_metadata?.department_id as string | undefined;
-      if (!deptId) {
-        console.warn('[HOD] No department_id in JWT app_metadata.');
-        setError('Your account is not assigned to any department. Contact admin.');
-        return;
-      }
-      setUserDeptId(deptId);
-    });
+    try {
+      supabase.auth.getUser().then((res) => {
+        const user = res?.data?.user;
+        if (!user) { setError('Not authenticated.'); return; }
+        const deptId = user.app_metadata?.department_id as string | undefined;
+        if (!deptId) {
+          console.warn('[HOD] No department_id in JWT app_metadata.');
+          setError('Your account is not assigned to any department. Contact admin.');
+          return;
+        }
+        setUserDeptId(deptId);
+      });
+    } catch { /* auth not available */ }
   }, []);
 
   const loadVisits = useCallback(async (statuses: readonly VisitStatus[]) => {
@@ -110,10 +113,12 @@ export default function HODApprovals(): React.ReactElement {
     if (target === 'hod') {
       const mins = Math.floor((new Date().getTime() - new Date(v.created_at).getTime()) / 60000);
       const remaining = 5 - mins;
+      if (remaining <= 0) return { text: 'Pending — escalation imminent', urgent: true };
       return { text: `${remaining}m remaining`, urgent: remaining <= 2 };
     }
     if (target === 'delegate') return { text: 'Escalated to delegate', urgent: true };
-    return { text: 'Escalated to Admin', urgent: true };
+    if (target === 'admin') return { text: 'Escalated to Admin', urgent: true };
+    return { text: 'Pending', urgent: false };
   };
 
   return (

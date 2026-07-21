@@ -16,9 +16,7 @@ export default function NotificationBell({ userId, role }: Props): React.ReactEl
   const [loading, setLoading] = useState(true);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  if (!role || (role !== 'hod' && role !== 'guard' && role !== 'admin' && role !== 'super_admin')) {
-    return null;
-  }
+  const isEligible = role && ['hod', 'guard', 'admin', 'super_admin'].includes(role);
 
   const fetchNotifications = useCallback(async () => {
     try {
@@ -66,6 +64,8 @@ export default function NotificationBell({ userId, role }: Props): React.ReactEl
     setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
     setUnreadCount(0);
   };
+
+  if (!isEligible) return null;
 
   return (
     <div className="relative" ref={dropdownRef}>

@@ -4,6 +4,7 @@ import type { Visit } from '../../types/index';
 import { attachHostNames } from '../../lib/hostNames';
 import { safeErrorMessage } from '../../lib/errors';
 import { formatDateTime, formatTime, formatDuration } from '../../lib/formatDate';
+import { maskPhone } from '../../lib/pii';
 import VisitorForm from './VisitorForm';
 import Badge from '../../components/Badge';
 import VisitorDetails from '../../components/VisitorDetails';
@@ -257,7 +258,7 @@ export default function GuardConsole(): React.ReactElement {
                         <div>
                           <p className="font-semibold text-navy-900">{v.visitor?.full_name ?? '—'}</p>
                           <p className="text-xs text-navy-400 mt-0.5">
-                            {v.visitor?.company ?? ''}{v.visitor?.company && v.visitor?.phone ? ' · ' : ''}{v.visitor?.phone}
+                            {v.visitor?.company ?? ''}{v.visitor?.company && v.visitor?.phone ? ' · ' : ''}{maskPhone(v.visitor?.phone)}
                           </p>
                           <p className="text-xs text-navy-300 mt-0.5">{v.department?.name} · {v.host?.full_name}</p>
                         </div>

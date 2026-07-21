@@ -140,6 +140,19 @@ export type Notification = {
   created_at: string;
 };
 
+export type AuditLog = {
+  id: string;
+  user_id: string;
+  action: string;
+  entity_type: string;
+  entity_id: string | null;
+  details: Record<string, unknown> | null;
+  ip_address: string | null;
+  created_at: string;
+  // joined
+  profile?: Pick<Profile, 'id' | 'full_name' | 'email'>;
+};
+
 // Database interface consumed by the Supabase typed client.
 // Each table entry must include Relationships (required by @supabase/postgrest-js GenericTable).
 export type Database = {
@@ -167,6 +180,7 @@ export type Database = {
       gate_passes:    { Row: GatePass;      Insert: Omit<GatePass, 'id' | 'ref_number' | 'created_at' | 'items' | 'department' | 'created_by_profile'>; Update: Partial<GatePass>; Relationships: [] };
       gate_pass_items:{ Row: GatePassItem;  Insert: Omit<GatePassItem, 'id'>;                  Update: Partial<GatePassItem>;  Relationships: [] };
       notifications:  { Row: Notification;  Insert: Omit<Notification, 'id' | 'created_at'>;   Update: Partial<Notification>;  Relationships: [] };
+      audit_logs:     { Row: AuditLog;      Insert: Omit<AuditLog, 'id' | 'created_at'>;        Update: Partial<AuditLog>;      Relationships: [] };
     };
     Views:     Record<string, never>;
     Functions: Record<string, never>;

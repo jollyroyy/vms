@@ -266,6 +266,29 @@ When starting a new project from this template, follow these steps:
 
 ---
 
+### 3.4 Audit Findings (2026-07-21 — SecureGate End-to-End Audit)
+
+| ID | Severity | Finding | Fix |
+|----|----------|---------|-----|
+| C-01 | Critical | Host dropdown always empty — API failing | Added error banner in VisitorForm; migration 022 fixes RLS recursion root cause |
+| C-02 | Critical | profiles RLS policy is recursive | Migration 022: all policies use `auth.jwt()` directly, no subqueries |
+| C-03 | Critical | No user-creation UI exists | Added Invite User form in AdminPanel UsersTab (uses `supabase.auth.admin.inviteUserByEmail`) |
+| C-04 | Critical | HOD Approve/Reject is a silent no-op | Migration 022: `enforce_visit_update_rules` now handles `walkin_approved` transitions |
+| C-05 | Critical | "Escalated to Admin" badge shown for own-department pending items | Fixed `escalationLabel` to show accurate status for all escalation targets |
+| H-01 | High | No password recovery | Added "Forgot password?" link on Login page that calls `resetPasswordForEmail()` |
+| H-02 | High | PII exposed in plaintext | Added `maskPhone()` utility; applied to Reports and Guard Console |
+| H-03 | High | Unauthenticated route protection leaks role model | ProtectedRoute now returns `null` for forbidden (instead of "Signing out…") |
+| H-04 | High | Guards can UPDATE any visitor record | Trigger prevents non-admin from modifying `is_blacklisted` / `blacklist_reason` |
+| H-05 | High | No audit log | Added `audit_logs` table + trigger on visit status changes in migration 022 |
+| H-06 | High | `delegate` role advertised but doesn't exist | Delegate is an escalation target via `delegate_id` column, not a user_role — clarified in docs |
+| H-07 | High | Department scoping inconsistent | Applied department filter to WhosInside, Reports, GatePassList for non-admin roles |
+| H-08 | High | Notification bell count unreliable | Fixed hooks-before-return violation in NotificationBell.tsx |
+| M-01–M-09 | Medium | Various | Escalation function updated; CSP tightening recommended for production |
+
+**Key lesson:** When overwriting a trigger function in a migration, always diff against the LATEST version in the migration chain — not an earlier version. Migration 015 was written against 010's `enforce_visit_update_rules` and dropped 014's `walkin_approved` handling, causing C-04's silent no-op.
+
+---
+
 ## 7. LEARNING LOG (dated entries)
 
 ### 2026-07-21 — Rate Limiting + Migration Fixes + Build Hardening

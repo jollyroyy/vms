@@ -55,6 +55,7 @@ export default function VisitorForm({ onRegistered }: Props): React.ReactElement
   const [recalledName,  setRecalledName]  = useState<string | null>(null);
   const [submitting,    setSubmitting]    = useState(false);
   const [error,         setError]         = useState('');
+  const [hostError,     setHostError]     = useState<string | null>(null);
   const [activeVisitCheck, setActiveVisitCheck] = useState<{ checking: boolean; message: string | null }>({ checking: false, message: null });
 
   useEffect(() => {
@@ -65,11 +66,12 @@ export default function VisitorForm({ onRegistered }: Props): React.ReactElement
   }, []);
 
   useEffect(() => {
-    if (!deptId) { setHosts([]); return; }
+    if (!deptId) { setHosts([]); setHostError(null); return; }
+    setHostError(null);
     fetch(`/api/hosts/${deptId}`)
-      .then((r) => { if (!r.ok) throw new Error(r.statusText); return r.json(); })
+      .then((r) => { if (!r.ok) throw new Error(`Server error (${r.status})`); return r.json(); })
       .then((data) => setHosts(data ?? []))
-      .catch((err) => { console.error('Failed to load hosts:', err.message); setHosts([]); });
+      .catch((err) => { console.error('Failed to load hosts:', err.message); setHostError('Could not load person-to-meet list. Contact admin.'); setHosts([]); });
   }, [deptId]);
 
   const recallByPhone = useCallback(async () => {
@@ -212,6 +214,12 @@ export default function VisitorForm({ onRegistered }: Props): React.ReactElement
             <option value="">{deptId ? 'Select person' : 'Select department first'}</option>
             {hosts.map((h) => <option key={h.id} value={h.id}>{h.full_name}</option>)}
           </select>
+          {hostError && (
+            <p className="text-xs text-danger-600 mt-1 flex items-center gap-1">
+              <svg className="w-3 h-3 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" /></svg>
+              {hostError}
+            </p>
+          )}
         </div>
         <div>
           <label className="label">Govt ID Type</label>

@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { supabase } from '../../supabaseClient';
 import { normalizePhone } from '../../lib/blacklist';
 import type { Department, Profile, Visitor, UserRole } from '../../types/index';
@@ -13,6 +14,10 @@ export default function AdminPanel(): React.ReactElement {
       <div className="page-header !mb-6">
         <h1 className="page-title">Admin Panel</h1>
         <p className="page-subtitle">Manage departments, approvers, users, and security</p>
+        <Link to="/admin/activity" className="text-sm text-brand-600 hover:text-brand-700 font-medium mt-2 inline-flex items-center gap-1.5">
+          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+          Activity Log
+        </Link>
       </div>
       <div className="tab-group">
         {(['departments', 'users', 'blacklist'] as Tab[]).map((t) => (
@@ -47,6 +52,7 @@ function DepartmentsTab(): React.ReactElement {
 
   // Add approver state
   const [addingApproverFor, setAddingApproverFor] = useState<string | null>(null);
+  const [settingDelegateFor, setSettingDelegateFor] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     const { data: d } = await supabase.from('departments').select('*').order('name');
@@ -158,6 +164,18 @@ function DepartmentsTab(): React.ReactElement {
     setTimeout(clearMessages, 4000);
   };
 
+  const setDelegate = async (hodId: string, delegateProfileId: string) => {
+    clearMessages();
+    try {
+      const { error } = await supabase.from('profiles').update({ delegate_id: delegateProfileId || null }).eq('id', hodId);
+      if (error) throw new Error(error.message);
+      setSettingDelegateFor(null);
+      setSuccessMsg('Delegate assigned.');
+      await load();
+    } catch (err) { setErrorMsg(err instanceof Error ? err.message : 'Failed to assign delegate.'); }
+    setTimeout(clearMessages, 4000);
+  };
+
   return (
     <div className="space-y-5">
       {successMsg && (<div className="rounded-xl bg-brand-50 border border-brand-200 px-4 py-3 text-sm text-brand-800 flex items-center gap-2"><span className="h-5 w-5 rounded-full bg-brand-100 flex items-center justify-center text-brand-700 text-xs font-bold shrink-0">✓</span>{successMsg}</div>)}
@@ -213,7 +231,20 @@ function DepartmentsTab(): React.ReactElement {
                           </div>
                           {hod.delegate_id && <span className="text-[10px] text-navy-300 bg-surface-100 px-1.5 py-0.5 rounded">has delegate</span>}
                         </div>
-                        <button onClick={() => removeApprover(hod.id, hod.full_name ?? '')} className="text-xs text-red-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-all px-2 py-1 rounded hover:bg-red-50">Remove</button>
+                        <div className="flex items-center gap-1">
+                          {settingDelegateFor === hod.id ? (
+                            <select className="input text-xs py-1 px-2 w-44" defaultValue="" onChange={(e) => { if (e.target.value) setDelegate(hod.id, e.target.value); }}>
+                              <option value="" disabled>Select delegate...</option>
+                              <option value="">None (clear)</option>
+                              {profiles.filter((p) => p.id !== hod.id).map((p) => (
+                                <option key={p.id} value={p.id}>{p.full_name} ({p.email})</option>
+                              ))}
+                            </select>
+                          ) : (
+                            <button onClick={() => setSettingDelegateFor(hod.id)} className="text-xs text-navy-400 hover:text-navy-600 opacity-0 group-hover:opacity-100 transition-all px-2 py-1 rounded hover:bg-surface-100">Delegate</button>
+                          )}
+                          <button onClick={() => removeApprover(hod.id, hod.full_name ?? '')} className="text-xs text-red-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-all px-2 py-1 rounded hover:bg-red-50">Remove</button>
+                        </div>
                       </div>
                     ))}
                     {addingApproverFor === d.id ? (
@@ -265,10 +296,34 @@ function DepartmentsTab(): React.ReactElement {
 function UsersTab(): React.ReactElement {
   const [users, setUsers] = useState<Profile[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [inviteName, setInviteName] = useState('');
+  const [inviteRole, setInviteRole] = useState<UserRole>('staff');
+  const [inviting, setInviting] = useState(false);
+  const [inviteError, setInviteError] = useState('');
+  const [inviteSuccess, setInviteSuccess] = useState('');
+
   useEffect(() => {
     supabase.from('profiles').select('*').order('full_name').then(({ data }) => setUsers(data ?? []));
     supabase.from('departments').select('*').order('name').then(({ data }) => setDepartments(data ?? []));
   }, []);
+
+  const sendInvite = async (e: React.FormEvent) => {
+    e.preventDefault(); setInviteError(''); setInviteSuccess(''); setInviting(true);
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email: inviteEmail,
+        password: crypto.randomUUID().slice(0, 12),
+        options: { data: { full_name: inviteName, role: inviteRole } },
+      });
+      if (error) { setInviteError(error.message); return; }
+      setInviteSuccess(`Invitation sent to ${inviteEmail}. They will receive a confirmation email.`);
+      setInviteEmail(''); setInviteName('');
+      setTimeout(() => { setInviteSuccess(''); supabase.from('profiles').select('*').order('full_name').then(({ data }) => setUsers(data ?? [])); }, 2000);
+    } catch (err) { setInviteError(err instanceof Error ? err.message : 'Failed to send invite.'); }
+    finally { setInviting(false); }
+  };
+
   const ROLES: UserRole[] = ['guard', 'hod', 'staff', 'admin', 'super_admin'];
   const updateRole = async (userId: string, role: UserRole) => {
     await supabase.from('profiles').update({ role }).eq('id', userId);
@@ -280,7 +335,27 @@ function UsersTab(): React.ReactElement {
   };
   const deptMap = Object.fromEntries(departments.map((d) => [d.id, d]));
   return (
-    <div className="space-y-2">
+    <div className="space-y-5">
+      {/* Invite user form (C-03) */}
+      <form onSubmit={sendInvite} className="card p-5 space-y-4">
+        <h3 className="text-sm font-bold text-navy-900">Invite New User</h3>
+        {inviteSuccess && <div className="rounded-xl bg-brand-50 border border-brand-200 px-4 py-3 text-sm text-brand-800 flex items-center gap-2"><span className="shrink-0">✓</span>{inviteSuccess}</div>}
+        {inviteError && <div className="rounded-xl bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">{inviteError}</div>}
+        <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+          <div><label className="label">Full Name</label><input required value={inviteName} onChange={(e) => setInviteName(e.target.value)} className="input" placeholder="John Doe" /></div>
+          <div><label className="label">Email</label><input required type="email" value={inviteEmail} onChange={(e) => setInviteEmail(e.target.value)} className="input" placeholder="john@company.com" /></div>
+          <div><label className="label">Role</label>
+            <select value={inviteRole} onChange={(e) => setInviteRole(e.target.value as UserRole)} className="input">
+              {ROLES.map((r) => <option key={r} value={r}>{r.replace('_', ' ')}</option>)}
+            </select>
+          </div>
+          <div className="flex items-end">
+            <button type="submit" disabled={inviting} className="btn-primary w-full">{inviting ? 'Sending...' : 'Send Invite'}</button>
+          </div>
+        </div>
+      </form>
+
+      <div className="space-y-2">
       {users.map((u) => (
         <div key={u.id} className="card px-5 py-3.5 flex items-center gap-4">
           <div className="h-9 w-9 rounded-full bg-navy-800 flex items-center justify-center shrink-0">
@@ -302,6 +377,7 @@ function UsersTab(): React.ReactElement {
           </div>
         </div>
       ))}
+    </div>
     </div>
   );
 }
