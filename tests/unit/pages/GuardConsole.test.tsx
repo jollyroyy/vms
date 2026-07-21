@@ -46,7 +46,7 @@ describe('M12-GUARD: GuardConsole', () => {
     mockSubscribe.mockReturnValue('sub-1');
     render(<MemoryRouter><GuardConsole /></MemoryRouter>);
     await waitFor(() => {
-      expect(screen.getByText("Today's Visits")).toBeInTheDocument();
+      expect(screen.getAllByText("Today's Visits").length).toBeGreaterThan(0);
       expect(screen.getByText('Register Visitor')).toBeInTheDocument();
       expect(screen.getByText('Log Exit')).toBeInTheDocument();
     });

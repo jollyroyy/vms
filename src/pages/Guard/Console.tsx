@@ -11,15 +11,6 @@ import Badge from '../../components/Badge';
 import VisitorDetails from '../../components/VisitorDetails';
 
 type Tab = 'active' | 'register' | 'exit';
-type FilterKey = 'all' | 'checked_in' | 'pending_approval' | 'approved' | 'rejected';
-
-const FILTER_LABELS: Record<FilterKey, string> = {
-  all: "All Today's Visits",
-  checked_in: 'Currently Inside',
-  pending_approval: 'Pending Approval',
-  approved: 'Approved (awaiting check-in)',
-  rejected: 'Rejected by HOD',
-};
 
 export default function GuardConsole(): React.ReactElement {
   const [tab, setTab] = useState<Tab>('active');
@@ -30,8 +21,6 @@ export default function GuardConsole(): React.ReactElement {
   const [today] = useState(() => new Date().toISOString().slice(0, 10));
   const [successMsg, setSuccessMsg] = useState('');
   const [actionErr, setActionErr] = useState('');
-  const [activeFilter, setActiveFilter] = useState<FilterKey | null>(null);
-
   const loadVisits = useCallback(async () => {
     setLoading(true);
     const { data, error } = await supabase
@@ -84,30 +73,7 @@ export default function GuardConsole(): React.ReactElement {
     rejected: { bg: 'bg-danger-50', text: 'text-danger-700', dot: 'bg-danger-500' },
   };
 
-  const STAT_GRADIENTS: Record<string, string> = {
-    all: 'from-navy-50 to-white',
-    checked_in: 'from-brand-50/50 to-white',
-    pending_approval: 'from-warning-50/50 to-white',
-    approved: 'from-success-50/50 to-white',
-    rejected: 'from-danger-50/50 to-white',
-  };
-
   const checkedIn = visits.filter((v) => v.status === 'checked_in');
-  const pending = visits.filter((v) => v.status === 'pending_approval');
-  const approved = visits.filter((v) => v.status === 'approved' || v.status === 'walkin_approved');
-  const rejected = visits.filter((v) => v.status === 'rejected');
-
-  const filteredVisits = activeFilter
-    ? activeFilter === 'all' ? visits
-      : activeFilter === 'checked_in' ? checkedIn
-      : activeFilter === 'pending_approval' ? pending
-      : activeFilter === 'rejected' ? rejected
-      : approved
-    : visits;
-
-  const handleFilter = (key: FilterKey) => {
-    setActiveFilter(activeFilter === key ? null : key);
-  };
 
   return (
     <div className="space-y-6">
@@ -137,20 +103,10 @@ export default function GuardConsole(): React.ReactElement {
         </div>
       </div>
 
-      {/* Summary strip with gradient stat cards */}
-      <div className="grid grid-cols-4 gap-3">
-        {([
-          { key: 'all' as FilterKey, value: visits.length, label: 'Total', color: '' },
-          { key: 'pending_approval' as FilterKey, value: pending.length, label: 'Pending', color: 'text-warning-600' },
-          { key: 'approved' as FilterKey, value: approved.length, label: 'Approved', color: 'text-success-600' },
-          { key: 'rejected' as FilterKey, value: rejected.length, label: 'Rejected', color: 'text-danger-600' },
-        ]).map(({ key, value, label, color }) => (
-          <button key={key} onClick={() => handleFilter(key)}
-            className={`stat-card text-center cursor-pointer hover:shadow-elevated transition-all bg-gradient-to-b ${STAT_GRADIENTS[key]} ${activeFilter === key ? 'ring-2 ring-brand-500 shadow-glow-sm' : ''}`}>
-            <p className={`stat-value ${color}`}>{value}</p>
-            <p className="stat-label">{label}</p>
-          </button>
-        ))}
+      {/* Today's total count */}
+      <div className="stat-card bg-gradient-to-b from-navy-50 to-white">
+        <p className="stat-value">{visits.length}</p>
+        <p className="stat-label">Today's Visits</p>
       </div>
 
       {/* Alerts */}
@@ -214,12 +170,6 @@ export default function GuardConsole(): React.ReactElement {
       {/* Active visits tab */}
       {tab === 'active' && (
         <div className="space-y-3">
-          {activeFilter && (
-            <div className="flex items-center justify-between text-sm">
-              <p className="text-navy-500 font-medium">Showing: <span className="text-navy-700">{FILTER_LABELS[activeFilter]}</span></p>
-              <button onClick={() => setActiveFilter(null)} className="text-brand-600 hover:text-brand-700 font-medium text-xs">Clear filter</button>
-            </div>
-          )}
           {loading ? (
             <div className="space-y-3">
               {[1, 2, 3].map((i) => (
@@ -235,18 +185,18 @@ export default function GuardConsole(): React.ReactElement {
                 </div>
               ))}
             </div>
-          ) : filteredVisits.length === 0 ? (
+          ) : visits.length === 0 ? (
             <div className="empty-state py-16">
               <div className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-surface-100 mb-3">
                 <svg className="w-6 h-6 text-navy-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0" /></svg>
               </div>
-              <p className="text-navy-500 font-medium">{activeFilter ? `No visitors in "${FILTER_LABELS[activeFilter]}"` : 'No visits today yet'}</p>
+              <p className="text-navy-500 font-medium">No visits today yet</p>
               <button onClick={() => setTab('register')} className="mt-2 btn-accent text-sm">
                 Register First Visitor
               </button>
             </div>
           ) : (
-            filteredVisits.map((v, idx) => {
+            visits.map((v, idx) => {
               const style = STATUS_STYLES[v.status];
               const dur = v.status === 'checked_in' ? formatDuration(v.checked_in_at) : null;
               return (
