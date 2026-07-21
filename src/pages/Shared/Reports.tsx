@@ -7,6 +7,7 @@ import type { Visit, GatePass } from '../../types/index';
 import { getRgpState } from '../../lib/rgpDueDate';
 import { attachHostNames } from '../../lib/hostNames';
 import { maskPhone } from '../../lib/pii';
+import { exportToCsv, exportToJson } from '../../lib/exportUtils';
 
 const TODAY = new Date().toISOString().slice(0, 10);
 
@@ -73,6 +74,8 @@ export default function ReportsPage(): React.ReactElement {
           <label className="text-sm font-medium text-navy-600">Date:</label>
           <input type="date" value={date} onChange={(e) => setDate(e.target.value)} max={TODAY} className="input w-auto" />
         </div>
+        <button onClick={() => exportToCsv(visits, `register-${date}.csv`)} className="no-print btn-secondary text-sm" title="Export CSV">Export CSV</button>
+        <button onClick={() => exportToJson(visits, `register-${date}.json`)} className="no-print btn-secondary text-sm" title="Export JSON">Export JSON</button>
         <button onClick={() => window.print()} className="no-print btn-secondary text-sm ml-auto">Print Register</button>
       </div>
 

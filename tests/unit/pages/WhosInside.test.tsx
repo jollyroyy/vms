@@ -7,6 +7,13 @@ import WhosInside from '../../../src/pages/Shared/WhosInside';
 const mockOrder = vi.hoisted(() => vi.fn());
 const mockRpc = vi.hoisted(() => vi.fn());
 const mockChannel = vi.hoisted(() => vi.fn());
+const mockExportCsv = vi.hoisted(() => vi.fn());
+const mockExportJson = vi.hoisted(() => vi.fn());
+
+vi.mock('../../../src/lib/exportUtils', () => ({
+  exportToCsv: mockExportCsv,
+  exportToJson: mockExportJson,
+}));
 
 vi.mock('../../../src/supabaseClient', () => ({
   supabase: {
@@ -153,6 +160,24 @@ describe('M12-GUARD: WhosInside', () => {
     fireEvent.click(screen.getByRole('button', { name: /clear all/i }));
     expect(mockRpc).not.toHaveBeenCalled();
     window.confirm = originalConfirm;
+  });
+
+  it('shows Export CSV button', async () => {
+    setup();
+    mockOrder.mockResolvedValue({ data: [], error: null });
+    render(<MemoryRouter><WhosInside /></MemoryRouter>);
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /export csv/i })).toBeInTheDocument();
+    });
+  });
+
+  it('shows Export JSON button', async () => {
+    setup();
+    mockOrder.mockResolvedValue({ data: [], error: null });
+    render(<MemoryRouter><WhosInside /></MemoryRouter>);
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /export json/i })).toBeInTheDocument();
+    });
   });
 
   it('shows Pre-Approved empty state when no pre-approved visitors', async () => {

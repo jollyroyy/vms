@@ -6,6 +6,13 @@ import ReportsPage from '../../../src/pages/Shared/Reports';
 
 const mockOrder = vi.hoisted(() => vi.fn());
 const mockIn = vi.hoisted(() => vi.fn());
+const mockExportCsv = vi.hoisted(() => vi.fn());
+const mockExportJson = vi.hoisted(() => vi.fn());
+
+vi.mock('../../../src/lib/exportUtils', () => ({
+  exportToCsv: mockExportCsv,
+  exportToJson: mockExportJson,
+}));
 
 vi.mock('../../../src/supabaseClient', () => ({
   supabase: {
@@ -54,6 +61,24 @@ describe('M12-REPORTS: Reports', () => {
     render(<MemoryRouter><ReportsPage /></MemoryRouter>);
     await waitFor(() => {
       expect(screen.getByText(`No visits on ${TODAY}`)).toBeInTheDocument();
+    });
+  });
+
+  it('shows Export CSV button', async () => {
+    mockOrder.mockResolvedValue({ data: [], error: null });
+    mockIn.mockResolvedValue({ data: [], error: null });
+    render(<MemoryRouter><ReportsPage /></MemoryRouter>);
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /export csv/i })).toBeInTheDocument();
+    });
+  });
+
+  it('shows Export JSON button', async () => {
+    mockOrder.mockResolvedValue({ data: [], error: null });
+    mockIn.mockResolvedValue({ data: [], error: null });
+    render(<MemoryRouter><ReportsPage /></MemoryRouter>);
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /export json/i })).toBeInTheDocument();
     });
   });
 
