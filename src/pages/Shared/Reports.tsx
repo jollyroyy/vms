@@ -84,7 +84,7 @@ export default function ReportsPage(): React.ReactElement {
                       <td className="px-3.5 py-3 text-navy-500 capitalize">{v.purpose}</td>
                       <td className="px-3.5 py-3 text-xs text-navy-400 whitespace-nowrap">{v.checked_in_at ? new Date(v.checked_in_at).toLocaleTimeString('en-IN') : '—'}</td>
                       <td className="px-3.5 py-3 text-xs text-navy-400 whitespace-nowrap">{v.checked_out_at ? new Date(v.checked_out_at).toLocaleTimeString('en-IN') : v.exit_verified === false ? 'Auto-closed' : '—'}</td>
-                      <td className={`px-3.5 py-3 capitalize font-medium ${STATUS_COLORS[v.status] ?? 'text-navy-500'}`}>{v.status.replace('_', ' ')}</td>
+                      <td className={`px-3.5 py-3 capitalize font-medium ${STATUS_COLORS[v.status] ?? 'text-navy-500'}`}>{v.status.replace(/_/g, ' ')}</td>
                     </tr>
                   ))}
                   {visits.length === 0 && (<tr><td colSpan={11} className="px-4 py-12 text-center text-navy-300">No visits on {date}</td></tr>)}
@@ -110,7 +110,7 @@ export default function ReportsPage(): React.ReactElement {
                 <div key={p.id} className={`card border-l-4 ${stripe[state] ?? ''} p-4`}>
                   <div className="flex justify-between items-start">
                     <div><p className="font-semibold text-sm text-navy-900">{p.ref_number}</p><p className="text-xs text-navy-400 mt-0.5">{p.department?.name} · {p.reason}</p></div>
-                    <span className={`status-badge ${badge[state] ?? ''} capitalize`}>{state.replace('_', ' ')}</span>
+                    <span className={`status-badge ${badge[state] ?? ''} capitalize`}>{state.replace(/_/g, ' ')}</span>
                   </div>
                   <p className="text-xs text-navy-300 mt-2">Due: {p.expected_return_date} · Status: {p.status.replace(/_/g, ' ')}</p>
                 </div>

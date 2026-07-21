@@ -34,6 +34,7 @@ export default function VisitorForm({ onRegistered }: Props): React.ReactElement
   const [idType,      setIdType]      = useState('');
   const [idLast4,     setIdLast4]     = useState('');
   const [vehicle,     setVehicle]     = useState('');
+  const [carryingMaterial, setCarryingMaterial] = useState(false);
   const [photoBlob,   setPhotoBlob]   = useState<Blob | null>(null);
 
   const [blacklistHit,  setBlacklistHit]  = useState<string | null>(null);
@@ -99,13 +100,13 @@ export default function VisitorForm({ onRegistered }: Props): React.ReactElement
     setSubmitting(true); setError('');
     try {
       let normalized: string;
-      try { normalized = normalizePhone(phone); } catch { throw new Error('Invalid phone number.'); }
+      try { normalized = normalizePhone(phone); } catch { throw new Error('Please enter a valid 10-digit mobile number (e.g. +91 98765 43210).'); }
       // SEC-17: Check for existing active visit before registration
       setActiveVisitCheck({ checking: true, message: null });
       const { data: existingVisit } = await (supabase as any)
         .rpc('get_active_visit_for_phone', { p_phone: normalized });
       if (existingVisit) {
-        setActiveVisitCheck({ checking: false, message: `This phone number already has an active visit (Ref: ${existingVisit.ref_number}, Status: ${existingVisit.status.replace('_', ' ')}). Please complete that visit first.` });
+        setActiveVisitCheck({ checking: false, message: `This phone number already has an active visit (Ref: ${existingVisit.ref_number}, Status: ${existingVisit.status.replace(/_/g, ' ')}). Please complete that visit first.` });
         setSubmitting(false);
         return;
       }
@@ -120,7 +121,7 @@ export default function VisitorForm({ onRegistered }: Props): React.ReactElement
       const { error: visitErr } = await supabase.from('visits').insert({
         visitor_id: vis.id, department_id: deptId, host_id: hostId, purpose,
         photo_path: photoPath, photo_data: photoData,
-        status: 'pending_approval', carrying_material: false,
+        status: 'pending_approval', carrying_material: carryingMaterial,
         checked_in_at: null, checked_out_at: null, exit_verified: null, rejection_reason: null,
       });
       if (visitErr) throw visitErr;
@@ -196,6 +197,12 @@ export default function VisitorForm({ onRegistered }: Props): React.ReactElement
         </div>
         <div><label className="label">ID Last 4 Digits</label><input type="text" maxLength={4} value={idLast4} onChange={(e) => setIdLast4(e.target.value)} className="input" placeholder="XXXX" /></div>
         <div className="sm:col-span-2"><label className="label">Vehicle Number (optional)</label><input type="text" value={vehicle} onChange={(e) => setVehicle(e.target.value)} className="input" placeholder="MH 12 AB 1234" /></div>
+        <div className="sm:col-span-2">
+          <label className="label flex items-center gap-2 cursor-pointer">
+            <input type="checkbox" checked={carryingMaterial} onChange={(e) => setCarryingMaterial(e.target.checked)} className="h-4 w-4 rounded border-surface-300 text-brand-600 focus:ring-brand-500" />
+            Carrying material / equipment
+          </label>
+        </div>
       </div>
 
       <div>

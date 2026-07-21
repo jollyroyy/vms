@@ -66,7 +66,7 @@ export default function Badge({ visit }: Props): React.ReactElement {
           </div>
           <div className="flex justify-between py-2">
             <span className="text-navy-400 font-medium">Status</span>
-            <span className="capitalize font-bold text-brand-700">{visit.status.replace('_', ' ')}</span>
+            <span className="capitalize font-bold text-brand-700">{visit.status.replace(/_/g, ' ')}</span>
           </div>
         </div>
 

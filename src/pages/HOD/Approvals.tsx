@@ -93,14 +93,15 @@ export default function HODApprovals(): React.ReactElement {
       const { error: err } = approved
         ? await rpc('approve_visit', { visit_id: visitId })
         : await rpc('reject_visit', { visit_id: visitId, reason: reason || 'Rejected by HOD' });
-      if (err) { setError(safeErrorMessage(err, 'Action failed.')); setActing(null); return; }
+      if (err) { setError(safeErrorMessage(err, 'Action failed.')); return; }
       setVisits((prev) => prev.filter((v) => v.id !== visitId));
       setSuccessMsg(approved ? 'Visitor approved successfully.' : 'Visit rejected.');
       setTimeout(() => setSuccessMsg(''), 4000);
     } catch (err) {
       setError(safeErrorMessage(err, 'Action failed.'));
+    } finally {
+      setActing(null);
     }
-    setActing(null);
   };
 
   const escalationLabel = (v: Visit): { text: string; urgent: boolean } => {

@@ -81,13 +81,13 @@ export default function PreApproveForm({ onPreApproved }: Props): React.ReactEle
     setSubmitting(true);
     try {
       let normalized: string;
-      try { normalized = normalizePhone(phone); } catch { throw new Error('Invalid phone number.'); }
+      try { normalized = normalizePhone(phone); } catch { throw new Error('Please enter a valid 10-digit mobile number (e.g. +91 98765 43210).'); }
       // SEC-17: Check for existing active visit before pre-approval
       setActiveVisitCheck({ checking: true, message: null });
       const { data: existingVisit } = await (supabase as any)
         .rpc('get_active_visit_for_phone', { p_phone: normalized });
       if (existingVisit) {
-        setActiveVisitCheck({ checking: false, message: `This phone number already has an active visit (Ref: ${existingVisit.ref_number}, Status: ${existingVisit.status.replace('_', ' ')}). Cannot pre-approve.` });
+        setActiveVisitCheck({ checking: false, message: `This phone number already has an active visit (Ref: ${existingVisit.ref_number}, Status: ${existingVisit.status.replace(/_/g, ' ')}). Cannot pre-approve.` });
         setSubmitting(false);
         return;
       }

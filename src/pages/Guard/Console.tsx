@@ -9,13 +9,14 @@ import Badge from '../../components/Badge';
 import VisitorDetails from '../../components/VisitorDetails';
 
 type Tab = 'active' | 'register' | 'exit';
-type FilterKey = 'all' | 'checked_in' | 'pending_approval' | 'approved';
+type FilterKey = 'all' | 'checked_in' | 'pending_approval' | 'approved' | 'rejected';
 
 const FILTER_LABELS: Record<FilterKey, string> = {
   all: "All Today's Visits",
   checked_in: 'Currently Inside',
   pending_approval: 'Pending Approval',
   approved: 'Approved (awaiting check-in)',
+  rejected: 'Rejected by HOD',
 };
 
 export default function GuardConsole(): React.ReactElement {
@@ -86,16 +87,19 @@ export default function GuardConsole(): React.ReactElement {
     checked_in: 'from-brand-50/50 to-white',
     pending_approval: 'from-warning-50/50 to-white',
     approved: 'from-success-50/50 to-white',
+    rejected: 'from-danger-50/50 to-white',
   };
 
   const checkedIn = visits.filter((v) => v.status === 'checked_in');
   const pending = visits.filter((v) => v.status === 'pending_approval');
   const approved = visits.filter((v) => v.status === 'approved' || v.status === 'walkin_approved');
+  const rejected = visits.filter((v) => v.status === 'rejected');
 
   const filteredVisits = activeFilter
     ? activeFilter === 'all' ? visits
       : activeFilter === 'checked_in' ? checkedIn
       : activeFilter === 'pending_approval' ? pending
+      : activeFilter === 'rejected' ? rejected
       : approved
     : visits;
 
@@ -124,12 +128,13 @@ export default function GuardConsole(): React.ReactElement {
       </div>
 
       {/* Summary strip with gradient stat cards */}
-      <div className="grid grid-cols-4 gap-3">
+      <div className="grid grid-cols-5 gap-3">
         {([
           { key: 'all' as FilterKey, value: visits.length, label: 'Total', color: '' },
           { key: 'checked_in' as FilterKey, value: checkedIn.length, label: 'Inside', color: 'text-brand-600' },
           { key: 'pending_approval' as FilterKey, value: pending.length, label: 'Pending', color: 'text-warning-600' },
           { key: 'approved' as FilterKey, value: approved.length, label: 'Approved', color: 'text-success-600' },
+          { key: 'rejected' as FilterKey, value: rejected.length, label: 'Rejected', color: 'text-danger-600' },
         ]).map(({ key, value, label, color }) => (
           <button key={key} onClick={() => handleFilter(key)}
             className={`stat-card text-center cursor-pointer hover:shadow-elevated transition-all bg-gradient-to-b ${STAT_GRADIENTS[key]} ${activeFilter === key ? 'ring-2 ring-brand-500 shadow-glow-sm' : ''}`}>
@@ -258,7 +263,7 @@ export default function GuardConsole(): React.ReactElement {
                         </div>
                         <span className={`status-badge ${style.bg} ${style.text}`}>
                           <span className={`h-1.5 w-1.5 rounded-full ${style.dot}`} style={v.status === 'checked_in' ? { animation: 'pulseRing 2s ease-in-out infinite', color: 'rgb(51,150,255)' } : undefined} />
-                          {v.status.replace('_', ' ')}
+                          {v.status.replace(/_/g, ' ')}
                         </span>
                       </div>
                       {/* Info row with subtle separator */}
@@ -286,7 +291,7 @@ export default function GuardConsole(): React.ReactElement {
                       )}
                       {/* Action buttons */}
                       <div className="flex gap-2 mt-3" onClick={(e) => e.stopPropagation()}>
-                        {v.status === 'approved' && (
+                        {(v.status === 'approved' || v.status === 'walkin_approved') && (
                           <>
                             <button onClick={() => checkIn(v)} className="bg-gradient-to-r from-brand-600 to-brand-700 text-white rounded-xl text-xs px-4 py-2 font-semibold hover:from-brand-700 hover:to-brand-800 active:scale-[0.98] transition-all shadow-soft flex items-center gap-1.5">
                               <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75" /></svg>
