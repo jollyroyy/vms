@@ -7,8 +7,8 @@ export const ROLE_ROUTES: Record<UserRole, string[]> = {
   guard:       ['/guard', '/whos-inside', '/gate-passes'],
   hod:         ['/approvals', '/whos-inside', '/gate-passes', '/reports', '/analytics'],
   staff:       ['/whos-inside', '/gate-passes', '/reports'],
-  admin:       ['/guard', '/approvals', '/whos-inside', '/gate-passes', '/reports', '/analytics', '/admin'],
-  super_admin: ['/guard', '/approvals', '/whos-inside', '/gate-passes', '/reports', '/analytics', '/admin'],
+  admin:       ['/reports', '/analytics', '/admin'],
+  super_admin: ['/reports', '/analytics', '/admin'],
 };
 
 /** Returns true if the given pathname is forbidden for this role. */

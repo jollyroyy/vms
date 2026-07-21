@@ -118,6 +118,7 @@ export default function PhotoCapture({ onCapture }: Props): React.ReactElement {
   const handleFileInput = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    if (!file.type.startsWith('image/')) return;
     const blob = new Blob([file], { type: file.type });
     setPreview(URL.createObjectURL(blob)); setFileBlob(blob); setState('frozen');
     stopStream();

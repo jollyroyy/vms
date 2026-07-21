@@ -24,10 +24,21 @@
 | `#seed` | [SB-02](#sb-02), [SB-04](#sb-04), [SB-13](#sb-13) |
 | `#build` | [TS-02](#ts-02), [TS-03](#ts-03) |
 | `#loop` | [VT-01](#vt-01), [VT-02](#vt-02) |
-| `#security` | [SEC-01](#sec-01) |
+| `#security` | [SEC-01](#sec-01), [SEC-02](#sec-02), [SEC-03](#sec-03), [SEC-04](#sec-04), [SEC-05](#sec-05), [SEC-06](#sec-06), [SEC-07](#sec-07), [SEC-08](#sec-08), [SEC-09](#sec-09) |
 | `#routing` | [SEC-01](#sec-01) |
 | `#postgres` | [SB-06](#sb-06) |
 | `#auth` | [SB-12](#sb-12) |
+| `#privelege-escalation` | [SEC-02](#sec-02) |
+| `#data-isolation` | [SEC-03](#sec-03) |
+| `#credentials` | [SEC-04](#sec-04) |
+| `#secrets` | [SEC-04](#sec-04) |
+| `#information-disclosure` | [SEC-05](#sec-05) |
+| `#xss` | [SEC-06](#sec-06) |
+| `#upload` | [SEC-06](#sec-06) |
+| `#storage` | [SEC-07](#sec-07) |
+| `#pii` | [SEC-08](#sec-08) |
+| `#csp` | [SEC-09](#sec-09) |
+| `#xss-mitigation` | [SEC-09](#sec-09) |
 
 ---
 
@@ -324,6 +335,96 @@ return () => { channel.unsubscribe(); };
 **Prevention:** After creating the database schema, always run `npm run seed` to populate profile data including department assignments. Re-run after any database reset or when migrating to a new environment.
 **Tags:** `#supabase` `#seed`
 **First seen:** 2026-07-21
+
+---
+
+---
+
+### SEC-02
+
+**Pattern:** `user_metadata` fallback in RPCs re-introduces privilege escalation.
+**Cause:** Migrations after 010 used `coalesce(auth.jwt() -> 'app_metadata' ->> 'role', auth.jwt() -> 'user_metadata' ->> 'role', '')`. `user_metadata` is forgeable by end users via `auth.updateUser()`. A staff user could set their `user_metadata.role = 'admin'`.
+**Fix:** Use only `auth.jwt() -> 'app_metadata' ->> 'role'`. Migration 010 already backfilled all existing users into `app_metadata`. Remove the `user_metadata` path entirely.
+**Prevention:** Before merging any new RPC/trigger, grep for `user_metadata` in the function body. It should never appear.
+**Tags:** `#security` `#supabase` `#rls` `#privilege-escalation`
+**First seen:** iter-09, 2026-07-21
+
+---
+
+### SEC-03
+
+**Pattern:** `clear_pre_approved()` RPC operates on all departments — guard/HOD can mass-reject pre-approvals across the whole organization.
+**Cause:** The `WHERE status = 'approved'` clause has no `department_id` filter. Guard and HOD roles should only affect their own department.
+**Fix:** Add `WHERE status = 'approved' AND (v_jwt_role IN ('admin','super_admin') OR department_id = v_dept_id)`.
+**Prevention:** Every RPC that modifies data must ask: "should this be scoped to the caller's department?" If yes, add the department_id filter using `auth.jwt() -> 'app_metadata' ->> 'department_id'`.
+**Tags:** `#security` `#supabase` `#rls` `#data-isolation`
+**First seen:** iter-09, 2026-07-21
+
+---
+
+### SEC-04
+
+**Pattern:** Live API keys in `.env.example` committed to git.
+**Cause:** The `.env.example` contained real Supabase URL, anon key, and service role key. `.env.example` is not gitignored and gets committed to the repository.
+**Fix:** Replace all values with placeholders (e.g., `your-supabase-url`, `your-anon-key-here`). Rotate the compromised service role key in the Supabase dashboard.
+**Prevention:** Check `.env.example` for any credential-like values during CR. Use only `your-*-here` or `your-project-id` style placeholders.
+**Tags:** `#security` `#secrets` `#credentials` `#git`
+**First seen:** iter-09, 2026-07-21
+
+---
+
+### SEC-05
+
+**Pattern:** `safeErrorMessage()` returns `JSON.stringify(err)` for objects without `.message`, leaking internal state.
+**Cause:** The `JSON.stringify` and `String(err)` fallbacks could expose stack traces, schema details, or internal object structure to end users.
+**Fix:** Return the generic `fallback` string for any error type that is not an `Error` instance, a string, or an object with a `.message` property.
+**Prevention:** `safeErrorMessage` must never produce output longer than the fallback for unexpected error types. Test with `Symbol`, `42`, `[1,2,3]`, and nested objects.
+**Tags:** `#security` `#information-disclosure` `#errors`
+**First seen:** iter-09, 2026-07-21
+
+---
+
+### SEC-06
+
+**Pattern:** File upload MIME type not validated before creating blob URL.
+**Cause:** `handleFileInput` in `PhotoCapture.tsx` used `file.type` directly in `new Blob([file], { type: file.type })` without checking that it starts with `image/`. A manipulated file could create a `blob:` URL pointing to HTML.
+**Fix:** Add `if (!file.type.startsWith('image/')) return;` before processing the file.
+**Prevention:** Every file upload handler must validate MIME type server-side; client-side validation is defense-in-depth. Use `file.type.startsWith('expected-type/')`.
+**Tags:** `#security` `#xss` `#upload` `#camera`
+**First seen:** iter-09, 2026-07-21
+
+---
+
+### SEC-07
+
+**Pattern:** Storage bucket SELECT policy is `USING (true)` for all authenticated users.
+**Cause:** The `photos: authenticated can read` policy on `storage.objects` allowed any authenticated user (any role) to generate signed URLs and list all objects in `visitor-photos`.
+**Fix:** Restrict to `public.current_user_role() in ('guard', 'admin', 'super_admin')`.
+**Prevention:** Storage bucket policies need the same least-privilege rigor as table RLS. Never use `USING (true)` on storage buckets that contain PII/photos.
+**Tags:** `#security` `#supabase` `#storage` `#rls` `#photos`
+**First seen:** iter-09, 2026-07-21
+
+---
+
+### SEC-08
+
+**Pattern:** `profiles`/`visitors` SELECT policies are `USING (true)` — all authenticated users see all rows.
+**Cause:** Initial RLS policies used `USING (true)` for broad access. Profiles contain department/delegate chains; visitors contain phone numbers and PII.
+**Fix:** Scope by role and department: non-admin roles see only their own department's profiles and their department's visitors. Guard retains cross-dept read for operational needs.
+**Prevention:** Before setting `USING (true)` on a SELECT policy, enumerate every column and ask "does every authenticated user need to see this?" If not, scope by role/department.
+**Tags:** `#security` `#supabase` `#rls` `#pii`
+**First seen:** iter-09, 2026-07-21
+
+---
+
+### SEC-09
+
+**Pattern:** CSP missing — any XSS vulnerability becomes trivially exploitable for full data exfiltration.
+**Cause:** No `Content-Security-Policy` meta tag or HTTP header in `index.html` or server config.
+**Fix:** Add `<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; connect-src 'self' https://*.supabase.co wss://*.supabase.co; media-src 'self' blob:; font-src 'self' data:; frame-src 'none'; object-src 'none'">`.
+**Prevention:** Every new project should set CSP at iteration 0. Verify with browser DevTools → Network → Response Headers.
+**Tags:** `#security` `#csp` `#xss-mitigation`
+**First seen:** iter-09, 2026-07-21
 
 ---
 

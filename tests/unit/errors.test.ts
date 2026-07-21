@@ -26,9 +26,8 @@ describe('safeErrorMessage', () => {
     expect(safeErrorMessage('direct string')).toBe('direct string');
   });
 
-  it('stringifies object without message property', () => {
-    const result = safeErrorMessage({ code: 500 });
-    expect(result).toBe(JSON.stringify({ code: 500 }));
+  it('uses fallback for object without message property', () => {
+    expect(safeErrorMessage({ code: 500 })).toBe('An unexpected error occurred.');
   });
 
   it('never produces [object Object] for any input', () => {

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { supabase } from './supabaseClient';
 import type { Session } from '@supabase/supabase-js';
 import type { UserRole } from './types/index';
@@ -25,12 +25,13 @@ import SessionTimeout     from './components/SessionTimeout';
  * Renders nothing until signOut completes to prevent flash of forbidden content.
  */
 function ProtectedRoute({ children, role }: { children: React.ReactElement; role: UserRole | null }) {
+  const location = useLocation();
   const allowed = role !== null ? (ROLE_ROUTES[role] ?? []) : [];
-  const forbidden = role !== null && !allowed.some((r) => window.location.pathname.startsWith(r));
+  const forbidden = role !== null && !allowed.some((r) => location.pathname.startsWith(r));
   React.useEffect(() => {
     if (forbidden) supabase.auth.signOut();
   }, [forbidden]);
-  if (role === null) return null; // still loading role — render nothing
+  if (role === null) return null;
   if (forbidden) return React.createElement('div', { className: 'flex h-screen items-center justify-center text-sm text-gray-500' }, 'Signing out…');
   return children;
 }

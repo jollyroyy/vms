@@ -21,7 +21,7 @@ export function normalizePhone(raw: string): string {
   }
 
   if (digits.length < 7) {
-    throw new Error(`Invalid phone number: "${raw}"`);
+    throw new Error('Invalid phone number format.');
   }
 
   return digits;

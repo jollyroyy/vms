@@ -100,3 +100,40 @@ The seed script fixed this: it updates profiles via the admin API, which trigger
 - WhosInside.tsx: Added third tab "Approved" for walkin_approved visitors alongside "Pre-Approved" and "Checked In"
 - Guard Console: Both `approved` and `walkin_approved` are treated as ready-for-check-in
 - Updated types, visitLifecycle, Reports, Analytics to handle new status
+
+## 2026-07-21 — Comprehensive security audit (15 findings hardened)
+
+A full-security audit using 3 parallel exploration agents covering: route protection, auth, XSS/injection, Supabase RLS, storage, SQL migrations, and CSP.
+
+### Critical findings (fixed immediately):
+1. **`.env.example` contained live service role key** — replaced with placeholders. The service role key provides full DB admin access and was committed in `.env.example` (not gitignored).
+2. **`clear_pre_approved()` lacked department scoping** — any guard or HOD could mass-reject all pre-approved visits across all departments. Fixed in migration 015 with department_id filter.
+3. **`user_metadata` fallback in RPCs** — migrations 012 and 014 used `coalesce(app_metadata, user_metadata)` which reintroduces the privilege escalation path that migration 010 specifically fixed. `user_metadata` is user-editable via `auth.updateUser()`. Removed in migration 015.
+
+### High findings (fixed):
+4. **No Content Security Policy** — added strict CSP meta tag to `index.html` restricting scripts to `'self'`, connect-src to Supabase, and blocking inline scripts.
+5. **`safeErrorMessage` could leak object internals** — `JSON.stringify(err)` fallback could expose stack traces and internal state. Changed to return generic fallback for unknown types.
+6. **`PhotoCapture` file input no MIME validation** — file.type preserved user-supplied MIME type without validation. Added `file.type.startsWith('image/')` check.
+7. **`hostNames.ts` RPC not in try/catch** — violated SB-08 pattern. Wrapped in try/catch.
+8. **Storage bucket SELECT policy was `USING (true)`** — any authenticated user could read any photo. Fixed in migration 016 to scope to guard/admin/super_admin.
+9. **`profiles` and `visitors` SELECT wide open** — all authenticated users could see full profile/visitor data including PII. Fixed in migration 016 with department-scoped policies.
+
+### Medium findings (fixed):
+10. **Error message contains raw phone input** — `blacklist.ts` exposed `raw` in error message. Changed to generic "Invalid phone number format."
+11. **ProtectedRoute uses `window.location.pathname`** — changed to `useLocation().pathname` for React Router consistency.
+
+### New SEC rules added to goal.md:
+- SEC-8: No user_metadata trust
+- SEC-9: Department-scoped mutations
+- SEC-10: Least-privilege SELECT policies
+- SEC-11: Content Security Policy
+- SEC-12: No secrets in .env.example
+- SEC-13: MIME validation on uploads
+- SEC-14: Error message safety
+- SEC-15: RPC calls must be try/catch wrapped
+
+### Lessons:
+- Live service keys in `.env.example` is the #1 credential leak risk — always use placeholders from iteration 0.
+- When migration 010 moves role to app_metadata, subsequent migrations must NOT reintroduce user_metadata fallbacks. Review all new RPCs for this pattern.
+- The `current_user_role()` function (migration 010) correctly reads only app_metadata — use it everywhere instead of inline JWT parsing.
+- Storage bucket policies need the same least-privilege treatment as table RLS — `USING (true)` on storage is as dangerous as `USING (true)` on a table with PII.

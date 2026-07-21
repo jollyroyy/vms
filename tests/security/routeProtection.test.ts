@@ -83,14 +83,17 @@ describe('SEC-7: frontend route protection', () => {
     it('admin is allowed on /admin', () => {
       expect(isForbidden('/admin', role)).toBe(false);
     });
-    it('admin is allowed on /guard', () => {
-      expect(isForbidden('/guard', role)).toBe(false);
+    it('admin is FORBIDDEN on /guard', () => {
+      expect(isForbidden('/guard', role)).toBe(true);
     });
-    it('admin is allowed on /approvals', () => {
-      expect(isForbidden('/approvals', role)).toBe(false);
+    it('admin is FORBIDDEN on /approvals', () => {
+      expect(isForbidden('/approvals', role)).toBe(true);
     });
     it('admin is allowed on /reports', () => {
       expect(isForbidden('/reports', role)).toBe(false);
+    });
+    it('admin is allowed on /analytics', () => {
+      expect(isForbidden('/analytics', role)).toBe(false);
     });
   });
 
@@ -103,8 +106,9 @@ describe('SEC-7: frontend route protection', () => {
   });
 
   // ── Route path match semantics ────────────────────────────
-  it('shared routes like /whos-inside are allowed for all roles', () => {
-    for (const r of Object.keys(ROLE_ROUTES) as Array<keyof typeof ROLE_ROUTES>) {
+  it('shared routes like /whos-inside are allowed for guard/hod/staff', () => {
+    const allowedRoles = ['guard', 'hod', 'staff'] as const;
+    for (const r of allowedRoles) {
       expect(isForbidden('/whos-inside', r)).toBe(false);
     }
   });
@@ -122,8 +126,8 @@ describe('SEC-7: frontend route protection', () => {
     it('super_admin is allowed on /admin', () => {
       expect(isForbidden('/admin', role)).toBe(false);
     });
-    it('super_admin is allowed on /guard', () => {
-      expect(isForbidden('/guard', role)).toBe(false);
+    it('super_admin is FORBIDDEN on /guard', () => {
+      expect(isForbidden('/guard', role)).toBe(true);
     });
   });
 

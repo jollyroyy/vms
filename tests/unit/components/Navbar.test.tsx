@@ -49,14 +49,15 @@ describe('M11-NAVBAR: Navbar component', () => {
     expect(screen.queryByText('Admin')).not.toBeInTheDocument();
   });
 
-  it('renders all nav links for admin role', () => {
+  it('renders correct nav links for admin role', () => {
     renderWithRouter(<Navbar session={adminSession} role="admin" />);
-    expect(screen.getAllByText('Console')[0]).toBeInTheDocument();
-    expect(screen.getAllByText('Approvals')[0]).toBeInTheDocument();
-    expect(screen.getAllByText("Who's Inside")[0]).toBeInTheDocument();
-    expect(screen.getAllByText('Gate Passes')[0]).toBeInTheDocument();
-    expect(screen.getAllByText('Reports')[0]).toBeInTheDocument();
+    expect(screen.getByText('Reports')).toBeInTheDocument();
+    expect(screen.getByText('Analytics')).toBeInTheDocument();
     expect(screen.getAllByText('Admin')[0]).toBeInTheDocument();
+    expect(screen.queryByText('Console')).not.toBeInTheDocument();
+    expect(screen.queryByText('Approvals')).not.toBeInTheDocument();
+    expect(screen.queryByText("Who's Inside")).not.toBeInTheDocument();
+    expect(screen.queryByText('Gate Passes')).not.toBeInTheDocument();
   });
 
   it('renders correct nav links for staff role', () => {

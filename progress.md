@@ -1,7 +1,7 @@
 # progress.md — VMS Loop State
 
 > Updated every iteration. Never delete sections — only append and move items.
-> Tally at a glance: **Iterations completed: 9** | **🎯 criteria checked: 2/24** | **Blocked: 0**
+> Tally at a glance: **Iterations completed: 9** | **🎯 criteria checked: 2/24** | **Blocked: 0** | **Security fixes applied in iter-09: 15 findings hardened**
 
 ---
 
@@ -16,6 +16,7 @@
 | **SLA-W1** — Escalation logic unit-tested | `getEscalationTarget` returns hod/delegate/admin at correct thresholds; 5 tests pass in `tests/unit/escalation.test.ts` | iter-03 |
 | **RLS recursion on profiles** — Eliminated across all pages | Created `get_profile_names` RPC (005), `approve_visit`/`reject_visit` RPCs (007), fixed HOD policy to use JWT (006); all 4 pages now bypass profiles FK joins | iter-06/07/08 |
 | **Photo capture** — Camera UI improved, base64 always stored | `PhotoCapture.tsx` enlarged, `VisitorForm.tsx` uploadPhoto always stores base64 | iter-06 |
+| **Security audit — 15 findings hardened** | `.env.example` placeholders; `safeErrorMessage` no object leak; `PhotoCapture` MIME validation; `hostNames.ts` try/catch; `blacklist.ts` generic error; CSP meta tag in `index.html`; `ProtectedRoute` uses `useLocation()`; migrations 015 (app_metadata-only RPCs + dept-scoped clear_pre_approved) and 016 (scoped SELECT policies); 8 new SEC rules (SEC-8 through SEC-15) codified in `goal.md` | iter-09 |
 
 ---
 
