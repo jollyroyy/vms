@@ -125,41 +125,38 @@ export default function Kiosk(): React.ReactElement {
     }, 1000);
   }, [resetAll]);
 
-  const recallByPhone = useCallback(async () => {
-    if (!phone) return;
+  const recallByPhone = useCallback(async (): Promise<'blacklisted' | 'pre-approved' | 'found' | 'not-found'> => {
+    if (!phone) return 'not-found';
     let normalized: string;
-    try { normalized = normalizePhone(phone); } catch { return; }
+    try { normalized = normalizePhone(phone); } catch { return 'not-found'; }
     const hit = isBlacklisted(phone, blacklist);
-    if (hit) { setBlacklistHit(hit.reason); return; }
+    if (hit) { setBlacklistHit(hit.reason); return 'blacklisted'; }
     setBlacklistHit(null);
     setPreApprovedVisit(null);
     const { data } = await supabase.from('visitors').select('*').eq('phone', normalized).maybeSingle();
-    if (data) {
-      const v = data as any;
-      setFullName(v.full_name); setCompany(v.company ?? ''); setRecalledName(v.full_name);
-      const { data: pre } = await (supabase as any)
-        .from('visits')
-        .select('id, ref_number, purpose, photo_data, department:departments(name)')
-        .eq('visitor_id', v.id)
-        .eq('status', 'approved')
-        .maybeSingle();
-      if (pre) {
-        setPreApprovedVisit({
-          id: pre.id, ref_number: pre.ref_number, visitor_name: v.full_name,
-          dept_name: pre.department?.name ?? '', purpose: pre.purpose, photo_data: pre.photo_data,
-        });
-      }
+    if (!data) { setFullName(''); setCompany(''); setRecalledName(null); return 'not-found'; }
+    const v = data as any;
+    setFullName(v.full_name); setCompany(v.company ?? ''); setRecalledName(v.full_name);
+    const { data: pre } = await (supabase as any)
+      .from('visits')
+      .select('id, ref_number, purpose, photo_data, department:departments(name)')
+      .eq('visitor_id', v.id)
+      .in('status', ['approved', 'walkin_approved'])
+      .maybeSingle();
+    if (pre) {
+      setPreApprovedVisit({
+        id: pre.id, ref_number: pre.ref_number, visitor_name: v.full_name,
+        dept_name: pre.department?.name ?? '', purpose: pre.purpose, photo_data: pre.photo_data,
+      });
+      return 'pre-approved';
     }
+    return 'found';
   }, [phone, blacklist]);
 
   const handlePhoneSubmit = async () => {
     if (!phone) return;
-    await recallByPhone();
-    // recallByPhone sets state async; wait a tick then check
-    setTimeout(() => {
-      if (blacklistHit) return;
-      if (!preApprovedVisit) setStep('form');
-    }, 300);
+    const result = await recallByPhone();
+    if (result !== 'pre-approved') setStep('form');
   };
 
   const checkInPreApproved = async () => {
@@ -176,7 +173,10 @@ export default function Kiosk(): React.ReactElement {
         .select('*, visitor:visitors(*), department:departments(id, name, code, created_at)')
         .eq('id', preApprovedVisit.id)
         .single();
-      if (fullVisit) showBadgeWithCountdown(fullVisit as Visit);
+      if (fullVisit) {
+        const v = { ...fullVisit, photo_url: fullVisit.photo_data ?? undefined } as Visit;
+        showBadgeWithCountdown(v);
+      }
     } catch (err) { setError(safeErrorMessage(err, 'Failed to check in pre-approved visitor.')); }
     finally { setCheckingInPreApproved(false); }
   };
@@ -279,7 +279,6 @@ export default function Kiosk(): React.ReactElement {
         </div>
         <input type="tel" autoFocus maxLength={20} value={phone}
           onChange={(e) => { setPhone(e.target.value); setRecalledName(null); setBlacklistHit(null); setPreApprovedVisit(null); }}
-          onBlur={recallByPhone}
           onKeyDown={(e) => { if (e.key === 'Enter') handlePhoneSubmit(); if (e.key === 'Escape') resetAll(); }}
           placeholder="+91 98765 43210"
           className="w-full text-center text-2xl bg-white/10 border-2 border-white/20 rounded-2xl px-6 py-5 text-white placeholder-white/30 outline-none focus:border-brand-400 focus:bg-white/15 transition-all" />
@@ -325,7 +324,7 @@ export default function Kiosk(): React.ReactElement {
   );
 
   const renderForm = () => (
-    <div className="min-h-screen bg-surface-50 overflow-y-auto" onClick={() => startIdleTimer()}>
+    <div className="min-h-screen bg-surface-50 overflow-y-auto">
       <div className="max-w-2xl mx-auto px-4 py-8">
         <div className="flex items-center gap-3 mb-6">
           <button onClick={() => { setStep('phone'); setError(''); }} className="btn-ghost p-2 -ml-2" title="Back">
@@ -352,7 +351,7 @@ export default function Kiosk(): React.ReactElement {
             </div>
             <div>
               <label className="label">Full Name *</label>
-              <input type="text" required maxLength={100} value={fullName} onChange={(e) => setFullName(e.target.value)} className="input" placeholder="e.g. John Doe" />
+              <input type="text" required maxLength={100} value={fullName} onChange={(e) => setFullName(e.target.value)} className="input" placeholder="e.g. John Doe" autoFocus />
             </div>
             <div>
               <label className="label">Company / Coming from *</label>
