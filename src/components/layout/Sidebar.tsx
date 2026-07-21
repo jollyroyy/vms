@@ -38,6 +38,7 @@ export default function Sidebar({ session, role, collapsed: collapsedProp, onCol
   const email = session.user.email ?? 'User';
   const links = ALL_LINKS.filter((l) => role && l.roles.includes(role));
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [profileName, setProfileName] = useState<string>(() => (email.split('@')[0] ?? 'User').replace(/\./g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()));
   const [collapsedInternal, setCollapsedInternal] = useState<boolean>(() => {
     try { return window.localStorage.getItem(COLLAPSE_KEY) === '1'; } catch { return false; }
   });
@@ -55,6 +56,17 @@ export default function Sidebar({ session, role, collapsed: collapsedProp, onCol
 
   // Close the mobile drawer on navigation
   useEffect(() => { setMobileOpen(false); }, [loc.pathname]);
+
+  // Fetch profile name
+  useEffect(() => {
+    const fetchName = async () => {
+      try {
+        const { data } = await supabase.from('profiles').select('full_name').eq('id', session.user.id).maybeSingle();
+        if (data?.full_name) setProfileName(data.full_name);
+      } catch { /* ignore */ }
+    };
+    void fetchName();
+  }, [session.user.id]);
 
   const navContent = (isCollapsed: boolean) => (
     <div className="flex flex-col h-full">
@@ -115,12 +127,12 @@ export default function Sidebar({ session, role, collapsed: collapsedProp, onCol
 
         <div className={`rounded-2xl border border-surface-200/60 dark:border-white/[0.06] bg-surface-100/60 dark:bg-white/[0.03] p-3 ${isCollapsed ? 'flex justify-center !p-2' : ''}`}>
           {isCollapsed ? (
-            <div className="avatar-md avatar-gradient" title={email}>{initials}</div>
+            <div className="avatar-md avatar-gradient" title={profileName}>{initials}</div>
           ) : (
             <div className="flex items-center gap-3">
               <div className="avatar-md avatar-gradient shrink-0">{initials}</div>
               <div className="min-w-0 flex-1">
-                <p className="text-xs font-semibold text-navy-900 truncate">{email}</p>
+                <p className="text-sm font-bold text-navy-900 truncate">{profileName}</p>
                 <span className="inline-flex mt-1 text-[10px] font-semibold px-2 py-0.5 rounded-md bg-gradient-to-r from-brand-500/15 to-accent-500/15 text-brand-600 dark:text-brand-300 border border-brand-500/20">
                   {role ? ROLE_LABELS[role] : 'Unknown role'}
                 </span>

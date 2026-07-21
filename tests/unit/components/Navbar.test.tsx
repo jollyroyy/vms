@@ -1,12 +1,21 @@
 import React from 'react';
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { render, screen, cleanup, fireEvent } from '@testing-library/react';
+import { render, screen, cleanup, fireEvent, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import Sidebar from '../../../src/components/layout/Sidebar';
+
+const mockSelect = vi.fn();
 
 vi.mock('../../../src/supabaseClient', () => ({
   supabase: {
     auth: { signOut: vi.fn().mockResolvedValue({ error: null }) },
+    from: () => ({
+      select: () => ({
+        eq: () => ({
+          maybeSingle: () => Promise.resolve({ data: { full_name: 'Guard User' } }),
+        }),
+      }),
+    }),
   },
 }));
 
@@ -87,9 +96,11 @@ describe('M11-SIDEBAR: Sidebar component', () => {
     expect(inactiveLink).toBeTruthy();
   });
 
-  it('shows role badge when role is provided', () => {
+  it('shows role badge when role is provided', async () => {
     renderWithRouter(<Sidebar session={guardSession} role="guard" />);
-    expect(screen.getByText('Guard')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getAllByText('Guard').length).toBeGreaterThanOrEqual(1);
+    });
   });
 
   it('shows default role label for unknown role', () => {
@@ -97,12 +108,14 @@ describe('M11-SIDEBAR: Sidebar component', () => {
     expect(screen.getByText('Unknown role')).toBeInTheDocument();
   });
 
-  it('renders email in sidebar', () => {
+  it('renders profile name in sidebar', async () => {
     renderWithRouter(<Sidebar session={guardSession} role="guard" />);
-    expect(screen.getByText('guard@example.com')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText('Guard User')).toBeInTheDocument();
+    });
   });
 
-  it('renders initials from email', () => {
+  it('renders initials from profile name', () => {
     renderWithRouter(<Sidebar session={guardSession} role="guard" />);
     const initials = screen.getByText('GU');
     expect(initials).toBeInTheDocument();
