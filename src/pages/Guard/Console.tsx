@@ -124,12 +124,12 @@ export default function GuardConsole(): React.ReactElement {
       </div>
 
       {/* Stat cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+      <div className="flex flex-wrap gap-3">
         {stats.map((s) => (
           <button
             key={s.key}
             onClick={() => { setStatusFilter(statusFilter === s.key ? 'all' : s.key); setTab('active'); }}
-            className={`rounded-xl p-3.5 border text-left transition-all duration-200 hover:shadow-md ${
+            className={`flex-1 min-w-[140px] rounded-xl p-3.5 border text-left transition-all duration-200 hover:shadow-md ${
               statusFilter === s.key ? s.activeColor : s.color
             }`}
           >
