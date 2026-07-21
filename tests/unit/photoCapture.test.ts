@@ -38,3 +38,50 @@ describe('FR-CAM-08: center-crop math (landscape webcam → 3:4 portrait)', () =
     expect(() => computeCenterCrop(1280, -1)).toThrow();
   });
 });
+
+describe('M7-PHOTO: edge cases', () => {
+  it('crops a 1920×1080 Full HD landscape frame correctly', () => {
+    const crop = computeCenterCrop(1920, 1080);
+    expect(crop.height).toBe(1080);
+    expect(crop.width).toBe(810); // 1080 * 3/4
+    expect(crop.x).toBe(555); // (1920 - 810) / 2
+    expect(crop.y).toBe(0);
+  });
+
+  it('crops a square frame (1:1) to 3:4 portrait', () => {
+    const crop = computeCenterCrop(800, 800);
+    expect(crop.width).toBe(600); // 800 * 3/4
+    expect(crop.height).toBe(800);
+    expect(crop.x).toBe(100);
+    expect(crop.y).toBe(0);
+  });
+
+  it('crops a 4:3 landscape frame (standard monitor)', () => {
+    const crop = computeCenterCrop(1600, 1200);
+    expect(crop.width).toBe(900); // 1200 * 3/4
+    expect(crop.height).toBe(1200);
+    expect(crop.x).toBe(350);
+    expect(crop.y).toBe(0);
+  });
+
+  it('handles exactly 3:4 at a larger resolution than target', () => {
+    const crop = computeCenterCrop(1200, 1600);
+    expect(crop).toEqual({ x: 0, y: 0, width: 1200, height: 1600 });
+  });
+
+  it('handles an ultra-wide cinema frame (21:9)', () => {
+    const crop = computeCenterCrop(2560, 1080);
+    expect(crop.height).toBe(1080);
+    expect(crop.width).toBe(810);
+    expect(crop.x).toBe(875);
+    expect(crop.y).toBe(0);
+  });
+
+  it('handles a 5:4 monitor frame (1280×1024)', () => {
+    const crop = computeCenterCrop(1280, 1024);
+    expect(crop.width).toBe(768); // 1024 * 3/4
+    expect(crop.height).toBe(1024);
+    expect(crop.x).toBe(256);
+    expect(crop.y).toBe(0);
+  });
+});

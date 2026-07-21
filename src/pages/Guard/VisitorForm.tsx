@@ -4,6 +4,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { supabase } from '../../supabaseClient';
 import { normalizePhone, isBlacklisted } from '../../lib/blacklist';
+import { safeErrorMessage } from '../../lib/errors';
 import PhotoCapture from '../../components/PhotoCapture';
 import type { Department, Profile, Visitor, VisitorPurpose } from '../../types/index';
 
@@ -67,7 +68,6 @@ export default function VisitorForm({ onRegistered }: Props): React.ReactElement
   }, [phone, blacklist]);
 
   const uploadPhoto = useCallback(async (blob: Blob): Promise<{ photoPath: string | null; photoData: string | null }> => {
-    // Always store base64 for reliable display (works without storage bucket)
     const base64 = await new Promise<string>((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = () => resolve(reader.result as string);
@@ -75,7 +75,6 @@ export default function VisitorForm({ onRegistered }: Props): React.ReactElement
       reader.readAsDataURL(blob);
     });
 
-    // Try uploading to Supabase Storage for signed URL (optional enhancement)
     const filePath = `visits/${Date.now()}.webp`;
     const { error: uploadErr } = await supabase.storage
       .from('visitor-photos')
@@ -86,7 +85,6 @@ export default function VisitorForm({ onRegistered }: Props): React.ReactElement
       return { photoPath: null, photoData: base64 };
     }
 
-    // Storage upload succeeded — try signed URL; fall back to base64 for display
     const { data: urlData } = await supabase.storage
       .from('visitor-photos')
       .createSignedUrl(filePath, 60 * 60 * 24 * 7);
@@ -107,7 +105,6 @@ export default function VisitorForm({ onRegistered }: Props): React.ReactElement
       ).select().single();
       if (visErr) throw visErr;
       if (!vis) throw new Error('Failed to create/find visitor record.');
-      // Upload photo to Supabase Storage, fall back to base64
       const { photoPath, photoData } = await uploadPhoto(photoBlob);
       const { error: visitErr } = await supabase.from('visits').insert({
         visitor_id: vis.id, department_id: deptId, host_id: hostId, purpose,
@@ -117,32 +114,36 @@ export default function VisitorForm({ onRegistered }: Props): React.ReactElement
       });
       if (visitErr) throw visitErr;
       onRegistered(fullName);
-    } catch (err) { setError(err instanceof Error ? err.message : String(err)); }
+    } catch (err) { setError(safeErrorMessage(err, 'Registration failed. Please try again.')); }
     finally { setSubmitting(false); }
   };
 
   return (
-    <form onSubmit={handleSubmit} className="card p-6 sm:p-8 space-y-6 max-w-2xl">
+    <form onSubmit={handleSubmit} className="card p-6 sm:p-8 space-y-6 max-w-2xl animate-fade-in">
       <div>
         <h2 className="text-lg font-bold text-navy-950">Register New Visitor</h2>
-        <p className="text-sm text-navy-400 mt-1">Registering at {new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })} · {new Date().toLocaleDateString('en-IN')}</p>
+        <p className="text-sm text-navy-400 mt-1">
+          {new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })} · {new Date().toLocaleDateString('en-IN')}
+        </p>
       </div>
 
       {blacklistHit && (
-        <div className="rounded-xl border-2 border-red-300 bg-red-50 p-4 flex items-start gap-3">
-          <span className="shrink-0 h-7 w-7 rounded-full bg-red-100 flex items-center justify-center text-red-600 font-bold text-xs mt-0.5">!</span>
+        <div className="rounded-xl border-2 border-danger-500/30 bg-danger-50 p-4 flex items-start gap-3 animate-fade-in">
+          <div className="shrink-0 h-8 w-8 rounded-lg bg-danger-100 flex items-center justify-center">
+            <svg className="w-4 h-4 text-danger-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" /></svg>
+          </div>
           <div>
-            <p className="font-bold text-red-700">BLACKLISTED — Do not allow entry</p>
-            <p className="text-sm text-red-600 mt-0.5">Reason: {blacklistHit}</p>
-            <p className="text-xs text-red-500 mt-1">Contact Admin or Security Head immediately.</p>
+            <p className="font-bold text-danger-700">BLACKLISTED — Do not allow entry</p>
+            <p className="text-sm text-danger-600 mt-0.5">Reason: {blacklistHit}</p>
+            <p className="text-xs text-danger-500 mt-1">Contact Admin or Security Head immediately.</p>
           </div>
         </div>
       )}
 
       {recalledName && !blacklistHit && (
-        <div className="rounded-xl bg-brand-50 border border-brand-200 px-4 py-2.5 flex items-center gap-2">
-          <span className="h-5 w-5 rounded-full bg-brand-100 flex items-center justify-center text-brand-700 text-xs font-bold">✓</span>
-          <span className="text-sm text-brand-800">Returning visitor — details pre-filled</span>
+        <div className="alert-success">
+          <svg className="w-4 h-4 text-success-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+          Returning visitor — details pre-filled
         </div>
       )}
 
@@ -191,17 +192,32 @@ export default function VisitorForm({ onRegistered }: Props): React.ReactElement
         {!photoBlob ? (
           <PhotoCapture onCapture={(blob) => setPhotoBlob(blob)} />
         ) : (
-          <div className="flex items-center gap-4">
-            <img src={URL.createObjectURL(photoBlob)} alt="" className="w-14 h-[72px] object-cover rounded-xl shadow-soft" />
-            <button type="button" onClick={() => setPhotoBlob(null)} className="text-sm text-red-600 hover:text-red-700 font-medium">Retake</button>
+          <div className="flex items-center gap-4 p-3 bg-surface-50 rounded-xl border border-surface-200">
+            <img src={URL.createObjectURL(photoBlob)} alt="" className="w-14 h-[72px] object-cover rounded-xl shadow-xs" />
+            <div className="flex-1">
+              <p className="text-sm font-medium text-navy-700">Photo captured</p>
+              <p className="text-xs text-navy-400">Ready to submit</p>
+            </div>
+            <button type="button" onClick={() => setPhotoBlob(null)} className="btn-ghost text-danger-600 hover:text-danger-700 text-sm">Retake</button>
           </div>
         )}
       </div>
 
-      {error && (<div className="rounded-xl bg-red-50 border border-red-100 px-4 py-3"><p className="text-sm text-red-600">{error}</p></div>)}
+      {error && (
+        <div className="alert-error">
+          <svg className="w-4 h-4 text-danger-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" /></svg>
+          {error}
+        </div>
+      )}
 
-      <button type="submit" disabled={submitting || !!blacklistHit || !photoBlob} className="btn-primary w-full py-3 text-base">
-        {submitting ? 'Registering...' : 'Submit for HOD Approval'}
+      <button type="submit" disabled={submitting || !!blacklistHit || !photoBlob}
+        className="w-full bg-gradient-to-r from-brand-600 to-brand-700 text-white rounded-xl px-5 py-3.5 text-sm font-bold hover:from-brand-700 hover:to-brand-800 active:scale-[0.98] disabled:opacity-50 disabled:active:scale-100 shadow-soft hover:shadow-glow transition-all duration-200">
+        {submitting ? (
+          <span className="flex items-center justify-center gap-2.5">
+            <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
+            Registering...
+          </span>
+        ) : 'Submit for HOD Approval'}
       </button>
 
       <p className="text-xs text-navy-300 text-center">Photographs captured for security purposes only</p>

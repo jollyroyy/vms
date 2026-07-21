@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { supabase } from '../../supabaseClient';
 import { normalizePhone, isBlacklisted } from '../../lib/blacklist';
 import { validatePreApproval } from '../../lib/visitLifecycle';
+import { safeErrorMessage } from '../../lib/errors';
 import type { Department, Profile, VisitorPurpose } from '../../types/index';
 
 const PURPOSES: { value: VisitorPurpose; label: string }[] = [
@@ -80,37 +81,36 @@ export default function PreApproveForm({ onPreApproved }: Props): React.ReactEle
     try {
       let normalized: string;
       try { normalized = normalizePhone(phone); } catch { throw new Error('Invalid phone number.'); }
-      const { data: vis, error: visErr } = await supabase.from('visitors').upsert(
-        { phone: normalized, full_name: fullName, company: company || null },
-        { onConflict: 'phone' },
-      ).select().single();
-      if (visErr) throw visErr;
-      if (!vis) throw new Error('Failed to create/find visitor record.');
-      const { data: visit, error: visitErr } = await supabase.from('visits').insert({
-        visitor_id: vis.id, department_id: deptId, host_id: hostId, purpose,
-        status: 'approved', carrying_material: false,
-        checked_in_at: null, checked_out_at: null, exit_verified: null, rejection_reason: null,
-        photo_path: null, photo_data: null,
-      }).select('ref_number').single();
-      if (visitErr) throw visitErr;
-      onPreApproved(fullName, visit?.ref_number ?? '');
-    } catch (err) { setError(err instanceof Error ? err.message : String(err)); }
+      const { data, error: rpcErr } = await (supabase as any).rpc('pre_approve_visitor', {
+        p_phone: normalized,
+        p_full_name: fullName,
+        p_company: company || null,
+        p_department_id: deptId,
+        p_host_id: hostId,
+        p_purpose: purpose,
+      });
+      if (rpcErr) throw rpcErr;
+      if (!data?.ref_number) throw new Error('Failed to create pre-approved visit.');
+      onPreApproved(fullName, data.ref_number);
+    } catch (err) { setError(safeErrorMessage(err, 'Pre-approval failed. Please try again.')); }
     finally { setSubmitting(false); }
   };
 
   return (
-    <form onSubmit={handleSubmit} className="card p-6 sm:p-8 space-y-6 max-w-2xl">
+    <form onSubmit={handleSubmit} className="card p-6 sm:p-8 space-y-6 max-w-2xl animate-fade-in">
       <div>
         <h2 className="text-lg font-bold text-navy-950">Pre-Approve Visitor</h2>
-        <p className="text-sm text-navy-400 mt-1">Pre-register a visitor — they will be pre-approved and can be checked in at the gate</p>
+        <p className="text-sm text-navy-400 mt-1">Pre-register a visitor — they will be pre-approved and can be checked in at the gate without waiting</p>
       </div>
 
       {blacklistHit && (
-        <div className="rounded-xl border-2 border-red-300 bg-red-50 p-4 flex items-start gap-3">
-          <span className="shrink-0 h-7 w-7 rounded-full bg-red-100 flex items-center justify-center text-red-600 font-bold text-xs mt-0.5">!</span>
+        <div className="rounded-xl border-2 border-danger-500/30 bg-danger-50 p-4 flex items-start gap-3 animate-fade-in">
+          <div className="shrink-0 h-8 w-8 rounded-lg bg-danger-100 flex items-center justify-center">
+            <svg className="w-4 h-4 text-danger-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" /></svg>
+          </div>
           <div>
-            <p className="font-bold text-red-700">BLACKLISTED — Do not pre-approve</p>
-            <p className="text-sm text-red-600 mt-0.5">Reason: {blacklistHit}</p>
+            <p className="font-bold text-danger-700">BLACKLISTED — Do not pre-approve</p>
+            <p className="text-sm text-danger-600 mt-0.5">Reason: {blacklistHit}</p>
           </div>
         </div>
       )}
@@ -154,13 +154,19 @@ export default function PreApproveForm({ onPreApproved }: Props): React.ReactEle
         <div className="sm:col-span-2"><label className="label">Vehicle Number (optional)</label><input type="text" value={vehicle} onChange={(e) => setVehicle(e.target.value)} className="input" placeholder="MH 12 AB 1234" /></div>
       </div>
 
-      {error && (<div className="rounded-xl bg-red-50 border border-red-100 px-4 py-3"><p className="text-sm text-red-600">{error}</p></div>)}
+      {error && (
+        <div className="alert-error">
+          <svg className="w-4 h-4 text-danger-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" /></svg>
+          {error}
+        </div>
+      )}
 
-      <button type="submit" disabled={submitting || !!blacklistHit} className="btn-primary w-full py-3 text-base">
+      <button type="submit" disabled={submitting || !!blacklistHit}
+        className="w-full bg-gradient-to-r from-brand-600 to-brand-700 text-white rounded-xl px-5 py-3.5 text-sm font-bold hover:from-brand-700 hover:to-brand-800 active:scale-[0.98] disabled:opacity-50 disabled:active:scale-100 shadow-soft hover:shadow-glow transition-all duration-200">
         {submitting ? 'Submitting...' : 'Pre-Approve Visitor'}
       </button>
 
-      <p className="text-xs text-navy-300 text-center">Pre-approved visitors can be checked in at the gate without HOD approval</p>
+      <p className="text-xs text-navy-300 text-center">Pre-approved visitors skip the approval queue at entry</p>
     </form>
   );
 }

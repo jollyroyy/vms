@@ -32,3 +32,43 @@ describe('S7/FR-VIS-02: blacklist matching', () => {
     expect(isBlacklisted('9000000000', list)).toBeNull();
   });
 });
+
+describe('M5-BLACK: edge cases', () => {
+  it('handles phone with dots and slashes', () => {
+    expect(normalizePhone('987.654.3210')).toBe('9876543210');
+    expect(normalizePhone('987/654/3210')).toBe('9876543210');
+  });
+
+  it('handles US country code (+1) - keeps leading 1 as not in Indian format', () => {
+    expect(normalizePhone('+1 9876543210')).toBe('19876543210');
+  });
+
+  it('rejects empty string', () => {
+    expect(() => normalizePhone('')).toThrow();
+  });
+
+  it('accepts exactly 7 digits as minimum valid phone', () => {
+    expect(normalizePhone('1234567')).toBe('1234567');
+  });
+
+  it('handles a very long phone number (unknown country code preserved)', () => {
+    const result = normalizePhone('+999 123456789012345');
+    expect(result).toBe('999123456789012345');
+  });
+
+  it('isBlacklisted with empty list returns null for any number', () => {
+    expect(isBlacklisted('9876543210', [])).toBeNull();
+  });
+
+  it('isBlacklisted matches first entry when multiple entries exist', () => {
+    const multi = [
+      { phone: '1111111111', reason: 'Reason A' },
+      { phone: '2222222222', reason: 'Reason B' },
+    ];
+    expect(isBlacklisted('2222222222', multi)?.reason).toBe('Reason B');
+  });
+
+  it('normalizePhone preserves 10 digit plain number', () => {
+    expect(normalizePhone('9876543210')).toBe('9876543210');
+  });
+});

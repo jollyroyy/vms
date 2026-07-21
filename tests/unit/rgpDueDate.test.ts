@@ -45,3 +45,46 @@ describe('S5/SLA-W4: reminder cadence (T-1, due date, every 3 days overdue)', ()
     expect(isReminderDay(due, '2026-07-26')).toBe(true);
   });
 });
+
+describe('M4-RGP: edge cases', () => {
+  it('leap year Feb 29 is handled correctly', () => {
+    expect(getRgpState('2024-03-01', '2024-02-29')).toBe('due_soon');
+    expect(getRgpState('2024-02-28', '2024-03-01')).toBe('overdue');
+  });
+
+  it('overdue for 0 days is due_today, not overdue', () => {
+    expect(getRgpState('2026-07-20', '2026-07-20T23:59:59')).toBe('due_today');
+  });
+
+  it('same date with time component still matches due_today', () => {
+    expect(getRgpState('2026-07-20T00:00:00Z', '2026-07-20T12:00:00Z')).toBe('due_today');
+  });
+
+  it('many days overdue still returns overdue', () => {
+    expect(getRgpState('2026-01-01', '2026-12-31')).toBe('overdue');
+  });
+
+  it('date 2 days before due date shows ok (not due_soon)', () => {
+    expect(getRgpState('2026-07-22', '2026-07-20')).toBe('ok');
+  });
+
+  it('date exactly 1 day before shows due_soon', () => {
+    expect(getRgpState('2026-07-21', '2026-07-20')).toBe('due_soon');
+  });
+
+  it('isReminderDay on the overdue due date itself', () => {
+    expect(isReminderDay('2026-07-20', '2026-07-20')).toBe(true);
+  });
+
+  it('isReminderDay on D+1 (day after due) is not a reminder day', () => {
+    expect(isReminderDay('2026-07-20', '2026-07-21')).toBe(false);
+  });
+
+  it('isReminderDay on D+2 is not a reminder day', () => {
+    expect(isReminderDay('2026-07-20', '2026-07-22')).toBe(false);
+  });
+
+  it('isReminderDay on D+9 (3rd batch of 3) is true', () => {
+    expect(isReminderDay('2026-07-20', '2026-07-29')).toBe(true);
+  });
+});

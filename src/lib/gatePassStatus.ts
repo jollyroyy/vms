@@ -43,7 +43,9 @@ const TRANSITIONS: Record<GatePassStatus, GatePassStatus[]> = {
 };
 
 export function canTransition(from: GatePassStatus, to: GatePassStatus): boolean {
-  return TRANSITIONS[from].includes(to);
+  const allowed = TRANSITIONS[from];
+  if (!allowed) return false;
+  return allowed.includes(to);
 }
 
 // FR-GP-06: apply a set of return lines to an RGP gate pass.
@@ -52,6 +54,8 @@ export function applyReturn(
   gatePass: GatePass,
   returns: { itemId: string; qty: number }[],
 ): GatePass {
+  if (returns.length === 0) return gatePass;
+
   const updatedItems: GatePassItem[] = gatePass.items.map((i) => ({ ...i }));
 
   for (const ret of returns) {

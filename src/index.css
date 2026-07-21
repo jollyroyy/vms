@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -7,13 +7,28 @@
 @layer base {
   * { touch-action: manipulation; }
 
+  html {
+    scroll-behavior: smooth;
+  }
+
   body {
-    @apply antialiased text-navy-900;
+    @apply antialiased text-navy-900 bg-surface-50;
     font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
   }
 
   ::selection {
-    @apply bg-brand-200 text-brand-950;
+    @apply bg-brand-200/60 text-brand-950;
+  }
+
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    @apply w-1.5;
+  }
+  ::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply bg-navy-200 rounded-full hover:bg-navy-300;
   }
 }
 
@@ -24,36 +39,68 @@
 .print-only { display: none; }
 
 @layer components {
+  /* --- Inputs --- */
   .input {
-    @apply w-full border border-surface-200 rounded-xl px-3.5 py-2.5 text-sm bg-white
-           placeholder:text-surface-300
-           focus:outline-none focus:ring-2 focus:ring-brand-500/25 focus:border-brand-600
-           transition-all duration-150;
+    @apply w-full border border-surface-200 rounded-xl px-4 py-2.5 text-sm bg-white
+           placeholder:text-surface-400
+           focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500
+           hover:border-surface-300
+           transition-all duration-200;
   }
   .label {
-    @apply block text-sm font-medium text-navy-700 mb-1.5;
+    @apply block text-xs font-semibold text-navy-600 mb-1.5 uppercase tracking-wide;
   }
+
+  /* --- Buttons --- */
   .btn-primary {
-    @apply bg-navy-800 text-white rounded-xl px-5 py-2.5 text-sm font-semibold
-           hover:bg-navy-900 active:bg-navy-950
-           disabled:opacity-50 disabled:cursor-not-allowed
-           shadow-sm hover:shadow
-           transition-all duration-150;
+    @apply bg-navy-950 text-white rounded-xl px-5 py-2.5 text-sm font-semibold
+           hover:bg-navy-800 active:scale-[0.98]
+           disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100
+           shadow-soft hover:shadow-elevated
+           transition-all duration-200;
   }
   .btn-secondary {
     @apply bg-white text-navy-700 border border-surface-200 rounded-xl px-5 py-2.5 text-sm font-medium
-           hover:bg-surface-50 hover:border-surface-300 active:bg-surface-100
-           transition-all duration-150;
+           hover:bg-surface-50 hover:border-surface-300 hover:shadow-soft active:scale-[0.98]
+           transition-all duration-200;
   }
   .btn-accent {
     @apply bg-brand-600 text-white rounded-xl px-5 py-2.5 text-sm font-semibold
-           hover:bg-brand-700 active:bg-brand-800
+           hover:bg-brand-700 active:scale-[0.98]
+           disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100
+           shadow-soft hover:shadow-glow-sm
+           transition-all duration-200;
+  }
+  .btn-danger {
+    @apply bg-danger-600 text-white rounded-xl px-5 py-2.5 text-sm font-semibold
+           hover:bg-danger-700 active:scale-[0.98]
            disabled:opacity-50 disabled:cursor-not-allowed
-           shadow-sm transition-all duration-150;
+           transition-all duration-200;
   }
+  .btn-ghost {
+    @apply text-navy-500 rounded-xl px-4 py-2 text-sm font-medium
+           hover:bg-surface-100 hover:text-navy-700 active:scale-[0.98]
+           transition-all duration-200;
+  }
+  .btn-icon {
+    @apply h-9 w-9 rounded-xl flex items-center justify-center
+           text-navy-400 hover:text-navy-700 hover:bg-surface-100
+           active:scale-[0.95] transition-all duration-200;
+  }
+
+  /* --- Cards --- */
   .card {
-    @apply bg-white rounded-2xl border border-surface-200/80 shadow-card;
+    @apply bg-white rounded-2xl border border-surface-200/80 shadow-card
+           transition-all duration-200;
   }
+  .card-hover {
+    @apply card hover:shadow-elevated hover:border-surface-300/80 hover:-translate-y-0.5;
+  }
+  .card-glass {
+    @apply bg-white/70 backdrop-blur-xl rounded-2xl border border-white/20 shadow-elevated;
+  }
+
+  /* --- Page structure --- */
   .page-header {
     @apply mb-8;
   }
@@ -64,24 +111,88 @@
     @apply text-sm text-navy-400 mt-1;
   }
   .section-title {
-    @apply text-sm font-semibold text-navy-800 uppercase tracking-wider;
+    @apply text-xs font-bold text-navy-500 uppercase tracking-wider;
   }
+
+  /* --- Tabs --- */
   .tab-group {
-    @apply inline-flex gap-0.5 bg-surface-100 rounded-xl p-1;
+    @apply inline-flex gap-1 bg-surface-100 rounded-xl p-1;
   }
   .tab-item {
-    @apply px-4 py-2 rounded-lg text-sm font-medium transition-all duration-150;
+    @apply px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200;
   }
   .tab-active {
-    @apply bg-white shadow-soft text-navy-900 tab-item;
+    @apply bg-white shadow-soft text-navy-900 font-semibold tab-item;
   }
   .tab-inactive {
-    @apply text-navy-400 hover:text-navy-600 tab-item;
+    @apply text-navy-400 hover:text-navy-600 hover:bg-white/50 tab-item;
   }
+
+  /* --- Status --- */
   .status-badge {
-    @apply text-xs font-semibold px-2.5 py-1 rounded-full inline-flex items-center gap-1 whitespace-nowrap;
+    @apply text-[11px] font-semibold px-2.5 py-1 rounded-lg inline-flex items-center gap-1.5 whitespace-nowrap;
   }
+
+  /* --- Empty state --- */
   .empty-state {
     @apply text-center py-16;
   }
+
+  /* --- Stat card --- */
+  .stat-card {
+    @apply card p-5 flex flex-col gap-1;
+  }
+  .stat-value {
+    @apply text-2xl font-bold text-navy-950 tracking-tight;
+  }
+  .stat-label {
+    @apply text-xs font-medium text-navy-400 uppercase tracking-wide;
+  }
+
+  /* --- Alerts --- */
+  .alert-success {
+    @apply rounded-xl bg-success-50 border border-success-500/20 px-4 py-3 text-sm text-success-700
+           flex items-center gap-2.5 animate-fade-in;
+  }
+  .alert-error {
+    @apply rounded-xl bg-danger-50 border border-danger-500/20 px-4 py-3 text-sm text-danger-700
+           flex items-center gap-2.5 animate-fade-in;
+  }
+  .alert-warning {
+    @apply rounded-xl bg-warning-50 border border-warning-500/20 px-4 py-3 text-sm text-warning-700
+           flex items-center gap-2.5 animate-fade-in;
+  }
+
+  /* --- Avatar --- */
+  .avatar {
+    @apply rounded-full flex items-center justify-center font-semibold shrink-0;
+  }
+  .avatar-sm {
+    @apply avatar h-8 w-8 text-[11px];
+  }
+  .avatar-md {
+    @apply avatar h-10 w-10 text-xs;
+  }
+  .avatar-lg {
+    @apply avatar h-12 w-12 text-sm;
+  }
+
+  /* --- Skeleton loading --- */
+  .skeleton {
+    @apply bg-surface-100 rounded-lg animate-pulse;
+  }
+
+  /* --- Divider --- */
+  .divider {
+    @apply border-t border-surface-100;
+  }
+}
+
+/* Utility for staggered animation */
+@layer utilities {
+  .stagger-1 { animation-delay: 0.05s; }
+  .stagger-2 { animation-delay: 0.1s; }
+  .stagger-3 { animation-delay: 0.15s; }
+  .stagger-4 { animation-delay: 0.2s; }
+  .stagger-5 { animation-delay: 0.25s; }
 }

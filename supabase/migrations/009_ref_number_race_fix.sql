@@ -42,3 +42,14 @@ begin
   return new;
 end;
 $$;
+
+-- Re-create BEFORE INSERT triggers so they point to the race-safe functions above
+drop trigger if exists set_visit_ref on public.visits;
+create trigger set_visit_ref
+  before insert on public.visits
+  for each row execute function public.generate_visit_ref();
+
+drop trigger if exists set_gate_pass_ref on public.gate_passes;
+create trigger set_gate_pass_ref
+  before insert on public.gate_passes
+  for each row execute function public.generate_gate_pass_ref();

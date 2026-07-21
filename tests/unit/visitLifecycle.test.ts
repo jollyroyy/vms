@@ -63,4 +63,36 @@ describe('HOD pre-approval', () => {
   it('rejects missing purpose', () => {
     expect(validatePreApproval({ department_id: 'dept-1', host_id: 'host-1', purpose: '' })).toBe('Purpose is required');
   });
+
+  it('rejects null department_id', () => {
+    expect(validatePreApproval({ department_id: null as unknown as string, host_id: 'host-1', purpose: 'meeting' })).toBe('Department is required');
+  });
+});
+
+describe('M2-VISIT: edge cases', () => {
+  it('approved → rejected is NOT a valid transition (must check-in or stay approved)', () => {
+    expect(canTransition('approved', 'rejected')).toBe(false);
+  });
+
+  it('pending → checked_in is NOT valid (skip approval not allowed)', () => {
+    expect(canTransition('pending_approval', 'checked_in')).toBe(false);
+  });
+
+  it('rejected → rejected (same state) is NOT valid — no no-op transitions', () => {
+    expect(canTransition('rejected', 'rejected')).toBe(false);
+  });
+
+  it('unknown source state returns false (not crash)', () => {
+    expect(canTransition('bogus' as any, 'approved')).toBe(false);
+  });
+
+  it('auto-close on a rejected visit leaves it untouched', () => {
+    const rejected: Visit = { id: 'v1', status: 'rejected', checkedInAt: null, checkedOutAt: null, exitVerified: null };
+    expect(autoCloseAtDayEnd(rejected, '2026-07-20T22:00:00Z')).toEqual(rejected);
+  });
+
+  it('auto-close on a checked-out visit with unverified exit leaves it untouched', () => {
+    const done: Visit = { id: 'v1', status: 'checked_out', checkedInAt: '2026-07-20T10:00:00Z', checkedOutAt: '2026-07-20T16:00:00Z', exitVerified: false };
+    expect(autoCloseAtDayEnd(done, '2026-07-20T22:00:00Z')).toEqual(done);
+  });
 });

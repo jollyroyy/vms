@@ -19,8 +19,10 @@ function pendingFiles(): string[] {
 
 export default defineConfig({
   test: {
-    include: ['tests/unit/**/*.test.ts', 'tests/security/**/*.test.ts'],
+    include: ['tests/unit/**/*.test.ts', 'tests/unit/**/*.test.tsx', 'tests/security/**/*.test.ts'],
     exclude: ['**/node_modules/**', ...pendingFiles()],
     reporters: 'default',
+    environment: 'jsdom',
+    setupFiles: ['./tests/setup.ts'],
   },
 });

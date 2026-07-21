@@ -83,3 +83,55 @@ describe('S4/FR-GP-06: partial returns', () => {
     expect(() => applyReturn(rgpOut(), [{ itemId: 'nope', qty: 1 }])).toThrow();
   });
 });
+
+describe('M3-GP: edge cases', () => {
+  it('inward pass (RGP-IN) follows the same status machine as outward', () => {
+    const gpIn = rgpOut({ direction: 'IN' });
+    expect(canTransition('dispatched', 'awaiting_return')).toBe(true);
+    const result = applyReturn(gpIn, [{ itemId: 'i1', qty: 5 }, { itemId: 'i2', qty: 1 }]);
+    expect(result.status).toBe('returned');
+  });
+
+  it('cancelled pass cannot be transitioned further', () => {
+    expect(canTransition('cancelled', 'closed')).toBe(false);
+    expect(canTransition('cancelled', 'pending_approval')).toBe(false);
+  });
+
+  it('closed pass cannot be re-opened to any state', () => {
+    expect(canTransition('closed', 'awaiting_return')).toBe(false);
+    expect(canTransition('closed', 'returned')).toBe(false);
+  });
+
+  it('applyReturn works on any pass with items (status is recalculated correctly)', () => {
+    const draftPass: GatePass = { ...rgpOut(), status: 'draft', items: [{ id: 'i1', description: 'Item', qty: 1, returnedQty: 0 }] };
+    const result = applyReturn(draftPass, [{ itemId: 'i1', qty: 1 }]);
+    expect(result.status).toBe('returned');
+  });
+
+  it('unknown source state returns false, not crash', () => {
+    expect(canTransition('bogus' as any, 'closed')).toBe(false);
+  });
+
+  it('IN direction NRGP pass closes after dispatch (same as OUT)', () => {
+    expect(canTransition('dispatched', 'closed')).toBe(true);
+  });
+
+  it('applyReturn with zero items is a no-op (status unchanged)', () => {
+    const gp = rgpOut();
+    const result = applyReturn(gp, []);
+    expect(result.status).toBe('awaiting_return');
+    expect(result.items.every((i) => i.returnedQty === 0)).toBe(true);
+  });
+
+  it('partial then full return of one item at a time works (3-step)', () => {
+    const gp = rgpOut();
+    const step1 = applyReturn(gp, [{ itemId: 'i1', qty: 2 }]);
+    expect(step1.status).toBe('partially_returned');
+    expect(step1.items.find((i) => i.id === 'i1')!.returnedQty).toBe(2);
+    const step2 = applyReturn(step1, [{ itemId: 'i1', qty: 3 }]);
+    expect(step2.status).toBe('partially_returned'); // i2 still out
+    expect(step2.items.find((i) => i.id === 'i1')!.returnedQty).toBe(5);
+    const step3 = applyReturn(step2, [{ itemId: 'i2', qty: 1 }]);
+    expect(step3.status).toBe('returned');
+  });
+});

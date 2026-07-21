@@ -37,4 +37,35 @@ describe('S3: reference number generation', () => {
   it('rejects malformed previous refs instead of guessing', () => {
     expect(() => nextSequence('garbage-ref', jul20)).toThrow();
   });
+
+  it('rejects seq=0 (refs must be positive)', () => {
+    expect(() => formatRefNumber('VIS', jul20, 0)).toThrow();
+  });
+
+  it('rejects negative seq', () => {
+    expect(() => formatRefNumber('VIS', jul20, -5)).toThrow();
+  });
+
+  it('GP-IN and GP-OUT use different prefixes', () => {
+    const seq = 1;
+    expect(formatRefNumber('GP-IN', jul20, seq)).toBe('GP-IN-20260720-0001');
+    expect(formatRefNumber('GP-OUT', jul20, seq)).toBe('GP-OUT-20260720-0001');
+  });
+
+  it('parses any RefKind from a previous ref', () => {
+    expect(nextSequence('GP-IN-20260720-0015', jul20)).toBe(16);
+    expect(nextSequence('GP-OUT-20260720-0015', jul20)).toBe(16);
+  });
+
+  it('exact midnight boundary resets for next day', () => {
+    const jul20midnight = new Date('2026-07-20T23:59:59Z');
+    const jul21midnight = new Date('2026-07-21T00:00:00Z');
+    expect(nextSequence('VIS-20260720-0134', jul21midnight)).toBe(1);
+    expect(nextSequence('VIS-20260720-0134', jul20midnight)).toBe(135); // same day
+  });
+
+  it('overflows past 9999 with the next natural number (no truncation)', () => {
+    expect(formatRefNumber('VIS', jul20, 10000)).toBe('VIS-20260720-10000');
+    expect(formatRefNumber('VIS', jul20, 10001)).toBe('VIS-20260720-10001');
+  });
 });

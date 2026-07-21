@@ -26,7 +26,9 @@ const TRANSITIONS: Record<VisitStatus, VisitStatus[]> = {
 };
 
 export function canTransition(from: VisitStatus, to: VisitStatus): boolean {
-  return TRANSITIONS[from].includes(to);
+  const allowed = TRANSITIONS[from];
+  if (!allowed) return false;
+  return allowed.includes(to);
 }
 
 type PreApprovalInput = {
