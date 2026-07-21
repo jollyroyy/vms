@@ -26,7 +26,7 @@
 | `#loop` | [VT-01](#vt-01), [VT-02](#vt-02) |
 | `#security` | [SEC-01](#sec-01), [SEC-02](#sec-02), [SEC-03](#sec-03), [SEC-04](#sec-04), [SEC-05](#sec-05), [SEC-06](#sec-06), [SEC-07](#sec-07), [SEC-08](#sec-08), [SEC-09](#sec-09) |
 | `#migration` | [SB-14](#sb-14) |
-| `#ui` | [RE-03](#re-03) |
+| `#ui` | [RE-03](#re-03), [UI-01](#ui-01) |
 | `#ux` | [RE-03](#re-03) |
 | `#routing` | [SEC-01](#sec-01) |
 | `#postgres` | [SB-06](#sb-06) |
@@ -471,6 +471,17 @@ CREATE POLICY policy_name ON table_name FOR ... USING (...);
 2. Expand the Clear All condition: `(tab === 'pre_approved' || activeFilter === 'pre_approved')`.
 **Prevention:** When a UI element's visibility depends on filter state, identify ALL code paths that can set that filter state. Gate on the filter value itself (not just the tab) if the two can be out of sync.
 **Tags:** `#react` `#ui` `#ux`
+**First seen:** 2026-07-21
+
+---
+
+### UI-01
+
+**Pattern:** Tests fail after UI revamp because text content was changed (e.g., 'SecureGate' removed, button text altered).
+**Cause:** Visual-only changes inadvertently modified text that tests assert on via `getByText()`, `getByPlaceholderText()`, etc.
+**Fix:** Before any UI revamp, grep test files for all `getByText`, `getByPlaceholderText`, `getByRole` assertions. Keep those exact strings unchanged.
+**Prevention:** Always run `npm test -- --run` after ANY UI change, even "CSS-only" ones. Tests are the source of truth for content.
+**Tags:** `#react` `#vitest` `#ui`
 **First seen:** 2026-07-21
 
 ---

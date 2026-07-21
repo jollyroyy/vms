@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { supabase } from '../../supabaseClient';
-import type { Visit } from '../../types/index';
+import type { Visit, VisitStatus } from '../../types/index';
 import { getEscalationTarget } from '../../lib/escalation';
 import { attachHostNames } from '../../lib/hostNames';
 import { safeErrorMessage } from '../../lib/errors';
@@ -48,7 +48,7 @@ export default function HODApprovals(): React.ReactElement {
     });
   }, []);
 
-  const loadVisits = useCallback(async (statuses: string[]) => {
+  const loadVisits = useCallback(async (statuses: readonly VisitStatus[]) => {
     if (!userDeptId) { return; }
     setLoading(true); setError('');
     const { data, error: err } = await supabase
@@ -66,18 +66,18 @@ export default function HODApprovals(): React.ReactElement {
 
   useEffect(() => {
     if (!userDeptId) return;
-    if (tab === 'pending') void loadVisits(['pending_approval']);
-    else if (tab === 'approved') void loadVisits(['approved', 'walkin_approved']);
-    else if (tab === 'rejected') void loadVisits(['rejected']);
+    if (tab === 'pending') void loadVisits(['pending_approval'] as const);
+    else if (tab === 'approved') void loadVisits(['approved', 'walkin_approved'] as const);
+    else if (tab === 'rejected') void loadVisits(['rejected'] as const);
   }, [tab, userDeptId]);
 
   useEffect(() => {
     if (!userDeptId) return;
     const ch = supabase.channel('hod-approvals')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'visits' }, () => {
-        if (tab === 'pending') void loadVisits(['pending_approval']);
-        else if (tab === 'approved') void loadVisits(['approved', 'walkin_approved']);
-        else if (tab === 'rejected') void loadVisits(['rejected']);
+        if (tab === 'pending') void loadVisits(['pending_approval'] as const);
+        else if (tab === 'approved') void loadVisits(['approved', 'walkin_approved'] as const);
+        else if (tab === 'rejected') void loadVisits(['rejected'] as const);
       })
       .subscribe();
     return () => { void supabase.removeChannel(ch); };
@@ -126,9 +126,9 @@ export default function HODApprovals(): React.ReactElement {
           <p className="page-subtitle">Manage visitor requests</p>
         </div>
         <button onClick={() => {
-          if (tab === 'pending') void loadVisits(['pending_approval']);
-          else if (tab === 'approved') void loadVisits(['approved', 'walkin_approved']);
-          else if (tab === 'rejected') void loadVisits(['rejected']);
+          if (tab === 'pending') void loadVisits(['pending_approval'] as const);
+          else if (tab === 'approved') void loadVisits(['approved', 'walkin_approved'] as const);
+          else if (tab === 'rejected') void loadVisits(['rejected'] as const);
         }} className="btn-icon" title="Refresh">
           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
@@ -175,12 +175,12 @@ export default function HODApprovals(): React.ReactElement {
             </div>
           )}
           {visits.map((v) => {
-            const style = STATUS_STYLES[v.status === 'approved' ? 'approved' : 'walkin_approved'];
+            const style = STATUS_STYLES[v.status === 'approved' ? 'approved' : 'walkin_approved'] ?? { bg: 'bg-surface-50', text: 'text-navy-700', label: v.status };
             return (
-              <div key={v.id} className="card p-5 cursor-pointer animate-fade-in" onClick={() => setDetailVisit(v)}>
+              <div key={v.id} className="card p-5 cursor-pointer animate-fade-in border-l-4 border-l-success-400 hover:shadow-elevated hover:-translate-y-0.5 transition-all duration-200" onClick={() => setDetailVisit(v)}>
                 <div className="flex gap-4">
                   {v.photo_url ? (
-                    <img src={v.photo_url} alt="" className="w-16 h-20 object-cover rounded-xl shadow-soft shrink-0" />
+                    <img src={v.photo_url} alt="" className="w-16 h-20 object-cover rounded-xl shrink-0" style={{ boxShadow: '0 2px 8px -2px rgba(0,0,0,0.1), 0 0 0 2px rgba(34,197,94,0.1)' }} />
                   ) : (
                     <div className="w-16 h-20 bg-gradient-to-br from-surface-100 to-surface-200 rounded-xl shrink-0 flex items-center justify-center">
                       <svg className="w-6 h-6 text-navy-200" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0" /></svg>
@@ -217,10 +217,10 @@ export default function HODApprovals(): React.ReactElement {
             </div>
           )}
           {visits.map((v) => (
-            <div key={v.id} className="card p-5 cursor-pointer animate-fade-in border-l-4 border-l-danger-400" onClick={() => setDetailVisit(v)}>
+            <div key={v.id} className="card p-5 cursor-pointer animate-fade-in border-l-4 border-l-danger-400 hover:shadow-elevated hover:-translate-y-0.5 transition-all duration-200" style={{ background: 'linear-gradient(135deg, white, rgba(254,242,242,0.3))' }} onClick={() => setDetailVisit(v)}>
               <div className="flex gap-4">
                 {v.photo_url ? (
-                  <img src={v.photo_url} alt="" className="w-16 h-20 object-cover rounded-xl shadow-soft shrink-0" />
+                  <img src={v.photo_url} alt="" className="w-16 h-20 object-cover rounded-xl shrink-0" style={{ boxShadow: '0 2px 8px -2px rgba(0,0,0,0.1)' }} />
                 ) : (
                   <div className="w-16 h-20 bg-gradient-to-br from-surface-100 to-surface-200 rounded-xl shrink-0 flex items-center justify-center">
                     <svg className="w-6 h-6 text-navy-200" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0" /></svg>
@@ -234,7 +234,8 @@ export default function HODApprovals(): React.ReactElement {
                   <p className="text-sm text-navy-500">{v.visitor?.company ?? ''}</p>
                   <p className="text-xs text-navy-400">{v.department?.name} · {v.host?.full_name}</p>
                   {v.rejection_reason && (
-                    <div className="mt-2 rounded-lg bg-danger-50/50 px-3 py-2 text-xs text-danger-700 border border-danger-200/50">
+                    <div className="mt-2 rounded-xl bg-danger-50/50 px-3 py-2.5 text-xs text-danger-700 border border-danger-100 flex items-start gap-2">
+                      <svg className="w-3.5 h-3.5 text-danger-400 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" /></svg>
                       Reason: {v.rejection_reason}
                     </div>
                   )}
@@ -263,7 +264,7 @@ export default function HODApprovals(): React.ReactElement {
             <div className="space-y-4">
               {[1, 2].map((i) => (
                 <div key={i} className="card p-6">
-                  <div className="flex gap-4 animate-pulse">
+                  <div className="flex gap-4">
                     <div className="w-20 h-28 skeleton rounded-xl" />
                     <div className="flex-1 space-y-3">
                       <div className="h-5 skeleton w-2/3" />
@@ -286,24 +287,26 @@ export default function HODApprovals(): React.ReactElement {
             </div>
           )}
 
-          {visits.map((v) => {
+          {visits.map((v, idx) => {
             const esc = escalationLabel(v);
             return (
-              <div key={v.id} className="card overflow-hidden animate-fade-in cursor-pointer" onClick={() => setDetailVisit(v)}>
-                {/* Urgency banner */}
-                <div className={`px-5 py-2.5 text-xs font-semibold flex items-center gap-2 ${
-                  esc.urgent ? 'bg-danger-50 text-danger-600 border-b border-danger-100' : 'bg-warning-50 text-warning-700 border-b border-warning-100'
-                }`}>
-                  <span className={`h-2 w-2 rounded-full ${esc.urgent ? 'bg-danger-500 animate-pulse' : 'bg-warning-500'}`} />
+              <div key={v.id} className="card overflow-hidden animate-fade-in cursor-pointer hover:shadow-elevated transition-all duration-200" style={{ animationDelay: `${idx * 0.05}s` }} onClick={() => setDetailVisit(v)}>
+                {/* Urgency banner with gradient */}
+                <div className={`px-5 py-3 text-xs font-semibold flex items-center gap-2 ${
+                  esc.urgent
+                    ? 'text-white border-b border-danger-600/20'
+                    : 'bg-warning-50 text-warning-700 border-b border-warning-100'
+                }`} style={esc.urgent ? { background: 'linear-gradient(135deg, #dc2626, #ef4444, #dc2626)', backgroundSize: '200% 200%', animation: 'hologram 3s ease infinite' } : undefined}>
+                  <span className={`h-2 w-2 rounded-full ${esc.urgent ? 'bg-white animate-pulse' : 'bg-warning-500'}`} />
                   {esc.text}
                 </div>
 
                 <div className="p-5 space-y-4">
                   <div className="flex gap-4">
                     {v.photo_url ? (
-                      <img src={v.photo_url} alt="Visitor" className="w-20 h-28 object-cover rounded-xl shadow-soft shrink-0" />
+                      <img src={v.photo_url} alt="Visitor" className="w-20 h-28 object-cover rounded-2xl shrink-0" style={{ boxShadow: '0 4px 16px -4px rgba(0,0,0,0.12), 0 0 0 3px rgba(51,150,255,0.08)' }} />
                     ) : (
-                      <div className="w-20 h-28 bg-gradient-to-br from-surface-100 to-surface-200 rounded-xl shrink-0 flex items-center justify-center">
+                      <div className="w-20 h-28 bg-gradient-to-br from-surface-100 to-surface-200 rounded-2xl shrink-0 flex items-center justify-center">
                         <svg className="w-8 h-8 text-navy-200" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0" /></svg>
                       </div>
                     )}
@@ -336,23 +339,25 @@ export default function HODApprovals(): React.ReactElement {
                   </div>
 
                   <div onClick={(e) => e.stopPropagation()}>
-                    {/* Rejection reason input */}
+                    {/* Rejection reason input with enhanced styling */}
                     <input
                       type="text"
                       placeholder="Reason for rejection (required if rejecting)"
                       value={reasons[v.id] ?? ''}
                       onChange={(e) => setReasons((r) => ({ ...r, [v.id]: e.target.value }))}
-                      className="input"
+                      className="input mb-3"
                     />
 
-                    {/* Action buttons */}
+                    {/* Action buttons with gradient effects and icons */}
                     <div className="flex gap-3">
                       <button onClick={() => decide(v.id, true)} disabled={acting === v.id}
-                        className="flex-1 bg-gradient-to-r from-success-600 to-success-700 text-white rounded-xl py-3.5 text-sm font-bold hover:from-success-700 hover:to-success-800 disabled:opacity-50 shadow-soft transition-all duration-200 active:scale-[0.98]">
+                        className="flex-1 bg-gradient-to-r from-success-600 to-success-700 text-white rounded-xl py-3.5 text-sm font-bold hover:from-success-700 hover:to-success-800 disabled:opacity-50 shadow-soft transition-all duration-200 active:scale-[0.98] flex items-center justify-center gap-2">
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>
                         Approve
                       </button>
                       <button onClick={() => decide(v.id, false)} disabled={acting === v.id}
-                        className="flex-1 bg-gradient-to-r from-danger-500 to-danger-600 text-white rounded-xl py-3.5 text-sm font-bold hover:from-danger-600 hover:to-danger-700 disabled:opacity-50 shadow-soft transition-all duration-200 active:scale-[0.98]">
+                        className="flex-1 bg-gradient-to-r from-danger-500 to-danger-600 text-white rounded-xl py-3.5 text-sm font-bold hover:from-danger-600 hover:to-danger-700 disabled:opacity-50 shadow-soft transition-all duration-200 active:scale-[0.98] flex items-center justify-center gap-2">
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
                         Reject
                       </button>
                     </div>

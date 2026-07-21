@@ -61,12 +61,24 @@ export default function LoginPage(): React.ReactElement {
         <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.015)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.015)_1px,transparent_1px)] bg-[size:64px_64px]" />
       </div>
 
+      {/* Floating particles */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden">
+        <div className="particle bg-brand-400/20 w-2 h-2" style={{ top: '15%', left: '10%', animationDelay: '0s', animationDuration: '7s' }} />
+        <div className="particle bg-brand-300/15 w-3 h-3" style={{ top: '25%', left: '80%', animationDelay: '1.5s', animationDuration: '9s' }} />
+        <div className="particle bg-white/10 w-1.5 h-1.5" style={{ top: '60%', left: '15%', animationDelay: '3s', animationDuration: '11s' }} />
+        <div className="particle bg-brand-500/15 w-2 h-2" style={{ top: '70%', left: '75%', animationDelay: '2s', animationDuration: '8s' }} />
+        <div className="particle bg-white/8 w-1 h-1" style={{ top: '40%', left: '50%', animationDelay: '4s', animationDuration: '10s' }} />
+        <div className="particle bg-brand-400/10 w-2.5 h-2.5" style={{ top: '85%', left: '30%', animationDelay: '1s', animationDuration: '12s' }} />
+        <div className="particle bg-brand-300/10 w-1.5 h-1.5" style={{ top: '10%', left: '60%', animationDelay: '5s', animationDuration: '9s' }} />
+        <div className="particle bg-white/5 w-2 h-2" style={{ top: '50%', left: '90%', animationDelay: '2.5s', animationDuration: '10s' }} />
+      </div>
+
       <div className="w-full max-w-[440px] relative animate-fade-in">
         {/* Card */}
-        <div className="bg-white/[0.97] backdrop-blur-2xl rounded-3xl shadow-modal p-8 sm:p-10 space-y-8 border border-white/20">
+        <div className="bg-white/[0.97] backdrop-blur-2xl rounded-3xl shadow-modal p-8 sm:p-10 space-y-8 border border-white/20" style={{ boxShadow: '0 25px 80px -12px rgba(0,0,0,0.35), 0 10px 30px -8px rgba(0,0,0,0.15), 0 0 0 1px rgba(255,255,255,0.1), inset 0 1px 0 0 rgba(255,255,255,0.5)' }}>
           {/* Brand Header */}
           <div className="text-center space-y-5">
-            <div className="mx-auto h-20 w-20 rounded-2xl bg-gradient-to-br from-brand-500 to-brand-700 flex items-center justify-center shadow-glow ring-4 ring-brand-500/10">
+            <div className="mx-auto h-20 w-20 rounded-2xl bg-gradient-to-br from-brand-500 to-brand-700 flex items-center justify-center shadow-glow ring-4 ring-brand-500/10 transition-transform duration-300 hover:scale-105 hover:shadow-[0_0_30px_-5px_rgba(51,150,255,0.35)]">
               <svg className="w-10 h-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
               </svg>

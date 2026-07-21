@@ -459,6 +459,60 @@ Approval links in WhatsApp/SMS must open a mobile page where the HOD sees the vi
 
 ---
 
+## 14. Future Enhancements (Post-MVP)
+
+> Based on industry analysis of commercial VMS products (Envoy, SwipedOn, Proxyclick, iLobby), the following features should be considered for future phases. Each is tagged with a feasibility estimate relative to the current stack (React + Vite + Tailwind + Supabase + Vercel).
+>
+> **Feasibility tags:**
+> `[EASY]` Can be built with current stack | `[MEDIUM]` Needs new service/API integration | `[HARD]` Needs significant infrastructure or third-party services | `[EXTERNAL]` Cannot be done without external vendor
+
+### 14.1 Pre-Registration & Self-Service
+
+| ID | Feature | Feasibility | Notes |
+|---|---|---|---|
+| `FR-FUTURE-01` | **QR code-based self check-in kiosk mode** — visitor scans a QR at a tablet kiosk, pre-fills their details, guard reviews and approves | `[EASY]` | QR generation already planned for badges; extend to a kiosk-mode route in the existing React app. No new infra needed. |
+| `FR-FUTURE-02` | **Pre-registration link sent to visitor via email/SMS** — host sends a link, visitor fills details before arrival, arrives pre-approved | `[MEDIUM]` | Requires an outbound email/SMS service (MSG91 or similar already in stack for notifications). Needs a public-facing form route with token-based access. |
+| `FR-FUTURE-03` | **Visitor self-registration on tablet at reception** — full self-service flow including photo capture, ID input, and host notification | `[EASY]` | The guard console is already a web app; a "kiosk mode" CSS/route variant with simplified UX and auto-lock is straightforward. |
+
+### 14.2 Integration & Communication
+
+| ID | Feature | Feasibility | Notes |
+|---|---|---|---|
+| `FR-FUTURE-04` | **WhatsApp/SMS notifications for host when visitor arrives** — real-time alert to the person being visited, not just the HOD | `[MEDIUM]` | WhatsApp Business API already planned for HOD approvals (Phase 2). Extending to hosts is an incremental effort but adds API volume/cost. |
+| `FR-FUTURE-05` | **Slack/Teams integration for visitor notifications** — post visitor arrival alerts to a department channel | `[MEDIUM]` | Requires Slack/Teams webhook or bot registration. Simple outbound webhook is easy; interactive approve/reject buttons add complexity. |
+| `FR-FUTURE-06` | **Calendar integration (Google/Outlook) for scheduled visits** — auto-create a visit entry when a calendar event includes an external attendee | `[MEDIUM]` | Needs OAuth integration with Google Calendar / Microsoft Graph API. Calendar event parsing and visitor extraction require careful mapping. |
+| `FR-FUTURE-07` | **Access control system integration (turnstiles, door locks)** — badge QR or NFC triggers physical access hardware | `[HARD]` | Requires hardware-specific SDKs/APIs (varies by vendor: HID, dormakaba, Gallagher). On-premise relay/bridge server likely needed. Already noted as Phase 3 scope. |
+
+### 14.3 Compliance & Advanced Security
+
+| ID | Feature | Feasibility | Notes |
+|---|---|---|---|
+| `FR-FUTURE-08` | **Watchlist/sanctions screening integration** — auto-check visitor names against government sanctions lists or custom corporate watchlists | `[EXTERNAL]` | Requires integration with commercial screening APIs (Dow Jones, Refinitiv, or government databases). Licensing, legal review, and ongoing data feed costs. |
+| `FR-FUTURE-09` | **Health screening questionnaire at check-in** — configurable questionnaire (COVID, safety induction, etc.) shown during registration | `[EASY]` | A JSON-driven dynamic form added to the check-in flow. No external dependencies. Store responses with the visit record. |
+| `FR-FUTURE-10` | **GDPR/data privacy consent workflow** — explicit consent capture with version tracking, right-to-erasure support, and consent withdrawal | `[EASY]` | Consent record table + UI checkbox at registration. Right-to-erasure builds on the existing retention/purge infrastructure (`NFR-05`). Legal review needed for consent text. |
+| `FR-FUTURE-11` | **Visitor agreement versioning and audit trail** — NDA or site-safety agreements presented at check-in, versioned, with signed acceptance log | `[EASY]` | Document storage in Supabase Storage + a signature capture component (canvas-based). Agreement versions tracked in a `agreements` table. |
+
+### 14.4 Advanced UX
+
+| ID | Feature | Feasibility | Notes |
+|---|---|---|---|
+| `FR-FUTURE-12` | **Dark mode theme** — system-preference-aware or toggle-based dark theme across all roles | `[EASY]` | Tailwind CSS dark mode utilities are already available. Primarily a design/CSS effort with no backend changes. |
+| `FR-FUTURE-13` | **Push notifications (PWA)** — browser push notifications for HOD approvals and guard alerts, even when the tab is not active | `[EASY]` | Service Worker + Web Push API. Supabase Edge Functions can trigger push via web-push library. No native app needed. |
+| `FR-FUTURE-14` | **Offline mode with sync-on-reconnect** — full offline capability for the guard console, not just photo buffering | `[HARD]` | Requires IndexedDB-based local data store, conflict resolution strategy, and background sync. Significantly more complex than the current photo-only offline tolerance (`FR-CAM-11`). |
+| `FR-FUTURE-15` | **Custom branding per tenant (white-label)** — logo, colors, and terminology configurable per site/tenant | `[MEDIUM]` | Needs a tenant configuration table and dynamic theming. Multi-tenant data isolation (RLS policies per tenant) is the harder part if not already architected. |
+| `FR-FUTURE-16` | **Voice-assisted check-in** — voice input for visitor name, company, and purpose using browser Speech Recognition API | `[MEDIUM]` | Web Speech API is available in Chrome but has limited browser support and accuracy issues with names/accents. Would need fallback to manual input and likely a cloud speech API for production reliability. |
+
+### 14.5 Analytics & AI
+
+| ID | Feature | Feasibility | Notes |
+|---|---|---|---|
+| `FR-FUTURE-17` | **Visitor pattern analysis and peak prediction** — historical trend analysis showing peak hours, busiest departments, seasonal patterns | `[EASY]` | SQL aggregation queries on existing visit data + a charting library (already in the React stack). No ML needed for basic trend analysis. |
+| `FR-FUTURE-18` | **Anomaly detection (unusual visit patterns)** — flag unusual frequency, off-hours visits, or visitors hitting multiple departments | `[MEDIUM]` | Simple rule-based detection is easy (SQL queries). True anomaly detection needs a lightweight ML model or statistical engine, possibly run as a Supabase Edge Function on a schedule. |
+| `FR-FUTURE-19` | **Facial recognition for repeat visitors** — camera matches a returning visitor's face against previous photos for faster check-in | `[EXTERNAL]` | Requires a commercial face recognition API (AWS Rekognition, Azure Face, or on-premise solution). Legal/consent review mandatory (`FR-CAM-16` already flags this). GDPR/biometric data laws apply. |
+| `FR-FUTURE-20` | **Automated visitor satisfaction survey** — post-visit SMS/email survey with rating and feedback, aggregated per department | `[MEDIUM]` | Needs outbound messaging (already planned) + a simple survey form + aggregation dashboard. Could use a third-party survey tool (Typeform, Google Forms) or build in-house. |
+
+---
+
 ## Appendix A — Key design decisions & rationale
 
 **Who fills the visitor form?** → **Security guard, assisted (v1).** Industry practice for facilities like this is a hybrid: the guard asks questions and types (fast, consistent data quality, handles non-tech-savvy visitors, guard verifies ID and takes the photo anyway), while frequent/expected visitors bypass typing entirely via pre-registration QR (Phase 2). Pure self-service kiosks work in corporate lobbies with receptionists nearby; at a mall management office gate with mixed visitor literacy, guard-assisted is faster and keeps the queue moving. The system should still be built so a kiosk mode can be enabled later (Phase 3).

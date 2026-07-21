@@ -81,6 +81,13 @@ export default function GuardConsole(): React.ReactElement {
     rejected: { bg: 'bg-danger-50', text: 'text-danger-700', dot: 'bg-danger-500' },
   };
 
+  const STAT_GRADIENTS: Record<string, string> = {
+    all: 'from-navy-50 to-white',
+    checked_in: 'from-brand-50/50 to-white',
+    pending_approval: 'from-warning-50/50 to-white',
+    approved: 'from-success-50/50 to-white',
+  };
+
   const checkedIn = visits.filter((v) => v.status === 'checked_in');
   const pending = visits.filter((v) => v.status === 'pending_approval');
   const approved = visits.filter((v) => v.status === 'approved' || v.status === 'walkin_approved');
@@ -116,24 +123,20 @@ export default function GuardConsole(): React.ReactElement {
         </button>
       </div>
 
-      {/* Summary strip */}
+      {/* Summary strip with gradient stat cards */}
       <div className="grid grid-cols-4 gap-3">
-        <button onClick={() => handleFilter('all')} className={`stat-card text-center cursor-pointer hover:shadow-elevated transition-shadow ${activeFilter === 'all' ? 'ring-2 ring-brand-500' : ''}`}>
-          <p className="stat-value">{visits.length}</p>
-          <p className="stat-label">Total</p>
-        </button>
-        <button onClick={() => handleFilter('checked_in')} className={`stat-card text-center cursor-pointer hover:shadow-elevated transition-shadow ${activeFilter === 'checked_in' ? 'ring-2 ring-brand-500' : ''}`}>
-          <p className="stat-value text-brand-600">{checkedIn.length}</p>
-          <p className="stat-label">Inside</p>
-        </button>
-        <button onClick={() => handleFilter('pending_approval')} className={`stat-card text-center cursor-pointer hover:shadow-elevated transition-shadow ${activeFilter === 'pending_approval' ? 'ring-2 ring-brand-500' : ''}`}>
-          <p className="stat-value text-warning-600">{pending.length}</p>
-          <p className="stat-label">Pending</p>
-        </button>
-        <button onClick={() => handleFilter('approved')} className={`stat-card text-center cursor-pointer hover:shadow-elevated transition-shadow ${activeFilter === 'approved' ? 'ring-2 ring-brand-500' : ''}`}>
-          <p className="stat-value text-success-600">{approved.length}</p>
-          <p className="stat-label">Approved</p>
-        </button>
+        {([
+          { key: 'all' as FilterKey, value: visits.length, label: 'Total', color: '' },
+          { key: 'checked_in' as FilterKey, value: checkedIn.length, label: 'Inside', color: 'text-brand-600' },
+          { key: 'pending_approval' as FilterKey, value: pending.length, label: 'Pending', color: 'text-warning-600' },
+          { key: 'approved' as FilterKey, value: approved.length, label: 'Approved', color: 'text-success-600' },
+        ]).map(({ key, value, label, color }) => (
+          <button key={key} onClick={() => handleFilter(key)}
+            className={`stat-card text-center cursor-pointer hover:shadow-elevated transition-all bg-gradient-to-b ${STAT_GRADIENTS[key]} ${activeFilter === key ? 'ring-2 ring-brand-500 shadow-glow-sm' : ''}`}>
+            <p className={`stat-value ${color}`}>{value}</p>
+            <p className="stat-label">{label}</p>
+          </button>
+        ))}
       </div>
 
       {/* Alerts */}
@@ -207,7 +210,7 @@ export default function GuardConsole(): React.ReactElement {
             <div className="space-y-3">
               {[1, 2, 3].map((i) => (
                 <div key={i} className="card p-5">
-                  <div className="flex gap-4 animate-pulse">
+                  <div className="flex gap-4">
                     <div className="w-14 h-[72px] skeleton rounded-xl" />
                     <div className="flex-1 space-y-2.5">
                       <div className="h-4 skeleton w-1/3" />
@@ -229,17 +232,17 @@ export default function GuardConsole(): React.ReactElement {
               </button>
             </div>
           ) : (
-            filteredVisits.map((v) => {
+            filteredVisits.map((v, idx) => {
               const style = STATUS_STYLES[v.status];
               const dur = v.status === 'checked_in' ? formatDuration(v.checked_in_at) : null;
               return (
-                <div key={v.id} className="card p-4 hover:shadow-elevated transition-shadow cursor-pointer" onClick={() => setDetailVisit(v)}>
+                <div key={v.id} className="card p-4 hover:shadow-elevated hover:-translate-y-0.5 transition-all duration-200 cursor-pointer animate-fade-in" style={{ animationDelay: `${idx * 0.03}s` }} onClick={() => setDetailVisit(v)}>
                   <div className="flex gap-4 items-start">
-                    <div className="shrink-0">
+                    <div className="shrink-0 relative">
                       {v.photo_url ? (
-                        <img src={v.photo_url} alt="" className="w-14 h-[72px] object-cover rounded-xl" />
+                        <img src={v.photo_url} alt="" className="w-14 h-[72px] object-cover rounded-xl" style={{ boxShadow: '0 0 0 2px rgba(51,150,255,0.08)' }} />
                       ) : (
-                        <div className="w-14 h-[72px] bg-surface-100 rounded-xl flex items-center justify-center">
+                        <div className="w-14 h-[72px] bg-gradient-to-br from-surface-50 to-surface-200 rounded-xl flex items-center justify-center">
                           <svg className="w-5 h-5 text-navy-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0" /></svg>
                         </div>
                       )}
@@ -254,11 +257,12 @@ export default function GuardConsole(): React.ReactElement {
                           <p className="text-xs text-navy-300 mt-0.5">{v.department?.name} · {v.host?.full_name}</p>
                         </div>
                         <span className={`status-badge ${style.bg} ${style.text}`}>
-                          <span className={`h-1.5 w-1.5 rounded-full ${style.dot}`} />
+                          <span className={`h-1.5 w-1.5 rounded-full ${style.dot}`} style={v.status === 'checked_in' ? { animation: 'pulseRing 2s ease-in-out infinite', color: 'rgb(51,150,255)' } : undefined} />
                           {v.status.replace('_', ' ')}
                         </span>
                       </div>
-                      <div className="flex items-center gap-2 mt-1.5">
+                      {/* Info row with subtle separator */}
+                      <div className="flex items-center gap-2 mt-2 pt-2" style={{ borderTop: '1px solid rgba(228,228,231,0.4)' }}>
                         <p className="text-[11px] text-navy-300 font-mono">{v.ref_number}</p>
                         <span className="text-navy-200">·</span>
                         <p className="text-[11px] text-navy-300">Reg: {formatTime(v.created_at)}</p>
@@ -284,12 +288,18 @@ export default function GuardConsole(): React.ReactElement {
                       <div className="flex gap-2 mt-3" onClick={(e) => e.stopPropagation()}>
                         {v.status === 'approved' && (
                           <>
-                            <button onClick={() => checkIn(v)} className="btn-accent text-xs px-4 py-2">Check In</button>
-                            <button onClick={() => setBadgeVisit(v)} className="btn-secondary text-xs px-4 py-2">Print Badge</button>
+                            <button onClick={() => checkIn(v)} className="bg-gradient-to-r from-brand-600 to-brand-700 text-white rounded-xl text-xs px-4 py-2 font-semibold hover:from-brand-700 hover:to-brand-800 active:scale-[0.98] transition-all shadow-soft flex items-center gap-1.5">
+                              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75" /></svg>
+                              Check In
+                            </button>
+                            <button onClick={() => setBadgeVisit(v)} className="btn-secondary text-xs px-4 py-2 flex items-center gap-1.5">
+                              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6.72 13.829c-.24.03-.48.062-.72.096m.72-.096a42.415 42.415 0 0110.56 0m-10.56 0L6.34 18m10.94-4.171c.24.03.48.062.72.096m-.72-.096L17.66 18m0 0l.229 2.523a1.125 1.125 0 01-1.12 1.227H7.231c-.662 0-1.18-.568-1.12-1.227L6.34 18m11.318 0h1.091A2.25 2.25 0 0021 15.75V9.456c0-1.081-.768-2.015-1.837-2.175a48.055 48.055 0 00-1.913-.247M6.34 18H5.25A2.25 2.25 0 013 15.75V9.456c0-1.081.768-2.015 1.837-2.175a48.041 48.041 0 011.913-.247m10.5 0a48.536 48.536 0 00-10.5 0m10.5 0V3.375c0-.621-.504-1.125-1.125-1.125h-8.25c-.621 0-1.125.504-1.125 1.125v3.659M18.75 12h.008v.008h-.008V12zm-3 0h.008v.008h-.008V12z" /></svg>
+                              Print Badge
+                            </button>
                           </>
                         )}
                         {v.status === 'rejected' && v.rejection_reason && (
-                          <p className="text-xs text-danger-600 bg-danger-50 px-3 py-2 rounded-lg">Rejected: {v.rejection_reason}</p>
+                          <p className="text-xs text-danger-600 bg-danger-50 px-3 py-2 rounded-lg border border-danger-100">Rejected: {v.rejection_reason}</p>
                         )}
                       </div>
                     </div>
@@ -310,12 +320,12 @@ export default function GuardConsole(): React.ReactElement {
           {checkedIn.map((v) => {
             const dur = formatDuration(v.checked_in_at);
             return (
-              <div key={v.id} className="card p-4 flex items-center justify-between gap-4 cursor-pointer hover:shadow-elevated transition-shadow" onClick={() => setDetailVisit(v)}>
+              <div key={v.id} className="card p-4 flex items-center justify-between gap-4 cursor-pointer hover:shadow-elevated hover:-translate-y-0.5 transition-all duration-200" onClick={() => setDetailVisit(v)}>
                 <div className="flex items-center gap-3">
                   {v.photo_url ? (
-                    <img src={v.photo_url} alt="" className="w-10 h-10 object-cover rounded-lg" />
+                    <img src={v.photo_url} alt="" className="w-10 h-10 object-cover rounded-lg" style={{ boxShadow: '0 0 0 2px rgba(51,150,255,0.1)' }} />
                   ) : (
-                    <div className="w-10 h-10 bg-surface-100 rounded-lg flex items-center justify-center">
+                    <div className="w-10 h-10 bg-gradient-to-br from-surface-50 to-surface-200 rounded-lg flex items-center justify-center">
                       <svg className="w-4 h-4 text-navy-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0" /></svg>
                     </div>
                   )}
@@ -328,7 +338,10 @@ export default function GuardConsole(): React.ReactElement {
                   </div>
                 </div>
                 <div onClick={(e) => e.stopPropagation()}>
-                  <button onClick={() => logExit(v)} className="btn-primary text-sm px-5 py-2.5">Log Exit</button>
+                  <button onClick={() => logExit(v)} className="bg-gradient-to-r from-navy-900 to-navy-800 text-white rounded-xl text-sm px-5 py-2.5 font-semibold hover:from-navy-800 hover:to-navy-700 active:scale-[0.98] transition-all shadow-soft flex items-center gap-2">
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" /></svg>
+                    Log Exit
+                  </button>
                 </div>
               </div>
             );
@@ -346,12 +359,15 @@ export default function GuardConsole(): React.ReactElement {
 
       {/* Badge modal */}
       {badgeVisit && (
-        <div className="fixed inset-0 bg-navy-950/60 backdrop-blur-md flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-3xl p-6 space-y-5 max-w-sm w-full shadow-modal">
+        <div className="modal-overlay">
+          <div className="modal-content p-6 space-y-5">
             <Badge visit={badgeVisit} />
             <div className="flex gap-3 justify-end no-print">
               <button onClick={() => setBadgeVisit(null)} className="btn-secondary">Close</button>
-              <button onClick={() => window.print()} className="btn-primary">Print Badge</button>
+              <button onClick={() => window.print()} className="btn-primary flex items-center gap-2">
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6.72 13.829c-.24.03-.48.062-.72.096m.72-.096a42.415 42.415 0 0110.56 0m-10.56 0L6.34 18m10.94-4.171c.24.03.48.062.72.096m-.72-.096L17.66 18m0 0l.229 2.523a1.125 1.125 0 01-1.12 1.227H7.231c-.662 0-1.18-.568-1.12-1.227L6.34 18m11.318 0h1.091A2.25 2.25 0 0021 15.75V9.456c0-1.081-.768-2.015-1.837-2.175a48.055 48.055 0 00-1.913-.247M6.34 18H5.25A2.25 2.25 0 013 15.75V9.456c0-1.081.768-2.015 1.837-2.175a48.041 48.041 0 011.913-.247m10.5 0a48.536 48.536 0 00-10.5 0m10.5 0V3.375c0-.621-.504-1.125-1.125-1.125h-8.25c-.621 0-1.125.504-1.125 1.125v3.659M18.75 12h.008v.008h-.008V12zm-3 0h.008v.008h-.008V12z" /></svg>
+                Print Badge
+              </button>
             </div>
           </div>
         </div>

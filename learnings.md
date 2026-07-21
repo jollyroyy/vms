@@ -297,6 +297,18 @@ When starting a new project from this template, follow these steps:
 
 **Pattern**: When a filter/tab combo hides a UI element, always check that the element's visibility condition matches ALL paths that can trigger the filter. Don't assume only one path exists.
 
+### 2026-07-21 — Premium UI Revamp + Self-Learning Enforcement
+
+**What happened**:
+- Revamped 7 UI files with premium card designs, modal animations, badge improvements
+- Fixed Approvals.tsx build errors: VisitStatus type narrowing with `as const`, nullish coalescing for STATUS_STYLES
+- All 24 test suites pass (239 tests), only rls.test.ts fails (needs live Supabase)
+- User reinforced: agent must ALWAYS read learnings.md + memory.md before any action — never repeat mistakes
+
+**Lesson**: UI revamps must preserve all test-referenced text content exactly. Always run both `npm test` AND `npm run build` after visual changes. The self-learning loop (memory.md pattern lookup → apply fix → record new patterns) is mandatory, not optional.
+
+**Pattern**: When doing visual-only changes, keep all text content, aria labels, and data attributes unchanged to avoid test breakage.
+
 ### 2026-07-21 — learnings.md Restructured (this entry)
 - learnings.md rewritten from 139-line narrative to comprehensive self-learning document
 - Now includes: architecture map, security blueprint (do + don't), UI/UX anti-patterns, error catalog, scaffolding checklist, learning log

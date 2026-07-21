@@ -97,25 +97,25 @@ export default function WhosInside(): React.ReactElement {
         </div>
       </div>
 
-      {/* Stat summary */}
+      {/* Stat summary with gradient backgrounds */}
       <div className="grid grid-cols-4 gap-3">
         <button onClick={() => { setTab('checked_in'); setActiveFilter(activeFilter === 'checked_in' ? null : 'checked_in'); }}
-          className={`stat-card items-center text-center cursor-pointer hover:shadow-elevated transition-shadow ${activeFilter === 'checked_in' ? 'ring-2 ring-brand-500' : ''}`}>
+          className={`stat-card items-center text-center cursor-pointer hover:shadow-elevated transition-all bg-gradient-to-b from-brand-50/50 to-white ${activeFilter === 'checked_in' ? 'ring-2 ring-brand-500 shadow-glow-sm' : ''}`}>
           <p className="stat-value text-brand-600">{checkedIn.length}</p>
           <p className="stat-label">Inside</p>
         </button>
         <button onClick={() => { setTab('pre_approved'); setActiveFilter(activeFilter === 'pre_approved' ? null : 'pre_approved'); }}
-          className={`stat-card items-center text-center cursor-pointer hover:shadow-elevated transition-shadow ${activeFilter === 'pre_approved' ? 'ring-2 ring-brand-500' : ''}`}>
+          className={`stat-card items-center text-center cursor-pointer hover:shadow-elevated transition-all bg-gradient-to-b from-success-50/50 to-white ${activeFilter === 'pre_approved' ? 'ring-2 ring-brand-500 shadow-glow-sm' : ''}`}>
           <p className="stat-value text-success-600">{preApproved.length}</p>
           <p className="stat-label">Pre-Approved</p>
         </button>
         <button onClick={() => { setTab('walkin_approved'); setActiveFilter(activeFilter === 'walkin_approved' ? null : 'walkin_approved'); }}
-          className={`stat-card items-center text-center cursor-pointer hover:shadow-elevated transition-shadow ${activeFilter === 'walkin_approved' ? 'ring-2 ring-brand-500' : ''}`}>
+          className={`stat-card items-center text-center cursor-pointer hover:shadow-elevated transition-all bg-gradient-to-b from-brand-50/30 to-white ${activeFilter === 'walkin_approved' ? 'ring-2 ring-brand-500 shadow-glow-sm' : ''}`}>
           <p className="stat-value text-brand-600">{walkinApproved.length}</p>
           <p className="stat-label">Approved</p>
         </button>
         <button onClick={() => { setTab('checked_in'); setActiveFilter(activeFilter === 'pending_approval' ? null : 'pending_approval'); }}
-          className={`stat-card items-center text-center cursor-pointer hover:shadow-elevated transition-shadow ${activeFilter === 'pending_approval' ? 'ring-2 ring-brand-500' : ''}`}>
+          className={`stat-card items-center text-center cursor-pointer hover:shadow-elevated transition-all bg-gradient-to-b from-warning-50/50 to-white ${activeFilter === 'pending_approval' ? 'ring-2 ring-brand-500 shadow-glow-sm' : ''}`}>
           <p className="stat-value text-warning-600">{pending.length}</p>
           <p className="stat-label">Pending</p>
         </button>
@@ -208,7 +208,7 @@ export default function WhosInside(): React.ReactElement {
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {[1, 2, 3, 4, 5, 6].map((i) => (
             <div key={i} className="card p-4">
-              <div className="flex gap-3 animate-pulse">
+              <div className="flex gap-3">
                 <div className="w-12 h-16 skeleton rounded-xl" />
                 <div className="flex-1 space-y-2">
                   <div className="h-4 skeleton w-2/3" />
@@ -223,7 +223,7 @@ export default function WhosInside(): React.ReactElement {
 
       {!loading && displayed.length === 0 && !error && (
         <div className="empty-state py-20">
-          <div className="inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-surface-100 mb-4">
+          <div className="inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-surface-100 to-surface-200 mb-4">
             <svg className="w-8 h-8 text-navy-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 21h19.5m-18-18v18m10.5-18v18m6-13.5V21M6.75 6.75h.75m-.75 3h.75m-.75 3h.75m3-6h.75m-.75 3h.75m-.75 3h.75M6.75 21v-3.375c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21M3 3h12m-.75 4.5H21m-3.75 7.5h.008v.008h-.008v-.008zm0 3h.008v.008h-.008v-.008z" /></svg>
           </div>
           <p className="text-lg font-medium text-navy-500">
@@ -237,15 +237,19 @@ export default function WhosInside(): React.ReactElement {
 
       {/* Visitor grid */}
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        {displayed.map((v) => {
+        {displayed.map((v, idx) => {
           const style = STATUS_STYLES[v.status];
           const dur = v.status === 'checked_in' && v.checked_in_at ? formatDuration(v.checked_in_at) : null;
           return (
-            <div key={v.id} className="card-hover p-4 cursor-pointer" onClick={() => setDetailVisit(v)}>
+            <div key={v.id}
+              className="card p-4 cursor-pointer hover:shadow-elevated hover:-translate-y-0.5 transition-all duration-200 animate-fade-in"
+              style={{ animationDelay: `${idx * 0.03}s` }}
+              onClick={() => setDetailVisit(v)}
+            >
               <div className="flex gap-3 items-start">
-                <div className="shrink-0">
+                <div className="shrink-0 relative">
                   {v.photo_url ? (
-                    <img src={v.photo_url} alt="" className="w-12 h-16 object-cover rounded-xl shadow-xs" />
+                    <img src={v.photo_url} alt="" className="w-12 h-16 object-cover rounded-xl" style={{ boxShadow: '0 0 0 2px rgba(51,150,255,0.08)' }} />
                   ) : (
                     <div className="w-12 h-16 bg-gradient-to-br from-surface-100 to-surface-200 rounded-xl flex items-center justify-center">
                       <svg className="w-5 h-5 text-navy-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0" /></svg>
@@ -256,21 +260,28 @@ export default function WhosInside(): React.ReactElement {
                   <div className="flex items-start justify-between gap-1">
                     <p className="font-semibold text-navy-900 truncate text-sm">{v.visitor?.full_name ?? '—'}</p>
                     <span className={`shrink-0 status-badge ${style.bg} ${style.text}`}>
-                      <span className={`h-1.5 w-1.5 rounded-full ${style.dot}`} />
+                      <span
+                        className={`h-1.5 w-1.5 rounded-full ${style.dot}`}
+                        style={v.status === 'checked_in' ? { animation: 'pulseRing 2s ease-in-out infinite', color: 'rgb(51,150,255)' } : undefined}
+                      />
                       {style.label}
                     </span>
                   </div>
                   <p className="text-xs text-navy-400 truncate">{v.visitor?.company}</p>
-                  <p className="text-xs text-navy-300 mt-1.5 truncate">{v.department?.name} · {v.host?.full_name}</p>
-                  <p className="text-xs text-navy-300 mt-0.5">Reg: {formatTime(v.created_at)}</p>
-                  {v.checked_in_at && <p className="text-xs text-navy-300">In: {formatTime(v.checked_in_at)}</p>}
-                  {v.checked_out_at && <p className="text-xs text-navy-300">Out: {formatTime(v.checked_out_at)}</p>}
-                  <p className="text-[10px] text-navy-300 font-mono mt-1">{v.ref_number}</p>
-                  {dur && (
-                    <p className={`text-xs mt-0.5 ${dur.isOvertime ? 'text-danger-600 font-bold' : 'text-navy-400'}`}>
-                      Duration: {dur.text}{dur.isOvertime ? ' ⚠️' : ''}
-                    </p>
-                  )}
+                  {/* Separator line */}
+                  <div className="mt-2 pt-2" style={{ borderTop: '1px solid rgba(228,228,231,0.4)' }}>
+                    <p className="text-xs text-navy-300 truncate">{v.department?.name} · {v.host?.full_name}</p>
+                    <p className="text-xs text-navy-300 mt-0.5">Reg: {formatTime(v.created_at)}</p>
+                    {v.checked_in_at && <p className="text-xs text-navy-300">In: {formatTime(v.checked_in_at)}</p>}
+                    {v.checked_out_at && <p className="text-xs text-navy-300">Out: {formatTime(v.checked_out_at)}</p>}
+                    <p className="text-[10px] text-navy-300 font-mono mt-1">{v.ref_number}</p>
+                    {dur && (
+                      <p className={`text-xs mt-1 flex items-center gap-1 ${dur.isOvertime ? 'text-danger-600 font-bold' : 'text-navy-400'}`}>
+                        <svg className="w-3 h-3 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                        Duration: {dur.text}{dur.isOvertime ? ' ⚠️' : ''}
+                      </p>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
