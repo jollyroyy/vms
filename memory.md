@@ -52,7 +52,7 @@
 
 **Pattern:** `clear_pre_approved` RPC raises "Only Guard, HOD, or Admin can clear pre-approvals" even for logged-in HOD.
 **Cause:** RPC reads role from `auth.jwt() -> 'app_metadata' ->> 'role'`, but Supabase JWT stores the app-level role in `user_metadata`, not `app_metadata`. The existing trigger `enforce_visit_update_rules` correctly uses `user_metadata`.
-**Fix:** Change the RPC to use `coalesce(auth.jwt() -> 'user_metadata' ->> 'role', '')` — same pattern as the existing trigger. For extra robustness, check both locations.
+**Fix:** Change the RPC to use `coalesce(auth.jwt() -> 'app_metadata' ->> 'role', auth.jwt() -> 'user_metadata' ->> 'role', '')`. `app_metadata` MUST come first because it is server-controlled — `user_metadata` is user-editable and would allow privilege escalation if it took priority.
 **Prevention:** When reading JWT claims in PL/pgSQL, always match the metadata location used by existing trigger functions. In Supabase Auth, the application role lives in `user_metadata` (from `raw_user_meta_data`), while `app_metadata` (from `raw_app_meta_data`) typically only contains provider info.
 **Tags:** `#supabase` `#rls` `#postgres`
 **First seen:** 2026-07-21

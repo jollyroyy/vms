@@ -25,9 +25,9 @@ returns void language plpgsql security definer set search_path = '' as $$
 declare
   hod_dept uuid;
   visit_dept uuid;
-  jwt_role text := coalesce(auth.jwt() -> 'user_metadata' ->> 'role', auth.jwt() -> 'app_metadata' ->> 'role', '');
+  jwt_role text := coalesce(auth.jwt() -> 'app_metadata' ->> 'role', auth.jwt() -> 'user_metadata' ->> 'role', '');
 begin
-  hod_dept := coalesce((auth.jwt() -> 'user_metadata' ->> 'department_id')::uuid, (auth.jwt() -> 'app_metadata' ->> 'department_id')::uuid);
+  hod_dept := coalesce((auth.jwt() -> 'app_metadata' ->> 'department_id')::uuid, (auth.jwt() -> 'user_metadata' ->> 'department_id')::uuid);
   if jwt_role not in ('hod','admin','super_admin') then
     raise exception 'Only HOD or Admin can approve visits.';
   end if;
@@ -50,12 +50,12 @@ returns void language plpgsql security definer set search_path = '' as $$
 declare
   hod_dept uuid;
   visit_dept uuid;
-  jwt_role text := coalesce(auth.jwt() -> 'user_metadata' ->> 'role', auth.jwt() -> 'app_metadata' ->> 'role', '');
+  jwt_role text := coalesce(auth.jwt() -> 'app_metadata' ->> 'role', auth.jwt() -> 'user_metadata' ->> 'role', '');
 begin
   if reason is null or trim(reason) = '' then
     raise exception 'Rejection reason is required.';
   end if;
-  hod_dept := coalesce((auth.jwt() -> 'user_metadata' ->> 'department_id')::uuid, (auth.jwt() -> 'app_metadata' ->> 'department_id')::uuid);
+  hod_dept := coalesce((auth.jwt() -> 'app_metadata' ->> 'department_id')::uuid, (auth.jwt() -> 'user_metadata' ->> 'department_id')::uuid);
   if jwt_role not in ('hod','admin','super_admin') then
     raise exception 'Only HOD or Admin can reject visits.';
   end if;
@@ -77,7 +77,7 @@ $$;
 create or replace function public.enforce_visit_update_rules()
 returns trigger language plpgsql as $$
 declare
-  jwt_role text := coalesce(auth.jwt() -> 'user_metadata' ->> 'role', auth.jwt() -> 'app_metadata' ->> 'role', '');
+  jwt_role text := coalesce(auth.jwt() -> 'app_metadata' ->> 'role', auth.jwt() -> 'user_metadata' ->> 'role', '');
 begin
   if public.is_service_role() then return new; end if;
   new.ref_number := old.ref_number;

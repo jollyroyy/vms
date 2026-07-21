@@ -53,7 +53,7 @@ Key: **Fixed** = code change made in this iteration. Won't fix = acceptable beha
 
 **Root cause**: The RPC read the role from `auth.jwt() -> 'app_metadata' ->> 'role'`, but security-definer RPCs and triggers throughout the codebase inconsistently use either `app_metadata` or `user_metadata`. Supabase stores the app-level role in `raw_user_meta_data` (mapped to JWT `user_metadata`) for users created via the Admin Panel, while `raw_app_meta_data` typically only has provider info. When `app_metadata` returned NULL, the RPC's `if null not in (...)` evaluated as false (PostgreSQL behavior), bypassing the guard — but the trigger caught it with its own check.
 
-**Fix**: Changed both the `clear_pre_approved` RPC and the `enforce_visit_update_rules` trigger to use `coalesce(auth.jwt() -> 'user_metadata' ->> 'role', auth.jwt() -> 'app_metadata' ->> 'role', '')` — checking both metadata locations with a default empty string.
+**Fix**: Changed all role-checking functions to use `coalesce(auth.jwt() -> 'app_metadata' ->> 'role', auth.jwt() -> 'user_metadata' ->> 'role', '')`. **Critical**: `app_metadata` must be checked FIRST because it is server-controlled — `user_metadata` is user-editable via `supabase.auth.updateUser()` and would allow privilege escalation if it took priority. The `user_metadata` fallback is only for legacy users whose roles were stored there before migration 010 moved them to `app_metadata`.
 
 **Also fixed**: WhosInside.tsx separated the clear-error state from the load-error state (was sharing `setError`, showing misleading "Failed to load:" prefix for clear failures). Added 3 new tests covering Clear All click, RPC error display, and cancel confirmation. 9 tests total for WhosInside, all green.
 
