@@ -17,6 +17,7 @@ import AnalyticsPage      from './pages/Shared/Analytics';
 import AdminPanel         from './pages/Admin/AdminPanel';
 import ActivityPage       from './pages/Admin/Activity';
 import NotFoundPage       from './pages/NotFound';
+import KioskPage          from './pages/Kiosk/Kiosk';
 import Navbar             from './components/Navbar';
 import SessionTimeout     from './components/SessionTimeout';
 
@@ -102,6 +103,7 @@ export default function App(): React.ReactElement {
           <Routes>
             <Route path="/" element={<Navigate to={allowed[0] ?? '/guard'} replace />} />
             <Route path="/guard"           element={<ProtectedRoute role={role}><GuardConsole /></ProtectedRoute>} />
+            <Route path="/kiosk"          element={<ProtectedRoute role={role}><KioskPage /></ProtectedRoute>} />
             <Route path="/approvals"       element={<ProtectedRoute role={role}><HODApprovals /></ProtectedRoute>} />
             <Route path="/whos-inside"     element={<ProtectedRoute role={role}><WhosInside /></ProtectedRoute>} />
             <Route path="/gate-passes"     element={<ProtectedRoute role={role}><GatePassList /></ProtectedRoute>} />

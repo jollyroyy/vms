@@ -5,6 +5,7 @@ import { attachHostNames } from '../../lib/hostNames';
 import { safeErrorMessage } from '../../lib/errors';
 import { formatDateTime, formatTime, formatDuration } from '../../lib/formatDate';
 import { maskPhone } from '../../lib/pii';
+import { Link } from 'react-router-dom';
 import VisitorForm from './VisitorForm';
 import Badge from '../../components/Badge';
 import VisitorDetails from '../../components/VisitorDetails';
@@ -120,12 +121,20 @@ export default function GuardConsole(): React.ReactElement {
             {new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'short', year: 'numeric' })}
           </p>
         </div>
-        <button onClick={() => void loadVisits()} className="btn-secondary text-sm flex items-center gap-2" title="Refresh">
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
-          </svg>
-          Refresh
-        </button>
+        <div className="flex items-center gap-2">
+          <Link to="/kiosk" className="btn-secondary text-sm flex items-center gap-2" title="Open Kiosk Mode">
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 1.5H8.25A2.25 2.25 0 006 3.75v16.5a2.25 2.25 0 002.25 2.25h7.5A2.25 2.25 0 0018 20.25V3.75a2.25 2.25 0 00-2.25-2.25H13.5m-3 0V3h3V1.5m-3 0h3m-3 18.75h3" />
+            </svg>
+            Kiosk
+          </Link>
+          <button onClick={() => void loadVisits()} className="btn-secondary text-sm flex items-center gap-2" title="Refresh">
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
+            </svg>
+            Refresh
+          </button>
+        </div>
       </div>
 
       {/* Summary strip with gradient stat cards */}

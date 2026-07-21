@@ -31,6 +31,9 @@ describe('SEC-7: frontend route protection', () => {
     it('guard is allowed on /gate-passes', () => {
       expect(isForbidden('/gate-passes', role)).toBe(false);
     });
+    it('guard is allowed on /kiosk', () => {
+      expect(isForbidden('/kiosk', role)).toBe(false);
+    });
     it('guard is FORBIDDEN on /reports', () => {
       expect(isForbidden('/reports', role)).toBe(true);
     });
@@ -52,6 +55,9 @@ describe('SEC-7: frontend route protection', () => {
     });
     it('hod is FORBIDDEN on /guard', () => {
       expect(isForbidden('/guard', role)).toBe(true);
+    });
+    it('hod is FORBIDDEN on /kiosk', () => {
+      expect(isForbidden('/kiosk', role)).toBe(true);
     });
     it('hod is FORBIDDEN on /admin', () => {
       expect(isForbidden('/admin', role)).toBe(true);
