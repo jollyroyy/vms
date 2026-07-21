@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { supabase } from '../../supabaseClient';
+import { normalizePhone } from '../../lib/blacklist';
 import type { Department, Profile, Visitor, UserRole } from '../../types/index';
 
 type Tab = 'departments' | 'users' | 'blacklist';
@@ -310,20 +311,27 @@ function BlacklistTab(): React.ReactElement {
   const [phone, setPhone] = useState('');
   const [reason, setReason] = useState('');
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
   const load = useCallback(async () => { const { data } = await supabase.from('visitors').select('*').eq('is_blacklisted', true).order('full_name'); setEntries(data ?? []); }, []);
   useEffect(() => { void load(); }, [load]);
   const add = async (e: React.FormEvent) => {
-    e.preventDefault(); setSaving(true);
-    await supabase.from('visitors').upsert({ phone, full_name: '(Blacklisted)', is_blacklisted: true, blacklist_reason: reason }, { onConflict: 'phone' });
-    setPhone(''); setReason(''); await load(); setSaving(false);
+    e.preventDefault(); setSaving(true); setError('');
+    let normalized: string;
+    try { normalized = normalizePhone(phone); } catch { setSaving(false); return; }
+    try {
+      await supabase.from('visitors').upsert({ phone: normalized, full_name: '(Blacklisted)', is_blacklisted: true, blacklist_reason: reason }, { onConflict: 'phone' });
+      setPhone(''); setReason(''); await load();
+    } catch (err) { setError(err instanceof Error ? err.message : 'Failed to blacklist.'); }
+    finally { setSaving(false); }
   };
   const remove = async (id: string) => { await supabase.from('visitors').update({ is_blacklisted: false, blacklist_reason: null }).eq('id', id); await load(); };
 
   return (
     <div className="space-y-5">
+      {error && <div className="rounded-xl bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">{error}</div>}
       <form onSubmit={add} className="card p-5 flex gap-3 flex-wrap items-end">
-        <div className="flex-1 min-w-40"><label className="label">Phone Number</label><input required type="tel" placeholder="+91 98765 43210" value={phone} onChange={(e) => setPhone(e.target.value)} className="input" /></div>
-        <div className="flex-1 min-w-40"><label className="label">Reason</label><input required placeholder="Reason for blacklisting" value={reason} onChange={(e) => setReason(e.target.value)} className="input" /></div>
+        <div className="flex-1 min-w-40"><label className="label">Phone Number</label><input required type="tel" maxLength={20} placeholder="+91 98765 43210" value={phone} onChange={(e) => setPhone(e.target.value)} className="input" /></div>
+        <div className="flex-1 min-w-40"><label className="label">Reason</label><input required maxLength={500} placeholder="Reason for blacklisting" value={reason} onChange={(e) => setReason(e.target.value)} className="input" /></div>
         <button type="submit" disabled={saving} className="bg-red-600 text-white rounded-xl px-5 py-2.5 text-sm font-semibold hover:bg-red-700 disabled:opacity-50 shadow-sm transition-all">{saving ? 'Adding...' : 'Blacklist'}</button>
       </form>
       <div className="space-y-2">

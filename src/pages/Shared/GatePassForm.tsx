@@ -4,6 +4,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../supabaseClient';
+import { safeErrorMessage } from '../../lib/errors';
 import type { Department, GatePassDir, GatePassType, GatePassItem } from '../../types/index';
 
 type ItemLine = Omit<GatePassItem, 'id' | 'gate_pass_id' | 'returned_qty'>;
@@ -41,7 +42,7 @@ export default function GatePassForm(): React.ReactElement {
       );
       if (itemErr) throw itemErr;
       nav('/gate-passes');
-    } catch (err) { setError(err instanceof Error ? err.message : String(err)); }
+    } catch (err) { setError(safeErrorMessage(err, 'Failed to create gate pass.')); }
     finally { setSubmitting(false); }
   };
 
@@ -69,9 +70,9 @@ export default function GatePassForm(): React.ReactElement {
           </div>
         </div>
         <div><label className="label">Department *</label><select required value={deptId} onChange={(e) => setDeptId(e.target.value)} className="input"><option value="">Select department</option>{departments.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}</select></div>
-        {type === 'RGP' && (<div><label className="label">Expected Return Date *</label><input type="date" required={type === 'RGP'} value={dueDate} onChange={(e) => setDueDate(e.target.value)} className="input" /></div>)}
-        <div className="sm:col-span-2"><label className="label">Reason / Purpose *</label><input type="text" required value={reason} onChange={(e) => setReason(e.target.value)} className="input" placeholder="Describe the purpose" /></div>
-        <div className="sm:col-span-2"><label className="label">Carrier (Person / Vehicle)</label><input type="text" value={carrier} onChange={(e) => setCarrier(e.target.value)} className="input" placeholder="Name or vehicle no." /></div>
+        {type === 'RGP' && (<div><label className="label">Expected Return Date *</label><input type="date" required={type === 'RGP'} value={dueDate} onChange={(e) => setDueDate(e.target.value)} min={new Date().toISOString().split('T')[0]} className="input" /></div>)}
+        <div className="sm:col-span-2"><label className="label">Reason / Purpose *</label><input type="text" required maxLength={500} value={reason} onChange={(e) => setReason(e.target.value)} className="input" placeholder="Describe the purpose" /></div>
+        <div className="sm:col-span-2"><label className="label">Carrier (Person / Vehicle)</label><input type="text" maxLength={100} value={carrier} onChange={(e) => setCarrier(e.target.value)} className="input" placeholder="Name or vehicle no." /></div>
       </div>
 
       <div>
@@ -82,9 +83,9 @@ export default function GatePassForm(): React.ReactElement {
         <div className="space-y-2">
           {items.map((it, idx) => (
             <div key={idx} className="card p-3 grid grid-cols-12 gap-2 items-center text-sm">
-              <input placeholder="Description" required value={it.description} onChange={(e) => updateItem(idx, 'description', e.target.value)} className="input col-span-5" />
-              <input type="number" placeholder="Qty" required min={1} value={it.qty} onChange={(e) => updateItem(idx, 'qty', Number(e.target.value))} className="input col-span-2" />
-              <input placeholder="Serial no." value={it.serial_no ?? ''} onChange={(e) => updateItem(idx, 'serial_no', e.target.value || null)} className="input col-span-3" />
+              <input placeholder="Description" required maxLength={200} value={it.description} onChange={(e) => updateItem(idx, 'description', e.target.value)} className="input col-span-5" />
+              <input type="number" placeholder="Qty" required min={1} max={99999} value={it.qty} onChange={(e) => updateItem(idx, 'qty', Number(e.target.value))} className="input col-span-2" />
+              <input placeholder="Serial no." maxLength={100} value={it.serial_no ?? ''} onChange={(e) => updateItem(idx, 'serial_no', e.target.value || null)} className="input col-span-3" />
               <button type="button" onClick={() => removeItem(idx)} disabled={items.length === 1} className="col-span-2 text-red-500 hover:text-red-700 text-xs font-medium disabled:opacity-30 transition-colors">Remove</button>
             </div>
           ))}

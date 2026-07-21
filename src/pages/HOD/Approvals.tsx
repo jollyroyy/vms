@@ -343,6 +343,7 @@ export default function HODApprovals(): React.ReactElement {
                     {/* Rejection reason input with enhanced styling */}
                     <input
                       type="text"
+                      maxLength={500}
                       placeholder="Reason for rejection (required if rejecting)"
                       value={reasons[v.id] ?? ''}
                       onChange={(e) => setReasons((r) => ({ ...r, [v.id]: e.target.value }))}

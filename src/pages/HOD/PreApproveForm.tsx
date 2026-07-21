@@ -96,6 +96,7 @@ export default function PreApproveForm({ onPreApproved }: Props): React.ReactEle
         p_phone: normalized,
         p_full_name: fullName,
         p_company: company || null,
+        p_vehicle_number: vehicle || null,
         p_department_id: deptId,
         p_host_id: hostId,
         p_purpose: purpose,
@@ -129,7 +130,7 @@ export default function PreApproveForm({ onPreApproved }: Props): React.ReactEle
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-5 gap-y-4">
         <div>
           <label className="label">Mobile Number *</label>
-          <input type="tel" required value={phone}
+          <input type="tel" required maxLength={20} value={phone}
             onChange={(e) => { setPhone(e.target.value); setBlacklistHit(null); }}
             onBlur={recallByPhone} placeholder="+91 98765 43210" className="input" />
         </div>
@@ -162,7 +163,7 @@ export default function PreApproveForm({ onPreApproved }: Props): React.ReactEle
             {hosts.map((h) => <option key={h.id} value={h.id}>{h.full_name}</option>)}
           </select>
         </div>
-        <div className="sm:col-span-2"><label className="label">Vehicle Number (optional)</label><input type="text" value={vehicle} onChange={(e) => setVehicle(e.target.value)} className="input" placeholder="MH 12 AB 1234" /></div>
+        <div className="sm:col-span-2"><label className="label">Vehicle Number (optional)</label><input type="text" maxLength={20} value={vehicle} onChange={(e) => setVehicle(e.target.value)} className="input" placeholder="MH 12 AB 1234" /></div>
       </div>
 
       {error && (

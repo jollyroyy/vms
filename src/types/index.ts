@@ -36,6 +36,7 @@ export type Visitor = {
   company: string | null;
   id_type: string | null;
   id_last4: string | null;
+  vehicle_number: string | null;
   is_blacklisted: boolean;
   blacklist_reason: string | null;
   created_at: string;
@@ -50,20 +51,28 @@ export type Visit = {
   department_id: string;
   host_id: string;
   purpose: VisitorPurpose;
-  photo_path: string | null; // reserved for future cloud storage path
-  photo_data: string | null; // base64 data URL stored locally in DB
+  photo_path: string | null;
+  photo_data: string | null;
   status: VisitStatus;
   checked_in_at: string | null;
   checked_out_at: string | null;
   exit_verified: boolean | null;
   rejection_reason: string | null;
   carrying_material: boolean;
+  emergency_contact_name: string | null;
+  emergency_contact_phone: string | null;
+  expected_duration_minutes: number | null;
+  consent_privacy: boolean;
+  consent_site_rules: boolean;
+  nda_signature: string | null;
+  privacy_signature: string | null;
+  site_rules_signature: string | null;
   created_at: string;
   // joined fields (populated by views/RPCs)
   visitor?: Visitor;
   department?: Department;
   host?: Pick<Profile, 'id' | 'full_name'>;
-  photo_url?: string; // alias: same as photo_data (for display components)
+  photo_url?: string;
 };
 
 export type GatePassType   = 'RGP' | 'NRGP';
@@ -147,6 +156,7 @@ export type Database = {
           company?: string | null;
           id_type?: string | null;
           id_last4?: string | null;
+          vehicle_number?: string | null;
           is_blacklisted?: boolean;
           blacklist_reason?: string | null;
         };

@@ -7,14 +7,43 @@
  *
  * Never bypass with --no-verify. If a legitimate case arises,
  * fix the failing test instead — deleting/skipping is forbidden.
+ *
+ * SEC-16: Scans staged diff for credential-like patterns before allowing commit.
  */
 
 import { spawnSync } from 'node:child_process';
+import { readFileSync } from 'node:fs';
 
 const RED    = (s) => `\x1b[31m${s}\x1b[0m`;
 const GREEN  = (s) => `\x1b[32m${s}\x1b[0m`;
 const BOLD   = (s) => `\x1b[1m${s}\x1b[0m`;
 const DIM    = (s) => `\x1b[2m${s}\x1b[0m`;
+const YELLOW = (s) => `\x1b[33m${s}\x1b[0m`;
+
+// ─── SEC-16: Credential scanning ──────────────────────────────────────────
+const SECRET_PATTERNS = [
+  { re: /eyJ[a-zA-Z0-9_-]{10,}\.\S+/g,   label: 'Base64 JWT token (eyJ…)' },
+  { re: /sk-[a-zA-Z0-9]{20,}/g,           label: 'Secret key (sk-…)' },
+  { re: /pk-[a-zA-Z0-9]{20,}/g,           label: 'Public key (pk-…)' },
+  { re: /service_role_key[=:]["']?\S+["']?/gi, label: 'Service role key' },
+  { re: /supabase\.co["'\s]/g,            label: 'Supabase project URL' },
+];
+
+const stagedDiff = spawnSync('git diff --cached -- .', { shell: true, encoding: 'utf-8' });
+if (stagedDiff.status === 0 && stagedDiff.stdout) {
+  const additions = stagedDiff.stdout.split('\n').filter((l) => l.startsWith('+') && !l.startsWith('+++'));
+  for (const line of additions) {
+    for (const { re, label } of SECRET_PATTERNS) {
+      if (re.test(line)) {
+        console.error(RED(BOLD(`\n  ✖  SEC-16: Possible ${label} detected in staged changes.`)));
+        console.error(DIM(`     ${line.trim().slice(0, 120)}`));
+        console.error(DIM('     Remove the secret and try again. If this is a false positive, add an exception.\n'));
+        process.exit(1);
+      }
+    }
+  }
+}
+// ──────────────────────────────────────────────────────────────────────────
 
 console.log(BOLD('\n╔══════════════════════════════════════════════════════╗'));
 console.log(BOLD(  '║    pre-commit: TDD gate — running npm run check…    ║'));

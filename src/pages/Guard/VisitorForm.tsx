@@ -6,7 +6,12 @@ import { supabase } from '../../supabaseClient';
 import { normalizePhone, isBlacklisted } from '../../lib/blacklist';
 import { safeErrorMessage } from '../../lib/errors';
 import PhotoCapture from '../../components/PhotoCapture';
+import DocumentSign from '../../components/DocumentSign';
 import type { Department, Profile, Visitor, VisitorPurpose } from '../../types/index';
+
+const PRIVACY_POLICY_TEXT = `This Visitor Management System collects and processes your personal data (name, phone, photograph, vehicle number, and visit details) for security and record-keeping purposes. Your data is stored securely, retained per applicable data retention policies, and never shared with third parties. By signing below, you consent to this data processing for the duration of your visit and any applicable retention period.`;
+const SITE_RULES_TEXT = `1. Present valid government ID at entry. 2. Wear visitor badge at all times. 3. Do not access restricted areas without escort. 4. Follow all fire safety and emergency procedures. 5. Report suspicious activity to security immediately. 6. No photography or recording without prior authorization. 7. All materials brought in/out are subject to inspection.`;
+const NDA_TEXT = `In consideration of being granted access to the premises, the undersigned agrees to maintain confidentiality of all proprietary information, trade secrets, processes, and business operations observed during the visit. The undersigned shall not disclose, copy, or use any such information for any purpose outside the scope of this visit. This obligation survives the termination of this visit.`;
 
 const PURPOSES: { value: VisitorPurpose; label: string }[] = [
   { value: 'meeting',     label: 'Meeting' },
@@ -36,6 +41,15 @@ export default function VisitorForm({ onRegistered }: Props): React.ReactElement
   const [vehicle,     setVehicle]     = useState('');
   const [carryingMaterial, setCarryingMaterial] = useState(false);
   const [photoBlob,   setPhotoBlob]   = useState<Blob | null>(null);
+
+  const [emergencyName, setEmergencyName] = useState('');
+  const [emergencyPhone, setEmergencyPhone] = useState('');
+  const [expectedDuration, setExpectedDuration] = useState<number>(30);
+  const [consentPrivacy, setConsentPrivacy] = useState(false);
+  const [consentSiteRules, setConsentSiteRules] = useState(false);
+  const [privacySignature, setPrivacySignature] = useState<string | null>(null);
+  const [siteRulesSignature, setSiteRulesSignature] = useState<string | null>(null);
+  const [ndaSignature, setNdaSignature] = useState<string | null>(null);
 
   const [blacklistHit,  setBlacklistHit]  = useState<string | null>(null);
   const [recalledName,  setRecalledName]  = useState<string | null>(null);
@@ -117,11 +131,22 @@ export default function VisitorForm({ onRegistered }: Props): React.ReactElement
       ).select().single();
       if (visErr) throw visErr;
       if (!vis) throw new Error('Failed to create/find visitor record.');
+      if (vehicle.trim()) {
+        await supabase.from('visitors').update({ vehicle_number: vehicle.trim() || null }).eq('id', vis.id);
+      }
       const { photoPath, photoData } = await uploadPhoto(photoBlob);
       const { error: visitErr } = await supabase.from('visits').insert({
         visitor_id: vis.id, department_id: deptId, host_id: hostId, purpose,
         photo_path: photoPath, photo_data: photoData,
         status: 'pending_approval', carrying_material: carryingMaterial,
+        emergency_contact_name: emergencyName || null,
+        emergency_contact_phone: emergencyPhone || null,
+        expected_duration_minutes: expectedDuration || null,
+        consent_privacy: consentPrivacy,
+        consent_site_rules: consentSiteRules,
+        nda_signature: ndaSignature,
+        privacy_signature: privacySignature,
+        site_rules_signature: siteRulesSignature,
         checked_in_at: null, checked_out_at: null, exit_verified: null, rejection_reason: null,
       });
       if (visitErr) throw visitErr;
@@ -162,12 +187,12 @@ export default function VisitorForm({ onRegistered }: Props): React.ReactElement
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-5 gap-y-4">
         <div>
           <label className="label">Mobile Number *</label>
-          <input type="tel" required value={phone}
+          <input type="tel" required maxLength={20} value={phone}
             onChange={(e) => { setPhone(e.target.value); setRecalledName(null); setBlacklistHit(null); }}
             onBlur={recallByPhone} placeholder="+91 98765 43210" className="input" />
         </div>
-        <div><label className="label">Full Name *</label><input type="text" required value={fullName} onChange={(e) => setFullName(e.target.value)} className="input" /></div>
-        <div><label className="label">Company / Coming from *</label><input type="text" required value={company} onChange={(e) => setCompany(e.target.value)} className="input" /></div>
+        <div><label className="label">Full Name *</label><input type="text" required maxLength={100} value={fullName} onChange={(e) => setFullName(e.target.value)} className="input" /></div>
+        <div><label className="label">Company / Coming from *</label><input type="text" required maxLength={200} value={company} onChange={(e) => setCompany(e.target.value)} className="input" /></div>
         <div>
           <label className="label">Purpose *</label>
           <select required value={purpose} onChange={(e) => setPurpose(e.target.value as VisitorPurpose)} className="input">
@@ -196,7 +221,7 @@ export default function VisitorForm({ onRegistered }: Props): React.ReactElement
           </select>
         </div>
         <div><label className="label">ID Last 4 Digits</label><input type="text" maxLength={4} value={idLast4} onChange={(e) => setIdLast4(e.target.value)} className="input" placeholder="XXXX" /></div>
-        <div className="sm:col-span-2"><label className="label">Vehicle Number (optional)</label><input type="text" value={vehicle} onChange={(e) => setVehicle(e.target.value)} className="input" placeholder="MH 12 AB 1234" /></div>
+        <div className="sm:col-span-2"><label className="label">Vehicle Number (optional)</label><input type="text" maxLength={20} value={vehicle} onChange={(e) => setVehicle(e.target.value)} className="input" placeholder="MH 12 AB 1234" /></div>
         <div className="sm:col-span-2">
           <label className="label flex items-center gap-2 cursor-pointer">
             <input type="checkbox" checked={carryingMaterial} onChange={(e) => setCarryingMaterial(e.target.checked)} className="h-4 w-4 rounded border-surface-300 text-brand-600 focus:ring-brand-500" />
@@ -217,6 +242,90 @@ export default function VisitorForm({ onRegistered }: Props): React.ReactElement
               <p className="text-xs text-navy-400">Ready to submit</p>
             </div>
             <button type="button" onClick={() => setPhotoBlob(null)} className="btn-ghost text-danger-600 hover:text-danger-700 text-sm">Retake</button>
+          </div>
+        )}
+      </div>
+
+      {/* Emergency Contact & Expected Duration */}
+      <div className="card p-5 space-y-4 bg-amber-50/30 border border-amber-200 rounded-xl">
+        <h3 className="text-sm font-bold text-navy-900 flex items-center gap-2">
+          <svg className="w-4 h-4 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" /></svg>
+          Emergency Contact & Visit Info
+        </h3>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div><label className="label">Emergency Contact Name</label><input type="text" maxLength={100} value={emergencyName} onChange={(e) => setEmergencyName(e.target.value)} className="input" placeholder="Next of kin" /></div>
+          <div><label className="label">Emergency Contact Phone</label><input type="tel" maxLength={20} value={emergencyPhone} onChange={(e) => setEmergencyPhone(e.target.value)} className="input" placeholder="+91 98765 43210" /></div>
+          <div><label className="label">Expected Duration (min)</label><input type="number" min={5} max={480} value={expectedDuration} onChange={(e) => setExpectedDuration(Number(e.target.value))} className="input" /></div>
+        </div>
+      </div>
+
+      {/* Consent & Documents */}
+      <div className="space-y-4">
+        {/* Privacy Policy Consent */}
+        <div className="card p-5 space-y-3">
+          <label className="flex items-start gap-3 cursor-pointer">
+            <input type="checkbox" checked={consentPrivacy} onChange={(e) => { setConsentPrivacy(e.target.checked); if (!e.target.checked) setPrivacySignature(null); }} className="mt-1 h-4 w-4 rounded border-surface-300 text-brand-600 focus:ring-brand-500" />
+            <div>
+              <p className="text-sm font-medium text-navy-800">I consent to the Privacy Policy</p>
+              <p className="text-xs text-navy-400 mt-0.5">I understand how my personal data will be processed and stored</p>
+            </div>
+          </label>
+          {consentPrivacy && !privacySignature && (
+            <DocumentSign
+              documentTitle="Privacy Policy Consent"
+              documentText={PRIVACY_POLICY_TEXT}
+              onSign={(sig) => setPrivacySignature(sig)}
+              required
+            />
+          )}
+          {privacySignature && (
+            <div className="flex items-center gap-2 text-success-700 text-sm font-medium">
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+              Privacy policy signed
+            </div>
+          )}
+        </div>
+
+        {/* Site Rules Acknowledgment */}
+        <div className="card p-5 space-y-3">
+          <label className="flex items-start gap-3 cursor-pointer">
+            <input type="checkbox" checked={consentSiteRules} onChange={(e) => { setConsentSiteRules(e.target.checked); if (!e.target.checked) setSiteRulesSignature(null); }} className="mt-1 h-4 w-4 rounded border-surface-300 text-brand-600 focus:ring-brand-500" />
+            <div>
+              <p className="text-sm font-medium text-navy-800">I acknowledge the Site Rules</p>
+              <p className="text-xs text-navy-400 mt-0.5">I agree to follow all site safety and security rules</p>
+            </div>
+          </label>
+          {consentSiteRules && !siteRulesSignature && (
+            <DocumentSign
+              documentTitle="Site Rules Acknowledgment"
+              documentText={SITE_RULES_TEXT}
+              onSign={(sig) => setSiteRulesSignature(sig)}
+              required
+            />
+          )}
+          {siteRulesSignature && (
+            <div className="flex items-center gap-2 text-success-700 text-sm font-medium">
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+              Site rules signed
+            </div>
+          )}
+        </div>
+
+        {/* NDA — shown only for vendor/contractor purpose */}
+        {purpose === 'vendor' && !ndaSignature && (
+          <div className="card p-5 space-y-3 border-l-4 border-l-brand-500">
+            <DocumentSign
+              documentTitle="Non-Disclosure Agreement (NDA)"
+              documentText={NDA_TEXT}
+              onSign={(sig) => setNdaSignature(sig)}
+              required
+            />
+          </div>
+        )}
+        {ndaSignature && (
+          <div className="card p-4 flex items-center gap-3 bg-success-50 rounded-xl">
+            <svg className="w-5 h-5 text-success-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+            <p className="text-sm font-medium text-success-700">NDA signed</p>
           </div>
         )}
       </div>

@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { supabase } from '../../supabaseClient';
 import type { Visit } from '../../types/index';
 import { attachHostNames } from '../../lib/hostNames';
+import { safeErrorMessage } from '../../lib/errors';
 import { formatTime, formatDuration } from '../../lib/formatDate';
 import VisitorDetails from '../../components/VisitorDetails';
 
@@ -67,9 +68,12 @@ export default function WhosInside(): React.ReactElement {
   const handleClearAll = async () => {
     if (!window.confirm(`Clear all ${preApproved.length} pre-approved visitors? This action cannot be undone.`)) return;
     setClearing(true);
-    const { error: err } = await (supabase as any).rpc('clear_pre_approved');
-    if (err) { setClearError(err.message); setClearing(false); return; }
-    void load();
+    try {
+      const { error: err } = await (supabase as any).rpc('clear_pre_approved');
+      if (err) { setClearError(err.message); setClearing(false); return; }
+      void load();
+    } catch (err) { setClearError(safeErrorMessage(err, 'Failed to clear pre-approved.')); }
+    finally { setClearing(false); }
   };
 
   return (

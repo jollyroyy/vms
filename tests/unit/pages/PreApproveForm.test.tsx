@@ -99,6 +99,7 @@ describe('PreApproveForm submission', () => {
         p_phone: '9876543210',
         p_full_name: 'Test Visitor',
         p_company: 'Test Corp',
+        p_vehicle_number: null,
         p_department_id: 'dept1',
         p_host_id: 'h1',
         p_purpose: 'meeting',
