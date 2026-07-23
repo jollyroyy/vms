@@ -4,10 +4,12 @@ import { render, screen, cleanup, waitFor, fireEvent } from '@testing-library/re
 import VisitorForm from '../../../src/pages/Guard/VisitorForm';
 
 const mockFrom = vi.hoisted(() => vi.fn());
+const mockRpc = vi.hoisted(() => vi.fn());
 
 vi.mock('../../../src/supabaseClient', () => ({
   supabase: {
     from: mockFrom,
+    rpc: mockRpc,
     channel: vi.fn(() => ({ on: () => ({ subscribe: vi.fn() }) })),
     removeChannel: vi.fn(),
   },
@@ -46,16 +48,12 @@ function setupDefaultMocks() {
     if (table === 'visits') {
       return { select: () => ({ eq: visitEq1 }) };
     }
-    if (table === 'profiles') {
-      return {
-        select: () => ({
-          eq: () => ({
-            order: vi.fn().mockResolvedValue({ data: mockHosts, error: null }),
-          }),
-        }),
-      };
-    }
     return { select: () => ({ eq: visitEq1 }) };
+  });
+  mockRpc.mockImplementation((name: string) => {
+    if (name === 'get_hosts_for_department') return Promise.resolve({ data: mockHosts, error: null });
+    if (name === 'get_active_visit_for_phone') return Promise.resolve({ data: null, error: null });
+    return Promise.resolve({ data: null, error: null });
   });
 }
 
@@ -102,7 +100,7 @@ describe('M12-GUARD: VisitorForm host loading', () => {
     })!;
   }
 
-  it('loads hosts via proxy when department is selected', async () => {
+  it('loads hosts via RPC when department is selected', async () => {
     render(<VisitorForm onRegistered={vi.fn()} />);
 
     await waitFor(() => {
@@ -118,7 +116,7 @@ describe('M12-GUARD: VisitorForm host loading', () => {
     });
   });
 
-  it('queries supabase profiles with correct department id', async () => {
+  it('calls get_hosts_for_department RPC with correct department id', async () => {
     render(<VisitorForm onRegistered={vi.fn()} />);
 
     await waitFor(() => {
@@ -131,7 +129,7 @@ describe('M12-GUARD: VisitorForm host loading', () => {
       expect(screen.getByText('Priya Sharma')).toBeInTheDocument();
     });
 
-    expect(mockFrom).toHaveBeenCalledWith('profiles');
+    expect(mockRpc).toHaveBeenCalledWith('get_hosts_for_department', { dept_id: 'dept-it' });
   });
 
   it('shows "Select person" in host dropdown when department is selected', async () => {
@@ -149,28 +147,9 @@ describe('M12-GUARD: VisitorForm host loading', () => {
   });
 
   it('handles empty host list gracefully', async () => {
-    mockFrom.mockImplementation((table: string) => {
-      if (table === 'departments') {
-        return { select: () => ({ order: vi.fn().mockResolvedValue({ data: mockDepts, error: null }) }) };
-      }
-      if (table === 'visitors') {
-        return {
-          select: () => ({ eq: vi.fn().mockResolvedValue({ data: mockBlacklist, error: null }) }),
-        };
-      }
-      if (table === 'visits') {
-        return { select: () => ({ eq: () => ({ maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }) }) }) };
-      }
-      if (table === 'profiles') {
-        return {
-          select: () => ({
-            eq: () => ({
-              order: vi.fn().mockResolvedValue({ data: [], error: null }),
-            }),
-          }),
-        };
-      }
-      return { select: () => ({ eq: () => ({ maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }) }) }) };
+    mockRpc.mockImplementation((name: string) => {
+      if (name === 'get_hosts_for_department') return Promise.resolve({ data: [], error: null });
+      return Promise.resolve({ data: null, error: null });
     });
 
     render(<VisitorForm onRegistered={vi.fn()} />);
@@ -182,7 +161,7 @@ describe('M12-GUARD: VisitorForm host loading', () => {
     pickDept();
 
     await waitFor(() => {
-      expect(mockFrom).toHaveBeenCalledWith('profiles');
+      expect(mockRpc).toHaveBeenCalledWith('get_hosts_for_department', { dept_id: 'dept-it' });
     });
 
     const hostSelect = getHostSelect();
@@ -191,28 +170,9 @@ describe('M12-GUARD: VisitorForm host loading', () => {
   });
 
   it('handles fetch failure gracefully', async () => {
-    mockFrom.mockImplementation((table: string) => {
-      if (table === 'departments') {
-        return { select: () => ({ order: vi.fn().mockResolvedValue({ data: mockDepts, error: null }) }) };
-      }
-      if (table === 'visitors') {
-        return {
-          select: () => ({ eq: vi.fn().mockResolvedValue({ data: mockBlacklist, error: null }) }),
-        };
-      }
-      if (table === 'visits') {
-        return { select: () => ({ eq: () => ({ maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }) }) }) };
-      }
-      if (table === 'profiles') {
-        return {
-          select: () => ({
-            eq: () => ({
-              order: vi.fn().mockRejectedValue(new Error('Network error')),
-            }),
-          }),
-        };
-      }
-      return { select: () => ({ eq: () => ({ maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }) }) }) };
+    mockRpc.mockImplementation((name: string) => {
+      if (name === 'get_hosts_for_department') return Promise.reject(new Error('Network error'));
+      return Promise.resolve({ data: null, error: null });
     });
 
     render(<VisitorForm onRegistered={vi.fn()} />);
@@ -224,7 +184,7 @@ describe('M12-GUARD: VisitorForm host loading', () => {
     pickDept();
 
     await waitFor(() => {
-      expect(mockFrom).toHaveBeenCalledWith('profiles');
+      expect(mockRpc).toHaveBeenCalledWith('get_hosts_for_department', { dept_id: 'dept-it' });
     });
 
     const hostSelect = getHostSelect();

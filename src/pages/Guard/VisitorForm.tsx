@@ -55,22 +55,24 @@ export default function VisitorForm({ onRegistered }: Props): React.ReactElement
     });
   }, []);
 
+  const loadHosts = useCallback(async (departmentId: string) => {
+    setHostError(null);
+    try {
+      const { data, error } = await (supabase as any).rpc('get_hosts_for_department', { dept_id: departmentId });
+      if (error) throw error;
+      setHosts((data ?? []) as Profile[]);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Unknown error';
+      console.error('Failed to load hosts:', msg);
+      setHostError('Could not load person-to-meet list.');
+      setHosts([]);
+    }
+  }, []);
+
   useEffect(() => {
     if (!deptId) { setHosts([]); setHostError(null); return; }
-    setHostError(null);
-    (async () => {
-      try {
-        const { data, error } = await supabase.from('profiles').select('id, full_name, email, role').eq('department_id', deptId).order('full_name');
-        if (error) throw error;
-        setHosts((data ?? []) as Profile[]);
-      } catch (err) {
-        const msg = err instanceof Error ? err.message : 'Unknown error';
-        console.error('Failed to load hosts:', msg);
-        setHostError('Could not load person-to-meet list. Contact admin.');
-        setHosts([]);
-      }
-    })();
-  }, [deptId]);
+    void loadHosts(deptId);
+  }, [deptId, loadHosts]);
 
   const recallByPhone = useCallback(async () => {
     if (!phone) return;
@@ -302,6 +304,7 @@ export default function VisitorForm({ onRegistered }: Props): React.ReactElement
             <p className="text-xs text-danger-600 mt-1 flex items-center gap-1">
               <svg className="w-3 h-3 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" /></svg>
               {hostError}
+              <button type="button" onClick={() => void loadHosts(deptId)} className="ml-1 font-semibold text-brand-600 hover:text-brand-800 underline">Retry</button>
             </p>
           )}
         </div>

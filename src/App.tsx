@@ -32,11 +32,11 @@ function ProtectedRoute({ children, role }: { children: React.ReactElement; role
   const location = useLocation();
   const allowed = role !== null ? (ROLE_ROUTES[role] ?? []) : [];
   const forbidden = role !== null && !allowed.some((r) => location.pathname.startsWith(r));
-  React.useEffect(() => {
-    if (forbidden) supabase.auth.signOut();
-  }, [forbidden]);
   if (role === null) return null;
-  if (forbidden) return null;
+  if (forbidden) {
+    const fallback = allowed[0] ?? '/';
+    return <Navigate to={fallback} replace />;
+  }
   return children;
 }
 

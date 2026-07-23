@@ -54,8 +54,8 @@ function setupDefaultMocks() {
     }
     return { select: () => ({ eq: () => ({ maybeSingle: vi.fn().mockResolvedValue({ data: null }) }) }) };
   });
-  // SEC-17: get_active_visit_for_phone returns null (no active visit), pre_approve_visitor succeeds
   mockRpc.mockImplementation((name: string) => {
+    if (name === 'get_hosts_for_department') return Promise.resolve({ data: mockHosts, error: null });
     if (name === 'get_active_visit_for_phone') return Promise.resolve({ data: null, error: null });
     return Promise.resolve({ data: { ref_number: 'VIS-20260721-0001' }, error: null });
   });
@@ -115,7 +115,11 @@ describe('PreApproveForm submission', () => {
   });
 
   it('shows error message when RPC returns an error', async () => {
-    mockRpc.mockResolvedValue({ data: null, error: { message: 'RLS violation' } });
+    mockRpc.mockImplementation((name: string) => {
+      if (name === 'get_hosts_for_department') return Promise.resolve({ data: mockHosts, error: null });
+      if (name === 'get_active_visit_for_phone') return Promise.resolve({ data: null, error: null });
+      return Promise.resolve({ data: null, error: { message: 'RLS violation' } });
+    });
 
     const onApproved = vi.fn();
     render(<PreApproveForm onPreApproved={onApproved} />);

@@ -51,20 +51,22 @@ export default function PreApproveForm({ onPreApproved }: Props): React.ReactEle
     });
   }, []);
 
+  const loadHosts = useCallback(async (departmentId: string) => {
+    try {
+      const { data, error } = await (supabase as any).rpc('get_hosts_for_department', { dept_id: departmentId });
+      if (error) throw error;
+      setHosts((data ?? []) as Profile[]);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Unknown error';
+      console.error('Failed to load hosts:', msg);
+      setHosts([]);
+    }
+  }, []);
+
   useEffect(() => {
     if (!deptId) { setHosts([]); return; }
-    (async () => {
-      try {
-        const { data, error } = await supabase.from('profiles').select('id, full_name, email, role').eq('department_id', deptId).order('full_name');
-        if (error) throw error;
-        setHosts((data ?? []) as Profile[]);
-      } catch (err) {
-        const msg = err instanceof Error ? err.message : 'Unknown error';
-        console.error('Failed to load hosts:', msg);
-        setHosts([]);
-      }
-    })();
-  }, [deptId]);
+    void loadHosts(deptId);
+  }, [deptId, loadHosts]);
 
   const recallByPhone = useCallback(async () => {
     if (!phone) return;
