@@ -214,25 +214,29 @@ export default function GuardConsole(): React.ReactElement {
                 <div className="w-2 h-2 rounded-full bg-success-500 shrink-0" />
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-semibold text-navy-900 truncate">{v.visitor?.full_name ?? '—'}</p>
-                  <p className="text-xs text-navy-400 truncate">{v.department?.name} · {v.purpose}</p>
-                  <div className="flex items-center gap-2 mt-1 flex-wrap">
-                    <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-md bg-success-50 text-success-700 border border-success-100">
-                      <span className="h-1.5 w-1.5 rounded-full bg-success-500" />
-                      Awaiting Arrival
-                    </span>
-                    {v.scheduled_for && (
-                      <span className="text-[10px] text-navy-300">ETA: {formatTime(v.scheduled_for)}</span>
-                    )}
-                  </div>
+                  <p className="text-xs text-navy-400 truncate">{v.department?.name}{v.purpose ? ` · ${v.purpose}` : ''}</p>
+                  <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-md bg-success-50 text-success-700 border border-success-100 mt-1">
+                    <span className="h-1.5 w-1.5 rounded-full bg-success-500" />
+                    Awaiting Arrival
+                  </span>
                 </div>
-                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md shrink-0 ${
-                  v.purpose === 'vendor' ? 'bg-purple-50 text-purple-700' :
-                  v.purpose === 'delivery' ? 'bg-blue-50 text-blue-700' :
-                  v.purpose === 'maintenance' ? 'bg-amber-50 text-amber-700' :
-                  'bg-surface-100 text-navy-500'
-                }`}>
-                  {(v.purpose ?? 'Other').charAt(0).toUpperCase() + (v.purpose ?? 'other').slice(1)}
-                </span>
+                <div className="shrink-0 flex flex-col items-end gap-1">
+                  {v.scheduled_for ? (
+                    <span className="text-sm font-bold text-brand-600 bg-brand-50 px-2.5 py-1 rounded-lg border border-brand-100">
+                      {formatTime(v.scheduled_for)}
+                    </span>
+                  ) : (
+                    <span className="text-[10px] text-navy-300">No ETA</span>
+                  )}
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${
+                    v.purpose === 'vendor' ? 'bg-purple-50 text-purple-700' :
+                    v.purpose === 'delivery' ? 'bg-blue-50 text-blue-700' :
+                    v.purpose === 'maintenance' ? 'bg-amber-50 text-amber-700' :
+                    'bg-surface-100 text-navy-500'
+                  }`}>
+                    {(v.purpose ?? 'Other').charAt(0).toUpperCase() + (v.purpose ?? 'other').slice(1)}
+                  </span>
+                </div>
               </div>
             ))}
           </div>
