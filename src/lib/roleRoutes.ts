@@ -4,11 +4,11 @@
 import type { UserRole } from '../types/index';
 
 export const ROLE_ROUTES: Record<UserRole, string[]> = {
-  guard:       ['/guard', '/kiosk', '/whos-inside', '/gate-passes'],
-  hod:         ['/overview', '/approvals', '/whos-inside', '/gate-passes', '/reports', '/analytics'],
-  staff:       ['/whos-inside', '/gate-passes', '/reports'],
-  admin:       ['/reports', '/analytics', '/admin'],
-  super_admin: ['/reports', '/analytics', '/admin'],
+  guard:       ['/visitors', '/guard', '/kiosk', '/whos-inside', '/gate-passes'],
+  hod:         ['/visitors', '/approvals', '/whos-inside', '/gate-passes', '/reports', '/analytics'],
+  staff:       ['/visitors', '/whos-inside', '/gate-passes', '/reports'],
+  admin:       ['/visitors', '/reports', '/analytics', '/admin'],
+  super_admin: ['/visitors', '/reports', '/analytics', '/admin'],
 };
 
 /** Returns true if the given pathname is forbidden for this role. */

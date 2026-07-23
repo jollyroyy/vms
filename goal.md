@@ -392,7 +392,94 @@ The loop runs **goal → build → CHECK → adjust**, and the CHECK phase is ex
 - Traced by: `tests/unit/pages/GuardConsole.test.tsx` (window filter tests added)
 
 
-## 8. AMENDMENT LOG
+## 8. FEATURE PRIORITIES & EDGE-CASE CATALOG
+
+> Consolidated from the former `Goals.md`. This section feeds §2.2 criteria — it never overrides them.
+> New features enter the loop only via the Goal Amendment Protocol (§4).
+
+### 8.1 SHOULD-HAVE (works without, adoption suffers daily)
+
+| # | Feature | PRD tag |
+|---|---|---|
+| S1 | WhatsApp/SMS approval links (mobile page, photo + one-tap) | FR-NOT-01, §5 |
+| S2 | Repeat-visitor recall by phone (auto-fill + photo) | FR-VIS-03 |
+| S3 | Pre-registration + QR fast-track check-in | §3.3 |
+| S4 | Overstay alerts | FR-VIS-04 |
+| S5 | RGP auto-reminders (T-1, due, every N days) + Admin escalation | FR-GP-02, SLA-W4 |
+| S6 | Badge QR scan checkout | FR-VIS-05 |
+| S7 | Approval-time-per-HOD report | FR-RPT-03 |
+| S8 | OTP phone verification | §3.4 |
+| S9 | Group visits (1 record, N badges) | FR-VIS-09 |
+| S10 | Photo-waived entries report | FR-RPT-09 |
+| S11 | Item condition photos for returnables (before/after) | FR-GP-03 |
+
+### 8.2 COULD-HAVE (defer without guilt)
+
+Multi-gate/multi-site, self-service kiosk, contractor long-term passes, turnstile/boom-barrier integration, ANPR vehicle layer, tenant portal, ERP/asset-register link, analytics heatmaps, second language, native HOD app.
+
+### 8.3 WON'T-HAVE (v1, explicit)
+
+Shopper footfall, payroll/attendance, CCTV, parking, face recognition (legal review gate), storing full govt ID numbers/scans — **ever**.
+
+### 8.4 PRODUCTION / REAL-LIFE EDGE CASES
+
+Severity: RED = must test when the feature is built, YELLOW = backlog (stays here until scheduled).
+EC-01..EC-12 (guard console, sessions, pre-approval) are already audited in `learnings.md`.
+
+**Gate — people**
+- RED EC-13: Visitor with no phone / shared phone (crew under supervisor's number) — recall/blacklist key breaks
+- RED EC-14: Blacklisted person with new phone or name-spelling variant — fuzzy match + guard manual-flag path
+- RED EC-15: Group of N, some leave early — partial group checkout or evacuation count lies
+- RED EC-16: Approved but never entered / checked out then re-enters ("forgot my bag") — define re-entry semantics
+- YELLOW EC-17: VIP/govt refuses photo or ID — one-tap Admin escalation
+- RED EC-18: Overnight contractor vs auto-checkout at day close — legit present people must not be orphaned
+- YELLOW EC-19: Host on leave / left company — stale staff list routes approval to nobody
+
+**Approval workflow**
+- RED EC-20: Stale approval (HOD taps link hours later, visitor gone) — approval must expire, never enable next-day check-in
+- RED EC-21: Double-tap Approve on laggy mobile link — idempotency (in-app already handled, EC-09)
+- RED EC-22: HOD approves visitor but rejects their material — split decision on linked pass (PRD §4.2A)
+- RED EC-23: Decision arrives while guard console offline — reconcile on reconnect
+- RED EC-24: Delegate and HOD both respond — first decision wins, both audit-logged
+- YELLOW EC-25: HOD phone changed, notifications go to dead number — delivery-failure log (NFR-11)
+
+**Hardware & environment**
+- YELLOW EC-26: Webcam glare / permission revoked by OS update — red banner (FR-CAM-06) + mounting guide
+- RED EC-27: Printer jam with queue — e-badge fallback is a visible button
+- RED EC-28: Power/network cut at gate — offline queue incl. photos (M12)
+- RED EC-29: Guard shift change mid-visit — guard B can check out guard A's visitor; session timeout doesn't eat in-progress form
+- RED EC-30: Clock skew on gate PC — audit that NO code path uses client `new Date()` for stored times
+
+**Material gate pass**
+- RED EC-31: Return in worse condition / wrong serial number — condition field + "returned but wrong item" mismatch
+- RED EC-32: Different carrier returns than dispatched — log both
+- YELLOW EC-33: Return after force-closed pass — reopen/annotate path
+- RED EC-34: Free-text quantities ("1 lot") destroy return verification — force units
+- YELLOW EC-35: High-value item under low-value description — approx-value + optional second approval (fraud vector)
+- YELLOW EC-36: Multi-day job: items in with visitor A, out with visitor B
+
+**Data, privacy, security**
+- RED EC-37: Retention purge vs police inquiry — legal-hold flag before first purge runs
+- RED EC-38: State transition forced via URL/id editing — server-side validation of every transition (the iter-07..09 RPC class)
+- YELLOW EC-39: Signed photo URL screenshot-leaked — short expiry
+- YELLOW EC-40: Unattended logged-in console — session timeout (exists), tablet-facing-visitor posture
+
+**Operational**
+- YELLOW EC-41: Weekend operation — day-close scheduling, admin availability
+- YELLOW EC-42: Back-filled entries after P1 outage — "manual entry" flag so audits don't scream tampering
+- RED EC-43: **The bypass law**: any step slower than pen+paper gets skipped by staff — every RED above needs a fast in-app path, or it becomes a workaround
+
+### 8.5 BUILD ORDER
+
+1. **Now:** finish Milestone A (demo) per §2.2 — first unchecked criterion, one per iteration.
+2. **Next:** Milestone B hardening (escalation timers, auto-checkout, webcam resilience, exports, email).
+3. **Then (Milestone C, via Amendment Protocol):** should-haves S1-S11, roughly in table order (WhatsApp links first — biggest adoption lever).
+4. **Edge-case policy:** when an iteration builds/touches a feature, its RED edge cases are derived as tests in that same iteration; YELLOW stay here as backlog.
+5. Could-haves enter only after C, one at a time, each behind its own amendment.
+
+---
+
+## 9. AMENDMENT LOG
 
 | Date | Iter | Change | Why |
 |---|---|---|---|

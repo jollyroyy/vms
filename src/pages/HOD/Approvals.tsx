@@ -6,6 +6,7 @@ import { attachHostNames } from '../../lib/hostNames';
 import { safeErrorMessage } from '../../lib/errors';
 import PreApproveForm from './PreApproveForm';
 import { formatTime } from '../../lib/formatDate';
+import { STATUS_STYLES } from '../../lib/statusStyles';
 import VisitorDetails from '../../components/VisitorDetails';
 
 /* ── Types ─────────────────────────────────────────── */
@@ -25,15 +26,6 @@ const TAB_CONFIG: { key: Tab; label: string; icon: React.ReactNode }[] = [
   { key: 'rejected',    label: 'Rejected',    icon: <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" /></svg> },
   { key: 'pre-approve', label: 'Pre-Approve', icon: <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v6m3-3H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" /></svg> },
 ];
-
-const STATUS_STYLES: Record<string, { bg: string; text: string; label: string }> = {
-  pending_approval: { bg: 'bg-warning-50',  text: 'text-warning-700',  label: 'Pending' },
-  approved:         { bg: 'bg-success-50',  text: 'text-success-700',  label: 'Pre-Approved' },
-  walkin_approved:  { bg: 'bg-brand-50',    text: 'text-brand-700',    label: 'Approved' },
-  checked_in:       { bg: 'bg-accent-50',   text: 'text-accent-700',   label: 'Inside' },
-  checked_out:      { bg: 'bg-surface-100', text: 'text-navy-500',     label: 'Left' },
-  rejected:         { bg: 'bg-danger-50',   text: 'text-danger-700',   label: 'Rejected' },
-};
 
 /* ── Helpers ────────────────────────────────────────── */
 function timeAgo(iso: string): string {
@@ -287,7 +279,7 @@ export default function HODApprovals(): React.ReactElement {
             </svg>
           </div>
           <div>
-            <h1 className="page-title">Overview</h1>
+            <h1 className="page-title">Approvals</h1>
             <p className="page-subtitle">Visitor approvals &amp; activity</p>
           </div>
         </div>
@@ -338,7 +330,7 @@ export default function HODApprovals(): React.ReactElement {
                   {nextVisitor.visitor?.full_name ?? '--'}
                 </p>
                 <p className="text-xs text-navy-400 truncate mt-0.5">
-                  {purposeLabel(nextVisitor.purpose)}{nextVisitor.department?.name ? ` · ${nextVisitor.department.name}` : ''}
+                  {purposeLabel(nextVisitor.purpose)}
                 </p>
                 <div className="flex items-center gap-2 mt-2 flex-wrap">
                   <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-md bg-success-50 text-success-700 border border-success-200/60">
@@ -502,7 +494,7 @@ export default function HODApprovals(): React.ReactElement {
                             <span className="status-badge bg-warning-50 text-warning-700">Pending</span>
                           </div>
                           <p className="text-xs text-navy-400 truncate mt-0.5">
-                            {v.visitor?.company ? `${v.visitor.company} · ` : ''}{v.department?.name ?? ''}{v.host?.full_name ? ` · ${v.host.full_name}` : ''}
+                            {v.visitor?.company ? `${v.visitor.company} · ` : ''}{v.host?.full_name ? `${v.host.full_name}` : ''}
                           </p>
                           {/* Chips row */}
                           <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
@@ -595,7 +587,7 @@ export default function HODApprovals(): React.ReactElement {
                         </div>
                         <div className="flex items-center gap-1.5 mt-1 flex-wrap">
                           <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-surface-100 text-navy-400">{purposeLabel(v.purpose)}</span>
-                          <span className="text-xs text-navy-400 truncate">{v.department?.name}{v.host?.full_name ? ` · ${v.host.full_name}` : ''}</span>
+                          <span className="text-xs text-navy-400 truncate">{v.host?.full_name ?? ''}</span>
                         </div>
                       </div>
                       <div className="shrink-0 text-right space-y-1">
@@ -645,7 +637,7 @@ export default function HODApprovals(): React.ReactElement {
                         <span className="status-badge bg-danger-50 text-danger-700">Rejected</span>
                       </div>
                       <p className="text-xs text-navy-400 truncate mt-0.5">
-                        {v.visitor?.company ? `${v.visitor.company} · ` : ''}{v.department?.name}{v.host?.full_name ? ` · ${v.host.full_name}` : ''}
+                        {v.visitor?.company ? `${v.visitor.company} · ` : ''}{v.host?.full_name ?? ''}
                       </p>
                       {v.rejection_reason && (
                         <div className="mt-2 rounded-lg bg-danger-50/60 px-2.5 py-2 text-xs text-danger-700 border border-danger-100 flex items-start gap-1.5">

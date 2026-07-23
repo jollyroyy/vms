@@ -37,6 +37,7 @@ export default function PreApproveForm({ onPreApproved }: Props): React.ReactEle
   const [batchMode,     setBatchMode]     = useState(false);
   const [userRole,      setUserRole]      = useState<string>('');
   const [userDept,      setUserDept]      = useState<string>('');
+  const [scheduledFor,  setScheduledFor]  = useState<string>('');
   const [activeVisitCheck, setActiveVisitCheck] = useState<{ checking: boolean; message: string | null }>({ checking: false, message: null });
 
   useEffect(() => {
@@ -103,23 +104,26 @@ export default function PreApproveForm({ onPreApproved }: Props): React.ReactEle
         return;
       }
       setActiveVisitCheck({ checking: false, message: null });
-      const { data, error: rpcErr } = await (supabase as any).rpc('pre_approve_visitor', {
+      // Use security definer RPC to bypass RLS
+      const params: Record<string, any> = {
         p_phone: normalized,
         p_full_name: fullName,
         p_company: company || null,
-        p_vehicle_number: vehicle || null,
         p_department_id: deptId,
         p_host_id: hostId,
         p_purpose: purpose,
-      });
+      };
+      if (scheduledFor) params.p_scheduled_for = scheduledFor;
+      const { data: result, error: rpcErr } = await (supabase as any)
+        .rpc('pre_approve_visitor_v2', params);
       if (rpcErr) throw rpcErr;
-      if (!data?.ref_number) throw new Error('Failed to create pre-approved visit.');
+      if (!result?.ref_number) throw new Error('Failed to create pre-approved visit.');
       if (batchMode) {
-        setSuccessMsg(`"${fullName}" pre-approved — ref ${data.ref_number}`);
-        setPhone(''); setFullName(''); setCompany(''); setVehicle(''); setHostId('');
+        setSuccessMsg(`"${fullName}" pre-approved — ref ${result.ref_number}`);
+        setPhone(''); setFullName(''); setCompany(''); setVehicle(''); setHostId(''); setScheduledFor('');
         setBlacklistHit(null);
       } else {
-        onPreApproved(fullName, data.ref_number);
+        onPreApproved(fullName, result.ref_number);
       }
     } catch (err) { setError(safeErrorMessage(err, 'Pre-approval failed. Please try again.')); }
     finally { setSubmitting(false); }
@@ -188,6 +192,10 @@ export default function PreApproveForm({ onPreApproved }: Props): React.ReactEle
           </select>
         </div>
         <div className="sm:col-span-2"><label className="label">Vehicle Number (optional)</label><input type="text" maxLength={20} value={vehicle} onChange={(e) => setVehicle(e.target.value)} className="input" placeholder="MH 12 AB 1234" /></div>
+        <div className="sm:col-span-2">
+          <label className="label">Schedule for (optional)</label>
+          <input type="datetime-local" value={scheduledFor} onChange={(e) => setScheduledFor(e.target.value)} className="input" />
+        </div>
       </div>
 
       {successMsg && (

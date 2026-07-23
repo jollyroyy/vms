@@ -46,7 +46,7 @@ export default function HODOverview(): React.ReactElement {
   const today = useMemo(() => new Date().toISOString().slice(0, 10), []);
 
   const load = useCallback(async () => {
-    if (!deptId || !userId) return;
+    if (!deptId || !userId) { setLoading(false); return; }
     setLoading(true);
     try {
       const { data: todayData } = await supabase
@@ -96,7 +96,7 @@ export default function HODOverview(): React.ReactElement {
       // silent — dashboard is read-only and defensive
     }
     setLoading(false);
-  }, [deptId, userId, today, weekStart]);
+  }, [deptId, userId, today]);
 
   useEffect(() => { void load(); }, [load]);
 

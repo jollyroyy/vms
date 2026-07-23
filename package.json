@@ -9,7 +9,7 @@
     "build": "tsc -p tsconfig.app.json --noEmit && vite build",
     "preview": "vite preview",
     "lint": "tsc --noEmit",
-    "check": "tsc --noEmit && vitest run tests/unit tests/security/routeProtection.test.ts",
+    "check": "tsc -p tsconfig.app.json --noEmit && vitest run tests/unit tests/security/routeProtection.test.ts",
     "verify": "node scripts/run-verify.js",
     "verify:goal": "node scripts/run-verify.js --goal",
     "test": "vitest run",

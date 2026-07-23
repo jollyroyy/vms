@@ -3,7 +3,7 @@ import { supabase } from '../../supabaseClient';
 import type { Visit } from '../../types/index';
 import { attachHostNames } from '../../lib/hostNames';
 import { safeErrorMessage } from '../../lib/errors';
-import { formatDuration } from '../../lib/formatDate';
+import { formatDuration, formatTime } from '../../lib/formatDate';
 import CheckInPanel from './CheckInPanel';
 import Badge from '../../components/Badge';
 
@@ -15,6 +15,7 @@ export default function GuardConsole(): React.ReactElement {
   const [today] = useState(() => new Date().toISOString().slice(0, 10));
   const [successMsg, setSuccessMsg] = useState('');
   const [actionErr, setActionErr] = useState('');
+  const [showInsideList, setShowInsideList] = useState(false);
 
   const loadVisits = useCallback(async () => {
     setLoading(true);
@@ -50,31 +51,99 @@ export default function GuardConsole(): React.ReactElement {
   };
 
   const checkedIn = visits.filter((v) => v.status === 'checked_in');
-  const approved = visits.filter((v) => v.status === 'approved' || v.status === 'walkin_approved');
-  const pending = visits.filter((v) => v.status === 'pending_approval');
   const rejected = visits.filter((v) => v.status === 'rejected');
+  const overtimeCount = checkedIn.filter((v) => formatDuration(v.checked_in_at).isOvertime).length;
 
   return (
     <div className="max-w-3xl mx-auto space-y-5">
       <h1 className="text-2xl font-bold text-navy-900">Guard Console</h1>
 
-      <div className="grid grid-cols-4 gap-2 text-center">
-        <div className="bg-white rounded-xl border border-surface-200 p-3">
-          <p className="text-2xl font-bold text-brand-600">{checkedIn.length}</p>
-          <p className="text-xs text-navy-400 font-medium">Inside</p>
-        </div>
-        <div className="bg-white rounded-xl border border-surface-200 p-3">
-          <p className="text-2xl font-bold text-success-600">{approved.length}</p>
-          <p className="text-xs text-navy-400 font-medium">Approved</p>
-        </div>
-        <div className="bg-white rounded-xl border border-surface-200 p-3">
-          <p className="text-2xl font-bold text-amber-600">{pending.length}</p>
-          <p className="text-xs text-navy-400 font-medium">Pending</p>
-        </div>
-        <div className="bg-white rounded-xl border border-surface-200 p-3">
-          <p className="text-2xl font-bold text-danger-600">{rejected.length}</p>
-          <p className="text-xs text-navy-400 font-medium">Rejected</p>
-        </div>
+      <div className="bg-white rounded-2xl border border-surface-200 overflow-hidden transition-shadow duration-300 hover:shadow-sm">
+        <button
+          onClick={() => setShowInsideList((prev) => !prev)}
+          className="w-full p-5 text-center transition-colors duration-200 hover:bg-surface-50/50"
+          aria-expanded={showInsideList}
+        >
+          <p className="text-4xl font-bold text-brand-600 tracking-tight">{checkedIn.length}</p>
+          <p className="text-sm text-navy-400 font-medium mt-0.5">People Inside</p>
+          {checkedIn.length > 0 && overtimeCount > 0 && (
+            <p className="text-xs text-navy-400 mt-1.5">
+              {overtimeCount} {overtimeCount === 1 ? 'visit' : 'visits'} over 9h
+            </p>
+          )}
+          <svg
+            className={`w-4 h-4 mx-auto mt-2 text-navy-300 transition-transform duration-300 ${showInsideList ? 'rotate-180' : ''}`}
+            fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+          </svg>
+        </button>
+
+        {showInsideList && (
+          <div className="border-t border-surface-200">
+            {checkedIn.length === 0 ? (
+              <div className="py-8 text-center">
+                <div className="w-11 h-11 mx-auto rounded-2xl bg-surface-100 flex items-center justify-center mb-2.5">
+                  <svg className="w-5 h-5 text-navy-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />
+                  </svg>
+                </div>
+                <p className="text-navy-400 text-sm font-medium">No visitors checked in</p>
+              </div>
+            ) : (
+              <div className="divide-y divide-surface-100">
+                {checkedIn.map((v) => {
+                  const dur = formatDuration(v.checked_in_at);
+                  const checkedInTime = v.checked_in_at ? formatTime(v.checked_in_at) : null;
+                  const expected = v.scheduled_for ? formatTime(v.scheduled_for) : null;
+                  return (
+                    <div key={v.id} className="flex items-center gap-3 px-5 py-3.5 hover:bg-surface-50 transition-colors duration-150">
+                      <div className="relative shrink-0">
+                        <div className={`w-2.5 h-2.5 rounded-full ${dur.isOvertime ? 'bg-danger-500' : 'bg-emerald-500'}`} />
+                        <div className={`absolute inset-0 w-2.5 h-2.5 rounded-full animate-ping opacity-40 ${dur.isOvertime ? 'bg-danger-400' : 'bg-emerald-400'}`} />
+                      </div>
+                      {v.photo_url ? (
+                        <img src={v.photo_url} alt="" className="w-10 h-10 rounded-xl object-cover shrink-0 ring-1 ring-black/5" />
+                      ) : (
+                        <div className="w-10 h-10 rounded-xl bg-surface-100 shrink-0 flex items-center justify-center ring-1 ring-black/5">
+                          <svg className="w-4 h-4 text-navy-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0" />
+                          </svg>
+                        </div>
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-bold text-navy-900 truncate">{v.visitor?.full_name ?? '—'}</p>
+                        <p className="text-xs text-navy-400 truncate">{v.department?.name ?? '—'}</p>
+                        <div className="flex items-center gap-2 mt-1">
+                          {checkedInTime && (
+                            <span className="text-[10px] text-navy-300 flex items-center gap-1">
+                              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                              In: {checkedInTime}
+                            </span>
+                          )}
+                          {expected && (
+                            <span className="text-[10px] text-navy-300 flex items-center gap-1">
+                              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" /></svg>
+                              Sch: {expected}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="shrink-0 text-right ml-2">
+                        <p className={`text-sm font-semibold ${dur.isOvertime ? 'text-danger-600' : 'text-navy-700'}`}>{dur.text}</p>
+                        {dur.isOvertime && (
+                          <span className="inline-flex items-center px-1.5 py-0.5 rounded-md text-[10px] font-bold bg-danger-50 text-danger-600 leading-none mt-0.5">
+                            Over 9h
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-2 gap-3">
@@ -98,7 +167,7 @@ export default function GuardConsole(): React.ReactElement {
           <svg className="w-6 h-6 mx-auto mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" />
           </svg>
-          Log Out
+          Check Out
           {checkedIn.length > 0 && (
             <span className="ml-1.5 inline-flex items-center justify-center min-w-[22px] h-[22px] text-xs font-bold px-1.5 rounded-full bg-white/20">{checkedIn.length}</span>
           )}
@@ -178,7 +247,7 @@ export default function GuardConsole(): React.ReactElement {
                   </div>
                   <button onClick={(e) => { e.stopPropagation(); logExit(v); }}
                     className="bg-surface-50 hover:bg-surface-100 text-navy-700 font-bold px-5 py-2.5 rounded-xl text-sm transition-all shrink-0 ml-3">
-                    Log Out
+                    Check Out
                   </button>
                 </div>
               );

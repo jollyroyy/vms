@@ -97,6 +97,7 @@
   * { touch-action: manipulation; }
 
   html {
+    font-size: 18px;
     scroll-behavior: smooth;
   }
 

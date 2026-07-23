@@ -4,6 +4,7 @@ import type { Visit } from '../../types/index';
 import { attachHostNames } from '../../lib/hostNames';
 import { safeErrorMessage } from '../../lib/errors';
 import { formatTime, formatDuration } from '../../lib/formatDate';
+import { STATUS_STYLES } from '../../lib/statusStyles';
 import { exportToCsv } from '../../lib/exportUtils';
 import VisitorDetails from '../../components/VisitorDetails';
 
@@ -59,15 +60,6 @@ export default function WhosInside(): React.ReactElement {
       .subscribe();
     return () => { void supabase.removeChannel(ch); };
   }, [load, authReady]);
-
-  const STATUS_STYLES: Record<Visit['status'], { bg: string; text: string; dot: string; label: string }> = {
-    pending_approval: { bg: 'bg-warning-50', text: 'text-warning-700', dot: 'bg-warning-500', label: 'Pending' },
-    approved:         { bg: 'bg-success-50', text: 'text-success-700', dot: 'bg-success-500', label: 'Pre-Approved' },
-    walkin_approved:  { bg: 'bg-brand-50', text: 'text-brand-700', dot: 'bg-brand-500', label: 'Approved' },
-    checked_in:       { bg: 'bg-brand-50', text: 'text-brand-700', dot: 'bg-brand-500', label: 'Inside' },
-    checked_out:      { bg: 'bg-surface-100', text: 'text-navy-400', dot: 'bg-navy-300', label: 'Left' },
-    rejected:         { bg: 'bg-danger-50', text: 'text-danger-700', dot: 'bg-danger-500', label: 'Rejected' },
-  };
 
   const [detailVisit, setDetailVisit] = useState<Visit | null>(null);
   const [activeFilter, setActiveFilter] = useState<ActiveTab | null>(null);
@@ -295,6 +287,7 @@ export default function WhosInside(): React.ReactElement {
                     <p className="text-xs text-navy-300 mt-0.5">Reg: {formatTime(v.created_at)}</p>
                     {v.checked_in_at && <p className="text-xs text-navy-300">In: {formatTime(v.checked_in_at)}</p>}
                     {v.checked_out_at && <p className="text-xs text-navy-300">Out: {formatTime(v.checked_out_at)}</p>}
+                    {v.scheduled_for && <p className="text-xs text-navy-300">Sch: {formatTime(v.scheduled_for)}</p>}
                     <p className="text-[10px] text-navy-300 font-mono mt-1">{v.ref_number}</p>
                     {dur && (
                       <p className={`text-xs mt-1 flex items-center gap-1 ${dur.isOvertime ? 'text-danger-600 font-bold' : 'text-navy-400'}`}>

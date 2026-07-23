@@ -8,6 +8,7 @@ import { ThemeProvider } from './lib/theme';
 
 // Pages
 import LoginPage          from './pages/Login';
+import VisitorsDashboard  from './pages/Shared/VisitorsDashboard';
 import GuardConsole       from './pages/Guard/Console';
 import HODApprovals       from './pages/HOD/Approvals';
 import HODOverview        from './pages/HOD/HODOverview';
@@ -106,7 +107,7 @@ export default function App(): React.ReactElement {
     );
   }
 
-  const allowed = role ? ROLE_ROUTES[role] ?? ['/guard'] : ['/guard'];
+  const allowed = role ? ROLE_ROUTES[role] ?? ['/visitors'] : ['/visitors'];
 
   return (
     <ThemeProvider>
@@ -114,7 +115,8 @@ export default function App(): React.ReactElement {
         <AppShell session={session} role={role}>
           <SessionTimeout />
           <Routes>
-            <Route path="/" element={<Navigate to={allowed[0] ?? '/guard'} replace />} />
+            <Route path="/" element={<Navigate to={allowed[0] ?? '/visitors'} replace />} />
+            <Route path="/visitors"       element={<ProtectedRoute role={role}><VisitorsDashboard /></ProtectedRoute>} />
             <Route path="/guard"           element={<ProtectedRoute role={role}><GuardConsole /></ProtectedRoute>} />
             <Route path="/kiosk"          element={<ProtectedRoute role={role}><KioskPage /></ProtectedRoute>} />
             <Route path="/approvals"       element={<ProtectedRoute role={role}><HODApprovals /></ProtectedRoute>} />

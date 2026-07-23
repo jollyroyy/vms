@@ -38,6 +38,9 @@ describe('SEC-7: frontend route protection', () => {
   describe('guard', () => {
     const role = 'guard' as const;
 
+    it('guard is allowed on /visitors', () => {
+      expect(isForbidden('/visitors', role)).toBe(false);
+    });
     it('guard is allowed on /guard', () => {
       expect(isForbidden('/guard', role)).toBe(false);
     });
@@ -78,17 +81,8 @@ describe('SEC-7: frontend route protection', () => {
     it('hod is FORBIDDEN on /admin', () => {
       expect(isForbidden('/admin', role)).toBe(true);
     });
-    it('hod is allowed on /overview', () => {
-      expect(isForbidden('/overview', role)).toBe(false);
-    });
-    it('guard is FORBIDDEN on /overview', () => {
-      expect(isForbidden('/overview', 'guard')).toBe(true);
-    });
-    it('staff is FORBIDDEN on /overview', () => {
-      expect(isForbidden('/overview', 'staff')).toBe(true);
-    });
-    it('admin is FORBIDDEN on /overview', () => {
-      expect(isForbidden('/overview', 'admin')).toBe(true);
+    it('hod is FORBIDDEN on /overview (removed from sidebar)', () => {
+      expect(isForbidden('/overview', role)).toBe(true);
     });
   });
 
@@ -140,6 +134,12 @@ describe('SEC-7: frontend route protection', () => {
   });
 
   // ── Route path match semantics ────────────────────────────
+  it('/visitors is allowed for all authenticated roles', () => {
+    const allRoles = ['guard', 'hod', 'staff', 'admin', 'super_admin'] as const;
+    for (const r of allRoles) {
+      expect(isForbidden('/visitors', r)).toBe(false);
+    }
+  });
   it('shared routes like /whos-inside are allowed for guard/hod/staff', () => {
     const allowedRoles = ['guard', 'hod', 'staff'] as const;
     for (const r of allowedRoles) {

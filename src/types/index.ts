@@ -60,6 +60,7 @@ export type Visit = {
   rejection_reason: string | null;
   carrying_material: boolean;
   expected_duration_minutes: number | null;
+  scheduled_for: string | null;
   created_at: string;
   // joined fields (populated by views/RPCs)
   visitor?: Visitor;

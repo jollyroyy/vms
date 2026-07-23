@@ -8,11 +8,17 @@ const mockSelect = vi.fn();
 
 vi.mock('../../../src/supabaseClient', () => ({
   supabase: {
-    auth: { signOut: vi.fn().mockResolvedValue({ error: null }) },
-    from: () => ({
+    auth: {
+      signOut: vi.fn().mockResolvedValue({ error: null }),
+      getUser: vi.fn().mockResolvedValue({ data: { user: { app_metadata: { department_id: 'dept-1' } } } }),
+    },
+    from: (table: string) => ({
       select: () => ({
         eq: () => ({
-          maybeSingle: () => Promise.resolve({ data: { full_name: 'Guard User' } }),
+          maybeSingle: () => {
+            if (table === 'departments') return Promise.resolve({ data: { name: 'IT Department' } });
+            return Promise.resolve({ data: { full_name: 'Guard User', department_id: 'dept-1' } });
+          },
         }),
       }),
     }),
@@ -44,71 +50,69 @@ describe('M11-SIDEBAR: Sidebar component', () => {
 
   it('renders correct nav links for guard role', () => {
     renderWithRouter(<Sidebar session={guardSession} role="guard" />);
-    expect(screen.getByText('Console')).toBeInTheDocument();
-    expect(screen.getByText('Kiosk')).toBeInTheDocument();
-    expect(screen.getByText("Who's Inside")).toBeInTheDocument();
-    expect(screen.getByText('Gate Passes')).toBeInTheDocument();
+    expect(screen.getByText('Visitors')).toBeInTheDocument();
+    expect(screen.getByText('Material Passes')).toBeInTheDocument();
+    expect(screen.getByText('On-site')).toBeInTheDocument();
+    expect(screen.queryByText('Console')).not.toBeInTheDocument();
+    expect(screen.queryByText('Kiosk')).not.toBeInTheDocument();
     expect(screen.queryByText('Reports')).not.toBeInTheDocument();
     expect(screen.queryByText('Approvals')).not.toBeInTheDocument();
-    expect(screen.queryByText('Admin')).not.toBeInTheDocument();
+    expect(screen.queryByText('Settings')).not.toBeInTheDocument();
   });
 
   it('renders correct nav links for admin role', () => {
     renderWithRouter(<Sidebar session={adminSession} role="admin" />);
-    // "Admin" text appears both as nav link text and as role badge label
-    const adminEls = screen.getAllByText('Admin');
-    expect(adminEls.length).toBeGreaterThanOrEqual(1);
-    // Verify the nav link element points to /admin
-    const adminLink = adminEls.find((el) => el.closest('a')?.getAttribute('href') === '/admin');
-    expect(adminLink).toBeTruthy();
+    expect(screen.getByText('Visitors')).toBeInTheDocument();
     expect(screen.getByText('Reports')).toBeInTheDocument();
-    expect(screen.getByText('Analytics')).toBeInTheDocument();
+    expect(screen.getByText('Settings')).toBeInTheDocument();
+    expect(screen.queryByText('Analytics')).not.toBeInTheDocument();
     expect(screen.queryByText('Console')).not.toBeInTheDocument();
     expect(screen.queryByText('Approvals')).not.toBeInTheDocument();
-    expect(screen.queryByText("Who's Inside")).not.toBeInTheDocument();
-    expect(screen.queryByText('Gate Passes')).not.toBeInTheDocument();
+    expect(screen.queryByText('On-site')).not.toBeInTheDocument();
+    expect(screen.queryByText('Material Passes')).not.toBeInTheDocument();
   });
 
   it('renders correct nav links for staff role', () => {
     renderWithRouter(<Sidebar session={staffSession} role="staff" />);
-    expect(screen.getByText("Who's Inside")).toBeInTheDocument();
-    expect(screen.getByText('Gate Passes')).toBeInTheDocument();
+    expect(screen.getByText('Visitors')).toBeInTheDocument();
+    expect(screen.getByText('On-site')).toBeInTheDocument();
+    expect(screen.getByText('Material Passes')).toBeInTheDocument();
     expect(screen.getByText('Reports')).toBeInTheDocument();
     expect(screen.queryByText('Console')).not.toBeInTheDocument();
     expect(screen.queryByText('Approvals')).not.toBeInTheDocument();
-    expect(screen.queryByText('Admin')).not.toBeInTheDocument();
+    expect(screen.queryByText('Settings')).not.toBeInTheDocument();
   });
 
   it('highlights active link based on current route', () => {
-    renderWithRouter(<Sidebar session={guardSession} role="guard" />, { route: '/guard' });
-    const consoleLinks = screen.getAllByText('Console');
-    const activeLink = consoleLinks.find((el) => el.closest('a')?.className.includes('sidebar-link-active'));
+    renderWithRouter(<Sidebar session={guardSession} role="guard" />, { route: '/visitors' });
+    const visitorsLinks = screen.getAllByText('Visitors');
+    const activeLink = visitorsLinks.find((el) => el.closest('a')?.className.includes('sidebar-link-active'));
     expect(activeLink).toBeTruthy();
   });
 
   it('does not highlight inactive links', () => {
     renderWithRouter(<Sidebar session={guardSession} role="guard" />, { route: '/whos-inside' });
-    const consoleLinks = screen.getAllByText('Console');
-    const inactiveLink = consoleLinks.find((el) => !el.closest('a')?.className.includes('sidebar-link-active'));
+    const visitorsLinks = screen.getAllByText('Visitors');
+    const inactiveLink = visitorsLinks.find((el) => !el.closest('a')?.className.includes('sidebar-link-active'));
     expect(inactiveLink).toBeTruthy();
   });
 
-  it('shows role badge when role is provided', async () => {
+  it('shows department name instead of role badge', async () => {
     renderWithRouter(<Sidebar session={guardSession} role="guard" />);
     await waitFor(() => {
-      expect(screen.getAllByText('Guard').length).toBeGreaterThanOrEqual(1);
+      expect(screen.getByText('IT Department')).toBeInTheDocument();
     });
   });
 
-  it('shows default role label for unknown role', () => {
-    renderWithRouter(<Sidebar session={guardSession} role={null} />);
-    expect(screen.getByText('Unknown role')).toBeInTheDocument();
+  it('does not show role label', () => {
+    renderWithRouter(<Sidebar session={guardSession} role="guard" />);
+    expect(screen.queryByText('Guard')).not.toBeInTheDocument();
   });
 
-  it('renders profile name in sidebar', async () => {
+  it('renders department name in sidebar', async () => {
     renderWithRouter(<Sidebar session={guardSession} role="guard" />);
     await waitFor(() => {
-      expect(screen.getByText('Guard User')).toBeInTheDocument();
+      expect(screen.getByText('IT Department')).toBeInTheDocument();
     });
   });
 
@@ -125,11 +129,11 @@ describe('M11-SIDEBAR: Sidebar component', () => {
 
   it('toggles mobile menu on hamburger click', () => {
     renderWithRouter(<Sidebar session={guardSession} role="guard" />);
-    const beforeCount = screen.getAllByText('Console').length;
+    const beforeCount = screen.getAllByText('Visitors').length;
     const toggleBtn = screen.getByLabelText('Open menu');
     expect(toggleBtn).toBeInTheDocument();
     fireEvent.click(toggleBtn);
-    expect(screen.getAllByText('Console').length).toBeGreaterThan(beforeCount);
+    expect(screen.getAllByText('Visitors').length).toBeGreaterThan(beforeCount);
   });
 
   it('handles sign out click', async () => {

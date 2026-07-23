@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { supabase } from '../../supabaseClient';
-import type { Department, Profile, Visit, RecurringVisit } from '../../types/index';
+import type { Department, Profile, Visit, RecurringVisit, VisitorPurpose } from '../../types/index';
 import { normalizePhone } from '../../lib/blacklist';
 import { safeErrorMessage } from '../../lib/errors';
 import { attachHostNames } from '../../lib/hostNames';
@@ -133,23 +133,31 @@ export default function CheckInPanel({ today, onCheckInSuccess }: Props): React.
           { onConflict: 'phone' },
         ).select().single();
         if (visErr || !vis) throw visErr ?? new Error('Failed to create visitor');
+        const deptId = selectedMatch.id.split(':')[0] ?? '';
+        const hostParts = selectedMatch.id.split(':')[1];
         const { error: visitErr } = await supabase.from('visits').insert({
           visitor_id: vis.id,
-          department_id: selectedMatch.id.split(':')[0],
-          host_id: selectedMatch.id.split(':')[1] || vis.id,
-          purpose: (selectedMatch.purpose as any) || 'other',
+          department_id: deptId,
+          host_id: hostParts || vis.id,
+          purpose: (selectedMatch.purpose as VisitorPurpose) || 'other',
           photo_path: photoPath, photo_data: photoData,
           status: 'checked_in',
           checked_in_at: new Date().toISOString(),
+          checked_out_at: null, exit_verified: null, rejection_reason: null,
           carrying_material: false,
           expected_duration_minutes: 60,
+          scheduled_for: null,
         });
         if (visitErr) throw visitErr;
       } else {
-        const updateData: Record<string, any> = { status: 'checked_in', checked_in_at: new Date().toISOString() };
-        if (photoData) updateData.photo_data = photoData;
-        if (photoPath) updateData.photo_path = photoPath;
-        const { error: err } = await supabase.from('visits').update(updateData).eq('id', selectedMatch.visitId);
+        const visitId = selectedMatch.visitId;
+        if (!visitId) throw new Error('Missing visit ID for check-in');
+        const { error: err } = await supabase.from('visits').update({
+          status: 'checked_in',
+          checked_in_at: new Date().toISOString(),
+          ...(photoData ? { photo_data: photoData } : {}),
+          ...(photoPath ? { photo_path: photoPath } : {}),
+        } as any).eq('id', visitId);
         if (err) throw err;
       }
       setPhotoBlob(null); setSelectedMatch(null);

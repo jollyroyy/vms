@@ -80,7 +80,7 @@ describe('M12-HOD: HODApprovals', () => {
   it('renders title', async () => {
     setup();
     render(<MemoryRouter><HODApprovals /></MemoryRouter>);
-    await waitFor(() => expect(screen.getByText('Overview')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText('Approvals')).toBeInTheDocument());
   });
 
   it('shows all four tabs', async () => {
