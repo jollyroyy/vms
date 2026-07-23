@@ -56,10 +56,17 @@ export default function GuardConsole(): React.ReactElement {
     if (visit.status !== 'checked_in') { setActionErr('Visitor is not checked in.'); return; }
     setActionErr('');
     try {
-      const { error } = await supabase.from('visits').update({ status: 'checked_out', checked_out_at: new Date().toISOString(), exit_verified: true }).eq('id', visit.id);
+      const now = new Date().toISOString();
+      const { error } = await supabase.from('visits').update({ status: 'checked_out', checked_out_at: now, exit_verified: true }).eq('id', visit.id);
       if (error) { setActionErr(safeErrorMessage(error, 'Failed to log exit.')); return; }
       void loadVisits();
     } catch (err) { setActionErr(safeErrorMessage(err, 'Failed to log exit.')); }
+  };
+
+  /** Returns true if the visit's scheduled time has passed by more than 30 minutes */
+  const isExpired = (v: Visit): boolean => {
+    if (!v.scheduled_for) return false;
+    return Date.now() - new Date(v.scheduled_for).getTime() > 30 * 60 * 1000;
   };
 
   const checkedIn = visits.filter((v) => v.status === 'checked_in');
@@ -209,36 +216,48 @@ export default function GuardConsole(): React.ReactElement {
             <span className="text-xs font-bold text-navy-400 bg-surface-100 px-2.5 py-1 rounded-lg">{preApproved.length} waiting</span>
           </div>
           <div className="divide-y divide-surface-100">
-            {preApproved.map((v) => (
-              <div key={v.id} className="flex items-center gap-3 px-5 py-3 hover:bg-surface-50 transition-colors">
-                <div className="w-2 h-2 rounded-full bg-success-500 shrink-0" />
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-semibold text-navy-900 truncate">{v.visitor?.full_name ?? '—'}</p>
-                  <p className="text-xs text-navy-400 truncate">{v.department?.name}{v.purpose ? ` · ${v.purpose}` : ''}</p>
-                  <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-md bg-success-50 text-success-700 border border-success-100 mt-1">
-                    <span className="h-1.5 w-1.5 rounded-full bg-success-500" />
-                    Awaiting Arrival
-                  </span>
-                </div>
-                <div className="shrink-0 flex flex-col items-end gap-1">
-                  {v.scheduled_for ? (
-                    <span className="text-sm font-bold text-brand-600 bg-brand-50 px-2.5 py-1 rounded-lg border border-brand-100">
-                      {formatTime(v.scheduled_for)}
+            {preApproved.map((v) => {
+              const expired = isExpired(v);
+              return (
+                <div key={v.id} className={`flex items-center gap-3 px-5 py-3 transition-colors ${expired ? 'opacity-50' : 'hover:bg-surface-50'}`}>
+                  <div className={`w-2 h-2 rounded-full shrink-0 ${expired ? 'bg-navy-300' : 'bg-success-500'}`} />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-semibold text-navy-900 truncate">{v.visitor?.full_name ?? '—'}</p>
+                    <p className="text-xs text-navy-400 truncate">{v.department?.name}{v.purpose ? ` · ${v.purpose}` : ''}</p>
+                    {expired ? (
+                      <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-md bg-danger-50 text-danger-700 border border-danger-100 mt-1">
+                        <span className="h-1.5 w-1.5 rounded-full bg-danger-500" />
+                        Expired
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-md bg-success-50 text-success-700 border border-success-100 mt-1">
+                        <span className="h-1.5 w-1.5 rounded-full bg-success-500" />
+                        Awaiting Arrival
+                      </span>
+                    )}
+                  </div>
+                  <div className="shrink-0 flex flex-col items-end gap-1">
+                    {v.scheduled_for ? (
+                      <span className={`text-sm font-bold px-2.5 py-1 rounded-lg border ${
+                        expired ? 'text-navy-400 bg-surface-50 border-surface-200 line-through' : 'text-brand-600 bg-brand-50 border-brand-100'
+                      }`}>
+                        {formatTime(v.scheduled_for)}
+                      </span>
+                    ) : (
+                      <span className="text-[10px] text-navy-300">No ETA</span>
+                    )}
+                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${
+                      v.purpose === 'vendor' ? 'bg-purple-50 text-purple-700' :
+                      v.purpose === 'delivery' ? 'bg-blue-50 text-blue-700' :
+                      v.purpose === 'maintenance' ? 'bg-amber-50 text-amber-700' :
+                      'bg-surface-100 text-navy-500'
+                    }`}>
+                      {(v.purpose ?? 'Other').charAt(0).toUpperCase() + (v.purpose ?? 'other').slice(1)}
                     </span>
-                  ) : (
-                    <span className="text-[10px] text-navy-300">No ETA</span>
-                  )}
-                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${
-                    v.purpose === 'vendor' ? 'bg-purple-50 text-purple-700' :
-                    v.purpose === 'delivery' ? 'bg-blue-50 text-blue-700' :
-                    v.purpose === 'maintenance' ? 'bg-amber-50 text-amber-700' :
-                    'bg-surface-100 text-navy-500'
-                  }`}>
-                    {(v.purpose ?? 'Other').charAt(0).toUpperCase() + (v.purpose ?? 'other').slice(1)}
-                  </span>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}

@@ -124,6 +124,15 @@ export default function CheckInPanel({ today, onCheckInSuccess }: Props): React.
     if (!selectedMatch || !photoBlob) return;
     setCheckingIn(true); setError('');
     try {
+      // Block check-in for expired pre-approved visits
+      if (selectedMatch.source === 'pre_approved' && selectedMatch.visitId) {
+        const visit = preApproved.find((v) => v.id === selectedMatch.visitId);
+        if (visit && isExpired(visit)) {
+          setError('Cannot check in — the scheduled time has passed. Please request a new approval.');
+          setCheckingIn(false);
+          return;
+        }
+      }
       const { photoPath, photoData } = await uploadPhoto(photoBlob);
       if (selectedMatch.source === 'recurring') {
         let normalized: string;
@@ -166,6 +175,14 @@ export default function CheckInPanel({ today, onCheckInSuccess }: Props): React.
     } catch (err) { setError(safeErrorMessage(err, 'Check-in failed.')); }
     finally { setCheckingIn(false); }
   };
+
+  const isExpired = useCallback((v: Visit): boolean => {
+    if (!v.scheduled_for) return false;
+    const scheduled = new Date(v.scheduled_for).getTime();
+    const now = Date.now();
+    // Expired if scheduled time was more than 30 minutes ago
+    return now - scheduled > 30 * 60 * 1000;
+  }, []);
 
   const allMatches = useMemo(() => {
     const items: MatchItem[] = [];
@@ -291,13 +308,16 @@ export default function CheckInPanel({ today, onCheckInSuccess }: Props): React.
           {allMatches.map((m, idx) => {
             const isRecurring = m.source === 'recurring';
             const isCheckedIn = m.source === 'pre_approved' && checkedInIds.has(preApproved.find((v) => v.id === m.visitId)?.visitor_id ?? '');
+            const visitRecord = m.source === 'pre_approved' ? preApproved.find((v) => v.id === m.visitId) : null;
+            const expired = visitRecord ? isExpired(visitRecord) : false;
+            const disabled = isCheckedIn || expired;
             return (
               <div key={`${m.id}-${idx}`}
                 className={`bg-white rounded-2xl p-4 shadow-sm border border-surface-100 flex items-center justify-between transition-all ${
-                  isCheckedIn ? 'opacity-50' : 'hover:shadow-md cursor-pointer'
+                  disabled ? 'opacity-50' : 'hover:shadow-md cursor-pointer'
                 }`}
                 onClick={() => {
-                  if (!isCheckedIn) { setSelectedMatch(m); setPhotoBlob(null); setError(''); }
+                  if (!disabled) { setSelectedMatch(m); setPhotoBlob(null); setError(''); }
                 }}>
                 <div className="min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
@@ -310,10 +330,13 @@ export default function CheckInPanel({ today, onCheckInSuccess }: Props): React.
                     {isCheckedIn && (
                       <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-brand-50 text-brand-700">Checked In</span>
                     )}
+                    {expired && !isCheckedIn && (
+                      <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-danger-50 text-danger-700">Expired</span>
+                    )}
                   </div>
                   <p className="text-sm text-navy-400 mt-0.5 truncate">{m.departmentName} · {m.purpose}</p>
                 </div>
-                {!isCheckedIn && (
+                {!disabled && (
                   <button onClick={(e) => { e.stopPropagation(); setSelectedMatch(m); setPhotoBlob(null); setError(''); }}
                     className="shrink-0 ml-3 bg-brand-600 hover:bg-brand-700 text-white font-bold px-5 py-2.5 rounded-xl text-sm transition-all">
                     Check In
