@@ -99,69 +99,75 @@ export default function WalkInRequest({ onSubmitted, onCancel }: Props): React.R
   };
 
   return (
-    <form onSubmit={handleSubmit} className="card p-5 space-y-4 border-2 border-dashed border-brand-300/40 bg-brand-50/20 animate-fade-in">
+    <form onSubmit={handleSubmit} className="bg-white rounded-2xl p-5 shadow-sm border-2 border-dashed border-brand-300/30 space-y-4 animate-fade-in">
       <div className="flex items-center gap-2.5">
-        <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center shrink-0">
+        <div className="h-8 w-8 rounded-lg bg-amber-500 flex items-center justify-center shrink-0">
           <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" /></svg>
         </div>
         <div>
-          <p className="text-sm font-bold text-navy-900">No match found — request walk-in approval</p>
-          <p className="text-xs text-navy-400">HOD will be notified to approve this visitor</p>
+          <p className="text-sm font-bold text-navy-900">Not found — request walk-in approval</p>
+          <p className="text-xs text-navy-400">HOD will be notified to approve</p>
         </div>
       </div>
 
       {blacklistHit && (
-        <div className="rounded-xl border-2 border-danger-500/30 bg-danger-50 p-3 flex items-start gap-2">
+        <div className="bg-danger-50 border border-danger-200 rounded-xl p-3 flex items-start gap-2">
           <svg className="w-4 h-4 text-danger-600 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" /></svg>
-          <p className="text-sm text-danger-700 font-semibold">BLACKLISTED — Reason: {blacklistHit}</p>
+          <p className="text-sm text-danger-700 font-semibold">Blacklisted — {blacklistHit}</p>
         </div>
       )}
 
       {error && (
-        <div className="alert-error py-2 px-3 text-sm">
-          {error}
-        </div>
+        <div className="bg-danger-50 text-danger-700 px-4 py-3 rounded-xl text-sm font-semibold">{error}</div>
       )}
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-3">
-        <div>
-          <label className="label text-xs">Mobile Number *</label>
-          <input type="tel" required maxLength={20} value={phone}
-            onChange={(e) => { setPhone(e.target.value); setBlacklistHit(null); }}
-            onBlur={handlePhoneBlur} placeholder="+91 98765 43210" className="input text-sm" />
-        </div>
-        <div><label className="label text-xs">Full Name *</label><input type="text" required value={fullName} onChange={(e) => setFullName(e.target.value)} className="input text-sm" /></div>
-        <div><label className="label text-xs">Company *</label><input type="text" required value={company} onChange={(e) => setCompany(e.target.value)} className="input text-sm" /></div>
-        <div>
-          <label className="label text-xs">Purpose *</label>
-          <select required value={purpose} onChange={(e) => setPurpose(e.target.value as VisitorPurpose)} className="input text-sm">
-            {PURPOSES.map((p) => <option key={p.value} value={p.value}>{p.label}</option>)}
-          </select>
-        </div>
-        <div>
-          <label className="label text-xs">Department *</label>
-          <select required value={deptId} onChange={(e) => setDeptId(e.target.value)} className="input text-sm">
-            <option value="">Select</option>
-            {departments.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
-          </select>
-        </div>
-        <div>
-          <label className="label text-xs">Person to Meet *</label>
-          <select required value={hostId} onChange={(e) => setHostId(e.target.value)} className="input text-sm" disabled={!deptId}>
-            <option value="">{deptId ? 'Select' : 'Dept first'}</option>
-            {hosts.map((h) => <option key={h.id} value={h.id}>{h.full_name}</option>)}
-          </select>
-          {hostError && <p className="text-xs text-danger-500 mt-0.5">{hostError}</p>}
+      <div className="space-y-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label className="text-xs font-semibold text-navy-600 mb-1 block">Phone *</label>
+            <input type="tel" required maxLength={20} value={phone}
+              onChange={(e) => { setPhone(e.target.value); setBlacklistHit(null); }}
+              onBlur={handlePhoneBlur} placeholder="98xxx xxxxx" className="w-full px-4 py-2.5 bg-surface-50 border border-surface-200 rounded-xl text-sm text-navy-900 placeholder-navy-300 focus:outline-none focus:ring-2 focus:ring-brand-500 transition-all" />
+          </div>
+          <div>
+            <label className="text-xs font-semibold text-navy-600 mb-1 block">Name *</label>
+            <input type="text" required value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Full name" className="w-full px-4 py-2.5 bg-surface-50 border border-surface-200 rounded-xl text-sm text-navy-900 placeholder-navy-300 focus:outline-none focus:ring-2 focus:ring-brand-500 transition-all" />
+          </div>
+          <div>
+            <label className="text-xs font-semibold text-navy-600 mb-1 block">Company</label>
+            <input type="text" value={company} onChange={(e) => setCompany(e.target.value)} placeholder="Optional" className="w-full px-4 py-2.5 bg-surface-50 border border-surface-200 rounded-xl text-sm text-navy-900 placeholder-navy-300 focus:outline-none focus:ring-2 focus:ring-brand-500 transition-all" />
+          </div>
+          <div>
+            <label className="text-xs font-semibold text-navy-600 mb-1 block">Purpose *</label>
+            <select required value={purpose} onChange={(e) => setPurpose(e.target.value as VisitorPurpose)} className="w-full px-4 py-2.5 bg-surface-50 border border-surface-200 rounded-xl text-sm text-navy-900 focus:outline-none focus:ring-2 focus:ring-brand-500 transition-all">
+              {PURPOSES.map((p) => <option key={p.value} value={p.value}>{p.label}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="text-xs font-semibold text-navy-600 mb-1 block">Department *</label>
+            <select required value={deptId} onChange={(e) => setDeptId(e.target.value)} className="w-full px-4 py-2.5 bg-surface-50 border border-surface-200 rounded-xl text-sm text-navy-900 focus:outline-none focus:ring-2 focus:ring-brand-500 transition-all">
+              <option value="">Select</option>
+              {departments.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="text-xs font-semibold text-navy-600 mb-1 block">Person to Meet *</label>
+            <select required value={hostId} onChange={(e) => setHostId(e.target.value)} className="w-full px-4 py-2.5 bg-surface-50 border border-surface-200 rounded-xl text-sm text-navy-900 focus:outline-none focus:ring-2 focus:ring-brand-500 transition-all disabled:opacity-50" disabled={!deptId}>
+              <option value="">{deptId ? 'Select' : 'Select dept first'}</option>
+              {hosts.map((h) => <option key={h.id} value={h.id}>{h.full_name}</option>)}
+            </select>
+            {hostError && <p className="text-xs text-danger-500 mt-0.5">{hostError}</p>}
+          </div>
         </div>
       </div>
 
       <div className="flex gap-3 pt-1">
-        <button type="button" onClick={onCancel} className="btn-secondary text-sm flex-1">Cancel</button>
+        <button type="button" onClick={onCancel} className="flex-1 bg-surface-50 hover:bg-surface-100 text-navy-700 font-bold rounded-xl py-2.5 text-sm transition-all">Cancel</button>
         <button type="submit" disabled={submitting || !!blacklistHit}
-          className="flex-1 bg-gradient-to-r from-amber-600 to-orange-600 text-white rounded-xl px-4 py-2.5 text-sm font-bold hover:from-amber-700 hover:to-orange-700 active:scale-[0.98] disabled:opacity-50 transition-all flex items-center justify-center gap-2">
+          className="flex-1 bg-brand-600 hover:bg-brand-700 text-white font-bold rounded-xl py-2.5 text-sm transition-all disabled:opacity-50 flex items-center justify-center gap-2">
           {submitting ? (
             <><svg className="animate-spin h-4 w-4" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg> Sending...</>
-          ) : 'Request HOD Approval'}
+          ) : 'Send Request'}
         </button>
       </div>
     </form>

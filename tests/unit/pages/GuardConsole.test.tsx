@@ -17,17 +17,6 @@ function mockResolved(data: any) {
 }
 
 vi.mock('../../../src/supabaseClient', () => {
-  const chainable: any = {};
-  const handler = {
-    get(_target: any, prop: string) {
-      if (prop === 'then') return (cb: any) => cb({ data: [], error: null });
-      if (prop === 'subscribe') return vi.fn().mockReturnValue('sub-1');
-      chainable[prop] = handler;
-      return handler;
-    }
-  };
-  handler.get = handler.get.bind(handler);
-
   return {
     supabase: {
       from: vi.fn(() => ({
@@ -106,43 +95,49 @@ describe('M12-GUARD: GuardConsole', () => {
     });
   });
 
-  it('shows tabs', async () => {
+  it('shows check-in and log-out buttons', async () => {
     mockChannel.mockReturnValue({ on: () => ({ subscribe: mockSubscribe }) });
     mockSubscribe.mockReturnValue('sub-1');
     render(<MemoryRouter><GuardConsole /></MemoryRouter>);
     await waitFor(() => {
       expect(screen.getByText('Check In')).toBeInTheDocument();
-      expect(screen.getByText("Today's Visits")).toBeInTheDocument();
-      expect(screen.getByText('Log Exit')).toBeInTheDocument();
+      expect(screen.getByText('Log Out')).toBeInTheDocument();
     });
   });
 
-  it('shows Export CSV button', async () => {
+  it('shows search input by default', async () => {
     mockChannel.mockReturnValue({ on: () => ({ subscribe: mockSubscribe }) });
     mockSubscribe.mockReturnValue('sub-1');
     render(<MemoryRouter><GuardConsole /></MemoryRouter>);
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: /export csv/i })).toBeInTheDocument();
+      expect(screen.getByPlaceholderText('Search by phone or name...')).toBeInTheDocument();
     });
   });
 
-  it('shows empty state in today tab when no visits', async () => {
+  it('shows empty state when no one inside', async () => {
     mockChannel.mockReturnValue({ on: () => ({ subscribe: mockSubscribe }) });
     mockSubscribe.mockReturnValue('sub-1');
     render(<MemoryRouter><GuardConsole /></MemoryRouter>);
-    fireEvent.click(screen.getByText("Today's Visits"));
+    fireEvent.click(screen.getByText('Log Out'));
     await waitFor(() => {
-      expect(screen.getByText('No visits today yet')).toBeInTheDocument();
+      expect(screen.getByText('No one inside right now.')).toBeInTheDocument();
     });
   });
 
-  it('shows error when log exit clicked on non-checked-in visit', async () => {
+  it('switches between check-in and log-out modes', async () => {
     mockChannel.mockReturnValue({ on: () => ({ subscribe: mockSubscribe }) });
     mockSubscribe.mockReturnValue('sub-1');
     render(<MemoryRouter><GuardConsole /></MemoryRouter>);
-    fireEvent.click(screen.getByText('Log Exit'));
     await waitFor(() => {
-      expect(screen.getByText('No checked-in visitors')).toBeInTheDocument();
+      expect(screen.getByPlaceholderText('Search by phone or name...')).toBeInTheDocument();
+    });
+    fireEvent.click(screen.getByText('Log Out'));
+    await waitFor(() => {
+      expect(screen.getByText('No one inside right now.')).toBeInTheDocument();
+    });
+    fireEvent.click(screen.getByText('Check In'));
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText('Search by phone or name...')).toBeInTheDocument();
     });
   });
 });
