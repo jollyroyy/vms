@@ -127,7 +127,7 @@ export type GatePass = {
   reason: string;
   carrier_name: string | null;
   company_name: string | null;
-  verified_vehicle: string | null;
+  verified_vehicle?: string | null;
   expected_return_date: string | null;
   created_by: string;
   created_at: string;

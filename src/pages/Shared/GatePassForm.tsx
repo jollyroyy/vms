@@ -42,8 +42,8 @@ export default function GatePassForm(): React.ReactElement {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
       const { data: gp, error: gpErr } = await supabase.from('gate_passes').insert({
-        type, direction, department_id: deptId, reason, carrier_name: carrier || null, company_name: company || null,
-        expected_return_date: type === 'RGP' && direction === 'OUT' ? dueDate || null : null, status: 'draft', created_by: user.id, visit_id: null, verified_vehicle: null,
+        type, direction, department_id: deptId, reason, carrier_name: carrier.trim() || null, company_name: company.trim() || null,
+        expected_return_date: type === 'RGP' && direction === 'OUT' ? dueDate || null : null, status: 'approved', created_by: user.id, visit_id: null,
       }).select().single();
       if (gpErr) throw gpErr;
       const { error: itemErr } = await supabase.from('gate_pass_items').insert(
@@ -118,13 +118,13 @@ export default function GatePassForm(): React.ReactElement {
       {refNumber && (
         <SuccessPopup
           title="Gate Pass Created"
-          message={`Gate pass ${refNumber} has been created successfully. It is now in Draft status and pending HOD approval.`}
+          message={`Gate pass ${refNumber} has been created and approved. It is now ready for security sign-off at the gate.`}
           onClose={() => nav('/gate-passes')}
         />
       )}
       <div className="flex gap-3 pt-5 border-t border-surface-200/60 dark:border-white/[0.06]">
         <button type="button" onClick={() => nav('/gate-passes')} className="btn-secondary flex-1">Cancel</button>
-        <button type="submit" disabled={submitting} className="btn-primary flex-1">{submitting ? 'Saving...' : 'Create Draft'}</button>
+        <button type="submit" disabled={submitting} className="btn-primary flex-1">{submitting ? 'Submitting...' : 'Submit Gate Pass'}</button>
       </div>
     </form>
   );

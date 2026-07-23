@@ -1,2 +1,5 @@
 alter table public.gate_passes
-  add column company_name text;
+  add column if not exists company_name text;
+
+notify pgrst, 'reload schema';
+

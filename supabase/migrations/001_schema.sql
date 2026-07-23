@@ -127,6 +127,7 @@ create table public.gate_passes (
   status               public.gate_pass_status    not null default 'draft',
   reason               text not null,
   carrier_name         text,
+  company_name         text,
   expected_return_date date,
   created_by           uuid not null references public.profiles(id),
   created_at           timestamptz not null default now()
