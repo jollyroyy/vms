@@ -10,6 +10,7 @@ import { ThemeProvider } from './lib/theme';
 import LoginPage          from './pages/Login';
 import VisitorsDashboard  from './pages/Shared/VisitorsDashboard';
 import GuardConsole       from './pages/Guard/Console';
+import GuardGatePassQueue from './pages/Guard/GatePassQueue';
 import HODApprovals       from './pages/HOD/Approvals';
 import HODOverview        from './pages/HOD/HODOverview';
 import WhosInside         from './pages/Shared/WhosInside';
@@ -116,8 +117,9 @@ export default function App(): React.ReactElement {
           <SessionTimeout />
           <Routes>
             <Route path="/" element={<Navigate to={allowed[0] ?? '/visitors'} replace />} />
-            <Route path="/visitors"       element={<ProtectedRoute role={role}><VisitorsDashboard /></ProtectedRoute>} />
+            <Route path="/visitors"       element={<ProtectedRoute role={role}>{role === 'guard' ? <GuardConsole /> : <VisitorsDashboard />}</ProtectedRoute>} />
             <Route path="/guard"           element={<ProtectedRoute role={role}><GuardConsole /></ProtectedRoute>} />
+            <Route path="/guard/gate-passes" element={<ProtectedRoute role={role}><GuardGatePassQueue /></ProtectedRoute>} />
             <Route path="/kiosk"          element={<ProtectedRoute role={role}><KioskPage /></ProtectedRoute>} />
             <Route path="/approvals"       element={<ProtectedRoute role={role}><HODApprovals /></ProtectedRoute>} />
             <Route path="/overview"        element={<ProtectedRoute role={role}><HODOverview /></ProtectedRoute>} />

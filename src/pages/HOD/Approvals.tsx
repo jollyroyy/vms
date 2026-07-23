@@ -262,6 +262,43 @@ export default function HODApprovals(): React.ReactElement {
     else if (tab === 'rejected') void loadVisits(['rejected'] as const);
   };
 
+  const cancelVisit = async (visitId: string) => {
+    if (!confirm('Cancel this pre-approval? The visitor will no longer be able to check in.')) return;
+    setActing(visitId);
+    try {
+      const { error: err } = await supabase.from('visits').update({ status: 'cancelled' as any }).eq('id', visitId);
+      if (err) { setError(safeErrorMessage(err, 'Failed to cancel.')); return; }
+      setVisits((prev) => prev.filter((v) => v.id !== visitId));
+      setSuccessMsg('Pre-approval cancelled.');
+      setTimeout(() => setSuccessMsg(''), 4000);
+      void loadTodayStats();
+      void loadUpcoming();
+    } catch (err) { setError(safeErrorMessage(err, 'Failed to cancel.')); }
+    finally { setActing(null); }
+  };
+
+  const clearAllApproved = async () => {
+    if (!confirm('Cancel ALL pre-approved visitors? They will no longer be able to check in.')) return;
+    setActing('clear-all');
+    try {
+      const todayStart = new Date();
+      todayStart.setHours(0, 0, 0, 0);
+      const { error: err } = await supabase
+        .from('visits')
+        .update({ status: 'cancelled' as any })
+        .eq('department_id', userDeptId!)
+        .eq('status', 'approved')
+        .gte('created_at', todayStart.toISOString());
+      if (err) { setError(safeErrorMessage(err, 'Failed to clear.')); return; }
+      setVisits([]);
+      setSuccessMsg('All pre-approvals cancelled.');
+      setTimeout(() => setSuccessMsg(''), 4000);
+      void loadTodayStats();
+      void loadUpcoming();
+    } catch (err) { setError(safeErrorMessage(err, 'Failed to clear.')); }
+    finally { setActing(null); }
+  };
+
   /* next upcoming visitor */
   const nextVisitor = upcomingVisits[0] ?? null;
 
@@ -568,6 +605,19 @@ export default function HODApprovals(): React.ReactElement {
                   <p className="text-sm text-navy-400 mt-1">Approved visitors will appear here</p>
                 </div>
               )}
+              {!loading && visits.length > 0 && (
+                <div className="flex items-center justify-between px-1 mb-1">
+                  <p className="text-sm font-bold text-navy-700">{visits.length} Approved</p>
+                  <button
+                    onClick={clearAllApproved}
+                    disabled={acting === 'clear-all'}
+                    className="text-xs font-semibold text-danger-600 hover:text-danger-700 bg-danger-50 hover:bg-danger-100 px-3 py-1.5 rounded-lg transition-all disabled:opacity-50 flex items-center gap-1"
+                  >
+                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                    Clear All
+                  </button>
+                </div>
+              )}
               {visits.map((v) => {
                 const style = STATUS_STYLES[v.status] ?? { bg: 'bg-surface-50', text: 'text-navy-700', label: v.status };
                 return (
@@ -593,13 +643,23 @@ export default function HODApprovals(): React.ReactElement {
                       <div className="shrink-0 text-right space-y-1">
                         <p className="text-[11px] text-navy-300 font-mono">{v.ref_number}</p>
                         <p className="text-[10px] text-navy-300">{formatTime(v.checked_in_at ?? v.created_at)}</p>
-                        <button
-                          onClick={(e) => { e.stopPropagation(); setDetailVisit(v); }}
-                          className="text-[10px] font-semibold text-brand-500 hover:text-brand-700 flex items-center gap-0.5 ml-auto"
-                        >
-                          Open details
-                          <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" /></svg>
-                        </button>
+                        <div className="flex items-center gap-2 justify-end">
+                          <button
+                            onClick={(e) => { e.stopPropagation(); setDetailVisit(v); }}
+                            className="text-[10px] font-semibold text-brand-500 hover:text-brand-700 flex items-center gap-0.5"
+                          >
+                            Open details
+                            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" /></svg>
+                          </button>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); cancelVisit(v.id); }}
+                            disabled={acting === v.id}
+                            className="text-[10px] font-semibold text-danger-500 hover:text-danger-700 flex items-center gap-0.5 disabled:opacity-50"
+                          >
+                            Cancel
+                            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </div>

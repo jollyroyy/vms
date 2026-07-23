@@ -5,24 +5,34 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../supabaseClient';
 import { safeErrorMessage } from '../../lib/errors';
-import type { Department, GatePassDir, GatePassType, GatePassItem } from '../../types/index';
+import type { GatePassDir, GatePassType, GatePassItem } from '../../types/index';
 
 type ItemLine = Omit<GatePassItem, 'id' | 'gate_pass_id' | 'returned_qty'>;
 
 export default function GatePassForm(): React.ReactElement {
   const nav = useNavigate();
-  const [departments, setDepartments] = useState<Department[]>([]);
   const [type, setType] = useState<GatePassType>('NRGP');
   const [direction, setDirection] = useState<GatePassDir>('OUT');
   const [deptId, setDeptId] = useState('');
   const [reason, setReason] = useState('');
   const [carrier, setCarrier] = useState('');
+  const [company, setCompany] = useState('');
   const [dueDate, setDueDate] = useState('');
   const [items, setItems] = useState<ItemLine[]>([{ description: '', qty: 1, unit: null, serial_no: null, approx_value: null }]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
 
-  useEffect(() => { supabase.from('departments').select('*').order('name').then(({ data }) => setDepartments(data ?? [])); }, []);
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => {
+      if (!data.user) return;
+      const meta = data.user.app_metadata;
+      const id = (meta?.department_id as string) ?? null;
+      if (id) { setDeptId(id); return; }
+      supabase.from('profiles').select('department_id').eq('id', data.user.id).single().then(({ data: p }) => {
+        if (p?.department_id) setDeptId(p.department_id);
+      });
+    });
+  }, []);
   const updateItem = (idx: number, field: keyof ItemLine, value: string | number | null) => { setItems((items) => items.map((it, i) => i === idx ? { ...it, [field]: value } : it)); };
   const addItem = () => setItems((i) => [...i, { description: '', qty: 1, unit: null, serial_no: null, approx_value: null }]);
   const removeItem = (idx: number) => setItems((i) => i.filter((_, j) => j !== idx));
@@ -33,8 +43,8 @@ export default function GatePassForm(): React.ReactElement {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
       const { data: gp, error: gpErr } = await supabase.from('gate_passes').insert({
-        type, direction, department_id: deptId, reason, carrier_name: carrier || null,
-        expected_return_date: type === 'RGP' ? dueDate || null : null, status: 'draft', created_by: user.id, visit_id: null,
+        type, direction, department_id: deptId, reason, carrier_name: carrier || null, company_name: company || null,
+        expected_return_date: type === 'RGP' && direction === 'OUT' ? dueDate || null : null, status: 'draft', created_by: user.id, visit_id: null, verified_vehicle: null,
       }).select().single();
       if (gpErr) throw gpErr;
       const { error: itemErr } = await supabase.from('gate_pass_items').insert(
@@ -77,10 +87,10 @@ export default function GatePassForm(): React.ReactElement {
             ))}
           </div>
         </div>
-        <div><label className="label">Department *</label><select required value={deptId} onChange={(e) => setDeptId(e.target.value)} className="input"><option value="">Select department</option>{departments.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}</select></div>
-        {type === 'RGP' && (<div><label className="label">Expected Return Date *</label><input type="date" required={type === 'RGP'} value={dueDate} onChange={(e) => setDueDate(e.target.value)} min={new Date().toISOString().split('T')[0]} className="input" /></div>)}
+        {type === 'RGP' && direction === 'OUT' && (<div><label className="label">Expected Return Date *</label><input type="date" required value={dueDate} onChange={(e) => setDueDate(e.target.value)} min={new Date().toISOString().split('T')[0]} className="input" /></div>)}
         <div className="sm:col-span-2"><label className="label">Reason / Purpose *</label><input type="text" required maxLength={500} value={reason} onChange={(e) => setReason(e.target.value)} className="input" placeholder="Describe the purpose" /></div>
-        <div className="sm:col-span-2"><label className="label">Carrier (Person / Vehicle)</label><input type="text" maxLength={100} value={carrier} onChange={(e) => setCarrier(e.target.value)} className="input" placeholder="Name or vehicle no." /></div>
+        <div><label className="label">Carrier (Person / Vehicle)</label><input type="text" maxLength={100} value={carrier} onChange={(e) => setCarrier(e.target.value)} className="input" placeholder="Name or vehicle no." /></div>
+        <div><label className="label">Company / Vendor</label><input type="text" maxLength={200} value={company} onChange={(e) => setCompany(e.target.value)} className="input" placeholder="Company or vendor name" /></div>
       </div>
 
       <div>

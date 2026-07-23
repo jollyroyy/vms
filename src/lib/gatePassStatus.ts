@@ -32,8 +32,8 @@ export type GatePass = {
 const TRANSITIONS: Record<GatePassStatus, GatePassStatus[]> = {
   draft:              ['pending_approval'],
   pending_approval:   ['approved', 'rejected'],
-  approved:           ['dispatched', 'cancelled'],
-  dispatched:         ['awaiting_return', 'closed'],  // NRGP → closed; RGP → awaiting_return
+  approved:           ['dispatched', 'awaiting_return', 'closed', 'cancelled'],  // guard sign-off: NRGP→closed, RGP→awaiting_return
+  dispatched:         ['awaiting_return', 'closed'],
   awaiting_return:    ['partially_returned', 'returned'],
   partially_returned: ['partially_returned', 'returned'],
   returned:           ['closed'],

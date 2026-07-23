@@ -8,7 +8,8 @@ export type VisitStatus =
   | 'walkin_approved'
   | 'checked_in'
   | 'checked_out'
-  | 'rejected';
+  | 'rejected'
+  | 'cancelled';
 
 export type Visit = {
   id: string;
@@ -20,11 +21,12 @@ export type Visit = {
 
 const TRANSITIONS: Record<VisitStatus, VisitStatus[]> = {
   pending_approval: ['approved', 'walkin_approved', 'rejected'],
-  approved:         ['checked_in'],
+  approved:         ['checked_in', 'cancelled'],
   walkin_approved:  ['checked_in'],
   checked_in:       ['checked_out'],
   checked_out:      [],
   rejected:         [],
+  cancelled:        [],
 };
 
 export function canTransition(from: VisitStatus, to: VisitStatus): boolean {

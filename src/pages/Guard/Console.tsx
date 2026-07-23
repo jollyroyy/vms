@@ -10,6 +10,7 @@ import Badge from '../../components/Badge';
 export default function GuardConsole(): React.ReactElement {
   const [mode, setMode] = useState<'checkin' | 'exit'>('checkin');
   const [visits, setVisits] = useState<Visit[]>([]);
+  const [preApproved, setPreApproved] = useState<Visit[]>([]);
   const [loading, setLoading] = useState(true);
   const [badgeVisit, setBadgeVisit] = useState<Visit | null>(null);
   const [today] = useState(() => new Date().toISOString().slice(0, 10));
@@ -28,6 +29,17 @@ export default function GuardConsole(): React.ReactElement {
     let rows = ((data as unknown as Visit[]) ?? []);
     rows = await attachHostNames(rows);
     setVisits(rows.map((v) => ({ ...v, photo_url: v.photo_data ?? undefined })));
+
+    const { data: preData } = await supabase
+      .from('visits')
+      .select(`*, visitor:visitors(*), department:departments(id, name, code, created_at)`)
+      .eq('status', 'approved')
+      .gte('created_at', `${today}T00:00:00Z`)
+      .order('created_at', { ascending: true });
+    let preRows = ((preData as unknown as Visit[]) ?? []);
+    preRows = await attachHostNames(preRows);
+    setPreApproved(preRows.map((v) => ({ ...v, photo_url: v.photo_data ?? undefined })));
+
     setLoading(false);
   }, [today]);
 
@@ -113,8 +125,12 @@ export default function GuardConsole(): React.ReactElement {
                       )}
                       <div className="min-w-0 flex-1">
                         <p className="text-sm font-bold text-navy-900 truncate">{v.visitor?.full_name ?? '—'}</p>
-                        <p className="text-xs text-navy-400 truncate">{v.department?.name ?? '—'}</p>
-                        <div className="flex items-center gap-2 mt-1">
+                        <p className="text-xs text-navy-400 truncate">{v.department?.name ?? '—'}{v.purpose ? ` · ${v.purpose}` : ''}</p>
+                        <div className="flex items-center gap-2 mt-1 flex-wrap">
+                          <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-md bg-brand-50 text-brand-700 border border-brand-100">
+                            <span className="h-1.5 w-1.5 rounded-full bg-brand-500 animate-pulse" />
+                            Checked In
+                          </span>
                           {checkedInTime && (
                             <span className="text-[10px] text-navy-300 flex items-center gap-1">
                               <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
@@ -129,13 +145,19 @@ export default function GuardConsole(): React.ReactElement {
                           )}
                         </div>
                       </div>
-                      <div className="shrink-0 text-right ml-2">
-                        <p className={`text-sm font-semibold ${dur.isOvertime ? 'text-danger-600' : 'text-navy-700'}`}>{dur.text}</p>
-                        {dur.isOvertime && (
-                          <span className="inline-flex items-center px-1.5 py-0.5 rounded-md text-[10px] font-bold bg-danger-50 text-danger-600 leading-none mt-0.5">
-                            Over 9h
-                          </span>
-                        )}
+                      <div className="shrink-0 flex items-center gap-3 ml-2">
+                        <div className="text-right">
+                          <p className={`text-sm font-semibold ${dur.isOvertime ? 'text-danger-600' : 'text-navy-700'}`}>{dur.text}</p>
+                          {dur.isOvertime && (
+                            <span className="inline-flex items-center px-1.5 py-0.5 rounded-md text-[10px] font-bold bg-danger-50 text-danger-600 leading-none mt-0.5">
+                              Over 9h
+                            </span>
+                          )}
+                        </div>
+                        <button onClick={(e) => { e.stopPropagation(); logExit(v); }}
+                          className="bg-surface-50 hover:bg-surface-100 text-navy-700 font-bold px-3 py-1.5 rounded-lg text-xs transition-all border border-surface-200">
+                          Check Out
+                        </button>
                       </div>
                     </div>
                   );
@@ -173,6 +195,49 @@ export default function GuardConsole(): React.ReactElement {
           )}
         </button>
       </div>
+
+      {/* Expected Today */}
+      {preApproved.length > 0 && (
+        <div className="bg-white rounded-2xl border border-surface-200 overflow-hidden">
+          <div className="px-5 py-3.5 border-b border-surface-100 flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center text-white">
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" /></svg>
+              </div>
+              <p className="text-sm font-bold text-navy-900">Expected Today</p>
+            </div>
+            <span className="text-xs font-bold text-navy-400 bg-surface-100 px-2.5 py-1 rounded-lg">{preApproved.length} waiting</span>
+          </div>
+          <div className="divide-y divide-surface-100">
+            {preApproved.map((v) => (
+              <div key={v.id} className="flex items-center gap-3 px-5 py-3 hover:bg-surface-50 transition-colors">
+                <div className="w-2 h-2 rounded-full bg-success-500 shrink-0" />
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-semibold text-navy-900 truncate">{v.visitor?.full_name ?? '—'}</p>
+                  <p className="text-xs text-navy-400 truncate">{v.department?.name} · {v.purpose}</p>
+                  <div className="flex items-center gap-2 mt-1 flex-wrap">
+                    <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-md bg-success-50 text-success-700 border border-success-100">
+                      <span className="h-1.5 w-1.5 rounded-full bg-success-500" />
+                      Awaiting Arrival
+                    </span>
+                    {v.scheduled_for && (
+                      <span className="text-[10px] text-navy-300">ETA: {formatTime(v.scheduled_for)}</span>
+                    )}
+                  </div>
+                </div>
+                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md shrink-0 ${
+                  v.purpose === 'vendor' ? 'bg-purple-50 text-purple-700' :
+                  v.purpose === 'delivery' ? 'bg-blue-50 text-blue-700' :
+                  v.purpose === 'maintenance' ? 'bg-amber-50 text-amber-700' :
+                  'bg-surface-100 text-navy-500'
+                }`}>
+                  {(v.purpose ?? 'Other').charAt(0).toUpperCase() + (v.purpose ?? 'other').slice(1)}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {successMsg && (
         <div className="bg-success-50 text-success-700 px-4 py-3 rounded-xl flex items-center gap-2 text-sm font-semibold">

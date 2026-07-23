@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import type { Session } from '@supabase/supabase-js';
 import { supabase } from '../../supabaseClient';
@@ -16,7 +16,8 @@ type NavLink = { to: string; label: string; icon: React.ReactNode; roles: UserRo
 
 const ALL_LINKS: NavLink[] = [
   { to: '/visitors', label: 'Visitors', roles: ['guard', 'hod', 'staff', 'admin', 'super_admin'], icon: <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.7}><path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" /></svg> },
-  { to: '/gate-passes', label: 'Material Passes', roles: ['guard', 'hod', 'staff'], icon: <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.7}><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" /></svg> },
+  { to: '/guard/gate-passes', label: 'Gate Passes', roles: ['guard'], icon: <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.7}><path strokeLinecap="round" strokeLinejoin="round" d="M13.5 10.5V6.75a4.5 4.5 0 119 0v3.75M3.75 21.75h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H3.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" /></svg> },
+  { to: '/gate-passes', label: 'Material Passes', roles: ['hod', 'staff'], icon: <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.7}><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" /></svg> },
   { to: '/approvals', label: 'Approvals', roles: ['hod'], icon: <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.7}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg> },
   { to: '/whos-inside', label: 'On-site', roles: ['guard', 'hod', 'staff'], icon: <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.7}><path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" /></svg> },
   { to: '/reports', label: 'Reports', roles: ['hod', 'staff', 'admin', 'super_admin'], icon: <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.7}><path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" /></svg> },
@@ -37,6 +38,9 @@ export default function Sidebar({ session, role, collapsed: collapsedProp, onCol
   const [mobileOpen, setMobileOpen] = useState(false);
   const [profileName, setProfileName] = useState<string>('');
   const [deptName, setDeptName] = useState<string>('');
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [collapsedInternal, setCollapsedInternal] = useState<boolean>(() => {
     try { return window.localStorage.getItem(COLLAPSE_KEY) === '1'; } catch { return false; }
   });
@@ -57,7 +61,7 @@ export default function Sidebar({ session, role, collapsed: collapsedProp, onCol
   // Close the mobile drawer on navigation
   useEffect(() => { setMobileOpen(false); }, [loc.pathname]);
 
-  // Fetch profile name + department (try JWT first, then profiles.department_id)
+  // Fetch profile name + department + avatar
   useEffect(() => {
     const fetchProfile = async () => {
       const firstWord = (s: string) => {
@@ -65,12 +69,13 @@ export default function Sidebar({ session, role, collapsed: collapsedProp, onCol
         return part.charAt(0).toUpperCase() + part.slice(1);
       };
       try {
-        const [{ data: profile }, { data: user }] = await Promise.all([
-          supabase.from('profiles').select('full_name, department_id').eq('id', session.user.id).maybeSingle(),
+        const [{ data: profile }, { data: authData }] = await Promise.all([
+          supabase.from('profiles').select('full_name, department_id, avatar_url').eq('id', session.user.id).maybeSingle(),
           supabase.auth.getUser(),
         ]);
         setProfileName(profile?.full_name?.trim() || firstWord(email));
-        const jwtDeptId = ((user as any)?.app_metadata?.department_id ?? '') as string;
+        setAvatarUrl((profile as any)?.avatar_url ?? null);
+        const jwtDeptId = ((authData?.user as any)?.app_metadata?.department_id ?? '') as string;
         const profileDeptId = (profile as any)?.department_id ?? '';
         const deptId = jwtDeptId || profileDeptId;
         if (deptId) {
@@ -83,6 +88,41 @@ export default function Sidebar({ session, role, collapsed: collapsedProp, onCol
     };
     void fetchProfile();
   }, [session.user.id, email]);
+
+  // Upload avatar handler
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    // Validate file
+    if (!file.type.startsWith('image/')) return;
+    if (file.size > 2 * 1024 * 1024) return; // 2 MB max
+
+    setUploading(true);
+    try {
+      const ext = file.name.split('.').pop() ?? 'jpg';
+      const filePath = `${session.user.id}/avatar.${ext}`;
+
+      // Upload to storage (upsert to overwrite previous)
+      const { error: uploadErr } = await supabase.storage
+        .from('avatars')
+        .upload(filePath, file, { upsert: true });
+      if (uploadErr) throw uploadErr;
+
+      // Get public URL
+      const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(filePath);
+      const publicUrl = urlData.publicUrl + '?t=' + Date.now(); // cache-bust
+
+      // Save to profile
+      await supabase.from('profiles').update({ avatar_url: publicUrl } as any).eq('id', session.user.id);
+      setAvatarUrl(publicUrl);
+    } catch (err) {
+      console.error('Avatar upload failed:', err);
+    } finally {
+      setUploading(false);
+      // Reset input so the same file can be re-selected
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
 
   const navContent = (isCollapsed: boolean) => (
     <div className="flex flex-col h-full">
@@ -140,24 +180,99 @@ export default function Sidebar({ session, role, collapsed: collapsedProp, onCol
           {!isCollapsed && <span>{theme === 'dark' ? 'Light Mode' : 'Dark Mode'}</span>}
         </button>
 
-        <div className={`rounded-2xl border border-surface-200/60 dark:border-white/[0.06] bg-surface-100/60 dark:bg-white/[0.03] p-3 ${isCollapsed ? 'flex justify-center !p-2' : ''}`}>
+        {/* Hidden file input for avatar upload */}
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={handleAvatarUpload}
+        />
+
+        <div className={`rounded-2xl border border-surface-200/60 dark:border-white/[0.06] bg-surface-100/60 dark:bg-white/[0.03] ${isCollapsed ? 'flex flex-col items-center p-2 gap-2' : 'p-3'}`}>
           {isCollapsed ? (
-            <div className="avatar-md avatar-gradient" title={profileName}>{initials}</div>
-          ) : (
-            <div className="flex items-center gap-3">
-              <div className="avatar-md avatar-gradient shrink-0">{initials}</div>
-              <div className="min-w-0 flex-1">
-                <p className="text-sm font-bold text-navy-950">{deptName || profileName || '—'}</p>
-              </div>
+            <>
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                title={profileName || 'Upload photo'}
+                className="relative group"
+                disabled={uploading}
+              >
+                {avatarUrl ? (
+                  <img src={avatarUrl} alt={profileName} className="h-10 w-10 rounded-full object-cover ring-2 ring-brand-500/30" />
+                ) : (
+                  <div className="avatar-md avatar-gradient">{initials}</div>
+                )}
+                <div className="absolute inset-0 rounded-full bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                  <svg className="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z" /><path strokeLinecap="round" strokeLinejoin="round" d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0z" /></svg>
+                </div>
+              </button>
               <button
                 onClick={() => supabase.auth.signOut()}
                 title="Sign out"
-                className="shrink-0 flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium text-navy-400 hover:text-danger-600 hover:bg-danger-500/10 transition-all duration-200"
+                className="flex items-center justify-center w-8 h-8 rounded-lg text-navy-400 hover:text-danger-600 hover:bg-danger-500/10 transition-all duration-200"
               >
-                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" />
                 </svg>
-                <span>Sign out</span>
+              </button>
+            </>
+          ) : (
+            <div className="flex items-center gap-3">
+              {/* Clickable avatar / photo */}
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                title="Change profile photo"
+                className="relative shrink-0 group"
+                disabled={uploading}
+              >
+                {avatarUrl ? (
+                  <img
+                    src={avatarUrl}
+                    alt={profileName}
+                    className="h-11 w-11 rounded-full object-cover ring-2 ring-brand-500/30 group-hover:ring-brand-500/60 transition-all"
+                  />
+                ) : (
+                  <div className="h-11 w-11 rounded-full avatar-gradient flex items-center justify-center text-xs font-semibold text-white">
+                    {initials}
+                  </div>
+                )}
+                {/* Hover overlay with camera icon */}
+                <div className="absolute inset-0 rounded-full bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                  {uploading ? (
+                    <svg className="w-4 h-4 text-white animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
+                  ) : (
+                    <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z" /><path strokeLinecap="round" strokeLinejoin="round" d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0z" /></svg>
+                  )}
+                </div>
+              </button>
+
+              {/* Name + Role + Department */}
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-bold text-navy-950 truncate leading-tight">{profileName || '—'}</p>
+                {role && (
+                  <p className="text-[11px] font-semibold text-brand-600 dark:text-brand-400 leading-tight mt-0.5">
+                    {ROLE_LABELS[role]}
+                  </p>
+                )}
+                {deptName && (
+                  <p className="text-xs font-medium text-navy-500 dark:text-navy-400 leading-tight mt-0.5 truncate">
+                    {deptName}
+                  </p>
+                )}
+              </div>
+
+              {/* Sign out */}
+              <button
+                onClick={() => supabase.auth.signOut()}
+                title="Sign out"
+                className="shrink-0 flex items-center justify-center w-8 h-8 rounded-lg text-navy-400 hover:text-danger-600 hover:bg-danger-500/10 transition-all duration-200"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" />
+                </svg>
               </button>
             </div>
           )}

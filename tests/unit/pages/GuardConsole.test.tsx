@@ -190,7 +190,7 @@ describe('M12-GUARD: GuardConsole', () => {
       fireEvent.click(btn);
       await waitFor(() => {
         expect(screen.getAllByText('Alice Johnson').length).toBeGreaterThanOrEqual(1);
-        expect(screen.getByText('Over 9h')).toBeInTheDocument();
+        expect(screen.getAllByText('Over 9h').length).toBeGreaterThanOrEqual(1);
         expect(screen.getByText('Engineering')).toBeInTheDocument();
       });
     });

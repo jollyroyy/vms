@@ -17,6 +17,7 @@ export type Profile = {
   role: UserRole;
   department_id: string | null;
   delegate_id: string | null;
+  avatar_url: string | null;
   created_at: string;
 };
 
@@ -42,7 +43,7 @@ export type Visitor = {
   created_at: string;
 };
 
-export type VisitStatus = 'pending_approval' | 'approved' | 'walkin_approved' | 'checked_in' | 'checked_out' | 'rejected';
+export type VisitStatus = 'pending_approval' | 'approved' | 'walkin_approved' | 'checked_in' | 'checked_out' | 'rejected' | 'cancelled';
 
 export type Visit = {
   id: string;
@@ -83,6 +84,26 @@ export type GatePassStatus =
   | 'rejected'
   | 'cancelled';
 
+export type GateSignoffAction = 'out' | 'in' | 'hold' | 'rejected' | 'mismatch';
+
+export type GateSignoff = {
+  id: string;
+  gate_pass_id: string;
+  security_user_id: string;
+  security_name: string;
+  security_employee_id: string | null;
+  gate_name: string;
+  action_type: GateSignoffAction;
+  action_timestamp: string;
+  verified_qty: number | null;
+  verified_vehicle: string | null;
+  remarks: string | null;
+  photo_url: string | null;
+  device_info: Record<string, unknown> | null;
+  session_id: string | null;
+  created_at: string;
+};
+
 export type GatePassItem = {
   id: string;
   gate_pass_id: string;
@@ -104,11 +125,14 @@ export type GatePass = {
   status: GatePassStatus;
   reason: string;
   carrier_name: string | null;
+  company_name: string | null;
+  verified_vehicle: string | null;
   expected_return_date: string | null;
   created_by: string;
   created_at: string;
   // joined
   items?: GatePassItem[];
+  signoffs?: GateSignoff[];
   department?: Department;
   created_by_profile?: Pick<Profile, 'id' | 'full_name'>;
 };
@@ -192,6 +216,7 @@ export type Database = {
       visits:         { Row: Visit;         Insert: Omit<Visit, 'id' | 'ref_number' | 'created_at' | 'visitor' | 'department' | 'host' | 'photo_url'>; Update: Partial<Visit>; Relationships: [] };
       gate_passes:    { Row: GatePass;      Insert: Omit<GatePass, 'id' | 'ref_number' | 'created_at' | 'items' | 'department' | 'created_by_profile'>; Update: Partial<GatePass>; Relationships: [] };
       gate_pass_items:{ Row: GatePassItem;  Insert: Omit<GatePassItem, 'id'>;                  Update: Partial<GatePassItem>;  Relationships: [] };
+      gate_signoffs:  { Row: GateSignoff;   Insert: Omit<GateSignoff, 'id' | 'created_at'>;    Update: Partial<GateSignoff>;    Relationships: [] };
       notifications:  { Row: Notification;  Insert: Omit<Notification, 'id' | 'created_at'>;   Update: Partial<Notification>;  Relationships: [] };
       audit_logs:     { Row: AuditLog;      Insert: Omit<AuditLog, 'id' | 'created_at'>;        Update: Partial<AuditLog>;      Relationships: [] };
       recurring_visits: { Row: RecurringVisit; Insert: Omit<RecurringVisit, 'id' | 'created_at' | 'updated_at'>; Update: Partial<RecurringVisit>; Relationships: [] };

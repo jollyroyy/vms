@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { Session } from '@supabase/supabase-js';
 import type { UserRole } from '../../types/index';
+import { supabase } from '../../supabaseClient';
 import Sidebar from './Sidebar';
 import AuroraBackground from '../AuroraBackground';
 import NotificationBell from '../NotificationBell';
@@ -19,8 +20,29 @@ export default function AppShell({ session, role, children }: Props): React.Reac
     try { return window.localStorage.getItem(COLLAPSE_KEY) === '1'; } catch { return false; }
   });
   const [searchQuery, setSearchQuery] = useState('');
+  const [deptName, setDeptName] = useState('');
+  const [profileName, setProfileName] = useState('');
   const searchRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
+
+  // Fetch department name for greeting banner
+  useEffect(() => {
+    const fetchDept = async () => {
+      try {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('full_name, department_id')
+          .eq('id', session.user.id)
+          .maybeSingle();
+        if (profile?.full_name) setProfileName(profile.full_name.split(' ')[0] ?? '');
+        if (profile?.department_id) {
+          const { data: dept } = await supabase.from('departments').select('name').eq('id', profile.department_id).maybeSingle();
+          if (dept?.name) setDeptName(dept.name);
+        }
+      } catch { /* ignore */ }
+    };
+    void fetchDept();
+  }, [session.user.id]);
 
   useEffect(() => {
     try { window.localStorage.setItem(COLLAPSE_KEY, collapsed ? '1' : '0'); } catch { /* ignore */ }
@@ -79,6 +101,39 @@ export default function AppShell({ session, role, children }: Props): React.Reac
             <NotificationBell userId={session.user.id} role={role} />
           </div>
         </header>
+
+        {/* Department greeting */}
+        {deptName && (
+          <div className="no-print px-4 sm:px-6 lg:px-8 pt-5 pb-0">
+            <div className="flex items-center gap-3">
+              <div>
+                <p className="text-sm font-bold text-navy-800">
+                  {profileName ? `Welcome, ${profileName}` : 'Welcome'}
+                  {role ? ` — ${role === 'hod' ? 'HOD' : role === 'guard' ? 'Guard' : role === 'admin' ? 'Admin' : 'Staff'}` : ''}
+                </p>
+                <p className="text-xs text-navy-400 mt-0.5">
+                  {deptName}{deptName ? ' · ' : ''}{(() => {
+                    const taglines: Record<string, string> = {
+                      'information technology': 'Powering digital transformation',
+                      'finance': 'Driving financial excellence',
+                      'human resources': 'Building great teams',
+                      'engineering': 'Engineering the future',
+                      'marketing': 'Creating brand impact',
+                      'operations': 'Keeping things running smooth',
+                      'sales': 'Connecting with customers',
+                      'administration': 'Managing the backbone',
+                      'legal': 'Ensuring compliance & trust',
+                      'security': 'Keeping everyone safe',
+                      'procurement': 'Sourcing with precision',
+                      'logistics': 'Moving things forward',
+                    };
+                    return taglines[deptName.toLowerCase()] ?? 'Making an impact every day';
+                  })()}
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Content */}
         <main className="flex-1 w-full mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">

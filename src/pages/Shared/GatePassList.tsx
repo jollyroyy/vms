@@ -80,6 +80,7 @@ export default function GatePassList(): React.ReactElement {
                     <span>{p.direction}</span><span>·</span><span>{p.department?.name}</span>
                   </div>
                   <p className="text-xs text-navy-400">Reason: {p.reason}</p>
+                  {p.company_name && <p className="text-xs text-navy-400 mt-1">Company: {p.company_name}</p>}
                   {p.expected_return_date && (
                     <p className="text-xs text-navy-400 mt-1">Due: {p.expected_return_date} <span className={`status-badge ml-1 ${RGP_BADGE[state] ?? ''} capitalize`}>{state.replace('_', ' ')}</span></p>
                   )}

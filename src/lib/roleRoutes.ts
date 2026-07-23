@@ -4,7 +4,7 @@
 import type { UserRole } from '../types/index';
 
 export const ROLE_ROUTES: Record<UserRole, string[]> = {
-  guard:       ['/visitors', '/guard', '/kiosk', '/whos-inside', '/gate-passes'],
+  guard:       ['/visitors', '/guard', '/kiosk', '/whos-inside', '/gate-passes', '/guard/gate-passes'],
   hod:         ['/visitors', '/approvals', '/whos-inside', '/gate-passes', '/reports', '/analytics'],
   staff:       ['/visitors', '/whos-inside', '/gate-passes', '/reports'],
   admin:       ['/visitors', '/reports', '/analytics', '/admin'],

@@ -24,6 +24,7 @@ const STATUS_CHIP: Record<Visit['status'], { label: string; cls: string }> = {
   checked_in:       { label: 'Inside',       cls: 'bg-brand-500/15 text-brand-600 dark:text-brand-300 border-brand-500/25' },
   checked_out:      { label: 'Left',         cls: 'bg-navy-500/10 text-navy-400 border-navy-500/20' },
   rejected:         { label: 'Rejected',     cls: 'bg-danger-500/15 text-danger-600 dark:text-danger-400 border-danger-500/25' },
+  cancelled:        { label: 'Cancelled',    cls: 'bg-navy-500/10 text-navy-400 border-navy-500/20' },
 };
 
 const ICONS = {
