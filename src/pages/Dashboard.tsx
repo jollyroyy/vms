@@ -64,6 +64,7 @@ export default function DashboardPage({ role }: Props): React.ReactElement {
       next.pending = rows.filter((r) => r.status === 'pending_approval').length;
       next.checkedOut = rows.filter((r) => r.status === 'checked_out').length;
       next.preApproved = rows.filter((r) => r.status === 'approved' || r.status === 'walkin_approved').length;
+      next.rejected = rows.filter((r) => r.status === 'rejected').length;
 
       // Gate passes
       const passes = await supabase.from('gate_passes').select('id, status', { count: 'exact' });

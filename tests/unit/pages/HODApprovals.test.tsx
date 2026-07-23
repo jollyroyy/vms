@@ -80,7 +80,7 @@ describe('M12-HOD: HODApprovals', () => {
   it('renders title', async () => {
     setup();
     render(<MemoryRouter><HODApprovals /></MemoryRouter>);
-    await waitFor(() => expect(screen.getByText('Dashboard')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText('Overview')).toBeInTheDocument());
   });
 
   it('shows all four tabs', async () => {
@@ -145,18 +145,18 @@ describe('M12-HOD: HODApprovals', () => {
     setup();
     render(<MemoryRouter><HODApprovals /></MemoryRouter>);
     await waitFor(() => {
-      expect(screen.getByText('Approved Today')).toBeInTheDocument();
-      expect(screen.getByText('Rejected Today')).toBeInTheDocument();
-      expect(screen.getByText('Avg. Response')).toBeInTheDocument();
+      expect(screen.getByText('Visitors Today')).toBeInTheDocument();
+      expect(screen.getByText('Next Appointment')).toBeInTheDocument();
+      expect(screen.getByText('This Week')).toBeInTheDocument();
     });
   });
 
-  it('renders recent activity sidebar', async () => {
+  it('renders sidebar panels', async () => {
     setup();
     render(<MemoryRouter><HODApprovals /></MemoryRouter>);
     await waitFor(() => {
-      expect(screen.getByText('Recent Activity')).toBeInTheDocument();
-      expect(screen.getByText("Today's Summary")).toBeInTheDocument();
+      expect(screen.getByText('Notifications')).toBeInTheDocument();
+      expect(screen.getByText('Upcoming Visitors')).toBeInTheDocument();
     });
   });
 });

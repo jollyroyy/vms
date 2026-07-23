@@ -44,7 +44,6 @@ describe('M11-SIDEBAR: Sidebar component', () => {
 
   it('renders correct nav links for guard role', () => {
     renderWithRouter(<Sidebar session={guardSession} role="guard" />);
-    expect(screen.getByText('Dashboard')).toBeInTheDocument();
     expect(screen.getByText('Console')).toBeInTheDocument();
     expect(screen.getByText('Kiosk')).toBeInTheDocument();
     expect(screen.getByText("Who's Inside")).toBeInTheDocument();
@@ -62,7 +61,6 @@ describe('M11-SIDEBAR: Sidebar component', () => {
     // Verify the nav link element points to /admin
     const adminLink = adminEls.find((el) => el.closest('a')?.getAttribute('href') === '/admin');
     expect(adminLink).toBeTruthy();
-    expect(screen.getByText('Dashboard')).toBeInTheDocument();
     expect(screen.getByText('Reports')).toBeInTheDocument();
     expect(screen.getByText('Analytics')).toBeInTheDocument();
     expect(screen.queryByText('Console')).not.toBeInTheDocument();
@@ -73,7 +71,6 @@ describe('M11-SIDEBAR: Sidebar component', () => {
 
   it('renders correct nav links for staff role', () => {
     renderWithRouter(<Sidebar session={staffSession} role="staff" />);
-    expect(screen.getByText('Dashboard')).toBeInTheDocument();
     expect(screen.getByText("Who's Inside")).toBeInTheDocument();
     expect(screen.getByText('Gate Passes')).toBeInTheDocument();
     expect(screen.getByText('Reports')).toBeInTheDocument();
@@ -128,11 +125,11 @@ describe('M11-SIDEBAR: Sidebar component', () => {
 
   it('toggles mobile menu on hamburger click', () => {
     renderWithRouter(<Sidebar session={guardSession} role="guard" />);
-    const beforeCount = screen.getAllByText('Dashboard').length;
+    const beforeCount = screen.getAllByText('Console').length;
     const toggleBtn = screen.getByLabelText('Open menu');
     expect(toggleBtn).toBeInTheDocument();
     fireEvent.click(toggleBtn);
-    expect(screen.getAllByText('Dashboard').length).toBeGreaterThan(beforeCount);
+    expect(screen.getAllByText('Console').length).toBeGreaterThan(beforeCount);
   });
 
   it('handles sign out click', async () => {

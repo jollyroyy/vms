@@ -77,9 +77,9 @@ function DepartmentsTab(): React.ReactElement {
     if (dup) { setErrorMsg(`Department "${dup.name}" (${dup.code}) already exists.`); return; }
     setSaving(true);
     try {
-      const res = await fetch('/api/departments', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: newName, code }) });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error ?? 'Failed to add department');
+      const { data, error } = await supabase.from('departments').insert({ name: newName, code }).select().single();
+      if (error) throw new Error(error.message);
+      if (!data) throw new Error('Failed to add department');
       setSuccessMsg(`Department "${newName}" (${code}) added.`);
       setNewName(''); setNewCode(''); await load();
     } catch (err) { setErrorMsg(err instanceof Error ? err.message : 'Failed to add department.'); }
@@ -106,9 +106,9 @@ function DepartmentsTab(): React.ReactElement {
     if (dup) { setErrorMsg(`Another department "${dup.name}" (${dup.code}) already uses this name or code.`); return; }
     setEditSaving(true);
     try {
-      const res = await fetch(`/api/departments/${editingDept.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: editName, code }) });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error ?? 'Failed to update department');
+      const { data, error } = await supabase.from('departments').update({ name: editName, code }).eq('id', editingDept.id).select().single();
+      if (error) throw new Error(error.message);
+      if (!data) throw new Error('Failed to update department');
       setSuccessMsg(`Department updated.`);
       cancelEdit(); await load();
     } catch (err) { setErrorMsg(err instanceof Error ? err.message : 'Failed to update department.'); }
@@ -119,15 +119,15 @@ function DepartmentsTab(): React.ReactElement {
     if (!deletingDeptId) return;
     clearMessages(); setDeleteSaving(true);
     try {
-      const res = await fetch(`/api/departments/${deletingDeptId}`, { method: 'DELETE' });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error ?? 'Failed to delete department');
+      const { error: unlinkError } = await supabase.from('profiles').update({ department_id: null, role: 'staff' }).eq('department_id', deletingDeptId);
+      if (unlinkError) throw new Error(unlinkError.message);
+      const { error: deleteError } = await supabase.from('departments').delete().eq('id', deletingDeptId);
+      if (deleteError) throw new Error(deleteError.message);
       setDeletingDeptId(null);
       setSuccessMsg('Department deleted.');
       await load();
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Failed to delete department.';
-      // Check for FK constraint error
       if (msg.includes('foreign key') || msg.includes('violates foreign')) {
         setErrorMsg('Cannot delete: there are visits, gate passes, or users linked to this department. Reassign them first.');
       } else {

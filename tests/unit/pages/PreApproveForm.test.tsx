@@ -7,7 +7,6 @@ const mockGetUser = vi.hoisted(() => vi.fn());
 const mockGetSession = vi.hoisted(() => vi.fn());
 const mockFrom = vi.hoisted(() => vi.fn());
 const mockRpc = vi.hoisted(() => vi.fn());
-const mockFetch = vi.hoisted(() => vi.fn());
 
 vi.mock('../../../src/supabaseClient', () => ({
   supabase: {
@@ -19,8 +18,6 @@ vi.mock('../../../src/supabaseClient', () => ({
   },
 }));
 
-vi.stubGlobal('fetch', mockFetch);
-
 afterEach(() => {
   cleanup();
   vi.restoreAllMocks();
@@ -28,6 +25,7 @@ afterEach(() => {
 
 const mockDepts = [{ id: 'dept1', name: 'IT', code: 'IT', created_at: '2026-01-01' }];
 const mockBlacklist: { phone: string; blacklist_reason: string | null }[] = [];
+const mockHosts = [{ id: 'h1', full_name: 'Test Host', email: 'host@test.com', role: 'staff' }];
 
 function setupDefaultMocks() {
   mockGetUser.mockResolvedValue({
@@ -45,11 +43,16 @@ function setupDefaultMocks() {
         select: () => ({ eq: vi.fn().mockResolvedValue({ data: mockBlacklist, error: null }) }),
       };
     }
+    if (table === 'profiles') {
+      return {
+        select: () => ({
+          eq: () => ({
+            order: vi.fn().mockResolvedValue({ data: mockHosts, error: null }),
+          }),
+        }),
+      };
+    }
     return { select: () => ({ eq: () => ({ maybeSingle: vi.fn().mockResolvedValue({ data: null }) }) }) };
-  });
-  mockFetch.mockResolvedValue({
-    ok: true,
-    json: () => Promise.resolve([{ id: 'h1', full_name: 'Test Host' }]),
   });
   // SEC-17: get_active_visit_for_phone returns null (no active visit), pre_approve_visitor succeeds
   mockRpc.mockImplementation((name: string) => {

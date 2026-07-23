@@ -15,9 +15,9 @@ type Props = {
 type NavLink = { to: string; label: string; icon: React.ReactNode; roles: UserRole[] };
 
 const ALL_LINKS: NavLink[] = [
-  { to: '/dashboard', label: 'Dashboard', roles: ['guard', 'hod', 'staff', 'admin', 'super_admin'], icon: <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.7}><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75" /></svg> },
   { to: '/guard', label: 'Console', roles: ['guard'], icon: <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.7}><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z" /></svg> },
   { to: '/kiosk', label: 'Kiosk', roles: ['guard'], icon: <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.7}><path strokeLinecap="round" strokeLinejoin="round" d="M10.5 1.5H8.25A2.25 2.25 0 006 3.75v16.5a2.25 2.25 0 002.25 2.25h7.5A2.25 2.25 0 0018 20.25V3.75a2.25 2.25 0 00-2.25-2.25H13.5m-3 0V3h3V1.5m-3 0h3m-3 18.75h3" /></svg> },
+  { to: '/overview', label: 'Overview', roles: ['hod'], icon: <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.7}><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z" /></svg> },
   { to: '/approvals', label: 'Approvals', roles: ['hod'], icon: <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.7}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg> },
   { to: '/whos-inside', label: "Who's Inside", roles: ['guard', 'hod', 'staff'], icon: <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.7}><path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" /></svg> },
   { to: '/gate-passes', label: 'Gate Passes', roles: ['guard', 'hod', 'staff'], icon: <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.7}><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" /></svg> },
@@ -38,7 +38,7 @@ export default function Sidebar({ session, role, collapsed: collapsedProp, onCol
   const email = session.user.email ?? 'User';
   const links = ALL_LINKS.filter((l) => role && l.roles.includes(role));
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [profileName, setProfileName] = useState<string>(() => (email.split('@')[0] ?? 'User').replace(/\./g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()));
+  const [profileName, setProfileName] = useState<string>('');
   const [collapsedInternal, setCollapsedInternal] = useState<boolean>(() => {
     try { return window.localStorage.getItem(COLLAPSE_KEY) === '1'; } catch { return false; }
   });
@@ -48,7 +48,9 @@ export default function Sidebar({ session, role, collapsed: collapsedProp, onCol
     setCollapsedInternal(value);
     onCollapsedChange?.(value);
   };
-  const initials = (email.split('@')[0] ?? 'U').slice(0, 2).toUpperCase();
+  const initials = profileName
+    ? profileName.split(' ').filter(Boolean).slice(0, 2).map((w) => w[0]).join('').toUpperCase()
+    : (email.split('@')[0] ?? 'U').slice(0, 2).toUpperCase();
 
   useEffect(() => {
     try { window.localStorage.setItem(COLLAPSE_KEY, collapsed ? '1' : '0'); } catch { /* ignore */ }
@@ -60,13 +62,19 @@ export default function Sidebar({ session, role, collapsed: collapsedProp, onCol
   // Fetch profile name
   useEffect(() => {
     const fetchName = async () => {
+      const firstWord = (s: string) => {
+        const part = s.split('@')[0]?.split('.')[0] ?? 'User';
+        return part.charAt(0).toUpperCase() + part.slice(1);
+      };
       try {
         const { data } = await supabase.from('profiles').select('full_name').eq('id', session.user.id).maybeSingle();
-        if (data?.full_name) setProfileName(data.full_name);
-      } catch { /* ignore */ }
+        setProfileName(data?.full_name?.trim() || firstWord(email));
+      } catch {
+        setProfileName(firstWord(email));
+      }
     };
     void fetchName();
-  }, [session.user.id]);
+  }, [session.user.id, email]);
 
   const navContent = (isCollapsed: boolean) => (
     <div className="flex flex-col h-full">
@@ -132,7 +140,7 @@ export default function Sidebar({ session, role, collapsed: collapsedProp, onCol
             <div className="flex items-center gap-3">
               <div className="avatar-md avatar-gradient shrink-0">{initials}</div>
               <div className="min-w-0 flex-1">
-                <p className="text-sm font-bold text-navy-900 truncate">{profileName}</p>
+                <p className="text-sm font-bold text-navy-900 truncate">{profileName || '—'}</p>
                 <span className="inline-flex mt-1 text-[10px] font-semibold px-2 py-0.5 rounded-md bg-gradient-to-r from-brand-500/15 to-accent-500/15 text-brand-600 dark:text-brand-300 border border-brand-500/20">
                   {role ? ROLE_LABELS[role] : 'Unknown role'}
                 </span>

@@ -8,9 +8,9 @@ import { ThemeProvider } from './lib/theme';
 
 // Pages
 import LoginPage          from './pages/Login';
-import DashboardPage      from './pages/Dashboard';
 import GuardConsole       from './pages/Guard/Console';
 import HODApprovals       from './pages/HOD/Approvals';
+import HODOverview        from './pages/HOD/HODOverview';
 import WhosInside         from './pages/Shared/WhosInside';
 import GatePassList       from './pages/Shared/GatePassList';
 import GatePassForm       from './pages/Shared/GatePassForm';
@@ -106,7 +106,7 @@ export default function App(): React.ReactElement {
     );
   }
 
-  const allowed = role ? ROLE_ROUTES[role] ?? ['/dashboard'] : ['/dashboard'];
+  const allowed = role ? ROLE_ROUTES[role] ?? ['/guard'] : ['/guard'];
 
   return (
     <ThemeProvider>
@@ -114,11 +114,11 @@ export default function App(): React.ReactElement {
         <AppShell session={session} role={role}>
           <SessionTimeout />
           <Routes>
-            <Route path="/" element={<Navigate to={allowed[0] ?? '/dashboard'} replace />} />
-            <Route path="/dashboard"       element={<ProtectedRoute role={role}><DashboardPage role={role} /></ProtectedRoute>} />
+            <Route path="/" element={<Navigate to={allowed[0] ?? '/guard'} replace />} />
             <Route path="/guard"           element={<ProtectedRoute role={role}><GuardConsole /></ProtectedRoute>} />
             <Route path="/kiosk"          element={<ProtectedRoute role={role}><KioskPage /></ProtectedRoute>} />
             <Route path="/approvals"       element={<ProtectedRoute role={role}><HODApprovals /></ProtectedRoute>} />
+            <Route path="/overview"        element={<ProtectedRoute role={role}><HODOverview /></ProtectedRoute>} />
             <Route path="/whos-inside"     element={<ProtectedRoute role={role}><WhosInside /></ProtectedRoute>} />
             <Route path="/gate-passes"     element={<ProtectedRoute role={role}><GatePassList /></ProtectedRoute>} />
             <Route path="/gate-passes/new" element={<ProtectedRoute role={role}><GatePassForm /></ProtectedRoute>} />

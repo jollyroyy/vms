@@ -78,6 +78,18 @@ describe('SEC-7: frontend route protection', () => {
     it('hod is FORBIDDEN on /admin', () => {
       expect(isForbidden('/admin', role)).toBe(true);
     });
+    it('hod is allowed on /overview', () => {
+      expect(isForbidden('/overview', role)).toBe(false);
+    });
+    it('guard is FORBIDDEN on /overview', () => {
+      expect(isForbidden('/overview', 'guard')).toBe(true);
+    });
+    it('staff is FORBIDDEN on /overview', () => {
+      expect(isForbidden('/overview', 'staff')).toBe(true);
+    });
+    it('admin is FORBIDDEN on /overview', () => {
+      expect(isForbidden('/overview', 'admin')).toBe(true);
+    });
   });
 
   // ── Staff ──────────────────────────────────────────────────
@@ -167,21 +179,12 @@ describe('SEC-7: frontend route protection', () => {
     }
   });
 
-  // ── /dashboard route — every role is allowed ───────────────
-  describe('/dashboard route', () => {
-    it('every authenticated role is allowed on /dashboard', () => {
-      for (const role of Object.keys(ROLE_ROUTES) as (keyof typeof ROLE_ROUTES)[]) {
-        expect(isForbidden('/dashboard', role), `${role} must be allowed on /dashboard`).toBe(false);
-      }
-    });
-  });
-
   // ── Unauthenticated component gate — App.tsx session guard ──
   describe('unauthenticated users (component gate)', () => {
     it('renders the login page instead of dashboard when session is null', async () => {
       getSession.mockResolvedValue({ data: { session: null } });
 
-      window.history.pushState({}, '', '/dashboard');
+      window.history.pushState({}, '', '/');
       render(<App />);
 
       // The login page has a login button; the dashboard does NOT appear
@@ -206,10 +209,10 @@ describe('SEC-7: frontend route protection', () => {
       expect(screen.queryByTitle('Sign out')).not.toBeInTheDocument();
     });
 
-    it('redirects /dashboard to / when user is not authenticated', async () => {
+    it('redirects to / when user is not authenticated', async () => {
       getSession.mockResolvedValue({ data: { session: null } });
 
-      window.history.pushState({}, '', '/dashboard');
+      window.history.pushState({}, '', '/guard');
       render(<App />);
 
       await waitFor(() => {

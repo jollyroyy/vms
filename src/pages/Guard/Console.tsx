@@ -14,6 +14,7 @@ import VisitorDetails from '../../components/VisitorDetails';
 type Tab = 'active' | 'register' | 'exit';
 type StatusFilter = 'all' | Visit['status'];
 
+
 export default function GuardConsole(): React.ReactElement {
   const [tab, setTab] = useState<Tab>('active');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
@@ -84,13 +85,6 @@ export default function GuardConsole(): React.ReactElement {
 
   const filtered = statusFilter === 'all' ? visits : visits.filter((v) => v.status === statusFilter);
 
-  const stats = [
-    { key: 'checked_in' as const, label: 'Inside', count: checkedIn.length, color: 'bg-brand-50 text-brand-700 border-brand-200', activeColor: 'bg-brand-100 border-brand-500 ring-2 ring-brand-200', dot: 'bg-brand-500' },
-    { key: 'pending_approval' as const, label: 'Pending', count: pending.length, color: 'bg-warning-50 text-warning-700 border-warning-200', activeColor: 'bg-warning-100 border-warning-500 ring-2 ring-warning-200', dot: 'bg-warning-500' },
-    { key: 'approved' as const, label: 'Approved', count: approved.length, color: 'bg-success-50 text-success-700 border-success-200', activeColor: 'bg-success-100 border-success-500 ring-2 ring-success-200', dot: 'bg-success-500' },
-    { key: 'rejected' as const, label: 'Rejected', count: rejected.length, color: 'bg-danger-50 text-danger-700 border-danger-200', activeColor: 'bg-danger-100 border-danger-500 ring-2 ring-danger-200', dot: 'bg-danger-500' },
-    { key: 'checked_out' as const, label: 'Checked Out', count: checkedOut.length, color: 'bg-surface-100 text-navy-500 border-surface-200', activeColor: 'bg-surface-200 border-navy-400 ring-2 ring-surface-300', dot: 'bg-navy-400' },
-  ];
 
   return (
     <div className="space-y-6">
@@ -124,22 +118,32 @@ export default function GuardConsole(): React.ReactElement {
       </div>
 
       {/* Stat cards */}
-      <div className="flex flex-wrap gap-3">
-        {stats.map((s) => (
-          <button
-            key={s.key}
-            onClick={() => { setStatusFilter(statusFilter === s.key ? 'all' : s.key); setTab('active'); }}
-            className={`flex-1 min-w-[140px] rounded-xl p-3.5 border text-left transition-all duration-200 hover:shadow-md ${
-              statusFilter === s.key ? s.activeColor : s.color
-            }`}
-          >
-            <div className="flex items-center gap-2 mb-1.5">
-              <span className={`h-2 w-2 rounded-full ${s.dot} ${statusFilter === s.key ? 'animate-pulse-soft' : ''}`} />
-              <span className="text-xs font-semibold uppercase tracking-wide opacity-70">{s.label}</span>
-            </div>
-            <p className="text-2xl font-bold tabular-nums">{s.count}</p>
-          </button>
-        ))}
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+        <button onClick={() => { setStatusFilter(statusFilter === 'checked_in' ? 'all' : 'checked_in'); setTab('active'); }}
+          className={`stat-card items-center text-center cursor-pointer card-hover animate-slide-up stagger-1 bg-gradient-to-b from-brand-50/60 to-transparent ${statusFilter === 'checked_in' ? 'ring-2 ring-brand-500 shadow-glow-sm' : ''}`}>
+          <p className="stat-value text-brand-600">{checkedIn.length}</p>
+          <p className="stat-label">Inside</p>
+        </button>
+        <button onClick={() => { setStatusFilter(statusFilter === 'pending_approval' ? 'all' : 'pending_approval'); setTab('active'); }}
+          className={`stat-card items-center text-center cursor-pointer card-hover animate-slide-up stagger-2 bg-gradient-to-b from-warning-50/60 to-transparent ${statusFilter === 'pending_approval' ? 'ring-2 ring-brand-500 shadow-glow-sm' : ''}`}>
+          <p className="stat-value text-warning-600">{pending.length}</p>
+          <p className="stat-label">Pending</p>
+        </button>
+        <button onClick={() => { setStatusFilter(statusFilter === 'approved' ? 'all' : 'approved'); setTab('active'); }}
+          className={`stat-card items-center text-center cursor-pointer card-hover animate-slide-up stagger-3 bg-gradient-to-b from-success-50/60 to-transparent ${statusFilter === 'approved' ? 'ring-2 ring-brand-500 shadow-glow-sm' : ''}`}>
+          <p className="stat-value text-success-600">{approved.length}</p>
+          <p className="stat-label">Approved</p>
+        </button>
+        <button onClick={() => { setStatusFilter(statusFilter === 'rejected' ? 'all' : 'rejected'); setTab('active'); }}
+          className={`stat-card items-center text-center cursor-pointer card-hover animate-slide-up stagger-4 bg-gradient-to-b from-danger-50/60 to-transparent ${statusFilter === 'rejected' ? 'ring-2 ring-brand-500 shadow-glow-sm' : ''}`}>
+          <p className="stat-value text-danger-600">{rejected.length}</p>
+          <p className="stat-label">Rejected</p>
+        </button>
+        <button onClick={() => { setStatusFilter(statusFilter === 'checked_out' ? 'all' : 'checked_out'); setTab('active'); }}
+          className={`stat-card items-center text-center cursor-pointer card-hover animate-slide-up stagger-5 bg-gradient-to-b from-surface-200/60 to-transparent col-span-2 sm:col-span-1 ${statusFilter === 'checked_out' ? 'ring-2 ring-brand-500 shadow-glow-sm' : ''}`}>
+          <p className="stat-value text-navy-500">{checkedOut.length}</p>
+          <p className="stat-label">Checked Out</p>
+        </button>
       </div>
 
       {/* Alerts */}
@@ -162,36 +166,36 @@ export default function GuardConsole(): React.ReactElement {
       <div className="grid grid-cols-3 gap-3">
         <button
           onClick={() => setTab('active')}
-          className={`rounded-xl p-4 text-center font-semibold text-sm transition-all border-2 ${
-            tab === 'active'
-              ? 'bg-brand-50 border-brand-500 text-brand-700 shadow-soft'
-              : 'bg-white border-surface-200 text-navy-500 hover:border-surface-300 hover:bg-surface-50'
-          }`}
+          className={`card p-4 text-center font-semibold text-sm transition-all duration-200 hover:-translate-y-0.5 relative overflow-hidden ${tab === 'active' ? 'shadow-elevated' : ''}`}
+          style={tab === 'active' ? { outline: '2px solid rgba(124,58,237,0.3)', outlineOffset: '-1px' } : undefined}
         >
-          <svg className="w-5 h-5 mx-auto mb-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M8.25 6.75h12M8.25 12h12m-12 5.25h12M3.75 6.75h.007v.008H3.75V6.75zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zM3.75 12h.007v.008H3.75V12zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm-.375 5.25h.007v.008H3.75v-.008zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" /></svg>
-          Today's Visits
+          {tab === 'active' && <div className="absolute top-0 left-0 right-0 h-[3px]" style={{ background: 'linear-gradient(90deg, #7c3aed, #d946ef, transparent)' }} />}
+          <svg className={`w-5 h-5 mx-auto mb-1.5 transition-colors ${tab === 'active' ? 'text-brand-600' : 'text-navy-400'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M8.25 6.75h12M8.25 12h12m-12 5.25h12M3.75 6.75h.007v.008H3.75V6.75zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zM3.75 12h.007v.008H3.75V12zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm-.375 5.25h.007v.008H3.75v-.008zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" /></svg>
+          <span className={tab === 'active' ? 'text-brand-700' : 'text-navy-500'}>Today's Visits</span>
+          {visits.length > 0 && (
+            <span className={`ml-1.5 inline-flex items-center justify-center min-w-[18px] h-[18px] text-[10px] font-bold px-1 rounded-full ${tab === 'active' ? 'bg-brand-100 text-brand-700' : 'bg-surface-100 text-navy-500'}`}>{visits.length}</span>
+          )}
         </button>
         <button
           onClick={() => setTab('register')}
-          className={`rounded-xl p-4 text-center font-semibold text-sm transition-all border-2 ${
-            tab === 'register'
-              ? 'bg-brand-50 border-brand-500 text-brand-700 shadow-soft'
-              : 'bg-white border-surface-200 text-navy-500 hover:border-surface-300 hover:bg-surface-50'
-          }`}
+          className={`card p-4 text-center font-semibold text-sm transition-all duration-200 hover:-translate-y-0.5 relative overflow-hidden ${tab === 'register' ? 'shadow-elevated' : ''}`}
+          style={tab === 'register' ? { outline: '2px solid rgba(124,58,237,0.3)', outlineOffset: '-1px' } : undefined}
         >
-          <svg className="w-5 h-5 mx-auto mb-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7.5v3m0 0v3m0-3h3m-3 0h-3m-2.25-4.125a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zM4 19.235v-.11a6.375 6.375 0 0112.75 0v.109A12.318 12.318 0 0110.374 21c-2.331 0-4.512-.645-6.374-1.766z" /></svg>
-          Register Visitor
+          {tab === 'register' && <div className="absolute top-0 left-0 right-0 h-[3px]" style={{ background: 'linear-gradient(90deg, #7c3aed, #d946ef, transparent)' }} />}
+          <svg className={`w-5 h-5 mx-auto mb-1.5 transition-colors ${tab === 'register' ? 'text-brand-600' : 'text-navy-400'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7.5v3m0 0v3m0-3h3m-3 0h-3m-2.25-4.125a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zM4 19.235v-.11a6.375 6.375 0 0112.75 0v.109A12.318 12.318 0 0110.374 21c-2.331 0-4.512-.645-6.374-1.766z" /></svg>
+          <span className={tab === 'register' ? 'text-brand-700' : 'text-navy-500'}>Register Visitor</span>
         </button>
         <button
           onClick={() => setTab('exit')}
-          className={`rounded-xl p-4 text-center font-semibold text-sm transition-all border-2 ${
-            tab === 'exit'
-              ? 'bg-brand-50 border-brand-500 text-brand-700 shadow-soft'
-              : 'bg-white border-surface-200 text-navy-500 hover:border-surface-300 hover:bg-surface-50'
-          }`}
+          className={`card p-4 text-center font-semibold text-sm transition-all duration-200 hover:-translate-y-0.5 relative overflow-hidden ${tab === 'exit' ? 'shadow-elevated' : ''}`}
+          style={tab === 'exit' ? { outline: '2px solid rgba(124,58,237,0.3)', outlineOffset: '-1px' } : undefined}
         >
-          <svg className="w-5 h-5 mx-auto mb-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" /></svg>
-          Log Exit
+          {tab === 'exit' && <div className="absolute top-0 left-0 right-0 h-[3px]" style={{ background: 'linear-gradient(90deg, #7c3aed, #d946ef, transparent)' }} />}
+          <svg className={`w-5 h-5 mx-auto mb-1.5 transition-colors ${tab === 'exit' ? 'text-brand-600' : 'text-navy-400'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" /></svg>
+          <span className={tab === 'exit' ? 'text-brand-700' : 'text-navy-500'}>Log Exit</span>
+          {checkedIn.length > 0 && (
+            <span className={`ml-1.5 inline-flex items-center justify-center min-w-[18px] h-[18px] text-[10px] font-bold px-1 rounded-full ${tab === 'exit' ? 'bg-brand-100 text-brand-700' : 'bg-surface-100 text-navy-500'}`}>{checkedIn.length}</span>
+          )}
         </button>
       </div>
 
@@ -203,6 +207,17 @@ export default function GuardConsole(): React.ReactElement {
       {/* Active visits tab */}
       {tab === 'active' && (
         <div className="space-y-3">
+          {/* Filter indicator */}
+          {statusFilter !== 'all' && !loading && (
+            <div className="flex items-center justify-between px-1">
+              <p className="text-sm text-navy-500">
+                Showing <span className="font-semibold text-navy-800">{filtered.length}</span> {statusFilter.replace(/_/g, ' ')} visitor{filtered.length !== 1 ? 's' : ''}
+              </p>
+              <button onClick={() => setStatusFilter('all')} className="text-xs text-brand-600 hover:text-brand-700 font-semibold transition-colors">
+                Clear ×
+              </button>
+            </div>
+          )}
           {loading ? (
             <div className="space-y-3">
               {[1, 2, 3].map((i) => (
@@ -235,8 +250,9 @@ export default function GuardConsole(): React.ReactElement {
               const style = STATUS_STYLES[v.status];
               const dur = v.status === 'checked_in' ? formatDuration(v.checked_in_at) : null;
               return (
-                <div key={v.id} className="card p-4 hover:shadow-elevated hover:-translate-y-0.5 transition-all duration-200 cursor-pointer animate-fade-in" style={{ animationDelay: `${idx * 0.03}s` }} onClick={() => setDetailVisit(v)}>
-                  <div className="flex gap-4 items-start">
+                <div key={v.id} className="card p-4 hover:shadow-elevated hover:-translate-y-0.5 transition-all duration-200 cursor-pointer animate-fade-in relative overflow-hidden" style={{ animationDelay: `${idx * 0.03}s` }} onClick={() => setDetailVisit(v)}>
+                  <div className={`absolute left-0 top-0 bottom-0 w-[3px] ${style.dot} opacity-60`} />
+                  <div className="flex gap-4 items-start pl-1">
                     <div className="shrink-0 relative">
                       {v.photo_url ? (
                         <img src={v.photo_url} alt="" className="w-14 h-[72px] object-cover rounded-xl" style={{ boxShadow: '0 0 0 2px rgba(51,150,255,0.08)' }} />

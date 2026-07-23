@@ -53,10 +53,17 @@ export default function PreApproveForm({ onPreApproved }: Props): React.ReactEle
 
   useEffect(() => {
     if (!deptId) { setHosts([]); return; }
-    fetch(`/api/hosts/${deptId}`)
-      .then((r) => { if (!r.ok) throw new Error(r.statusText); return r.json(); })
-      .then((data) => setHosts(data ?? []))
-      .catch((err) => { console.error('Failed to load hosts:', err.message); setHosts([]); });
+    (async () => {
+      try {
+        const { data, error } = await supabase.from('profiles').select('id, full_name, email, role').eq('department_id', deptId).order('full_name');
+        if (error) throw error;
+        setHosts((data ?? []) as Profile[]);
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : 'Unknown error';
+        console.error('Failed to load hosts:', msg);
+        setHosts([]);
+      }
+    })();
   }, [deptId]);
 
   const recallByPhone = useCallback(async () => {

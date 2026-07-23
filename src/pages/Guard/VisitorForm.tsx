@@ -58,10 +58,18 @@ export default function VisitorForm({ onRegistered }: Props): React.ReactElement
   useEffect(() => {
     if (!deptId) { setHosts([]); setHostError(null); return; }
     setHostError(null);
-    fetch(`/api/hosts/${deptId}`)
-      .then((r) => { if (!r.ok) throw new Error(`Server error (${r.status})`); return r.json(); })
-      .then((data) => setHosts(data ?? []))
-      .catch((err) => { console.error('Failed to load hosts:', err.message); setHostError('Could not load person-to-meet list. Contact admin.'); setHosts([]); });
+    (async () => {
+      try {
+        const { data, error } = await supabase.from('profiles').select('id, full_name, email, role').eq('department_id', deptId).order('full_name');
+        if (error) throw error;
+        setHosts((data ?? []) as Profile[]);
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : 'Unknown error';
+        console.error('Failed to load hosts:', msg);
+        setHostError('Could not load person-to-meet list. Contact admin.');
+        setHosts([]);
+      }
+    })();
   }, [deptId]);
 
   const recallByPhone = useCallback(async () => {

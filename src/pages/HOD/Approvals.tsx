@@ -18,51 +18,21 @@ interface DashboardStats {
   avgResponseMin: number | null;
 }
 
-/* ── Stat card config ──────────────────────────────── */
-const STAT_CARDS: {
-  key: keyof DashboardStats;
-  label: string;
-  icon: React.ReactNode;
-  iconClass: string;
-}[] = [
-  {
-    key: 'pending',
-    label: 'Pending',
-    icon: <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>,
-    iconClass: 'bg-warning-50 text-warning-600',
-  },
-  {
-    key: 'approvedToday',
-    label: 'Approved Today',
-    icon: <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>,
-    iconClass: 'bg-success-50 text-success-600',
-  },
-  {
-    key: 'rejectedToday',
-    label: 'Rejected Today',
-    icon: <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" /></svg>,
-    iconClass: 'bg-danger-50 text-danger-600',
-  },
-  {
-    key: 'avgResponseMin',
-    label: 'Avg. Response',
-    icon: <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" /></svg>,
-    iconClass: 'bg-brand-50 text-brand-600',
-  },
-];
-
+/* ── Tab config ────────────────────────────────────── */
 const TAB_CONFIG: { key: Tab; label: string; icon: React.ReactNode }[] = [
-  { key: 'pending', label: 'Pending', icon: <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" /></svg> },
-  { key: 'approved', label: 'Approved', icon: <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg> },
-  { key: 'rejected', label: 'Rejected', icon: <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" /></svg> },
+  { key: 'pending',     label: 'Pending',     icon: <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" /></svg> },
+  { key: 'approved',    label: 'Approved',    icon: <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg> },
+  { key: 'rejected',    label: 'Rejected',    icon: <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" /></svg> },
   { key: 'pre-approve', label: 'Pre-Approve', icon: <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v6m3-3H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" /></svg> },
 ];
 
 const STATUS_STYLES: Record<string, { bg: string; text: string; label: string }> = {
-  pending_approval: { bg: 'bg-warning-50', text: 'text-warning-700', label: 'Pending' },
-  approved:         { bg: 'bg-success-50', text: 'text-success-700', label: 'Pre-Approved' },
-  walkin_approved:  { bg: 'bg-brand-50',   text: 'text-brand-700',  label: 'Approved' },
-  rejected:         { bg: 'bg-danger-50',  text: 'text-danger-700', label: 'Rejected' },
+  pending_approval: { bg: 'bg-warning-50',  text: 'text-warning-700',  label: 'Pending' },
+  approved:         { bg: 'bg-success-50',  text: 'text-success-700',  label: 'Pre-Approved' },
+  walkin_approved:  { bg: 'bg-brand-50',    text: 'text-brand-700',    label: 'Approved' },
+  checked_in:       { bg: 'bg-accent-50',   text: 'text-accent-700',   label: 'Inside' },
+  checked_out:      { bg: 'bg-surface-100', text: 'text-navy-500',     label: 'Left' },
+  rejected:         { bg: 'bg-danger-50',   text: 'text-danger-700',   label: 'Rejected' },
 };
 
 /* ── Helpers ────────────────────────────────────────── */
@@ -81,8 +51,34 @@ function fmtDuration(minutes: number | null): string {
   if (minutes < 60) return `${minutes}m`;
   const h = Math.floor(minutes / 60);
   const m = minutes % 60;
-  if (m === 0) return `${h}h`;
-  return `${h}h ${m}m`;
+  return m === 0 ? `${h}h` : `${h}h ${m}m`;
+}
+
+function purposeLabel(p: string): string {
+  const map: Record<string, string> = {
+    meeting: 'Meeting', vendor: 'Vendor', interview: 'Interview',
+    delivery: 'Delivery', maintenance: 'Maintenance', audit: 'Audit', other: 'Other',
+  };
+  return map[p] ?? p;
+}
+
+/* ── Notification dot color by status ── */
+function notifDot(status: string): string {
+  if (status === 'pending_approval') return 'bg-warning-500 animate-pulse';
+  if (status === 'approved' || status === 'walkin_approved') return 'bg-success-500';
+  if (status === 'checked_in') return 'bg-accent-500';
+  if (status === 'rejected') return 'bg-danger-500';
+  return 'bg-navy-300';
+}
+
+function notifTitle(status: string): string {
+  if (status === 'pending_approval') return 'New approval request';
+  if (status === 'approved') return 'Visit pre-approved';
+  if (status === 'walkin_approved') return 'Walk-in approved';
+  if (status === 'checked_in') return 'Visitor checked in';
+  if (status === 'checked_out') return 'Visitor checked out';
+  if (status === 'rejected') return 'Visit rejected';
+  return 'Visit update';
 }
 
 /* ── Component ─────────────────────────────────────── */
@@ -91,6 +87,7 @@ export default function HODApprovals(): React.ReactElement {
   const [visits, setVisits] = useState<Visit[]>([]);
   const [upcomingVisits, setUpcomingVisits] = useState<Visit[]>([]);
   const [allVisitsToday, setAllVisitsToday] = useState<Visit[]>([]);
+  const [weekCount, setWeekCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [reasons, setReasons] = useState<Record<string, string>>({});
   const [acting, setActing] = useState<string | null>(null);
@@ -98,6 +95,7 @@ export default function HODApprovals(): React.ReactElement {
   const [successMsg, setSuccessMsg] = useState('');
   const [detailVisit, setDetailVisit] = useState<Visit | null>(null);
   const [userDeptId, setUserDeptId] = useState<string | null>(null);
+  const [dismissedNotifs, setDismissedNotifs] = useState<Set<string>>(new Set());
 
   /* auth */
   useEffect(() => {
@@ -133,17 +131,38 @@ export default function HODApprovals(): React.ReactElement {
     setLoading(false);
   }, [userDeptId]);
 
-  /* load all today's visits for stats */
+  /* load today's visits — full join so notifications can open details */
   const loadTodayStats = useCallback(async () => {
     if (!userDeptId) return;
     const todayStart = new Date();
     todayStart.setHours(0, 0, 0, 0);
     const { data } = await supabase
       .from('visits')
-      .select(`id, status, created_at`)
+      .select(`*, visitor:visitors(*), department:departments(id, name, code, created_at)`)
       .eq('department_id', userDeptId)
-      .gte('created_at', todayStart.toISOString());
-    if (data) setAllVisitsToday(data as unknown as Visit[]);
+      .gte('created_at', todayStart.toISOString())
+      .order('created_at', { ascending: false });
+    if (data) {
+      let raw = data as unknown as Visit[];
+      raw = await attachHostNames(raw);
+      setAllVisitsToday(raw.map((v) => ({ ...v, photo_url: v.photo_data ?? undefined })));
+    }
+  }, [userDeptId]);
+
+  /* load this week's count */
+  const loadWeekStats = useCallback(async () => {
+    if (!userDeptId) return;
+    const weekStart = new Date();
+    const day = weekStart.getDay();
+    const diff = weekStart.getDate() - day + (day === 0 ? -6 : 1);
+    weekStart.setDate(diff);
+    weekStart.setHours(0, 0, 0, 0);
+    const { count } = await supabase
+      .from('visits')
+      .select('id', { count: 'exact', head: true })
+      .eq('department_id', userDeptId)
+      .gte('created_at', weekStart.toISOString());
+    setWeekCount(count ?? 0);
   }, [userDeptId]);
 
   /* load upcoming pre-approved visitors */
@@ -174,8 +193,9 @@ export default function HODApprovals(): React.ReactElement {
     if (userDeptId) {
       void loadTodayStats();
       void loadUpcoming();
+      void loadWeekStats();
     }
-  }, [userDeptId, loadTodayStats, loadUpcoming]);
+  }, [userDeptId, loadTodayStats, loadUpcoming, loadWeekStats]);
 
   /* realtime */
   useEffect(() => {
@@ -187,25 +207,26 @@ export default function HODApprovals(): React.ReactElement {
         else if (tab === 'rejected') void loadVisits(['rejected'] as const);
         void loadTodayStats();
         void loadUpcoming();
+        void loadWeekStats();
       })
       .subscribe();
     return () => { void supabase.removeChannel(ch); };
-  }, [tab, userDeptId, loadVisits, loadTodayStats, loadUpcoming]);
+  }, [tab, userDeptId, loadVisits, loadTodayStats, loadUpcoming, loadWeekStats]);
 
   /* computed stats */
   const stats = useMemo<DashboardStats>(() => {
     const pending = allVisitsToday.filter((v) => v.status === 'pending_approval').length;
     const approvedToday = allVisitsToday.filter((v) => ['approved', 'walkin_approved'].includes(v.status as string)).length;
     const rejectedToday = allVisitsToday.filter((v) => v.status === 'rejected').length;
-
-    const withResponse = allVisitsToday.filter((v) => v.created_at);
-    let avgResponseMin: number | null = null;
-    if (withResponse.length > 0) {
-      avgResponseMin = null;
-    }
-
-    return { pending, approvedToday, rejectedToday, avgResponseMin };
+    return { pending, approvedToday, rejectedToday, avgResponseMin: null };
   }, [allVisitsToday]);
+
+  /* notifications derived from today's visits */
+  const notifications = useMemo(() => {
+    return allVisitsToday
+      .filter((v) => !dismissedNotifs.has(v.id))
+      .slice(0, 10);
+  }, [allVisitsToday, dismissedNotifs]);
 
   /* approve/reject */
   const decide = async (visitId: string, approved: boolean) => {
@@ -249,19 +270,16 @@ export default function HODApprovals(): React.ReactElement {
     else if (tab === 'rejected') void loadVisits(['rejected'] as const);
   };
 
-  const formatStatValue = (key: keyof DashboardStats, val: number | null): string => {
-    if (val === null) return '--';
-    if (key === 'avgResponseMin') return `${val}m`;
-    return String(val);
-  };
+  /* next upcoming visitor */
+  const nextVisitor = upcomingVisits[0] ?? null;
 
   /* ── Render ────────────────────────────────────────── */
   return (
-    <div className="animate-fade-in">
+    <div className="animate-fade-in space-y-6">
       {detailVisit && <VisitorDetails visit={detailVisit} onClose={() => setDetailVisit(null)} />}
 
-      {/* ── Header row ────────────────────────────────── */}
-      <div className="page-header flex items-center justify-between">
+      {/* ── Page header ───────────────────────────────── */}
+      <div className="flex items-center justify-between">
         <div className="flex items-center gap-3.5">
           <div className="h-11 w-11 rounded-xl bg-gradient-to-br from-brand-500 to-accent-500 text-white flex items-center justify-center shadow-glow-sm ring-1 ring-white/20">
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
@@ -269,8 +287,8 @@ export default function HODApprovals(): React.ReactElement {
             </svg>
           </div>
           <div>
-            <h1 className="page-title">Dashboard</h1>
-            <p className="page-subtitle">Visitor approvals & activity</p>
+            <h1 className="page-title">Overview</h1>
+            <p className="page-subtitle">Visitor approvals &amp; activity</p>
           </div>
         </div>
         <button onClick={refreshTab} className="btn-icon" title="Refresh">
@@ -280,46 +298,124 @@ export default function HODApprovals(): React.ReactElement {
         </button>
       </div>
 
-      {/* ── Stats cards row ───────────────────────────── */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
-        {STAT_CARDS.map(({ key, label, icon, iconClass }, idx) => (
-          <div
-            key={key}
-            className={`stat-card group hover:-translate-y-0.5 animate-slide-up stagger-${idx + 1}`}
-          >
-            <div className="flex items-center justify-between mb-2">
-              <span className="stat-label">{label}</span>
-              <div className={`h-8 w-8 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform duration-200 ${iconClass}`}>
-                {icon}
-              </div>
+      {/* ── Three summary cards ───────────────────────── */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+
+        {/* Card 1 — Today's Visitors */}
+        <div className="bg-white dark:bg-white/[0.04] rounded-2xl border border-surface-200/70 dark:border-white/[0.06] p-5 flex gap-4 items-start">
+          <div className="h-12 w-12 shrink-0 rounded-xl bg-gradient-to-br from-brand-500 to-brand-700 flex items-center justify-center text-white shadow-md ring-1 ring-white/20">
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" /></svg>
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-[11px] font-bold uppercase tracking-widest text-navy-400 mb-1">Visitors Today</p>
+            <p className="font-display text-3xl font-bold text-navy-950 tabular-nums leading-none">
+              {allVisitsToday.length}
+            </p>
+            <p className="text-xs text-navy-400 mt-1.5">
+              <span className="text-warning-600 font-semibold">{stats.pending}</span> pending
+              {' · '}
+              <span className="text-success-600 font-semibold">{stats.approvedToday}</span> approved
+            </p>
+            {nextVisitor && (
+              <p className="text-[11px] text-brand-500 font-medium mt-2 flex items-center gap-1">
+                <svg className="w-3 h-3 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                Next appointment scheduled
+              </p>
+            )}
+          </div>
+        </div>
+
+        {/* Card 2 — Next Appointment */}
+        <div className="bg-white dark:bg-white/[0.04] rounded-2xl border border-surface-200/70 dark:border-white/[0.06] p-5 flex gap-4 items-start">
+          <div className="h-12 w-12 shrink-0 rounded-xl bg-gradient-to-br from-accent-500 to-accent-700 flex items-center justify-center text-white shadow-md ring-1 ring-white/20">
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" /></svg>
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-[11px] font-bold uppercase tracking-widest text-navy-400 mb-1">Next Appointment</p>
+            {nextVisitor ? (
+              <>
+                <p className="font-semibold text-navy-950 truncate text-sm leading-snug">
+                  {nextVisitor.visitor?.full_name ?? '--'}
+                </p>
+                <p className="text-xs text-navy-400 truncate mt-0.5">
+                  {purposeLabel(nextVisitor.purpose)}{nextVisitor.department?.name ? ` · ${nextVisitor.department.name}` : ''}
+                </p>
+                <div className="flex items-center gap-2 mt-2 flex-wrap">
+                  <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-md bg-success-50 text-success-700 border border-success-200/60">
+                    Pre-Approved
+                  </span>
+                  {nextVisitor.expected_duration_minutes && (
+                    <span className="text-[10px] text-navy-400">
+                      {fmtDuration(nextVisitor.expected_duration_minutes)} expected
+                    </span>
+                  )}
+                </div>
+              </>
+            ) : (
+              <>
+                <p className="font-display text-2xl font-bold text-navy-300 leading-none mt-1">—</p>
+                <p className="text-xs text-navy-400 mt-1.5">No upcoming visitors</p>
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* Card 3 — This Week */}
+        <div className="bg-white dark:bg-white/[0.04] rounded-2xl border border-surface-200/70 dark:border-white/[0.06] p-5 flex gap-4 items-start">
+          <div className="h-12 w-12 shrink-0 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center text-white shadow-md ring-1 ring-white/20">
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" /></svg>
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-[11px] font-bold uppercase tracking-widest text-navy-400 mb-1">This Week</p>
+            <p className="font-display text-3xl font-bold text-navy-950 tabular-nums leading-none">
+              {weekCount}
+            </p>
+            <p className="text-xs text-navy-400 mt-1.5">visits this week</p>
+            {/* Mini progress bar */}
+            <div className="mt-2.5 h-1.5 rounded-full overflow-hidden flex bg-surface-100 dark:bg-white/[0.06]">
+              {(() => {
+                const total = stats.approvedToday + stats.rejectedToday + stats.pending;
+                if (total === 0) return <div className="w-full bg-surface-200 dark:bg-white/[0.08] rounded-full" />;
+                const aPct = (stats.approvedToday / total) * 100;
+                const rPct = (stats.rejectedToday / total) * 100;
+                const pPct = (stats.pending / total) * 100;
+                return (
+                  <>
+                    {aPct > 0 && <div className="bg-success-500 transition-all duration-500" style={{ width: `${aPct}%` }} />}
+                    {rPct > 0 && <div className="bg-danger-500 transition-all duration-500" style={{ width: `${rPct}%` }} />}
+                    {pPct > 0 && <div className="bg-warning-500 transition-all duration-500" style={{ width: `${pPct}%` }} />}
+                  </>
+                );
+              })()}
             </div>
-            <p className="stat-value text-2xl">
-              {formatStatValue(key, stats[key])}
+            <p className="text-[10px] text-navy-300 mt-1">
+              {stats.approvedToday} approved · {stats.rejectedToday} rejected · {stats.pending} pending
             </p>
           </div>
-        ))}
+        </div>
       </div>
 
       {/* ── Alerts ────────────────────────────────────── */}
       {successMsg && (
-        <div className="alert-success mb-4">
+        <div className="alert-success">
           <svg className="w-4 h-4 text-success-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
           <span className="flex-1">{successMsg}</span>
           <button onClick={() => setSuccessMsg('')} className="text-success-500 hover:text-success-700 text-xs font-medium">Dismiss</button>
         </div>
       )}
       {error && (
-        <div className="alert-error mb-4">
+        <div className="alert-error">
           <svg className="w-4 h-4 text-danger-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" /></svg>
           <span className="flex-1">{error}</span>
         </div>
       )}
 
-      {/* ── Main layout: content + right sidebar ─────── */}
+      {/* ── Main layout ───────────────────────────────── */}
       <div className="flex flex-col lg:flex-row gap-6">
 
         {/* ── Left: tabs + visit list ─────────────────── */}
         <div className="flex-1 min-w-0">
+
           {/* Tabs */}
           <div className="tab-group w-full mb-5">
             {TAB_CONFIG.map(({ key, label, icon }) => (
@@ -374,7 +470,7 @@ export default function HODApprovals(): React.ReactElement {
                 return (
                   <div
                     key={v.id}
-                    className="card overflow-hidden animate-fade-in card-hover"
+                    className="card overflow-hidden animate-fade-in"
                     style={{ animationDelay: `${idx * 0.04}s` }}
                   >
                     {/* Escalation ribbon */}
@@ -389,6 +485,7 @@ export default function HODApprovals(): React.ReactElement {
                     </div>
 
                     <div className="p-4">
+                      {/* Visit card header — time left, visitor, chips */}
                       <div className="flex gap-3 cursor-pointer" onClick={() => setDetailVisit(v)}>
                         {v.photo_url ? (
                           <img src={v.photo_url} alt="" className="w-11 h-11 object-cover rounded-xl shrink-0 ring-2 ring-surface-100" />
@@ -400,20 +497,30 @@ export default function HODApprovals(): React.ReactElement {
                           </div>
                         )}
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
-                            <p className="font-semibold text-navy-950 truncate">{v.visitor?.full_name ?? '--'}</p>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <p className="font-semibold text-navy-950">{v.visitor?.full_name ?? '--'}</p>
                             <span className="status-badge bg-warning-50 text-warning-700">Pending</span>
                           </div>
                           <p className="text-xs text-navy-400 truncate mt-0.5">
-                            {v.visitor?.company ? `${v.visitor.company} · ` : ''}{v.department?.name ?? ''} · {v.host?.full_name ?? ''}
+                            {v.visitor?.company ? `${v.visitor.company} · ` : ''}{v.department?.name ?? ''}{v.host?.full_name ? ` · ${v.host.full_name}` : ''}
                           </p>
-                          <div className="flex items-center gap-3 mt-1 text-[11px] text-navy-300">
-                            <span className="capitalize">{v.purpose}</span>
-                            <span>{timeAgo(v.created_at)}</span>
+                          {/* Chips row */}
+                          <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
+                            <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-md bg-brand-50 text-brand-600 border border-brand-100">
+                              {purposeLabel(v.purpose)}
+                            </span>
+                            {v.expected_duration_minutes && (
+                              <span className="inline-flex items-center gap-1 text-[10px] text-navy-400 px-2 py-0.5 rounded-md bg-surface-100 border border-surface-200/60">
+                                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5" /></svg>
+                                {fmtDuration(v.expected_duration_minutes)}
+                              </span>
+                            )}
+                            <span className="text-[10px] text-navy-300 ml-auto">{timeAgo(v.created_at)}</span>
                           </div>
                         </div>
                       </div>
 
+                      {/* Action row */}
                       <div className="mt-3 pt-3 border-t border-surface-200/60 dark:border-white/[0.06]" onClick={(e) => e.stopPropagation()}>
                         <input
                           type="text"
@@ -424,6 +531,13 @@ export default function HODApprovals(): React.ReactElement {
                           className="input mb-2.5"
                         />
                         <div className="flex gap-2.5">
+                          <button
+                            onClick={() => setDetailVisit(v)}
+                            className="px-3 py-2.5 rounded-xl border border-surface-200 bg-surface-50 text-navy-500 hover:bg-surface-100 text-xs font-semibold transition-all flex items-center gap-1.5 shrink-0"
+                          >
+                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" /><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                            Details
+                          </button>
                           <button
                             onClick={() => decide(v.id, true)}
                             disabled={acting === v.id}
@@ -463,9 +577,9 @@ export default function HODApprovals(): React.ReactElement {
                 </div>
               )}
               {visits.map((v) => {
-                const style = STATUS_STYLES[v.status === 'approved' ? 'approved' : 'walkin_approved'] ?? { bg: 'bg-surface-50', text: 'text-navy-700', label: v.status };
+                const style = STATUS_STYLES[v.status] ?? { bg: 'bg-surface-50', text: 'text-navy-700', label: v.status };
                 return (
-                  <div key={v.id} className="card card-hover p-4 cursor-pointer animate-fade-in border-l-[3px] border-l-success-500" onClick={() => setDetailVisit(v)}>
+                  <div key={v.id} className="card p-4 cursor-pointer animate-fade-in border-l-[3px] border-l-success-500 hover:shadow-sm transition-shadow" onClick={() => setDetailVisit(v)}>
                     <div className="flex gap-3 items-center">
                       {v.photo_url ? (
                         <img src={v.photo_url} alt="" className="w-10 h-10 object-cover rounded-lg shrink-0 ring-2 ring-success-100" />
@@ -475,15 +589,25 @@ export default function HODApprovals(): React.ReactElement {
                         </div>
                       )}
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <p className="font-semibold text-navy-950 truncate text-sm">{v.visitor?.full_name ?? '--'}</p>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <p className="font-semibold text-navy-950 text-sm">{v.visitor?.full_name ?? '--'}</p>
                           <span className={`status-badge ${style.bg} ${style.text}`}>{style.label}</span>
                         </div>
-                        <p className="text-xs text-navy-400 truncate mt-0.5">{v.visitor?.company ? `${v.visitor.company} · ` : ''}{v.department?.name} · {v.host?.full_name}</p>
+                        <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                          <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-surface-100 text-navy-400">{purposeLabel(v.purpose)}</span>
+                          <span className="text-xs text-navy-400 truncate">{v.department?.name}{v.host?.full_name ? ` · ${v.host.full_name}` : ''}</span>
+                        </div>
                       </div>
-                      <div className="text-right shrink-0">
+                      <div className="shrink-0 text-right space-y-1">
                         <p className="text-[11px] text-navy-300 font-mono">{v.ref_number}</p>
-                        <p className="text-[10px] text-navy-300 mt-0.5">{formatTime(v.checked_in_at ?? v.created_at)}</p>
+                        <p className="text-[10px] text-navy-300">{formatTime(v.checked_in_at ?? v.created_at)}</p>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setDetailVisit(v); }}
+                          className="text-[10px] font-semibold text-brand-500 hover:text-brand-700 flex items-center gap-0.5 ml-auto"
+                        >
+                          Open details
+                          <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" /></svg>
+                        </button>
                       </div>
                     </div>
                   </div>
@@ -506,7 +630,7 @@ export default function HODApprovals(): React.ReactElement {
                 </div>
               )}
               {visits.map((v) => (
-                <div key={v.id} className="card card-hover p-4 cursor-pointer animate-fade-in border-l-[3px] border-l-danger-500" onClick={() => setDetailVisit(v)}>
+                <div key={v.id} className="card p-4 cursor-pointer animate-fade-in border-l-[3px] border-l-danger-500 hover:shadow-sm transition-shadow" onClick={() => setDetailVisit(v)}>
                   <div className="flex gap-3 items-start">
                     {v.photo_url ? (
                       <img src={v.photo_url} alt="" className="w-10 h-10 object-cover rounded-lg shrink-0" />
@@ -516,11 +640,13 @@ export default function HODApprovals(): React.ReactElement {
                       </div>
                     )}
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <p className="font-semibold text-navy-950 truncate text-sm">{v.visitor?.full_name ?? '--'}</p>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className="font-semibold text-navy-950 text-sm">{v.visitor?.full_name ?? '--'}</p>
                         <span className="status-badge bg-danger-50 text-danger-700">Rejected</span>
                       </div>
-                      <p className="text-xs text-navy-400 truncate mt-0.5">{v.visitor?.company ? `${v.visitor.company} · ` : ''}{v.department?.name} · {v.host?.full_name}</p>
+                      <p className="text-xs text-navy-400 truncate mt-0.5">
+                        {v.visitor?.company ? `${v.visitor.company} · ` : ''}{v.department?.name}{v.host?.full_name ? ` · ${v.host.full_name}` : ''}
+                      </p>
                       {v.rejection_reason && (
                         <div className="mt-2 rounded-lg bg-danger-50/60 px-2.5 py-2 text-xs text-danger-700 border border-danger-100 flex items-start gap-1.5">
                           <svg className="w-3.5 h-3.5 text-danger-400 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" /></svg>
@@ -547,147 +673,157 @@ export default function HODApprovals(): React.ReactElement {
         </div>
 
         {/* ── Right sidebar ──────────────────────────── */}
-        <div className="w-full lg:w-80 shrink-0 space-y-4">
+        <div className="w-full lg:w-72 shrink-0 space-y-4">
 
-          {/* Upcoming Visitors card */}
-          <div className="card-premium overflow-hidden">
+          {/* Notifications panel */}
+          <div className="bg-white dark:bg-white/[0.04] rounded-2xl border border-surface-200/70 dark:border-white/[0.06] overflow-hidden">
+            {/* Header */}
+            <div className="px-4 py-3 flex items-center justify-between border-b border-surface-200/60 dark:border-white/[0.06]">
+              <div className="flex items-center gap-2">
+                <div className="h-7 w-7 rounded-lg bg-gradient-to-br from-brand-500 to-accent-500 text-white flex items-center justify-center shadow-glow-sm ring-1 ring-white/20">
+                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
+                  </svg>
+                </div>
+                <p className="text-sm font-bold text-navy-950">Notifications</p>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="relative flex h-2 w-2">
+                  <span className="absolute inline-flex h-full w-full rounded-full bg-success-500 opacity-75 animate-ping" />
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-success-500" />
+                </span>
+                <span className="text-[10px] font-semibold text-navy-400">Live</span>
+              </div>
+            </div>
+
+            {/* Notification items */}
+            <div className="divide-y divide-surface-200/50 dark:divide-white/[0.05] max-h-[420px] overflow-y-auto">
+              {notifications.length === 0 && (
+                <div className="px-4 py-8 text-center">
+                  <div className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-surface-100 mb-2">
+                    <svg className="w-5 h-5 text-navy-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" /></svg>
+                  </div>
+                  <p className="text-xs text-navy-300">No activity today</p>
+                </div>
+              )}
+              {notifications.map((v) => (
+                <div key={v.id} className="px-4 py-3 hover:bg-surface-50 dark:hover:bg-white/[0.02] transition-colors">
+                  <div className="flex items-start gap-2.5">
+                    <div className="mt-1 shrink-0">
+                      <span className={`h-2 w-2 rounded-full block ${notifDot(v.status)}`} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[11px] font-bold text-navy-500 uppercase tracking-wide leading-none mb-0.5">
+                        {notifTitle(v.status)}
+                      </p>
+                      <p className="text-sm font-semibold text-navy-950 truncate">
+                        {v.visitor?.full_name ?? 'Visitor'}
+                      </p>
+                      <p className="text-[10px] text-navy-300 mt-0.5 flex items-center gap-1">
+                        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                        {timeAgo(v.created_at)}
+                        {v.ref_number && <span className="font-mono opacity-60">· {v.ref_number}</span>}
+                      </p>
+                      <button
+                        className="text-[11px] font-semibold text-brand-500 hover:text-brand-700 mt-1.5 flex items-center gap-0.5 transition-colors"
+                        onClick={() => setDetailVisit(v)}
+                      >
+                        More information
+                        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" /></svg>
+                      </button>
+                    </div>
+                    <div className="flex items-center gap-1 shrink-0 mt-0.5">
+                      <button
+                        title="View details"
+                        onClick={() => setDetailVisit(v)}
+                        className="h-6 w-6 rounded-lg flex items-center justify-center text-navy-400 hover:text-brand-600 hover:bg-brand-50 transition-colors"
+                      >
+                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" /><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                      </button>
+                      <button
+                        title="Dismiss"
+                        onClick={() => setDismissedNotifs((s) => new Set([...s, v.id]))}
+                        className="h-6 w-6 rounded-lg flex items-center justify-center text-navy-400 hover:text-danger-500 hover:bg-danger-50 transition-colors"
+                      >
+                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {dismissedNotifs.size > 0 && (
+              <div className="px-4 py-2.5 border-t border-surface-200/60 dark:border-white/[0.06]">
+                <button
+                  onClick={() => setDismissedNotifs(new Set())}
+                  className="text-[11px] font-semibold text-navy-400 hover:text-brand-500 transition-colors w-full text-center"
+                >
+                  Show {dismissedNotifs.size} dismissed
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Upcoming Visitors */}
+          <div className="bg-white dark:bg-white/[0.04] rounded-2xl border border-surface-200/70 dark:border-white/[0.06] overflow-hidden">
             <div className="px-4 py-3 flex items-center gap-2.5 border-b border-surface-200/60 dark:border-white/[0.06]">
-              <div className="h-7 w-7 rounded-lg bg-gradient-to-br from-brand-500 to-accent-500 text-white flex items-center justify-center shadow-glow-sm ring-1 ring-white/20">
+              <div className="h-7 w-7 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 text-white flex items-center justify-center shadow-md ring-1 ring-white/20">
                 <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
                 </svg>
               </div>
-              <p className="section-title">Upcoming Visitors</p>
+              <p className="text-sm font-bold text-navy-950">Upcoming Visitors</p>
             </div>
             <div className="divide-y divide-surface-200/50 dark:divide-white/[0.05]">
               {upcomingVisits.length === 0 && (
                 <div className="px-4 py-8 text-center">
-                  <p className="text-sm text-navy-300">No upcoming visitors</p>
+                  <p className="text-xs text-navy-300">No upcoming visitors</p>
                 </div>
               )}
               {upcomingVisits.map((v) => (
                 <div
                   key={v.id}
-                  className="px-4 py-3 hover:bg-surface-100/60 dark:hover:bg-white/[0.03] transition-colors cursor-pointer"
+                  className="px-4 py-3 hover:bg-surface-50 dark:hover:bg-white/[0.02] transition-colors cursor-pointer"
                   onClick={() => setDetailVisit(v)}
                 >
-                  <div className="flex gap-3 items-center">
+                  <div className="flex gap-3 items-start">
                     {v.photo_url ? (
-                      <img src={v.photo_url} alt="" className="w-9 h-9 object-cover rounded-lg shrink-0 ring-2 ring-brand-500/20" />
+                      <img src={v.photo_url} alt="" className="w-9 h-9 object-cover rounded-lg shrink-0 ring-2 ring-emerald-500/20" />
                     ) : (
-                      <div className="w-9 h-9 rounded-lg shrink-0 flex items-center justify-center bg-brand-50">
-                        <span className="text-xs font-bold text-brand-600">
+                      <div className="w-9 h-9 rounded-lg shrink-0 flex items-center justify-center bg-emerald-50">
+                        <span className="text-xs font-bold text-emerald-600">
                           {(v.visitor?.full_name ?? '?').charAt(0).toUpperCase()}
                         </span>
                       </div>
                     )}
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-semibold text-navy-950 truncate">{v.visitor?.full_name ?? '--'}</p>
-                      <p className="text-[11px] text-navy-400 truncate">
-                        {v.host?.full_name ?? '--'} · <span className="capitalize">{v.purpose}</span>
+                      <p className="text-[11px] text-navy-400 truncate mt-0.5">
+                        {purposeLabel(v.purpose)}{v.host?.full_name ? ` · ${v.host.full_name}` : ''}
                       </p>
-                    </div>
-                    <div className="shrink-0 text-right">
-                      <div className="glass-chip inline-flex items-center gap-1 !px-2 !py-1 text-[10px] font-semibold text-brand-600">
-                        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5" />
-                        </svg>
-                        {fmtDuration(v.expected_duration_minutes)}
+                      <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                        <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-md bg-success-50 text-success-700 border border-success-100">
+                          Pre-Approved
+                        </span>
+                        {v.expected_duration_minutes && (
+                          <span className="text-[10px] text-navy-300">{fmtDuration(v.expected_duration_minutes)}</span>
+                        )}
                       </div>
                     </div>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setDetailVisit(v); }}
+                      className="h-7 w-7 rounded-lg flex items-center justify-center text-navy-400 hover:text-brand-600 hover:bg-brand-50 transition-colors shrink-0 mt-0.5"
+                      title="Open details"
+                    >
+                      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" /></svg>
+                    </button>
                   </div>
                 </div>
               ))}
             </div>
           </div>
 
-          {/* Recent Activity feed */}
-          <div className="card overflow-hidden">
-            <div className="px-4 py-3 border-b border-surface-200/60 dark:border-white/[0.06]">
-              <p className="section-title">Recent Activity</p>
-            </div>
-            <div className="divide-y divide-surface-200/50 dark:divide-white/[0.05]">
-              {allVisitsToday.length === 0 && (
-                <div className="px-4 py-8 text-center">
-                  <p className="text-sm text-navy-300">No activity today</p>
-                </div>
-              )}
-              {allVisitsToday.slice(0, 8).map((v) => {
-                const isApproved = v.status === 'approved' || v.status === 'walkin_approved';
-                const isRejected = v.status === 'rejected';
-                const isPending = v.status === 'pending_approval';
-                return (
-                  <div key={v.id} className="px-4 py-2.5 flex items-center gap-2.5 hover:bg-surface-100/60 dark:hover:bg-white/[0.03] transition-colors">
-                    <div className={`h-2 w-2 rounded-full shrink-0 ${
-                      isApproved ? 'bg-success-500' :
-                      isRejected ? 'bg-danger-500' :
-                      isPending  ? 'bg-warning-500 animate-pulse' :
-                      'bg-navy-300'
-                    }`} />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs font-medium text-navy-700 truncate">
-                        {(v as any).visitor?.full_name ??
-                          (isApproved ? 'Visit approved' :
-                           isRejected ? 'Visit rejected' :
-                           'New request')}
-                      </p>
-                      <p className="text-[10px] text-navy-300">
-                        {isApproved ? 'Approved' : isRejected ? 'Rejected' : 'Awaiting review'}
-                      </p>
-                    </div>
-                    <span className="text-[10px] text-navy-300 shrink-0">{timeAgo(v.created_at)}</span>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Today's Summary */}
-          <div className="card p-4">
-            <p className="section-title mb-3">Today's Summary</p>
-            <div className="space-y-2.5">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="h-2 w-2 rounded-full bg-warning-500" />
-                  <span className="text-xs text-navy-400">Pending</span>
-                </div>
-                <span className="text-xs font-bold text-navy-950">{stats.pending}</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="h-2 w-2 rounded-full bg-success-500" />
-                  <span className="text-xs text-navy-400">Approved</span>
-                </div>
-                <span className="text-xs font-bold text-navy-950">{stats.approvedToday}</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="h-2 w-2 rounded-full bg-danger-500" />
-                  <span className="text-xs text-navy-400">Rejected</span>
-                </div>
-                <span className="text-xs font-bold text-navy-950">{stats.rejectedToday}</span>
-              </div>
-              {/* Progress bar */}
-              <div className="pt-1">
-                <div className="h-1.5 rounded-full overflow-hidden flex bg-surface-200/70 dark:bg-white/[0.06]">
-                  {(() => {
-                    const total = stats.approvedToday + stats.rejectedToday + stats.pending;
-                    if (total === 0) return <div className="w-full rounded-full bg-surface-200 dark:bg-white/[0.08]" />;
-                    const aPct = (stats.approvedToday / total) * 100;
-                    const rPct = (stats.rejectedToday / total) * 100;
-                    const pPct = (stats.pending / total) * 100;
-                    return (
-                      <>
-                        {aPct > 0 && <div className="bg-success-500 rounded-l-full transition-all duration-500" style={{ width: `${aPct}%` }} />}
-                        {rPct > 0 && <div className="bg-danger-500 transition-all duration-500" style={{ width: `${rPct}%` }} />}
-                        {pPct > 0 && <div className="bg-warning-500 rounded-r-full transition-all duration-500" style={{ width: `${pPct}%` }} />}
-                      </>
-                    );
-                  })()}
-                </div>
-              </div>
-            </div>
-          </div>
         </div>
       </div>
     </div>
