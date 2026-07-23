@@ -106,7 +106,7 @@ describe('PreApproveForm submission', () => {
     fireEvent.change(screen.getAllByRole('textbox')[2], { target: { value: 'Test Corp' } });
 
     await waitFor(() => expect(screen.getByText('Test Host')).toBeInTheDocument());
-    fireEvent.change(screen.getAllByRole('combobox')[2], { target: { value: 'h1' } });
+    fireEvent.change(screen.getAllByRole('combobox')[1], { target: { value: 'h1' } });
     fireEvent.click(screen.getByRole('button', { name: /pre-approve visitor/i }));
 
     await waitFor(() => {
@@ -119,6 +119,12 @@ describe('PreApproveForm submission', () => {
         p_purpose: 'meeting',
       });
     });
+
+    await waitFor(() => {
+      expect(screen.getByText(/Visitor Pre-Approved/i)).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByText('Got it'));
 
     await waitFor(() => {
       expect(onApproved).toHaveBeenCalledWith('Test Visitor', 'VIS-20260721-0001');
@@ -134,8 +140,14 @@ describe('PreApproveForm submission', () => {
     fireEvent.change(screen.getAllByRole('textbox')[1], { target: { value: 'Test Visitor' } });
     fireEvent.change(screen.getAllByRole('textbox')[2], { target: { value: 'Test Corp' } });
     await waitFor(() => expect(screen.getByText('Test Host')).toBeInTheDocument());
-    fireEvent.change(screen.getAllByRole('combobox')[2], { target: { value: 'h1' } });
+    fireEvent.change(screen.getAllByRole('combobox')[1], { target: { value: 'h1' } });
     fireEvent.click(screen.getByRole('button', { name: /pre-approve visitor/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/Visitor Pre-Approved/i)).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByText('Got it'));
 
     await waitFor(() => {
       expect(onApproved).toHaveBeenCalledWith(expect.any(String), expect.stringMatching(/^VIS-/));
@@ -217,7 +229,7 @@ describe('PreApproveForm submission', () => {
     fireEvent.change(screen.getAllByRole('textbox')[1], { target: { value: 'Test Visitor' } });
     fireEvent.change(screen.getAllByRole('textbox')[2], { target: { value: 'Test Corp' } });
     await waitFor(() => expect(screen.getByText('Test Host')).toBeInTheDocument());
-    fireEvent.change(screen.getAllByRole('combobox')[2], { target: { value: 'h1' } });
+    fireEvent.change(screen.getAllByRole('combobox')[1], { target: { value: 'h1' } });
     fireEvent.click(screen.getByRole('button', { name: /pre-approve visitor/i }));
 
     await waitFor(() => {
@@ -238,7 +250,7 @@ describe('PreApproveForm submission', () => {
     fireEvent.change(screen.getAllByRole('textbox')[1], { target: { value: 'Test Visitor' } });
     fireEvent.change(screen.getAllByRole('textbox')[2], { target: { value: 'Test Corp' } });
     await waitFor(() => expect(screen.getByText('Test Host')).toBeInTheDocument());
-    fireEvent.change(screen.getAllByRole('combobox')[2], { target: { value: 'h1' } });
+    fireEvent.change(screen.getAllByRole('combobox')[1], { target: { value: 'h1' } });
     fireEvent.click(screen.getByRole('button', { name: /pre-approve visitor/i }));
 
     await waitFor(() => {
@@ -258,7 +270,7 @@ describe('PreApproveForm submission', () => {
     fireEvent.change(screen.getAllByRole('textbox')[1], { target: { value: 'Test Visitor' } });
     fireEvent.change(screen.getAllByRole('textbox')[2], { target: { value: 'Test Corp' } });
     await waitFor(() => expect(screen.getByText('Test Host')).toBeInTheDocument());
-    fireEvent.change(screen.getAllByRole('combobox')[2], { target: { value: 'h1' } });
+    fireEvent.change(screen.getAllByRole('combobox')[1], { target: { value: 'h1' } });
     fireEvent.click(screen.getByRole('button', { name: /pre-approve visitor/i }));
 
     await waitFor(() => {
@@ -282,7 +294,7 @@ describe('PreApproveForm submission', () => {
     fireEvent.change(screen.getAllByRole('textbox')[1], { target: { value: 'Test Visitor' } });
     fireEvent.change(screen.getAllByRole('textbox')[2], { target: { value: 'Test Corp' } });
     await waitFor(() => expect(screen.getByText('Test Host')).toBeInTheDocument());
-    fireEvent.change(screen.getAllByRole('combobox')[2], { target: { value: 'h1' } });
+    fireEvent.change(screen.getAllByRole('combobox')[1], { target: { value: 'h1' } });
     fireEvent.click(screen.getByRole('button', { name: /pre-approve visitor/i }));
 
     await waitFor(() => {
@@ -304,7 +316,7 @@ describe('PreApproveForm submission', () => {
     fireEvent.change(screen.getAllByRole('textbox')[1], { target: { value: 'Test Visitor' } });
     fireEvent.change(screen.getAllByRole('textbox')[2], { target: { value: 'Test Corp' } });
     await waitFor(() => expect(screen.getByText('Test Host')).toBeInTheDocument());
-    fireEvent.change(screen.getAllByRole('combobox')[2], { target: { value: 'h1' } });
+    fireEvent.change(screen.getAllByRole('combobox')[1], { target: { value: 'h1' } });
     fireEvent.click(screen.getByRole('button', { name: /pre-approve visitor/i }));
 
     await waitFor(() => {
@@ -326,7 +338,7 @@ describe('PreApproveForm submission', () => {
     fireEvent.change(screen.getAllByRole('textbox')[1], { target: { value: 'Test Visitor' } });
     fireEvent.change(screen.getAllByRole('textbox')[2], { target: { value: 'Test Corp' } });
     await waitFor(() => expect(screen.getByText('Test Host')).toBeInTheDocument());
-    fireEvent.change(screen.getAllByRole('combobox')[2], { target: { value: 'h1' } });
+    fireEvent.change(screen.getAllByRole('combobox')[1], { target: { value: 'h1' } });
     fireEvent.click(screen.getByRole('button', { name: /pre-approve visitor/i }));
 
     await waitFor(() => {
@@ -349,7 +361,7 @@ describe('PreApproveForm submission', () => {
     fireEvent.change(screen.getAllByRole('textbox')[1], { target: { value: 'Test Visitor' } });
     fireEvent.change(screen.getAllByRole('textbox')[2], { target: { value: 'Test Corp' } });
     await waitFor(() => expect(screen.getByText('Test Host')).toBeInTheDocument());
-    fireEvent.change(screen.getAllByRole('combobox')[2], { target: { value: 'h1' } });
+    fireEvent.change(screen.getAllByRole('combobox')[1], { target: { value: 'h1' } });
     fireEvent.click(screen.getByRole('button', { name: /pre-approve visitor/i }));
 
     await waitFor(() => {
@@ -374,16 +386,20 @@ describe('PreApproveForm submission', () => {
     fireEvent.change(screen.getAllByRole('textbox')[1], { target: { value: 'Test Visitor' } });
     fireEvent.change(screen.getAllByRole('textbox')[2], { target: { value: 'Test Corp' } });
     await waitFor(() => expect(screen.getByText('Test Host')).toBeInTheDocument());
-    fireEvent.change(screen.getAllByRole('combobox')[2], { target: { value: 'h1' } });
+    fireEvent.change(screen.getAllByRole('combobox')[1], { target: { value: 'h1' } });
     fireEvent.click(screen.getByRole('button', { name: /save.*add another/i }));
 
     await waitFor(() => {
-      expect(screen.getByText(/pre-approved.*ref VIS-/i)).toBeInTheDocument();
+      expect(screen.getByText('Visitor Pre-Approved')).toBeInTheDocument();
     });
 
+    fireEvent.click(screen.getByText('Got it'));
+
     // Form should be cleared — phone input should be empty
-    expect(screen.getAllByRole('textbox')[0]).toHaveValue('');
-    expect(screen.getAllByRole('textbox')[1]).toHaveValue('');
+    await waitFor(() => {
+      expect(screen.getAllByRole('textbox')[0]).toHaveValue('');
+      expect(screen.getAllByRole('textbox')[1]).toHaveValue('');
+    });
   });
 
   /* ── Phone Recall ──────────────────────────────────── */

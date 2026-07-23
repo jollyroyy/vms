@@ -43,7 +43,7 @@ export type Visitor = {
   created_at: string;
 };
 
-export type VisitStatus = 'pending_approval' | 'approved' | 'walkin_approved' | 'checked_in' | 'checked_out' | 'rejected' | 'cancelled';
+export type VisitStatus = 'pending_approval' | 'approved' | 'walkin_approved' | 'checked_in' | 'checked_out' | 'rejected' | 'cancelled' | 'no_show';
 
 export type Visit = {
   id: string;
@@ -62,6 +62,7 @@ export type Visit = {
   carrying_material: boolean;
   expected_duration_minutes: number | null;
   scheduled_for: string | null;
+  grace_period_minutes?: number;
   created_at: string;
   // joined fields (populated by views/RPCs)
   visitor?: Visitor;

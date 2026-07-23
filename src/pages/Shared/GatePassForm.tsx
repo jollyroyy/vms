@@ -1,11 +1,9 @@
-/**
- * Gate Pass Form — S4, FR-GP-04/06/07, PRD §4.3
- */
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../supabaseClient';
 import { safeErrorMessage } from '../../lib/errors';
 import type { GatePassDir, GatePassType, GatePassItem } from '../../types/index';
+import SuccessPopup from '../../components/SuccessPopup';
 
 type ItemLine = Omit<GatePassItem, 'id' | 'gate_pass_id' | 'returned_qty'>;
 
@@ -21,6 +19,7 @@ export default function GatePassForm(): React.ReactElement {
   const [items, setItems] = useState<ItemLine[]>([{ description: '', qty: 1, unit: null, serial_no: null, approx_value: null }]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [refNumber, setRefNumber] = useState<string | null>(null);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
@@ -51,7 +50,7 @@ export default function GatePassForm(): React.ReactElement {
         items.map((it) => ({ gate_pass_id: (gp as { id: string }).id, description: it.description, qty: it.qty, unit: it.unit, serial_no: it.serial_no, approx_value: it.approx_value, returned_qty: 0 })),
       );
       if (itemErr) throw itemErr;
-      nav('/gate-passes');
+      setRefNumber((gp as { ref_number: string }).ref_number);
     } catch (err) { setError(safeErrorMessage(err, 'Failed to create gate pass.')); }
     finally { setSubmitting(false); }
   };
@@ -115,6 +114,13 @@ export default function GatePassForm(): React.ReactElement {
           <svg className="w-4 h-4 text-danger-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" /></svg>
           {error}
         </div>
+      )}
+      {refNumber && (
+        <SuccessPopup
+          title="Gate Pass Created"
+          message={`Gate pass ${refNumber} has been created successfully. It is now in Draft status and pending HOD approval.`}
+          onClose={() => nav('/gate-passes')}
+        />
       )}
       <div className="flex gap-3 pt-5 border-t border-surface-200/60 dark:border-white/[0.06]">
         <button type="button" onClick={() => nav('/gate-passes')} className="btn-secondary flex-1">Cancel</button>

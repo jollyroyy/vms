@@ -14,6 +14,7 @@ const STATUS_COLORS: Record<string, { bg: string; text: string; dot: string }> =
   checked_out:      { bg: 'bg-surface-100', text: 'text-navy-600',   dot: 'bg-navy-400' },
   rejected:         { bg: 'bg-danger-50',  text: 'text-danger-700',  dot: 'bg-danger-500' },
   cancelled:        { bg: 'bg-surface-100', text: 'text-navy-500',   dot: 'bg-navy-300' },
+  no_show:          { bg: 'bg-orange-50',  text: 'text-orange-700', dot: 'bg-orange-500' },
 };
 
 function InfoRow({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {

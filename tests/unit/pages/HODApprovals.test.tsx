@@ -141,22 +141,11 @@ describe('M12-HOD: HODApprovals', () => {
     });
   });
 
-  it('renders stat cards', async () => {
-    setup();
-    render(<MemoryRouter><HODApprovals /></MemoryRouter>);
-    await waitFor(() => {
-      expect(screen.getByText('Visitors Today')).toBeInTheDocument();
-      expect(screen.getByText('Next Appointment')).toBeInTheDocument();
-      expect(screen.getByText('This Week')).toBeInTheDocument();
-    });
-  });
-
-  it('renders sidebar panels', async () => {
+  it('renders sidebar notifications', async () => {
     setup();
     render(<MemoryRouter><HODApprovals /></MemoryRouter>);
     await waitFor(() => {
       expect(screen.getByText('Notifications')).toBeInTheDocument();
-      expect(screen.getByText('Upcoming Visitors')).toBeInTheDocument();
     });
   });
 });

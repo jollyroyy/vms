@@ -163,8 +163,8 @@ describe('S4-GATEPASS-FORM: GatePassForm', () => {
     });
   });
 
-  it('submits form successfully and navigates to /gate-passes', async () => {
-    const mockInsertGatePass = vi.fn().mockResolvedValue({ data: { id: 'gp-new-1' }, error: null });
+  it('submits form successfully and shows success popup', async () => {
+    const mockInsertGatePass = vi.fn().mockResolvedValue({ data: { id: 'gp-new-1', ref_number: 'GP-20260723-0001' }, error: null });
     const mockInsertItems = vi.fn().mockResolvedValue({ error: null });
     mockFrom.mockImplementation((table: string) => {
       if (table === 'gate_passes') {
@@ -179,6 +179,10 @@ describe('S4-GATEPASS-FORM: GatePassForm', () => {
     fireEvent.change(screen.getByPlaceholderText('Describe the purpose'), { target: { value: 'Test purpose' } });
     fireEvent.change(screen.getAllByPlaceholderText('Description')[0], { target: { value: 'Test item' } });
     fireEvent.click(screen.getByText('Create Draft'));
+    await waitFor(() => {
+      expect(screen.getByText('Gate Pass Created')).toBeInTheDocument();
+    });
+    fireEvent.click(screen.getByText('Got it'));
     await waitFor(() => {
       expect(mockNav).toHaveBeenCalledWith('/gate-passes');
     });
@@ -253,7 +257,11 @@ describe('S4-GATEPASS-FORM: GatePassForm', () => {
     fireEvent.change(screen.getAllByPlaceholderText('Description')[0], { target: { value: 'Item' } });
     fireEvent.click(screen.getByText('Create Draft'));
     expect(screen.getByText('Saving...')).toBeInTheDocument();
-    resolveSingle({ data: { id: 'gp-1' }, error: null });
+    resolveSingle({ data: { id: 'gp-1', ref_number: 'GP-20260723-0002' }, error: null });
+    await waitFor(() => {
+      expect(screen.getByText('Gate Pass Created')).toBeInTheDocument();
+    });
+    fireEvent.click(screen.getByText('Got it'));
     await waitFor(() => {
       expect(mockNav).toHaveBeenCalledWith('/gate-passes');
     });

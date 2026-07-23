@@ -15,6 +15,7 @@ export const STATUS_STYLES: Record<VisitStatus, StatusStyle> = {
   checked_out:      { bg: 'bg-surface-100', text: 'text-navy-400',   dot: 'bg-navy-300',  label: 'Departed' },
   rejected:         { bg: 'bg-danger-50',   text: 'text-danger-700', dot: 'bg-danger-500', label: 'Denied' },
   cancelled:        { bg: 'bg-surface-100', text: 'text-navy-400',   dot: 'bg-navy-300',  label: 'Cancelled' },
+  no_show:          { bg: 'bg-orange-50',  text: 'text-orange-700', dot: 'bg-orange-500', label: 'No Show' },
 };
 
 export const STATUS_COLORS = {

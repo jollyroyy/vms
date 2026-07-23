@@ -4,6 +4,7 @@ import { normalizePhone, isBlacklisted } from '../../lib/blacklist';
 import { validatePreApproval } from '../../lib/visitLifecycle';
 import { safeErrorMessage } from '../../lib/errors';
 import type { Department, Profile, VisitorPurpose } from '../../types/index';
+import SuccessPopup from '../../components/SuccessPopup';
 
 const PURPOSES: { value: VisitorPurpose; label: string }[] = [
   { value: 'meeting',     label: 'Meeting' },
@@ -30,14 +31,14 @@ export default function PreApproveForm({ onPreApproved }: Props): React.ReactEle
   const [hostId,      setHostId]      = useState('');
   const [vehicle,     setVehicle]     = useState('');
 
-  const [blacklistHit,  setBlacklistHit]  = useState<string | null>(null);
-  const [submitting,    setSubmitting]    = useState(false);
-  const [error,         setError]         = useState('');
-  const [successMsg,    setSuccessMsg]    = useState('');
-  const [batchMode,     setBatchMode]     = useState(false);
-  const [userRole,      setUserRole]      = useState<string>('');
-  const [userDept,      setUserDept]      = useState<string>('');
-  const [scheduledFor,  setScheduledFor]  = useState<string>('');
+  const [blacklistHit,    setBlacklistHit]    = useState<string | null>(null);
+  const [submitting,      setSubmitting]      = useState(false);
+  const [error,           setError]           = useState('');
+  const [batchMode,       setBatchMode]       = useState(false);
+  const [userRole,        setUserRole]        = useState<string>('');
+  const [userDept,        setUserDept]        = useState<string>('');
+  const [scheduledFor,    setScheduledFor]    = useState<string>('');
+  const [successPopup,    setSuccessPopup]    = useState<{ title: string; message: string; refNumber: string } | null>(null);
   const [activeVisitCheck, setActiveVisitCheck] = useState<{ checking: boolean; message: string | null }>({ checking: false, message: null });
 
   useEffect(() => {
@@ -118,16 +119,20 @@ export default function PreApproveForm({ onPreApproved }: Props): React.ReactEle
         .rpc('pre_approve_visitor_v2', params);
       if (rpcErr) throw rpcErr;
       if (!result?.ref_number) throw new Error('Failed to create pre-approved visit.');
-      if (batchMode) {
-        setSuccessMsg(`"${fullName}" pre-approved — ref ${result.ref_number}`);
-        setPhone(''); setFullName(''); setCompany(''); setVehicle(''); setHostId(''); setScheduledFor('');
-        setBlacklistHit(null);
-      } else {
-        onPreApproved(fullName, result.ref_number);
-      }
+      setSuccessPopup({ title: 'Visitor Pre-Approved', message: `${fullName} has been pre-approved — Ref: ${result.ref_number}`, refNumber: result.ref_number });
     } catch (err) { setError(safeErrorMessage(err, 'Pre-approval failed. Please try again.')); }
     finally { setSubmitting(false); }
   };
+
+  const handlePopupClose = useCallback(() => {
+    setSuccessPopup(null);
+    if (batchMode) {
+      setPhone(''); setFullName(''); setCompany(''); setVehicle(''); setHostId(''); setScheduledFor('');
+      setBlacklistHit(null);
+    } else if (successPopup) {
+      onPreApproved(fullName, successPopup.refNumber);
+    }
+  }, [batchMode, successPopup, fullName, onPreApproved]);
 
   return (
     <form onSubmit={handleSubmit} className="card-premium p-6 sm:p-8 space-y-6 max-w-2xl animate-fade-in">
@@ -170,20 +175,15 @@ export default function PreApproveForm({ onPreApproved }: Props): React.ReactEle
             {PURPOSES.map((p) => <option key={p.value} value={p.value}>{p.label}</option>)}
           </select>
         </div>
-        <div>
-          <label className="label">Department *</label>
-          {['admin', 'super_admin'].includes(userRole) ? (
+        {['admin', 'super_admin'].includes(userRole) && (
+          <div>
+            <label className="label">Department *</label>
             <select required value={deptId} onChange={(e) => setDeptId(e.target.value)} className="input">
               <option value="">Select department</option>
               {departments.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
             </select>
-          ) : (
-            <select required value={deptId} onChange={(e) => setDeptId(e.target.value)} className="input">
-              <option value="">{userDept ? 'Your department' : 'No department assigned'}</option>
-              {departments.filter((d) => d.id === userDept).map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
-            </select>
-          )}
-        </div>
+          </div>
+        )}
         <div>
           <label className="label">Person to Meet *</label>
           <select required value={hostId} onChange={(e) => setHostId(e.target.value)} className="input" disabled={!deptId}>
@@ -198,13 +198,7 @@ export default function PreApproveForm({ onPreApproved }: Props): React.ReactEle
         </div>
       </div>
 
-      {successMsg && (
-        <div className="alert-success">
-          <svg className="w-4 h-4 text-success-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-          <span className="flex-1">{successMsg}</span>
-          <button onClick={() => setSuccessMsg('')} className="text-success-500 hover:text-success-700 text-xs font-medium ml-auto">Dismiss</button>
-        </div>
-      )}
+      {successPopup && <SuccessPopup title={successPopup.title} message={successPopup.message} onClose={handlePopupClose} />}
 
       {error && (
         <div className="alert-error">

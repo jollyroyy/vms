@@ -9,7 +9,8 @@ export type VisitStatus =
   | 'checked_in'
   | 'checked_out'
   | 'rejected'
-  | 'cancelled';
+  | 'cancelled'
+  | 'no_show';
 
 export type Visit = {
   id: string;
@@ -21,12 +22,13 @@ export type Visit = {
 
 const TRANSITIONS: Record<VisitStatus, VisitStatus[]> = {
   pending_approval: ['approved', 'walkin_approved', 'rejected'],
-  approved:         ['checked_in', 'cancelled'],
+  approved:         ['checked_in', 'cancelled', 'no_show'],
   walkin_approved:  ['checked_in'],
   checked_in:       ['checked_out'],
   checked_out:      [],
   rejected:         [],
   cancelled:        [],
+  no_show:          ['approved'],  // HOD reactivate
 };
 
 export function canTransition(from: VisitStatus, to: VisitStatus): boolean {
