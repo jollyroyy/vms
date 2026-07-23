@@ -50,10 +50,27 @@ export default function GuardConsole(): React.ReactElement {
   };
 
   const checkedIn = visits.filter((v) => v.status === 'checked_in');
+  const approved = visits.filter((v) => v.status === 'approved' || v.status === 'walkin_approved');
+  const pending = visits.filter((v) => v.status === 'pending_approval');
 
   return (
     <div className="max-w-3xl mx-auto space-y-5">
       <h1 className="text-2xl font-bold text-navy-900">Guard Console</h1>
+
+      <div className="grid grid-cols-3 gap-2 text-center">
+        <div className="bg-white rounded-xl border border-surface-200 p-3">
+          <p className="text-2xl font-bold text-brand-600">{checkedIn.length}</p>
+          <p className="text-xs text-navy-400 font-medium">Inside</p>
+        </div>
+        <div className="bg-white rounded-xl border border-surface-200 p-3">
+          <p className="text-2xl font-bold text-success-600">{approved.length}</p>
+          <p className="text-xs text-navy-400 font-medium">Approved</p>
+        </div>
+        <div className="bg-white rounded-xl border border-surface-200 p-3">
+          <p className="text-2xl font-bold text-amber-600">{pending.length}</p>
+          <p className="text-xs text-navy-400 font-medium">Pending</p>
+        </div>
+      </div>
 
       <div className="grid grid-cols-2 gap-3">
         <button onClick={() => setMode('checkin')}
