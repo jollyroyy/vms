@@ -37,7 +37,7 @@ export default function GatePassList(): React.ReactElement {
     if (userDeptId && userRole && !['admin', 'super_admin', 'guard'].includes(userRole)) {
       query = query.eq('department_id', userDeptId);
     }
-    if (filter === 'open_rgp') query = query.eq('type', 'RGP').in('status', ['awaiting_return', 'partially_returned']);
+    if (filter === 'open_rgp') query = query.eq('type', 'RGP').in('status', ['approved', 'dispatched', 'awaiting_return', 'partially_returned']);
     else if (filter === 'overdue') query = query.eq('type', 'RGP').lt('expected_return_date', TODAY);
     const { data } = await query.order('created_at', { ascending: false });
     setPasses((data as unknown as GatePass[]) ?? []);
@@ -87,7 +87,15 @@ export default function GatePassList(): React.ReactElement {
                 </div>
                 <span className="status-badge bg-surface-100 text-navy-500 capitalize">{p.status.replace(/_/g, ' ')}</span>
               </div>
-              <p className="text-xs text-navy-300 mt-2">{(p.items ?? []).length} item{(p.items ?? []).length !== 1 ? 's' : ''}</p>
+              {(p.items ?? []).length > 0 && (
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {(p.items ?? []).map((item, i) => (
+                    <span key={i} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-surface-50 border border-surface-200/60 text-xs text-navy-600">
+                      {item.description} <span className="text-navy-400">x{item.qty}</span>
+                    </span>
+                  ))}
+                </div>
+              )}
             </div>
           );
         })}

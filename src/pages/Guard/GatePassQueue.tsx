@@ -132,7 +132,15 @@ export default function GatePassQueue(): React.ReactElement {
                     <p className="text-xs text-navy-400 truncate max-w-md">{p.reason}</p>
                     {p.carrier_name && <p className="text-xs text-navy-400">Carrier: {p.carrier_name}</p>}
                     {p.company_name && <p className="text-xs text-navy-400">Company: {p.company_name}</p>}
-                    <p className="text-xs text-navy-300">{(p.items ?? []).length} item{(p.items ?? []).length !== 1 ? 's' : ''}</p>
+                    {(p.items ?? []).length > 0 && (
+                      <div className="flex flex-wrap gap-1.5 mt-1">
+                        {(p.items ?? []).map((item, i) => (
+                          <span key={i} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-surface-50 border border-surface-200/60 text-xs text-navy-600">
+                            {item.description} <span className="text-navy-400">x{item.qty}</span>
+                          </span>
+                        ))}
+                      </div>
+                    )}
                     {p.type === 'RGP' && p.expected_return_date && (
                       <p className="text-xs text-navy-400">Expected return: {p.expected_return_date}</p>
                     )}

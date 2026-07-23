@@ -150,11 +150,11 @@ describe('GuardGatePassQueue', () => {
     });
   });
 
-  it('shows item count', async () => {
+  it('shows item descriptions on cards', async () => {
     renderQueue();
     await waitFor(() => {
-      const items = screen.getAllByText(/item/);
-      expect(items.length).toBeGreaterThanOrEqual(1);
+      expect(screen.getByText('Laptop')).toBeInTheDocument();
+      expect(screen.getByText('Projector')).toBeInTheDocument();
     });
   });
 

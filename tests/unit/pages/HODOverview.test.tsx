@@ -21,6 +21,7 @@ let mockUpcomingData: any;
 let mockNotifData: any;
 let mockRecurringData: any;
 let mockProfileDept: string | null = 'dept1';
+let mockProfileDeptName: string | null = 'Information Technology';
 
 vi.mock('../../../src/supabaseClient', () => ({
   supabase: {
@@ -28,7 +29,7 @@ vi.mock('../../../src/supabaseClient', () => ({
     from: (table: string) => {
       if (table === 'profiles') {
         return {
-          select: () => ({ eq: () => ({ maybeSingle: () => Promise.resolve({ data: { department_id: mockProfileDept }, error: null }) }) }),
+          select: () => ({ eq: () => ({ maybeSingle: () => Promise.resolve({ data: { department_id: mockProfileDept, department: { name: mockProfileDeptName } }, error: null }) }) }),
         };
       }
       return {
@@ -65,8 +66,9 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-function setup(opts?: { deptId?: string | null }) {
+function setup(opts?: { deptId?: string | null; deptName?: string | null }) {
   mockProfileDept = opts?.deptId ?? 'dept1';
+  mockProfileDeptName = opts?.deptName ?? 'Information Technology';
   mockGetUser.mockResolvedValue({
     data: { user: { id: 'u1', app_metadata: { role: 'hod', department_id: opts?.deptId ?? 'dept1' } } },
   });
@@ -133,6 +135,22 @@ describe('M12-HOD: HODOverview', () => {
     render(<MemoryRouter><HODOverview /></MemoryRouter>);
     await waitFor(() => {
       expect(screen.getByText(/Status & Notifications/i)).toBeInTheDocument();
+    });
+  });
+
+  it('shows department name at top of dashboard', async () => {
+    setup({ deptName: 'Information Technology' });
+    render(<MemoryRouter><HODOverview /></MemoryRouter>);
+    await waitFor(() => {
+      expect(screen.getByText('Information Technology Department')).toBeInTheDocument();
+    });
+  });
+
+  it('shows catchy subtitle phrase', async () => {
+    setup();
+    render(<MemoryRouter><HODOverview /></MemoryRouter>);
+    await waitFor(() => {
+      expect(screen.getByText(/Your department at a glance/)).toBeInTheDocument();
     });
   });
 });

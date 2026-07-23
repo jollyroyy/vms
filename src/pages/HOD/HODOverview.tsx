@@ -20,6 +20,7 @@ interface Stats {
 export default function HODOverview(): React.ReactElement {
   const [loading, setLoading] = useState(true);
   const [deptId, setDeptId] = useState<string | null>(null);
+  const [deptName, setDeptName] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
   const [stats, setStats] = useState<Stats>({ inside: 0, approvedToday: 0, pending: 0, rejectedToday: 0 });
   const [upcoming, setUpcoming] = useState<Visit[]>([]);
@@ -37,8 +38,10 @@ export default function HODOverview(): React.ReactElement {
       const uid = data.user?.id;
       if (!uid) return;
       setUserId(uid);
-      supabase.from('profiles').select('department_id').eq('id', uid).maybeSingle().then(({ data: p }) => {
+      supabase.from('profiles').select('department_id, department:departments(name)').eq('id', uid).maybeSingle().then(({ data }) => {
+        const p = data as { department_id: string; department: { name: string } | null } | null;
         setDeptId(p?.department_id ?? null);
+        setDeptName(p?.department?.name ?? null);
       });
     });
   }, []);
@@ -129,9 +132,12 @@ export default function HODOverview(): React.ReactElement {
       {/* Page header */}
       <div className="flex items-end justify-between">
         <div>
+          {deptName && (
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-brand-500 dark:text-brand-300 mb-1">{deptName} Department</p>
+          )}
           <h1 className="font-display text-2xl font-bold text-navy-950 dark:text-white tracking-tight">Overview</h1>
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-brand-500 dark:text-brand-300 mt-0.5">
-            {clock.toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' })}
+          <p className="text-sm text-navy-400 mt-0.5">
+            Your department at a glance &middot; {clock.toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' })}
           </p>
         </div>
         <div className="flex items-center gap-2">

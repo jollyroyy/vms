@@ -113,11 +113,12 @@ describe('S4-GATEPASS-LIST: GatePassList', () => {
     });
   });
 
-  it('shows item count on each card', async () => {
+  it('shows item descriptions on each card', async () => {
     renderList();
     await waitFor(() => {
-      const items = screen.getAllByText(/^\d+ item/);
-      expect(items.length).toBeGreaterThanOrEqual(3);
+      expect(screen.getByText('Item 1')).toBeInTheDocument();
+      expect(screen.getByText('Equipment')).toBeInTheDocument();
+      expect(screen.getByText('Laptop')).toBeInTheDocument();
     });
   });
 
