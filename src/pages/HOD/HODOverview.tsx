@@ -11,18 +11,17 @@ const PURPOSE_LABELS: Record<string, string> = {
 };
 
 interface Stats {
-  pending: number;
+  inside: number;
   approvedToday: number;
-  weekTotal: number;
-  weekApproved: number;
-  weekRejected: number;
+  pending: number;
+  rejectedToday: number;
 }
 
 export default function HODOverview(): React.ReactElement {
   const [loading, setLoading] = useState(true);
   const [deptId, setDeptId] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
-  const [stats, setStats] = useState<Stats>({ pending: 0, approvedToday: 0, weekTotal: 0, weekApproved: 0, weekRejected: 0 });
+  const [stats, setStats] = useState<Stats>({ inside: 0, approvedToday: 0, pending: 0, rejectedToday: 0 });
   const [upcoming, setUpcoming] = useState<Visit[]>([]);
   const [notifs, setNotifs] = useState<Notification[]>([]);
   const [recurringVisits, setRecurringVisits] = useState<RecurringVisit[]>([]);
@@ -45,11 +44,6 @@ export default function HODOverview(): React.ReactElement {
   }, []);
 
   const today = useMemo(() => new Date().toISOString().slice(0, 10), []);
-  const weekStart = useMemo(() => {
-    const d = new Date();
-    d.setDate(d.getDate() - d.getDay());
-    return d.toISOString().slice(0, 10);
-  }, []);
 
   const load = useCallback(async () => {
     if (!deptId || !userId) return;
@@ -63,20 +57,11 @@ export default function HODOverview(): React.ReactElement {
 
       const todayRows = (todayData ?? []) as Array<{ id: string; status: string }>;
 
-      const { data: weekData } = await supabase
-        .from('visits')
-        .select('id, status')
-        .eq('department_id', deptId)
-        .gte('created_at', `${weekStart}T00:00:00Z`);
-
-      const weekRows = (weekData ?? []) as Array<{ id: string; status: string }>;
-
       setStats({
+        inside: todayRows.filter(r => r.status === 'checked_in').length,
+        approvedToday: todayRows.filter(r => r.status === 'approved' || r.status === 'walkin_approved').length,
         pending: todayRows.filter(r => r.status === 'pending_approval').length,
-        approvedToday: todayRows.filter(r => ['approved', 'walkin_approved', 'checked_in'].includes(r.status)).length,
-        weekTotal: weekRows.length,
-        weekApproved: weekRows.filter(r => ['approved', 'walkin_approved', 'checked_in', 'checked_out'].includes(r.status)).length,
-        weekRejected: weekRows.filter(r => r.status === 'rejected').length,
+        rejectedToday: todayRows.filter(r => r.status === 'rejected').length,
       });
 
       const { data: upcomingData } = await supabase
@@ -134,8 +119,6 @@ export default function HODOverview(): React.ReactElement {
     setNotifs(prev => prev.filter(n => n.id !== id));
   };
 
-  const nextVisitor = upcoming.find(v => v.status === 'approved');
-
   const fmtDate = (iso: string) =>
     new Date(iso).toLocaleDateString('en-IN', { day: '2-digit', month: '2-digit', year: 'numeric' });
   const fmtTime24 = (iso: string) =>
@@ -162,85 +145,23 @@ export default function HODOverview(): React.ReactElement {
         </div>
       </div>
 
-      {/* Stats — 3 cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        {/* Pending Approvals */}
-        <Link
-          to="/approvals"
-          className="group relative overflow-hidden p-5 rounded-2xl bg-white dark:bg-white/[0.04] border border-surface-200/70 dark:border-white/[0.06] hover:border-amber-200 dark:hover:border-amber-500/20 hover:shadow-md transition-all duration-200"
-        >
-          <div className="absolute inset-y-0 left-0 w-[3px] rounded-l-2xl bg-gradient-to-b from-amber-400 to-orange-500" />
-          <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-amber-600 dark:text-amber-400 mb-3 pl-3">
-            Pending Approvals
-          </p>
-          {loading ? (
-            <div className="skeleton h-9 w-14 mb-2 ml-3" />
-          ) : (
-            <div className="font-display font-bold text-4xl text-navy-950 dark:text-white pl-3 mb-1 tabular-nums">
-              {stats.pending}
-            </div>
-          )}
-          <p className="text-xs pl-3">
-            {!loading && stats.pending > 0 ? (
-              <span className="font-semibold text-amber-600 dark:text-amber-400">
-                {stats.pending} need{stats.pending === 1 ? 's' : ''} your review
-              </span>
-            ) : (
-              <span className="text-navy-400">No pending requests today</span>
-            )}
-          </p>
+      {/* Stats — 4 simple cards */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <Link to="/approvals" className="bg-white rounded-xl border border-surface-200 p-4 hover:shadow-sm transition-shadow">
+          <p className="text-3xl font-bold text-brand-600 tabular-nums">{loading ? '—' : stats.inside}</p>
+          <p className="text-xs text-navy-400 font-medium mt-0.5">Inside</p>
         </Link>
-
-        {/* Next Visitor */}
-        <Link
-          to="/approvals"
-          className="group relative overflow-hidden p-5 rounded-2xl bg-white dark:bg-white/[0.04] border border-surface-200/70 dark:border-white/[0.06] hover:border-brand-200 dark:hover:border-brand-500/20 hover:shadow-md transition-all duration-200"
-        >
-          <div className="absolute inset-y-0 left-0 w-[3px] rounded-l-2xl bg-gradient-to-b from-brand-400 to-accent-500" />
-          <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-brand-600 dark:text-brand-300 mb-3 pl-3">
-            Next Visitor
-          </p>
-          {loading ? (
-            <div className="skeleton h-7 w-36 mb-1 ml-3" />
-          ) : nextVisitor ? (
-            <div className="font-display font-bold text-xl text-navy-950 dark:text-white pl-3 mb-1 tabular-nums">
-              today | {fmtTime24(nextVisitor.created_at)}
-            </div>
-          ) : (
-            <div className="font-display font-semibold text-base text-navy-400 pl-3 mb-1">
-              None scheduled
-            </div>
-          )}
-          {!loading && nextVisitor ? (
-            <p className="text-xs text-navy-500 dark:text-navy-400 pl-3 truncate">
-              {nextVisitor.visitor?.full_name} · {PURPOSE_LABELS[nextVisitor.purpose] ?? nextVisitor.purpose}
-              {nextVisitor.visitor?.company ? ` · ${nextVisitor.visitor.company}` : ''}
-            </p>
-          ) : (
-            <p className="text-xs text-navy-400 pl-3">No pre-approved visits today</p>
-          )}
+        <Link to="/approvals" className="bg-white rounded-xl border border-surface-200 p-4 hover:shadow-sm transition-shadow">
+          <p className="text-3xl font-bold text-success-600 tabular-nums">{loading ? '—' : stats.approvedToday}</p>
+          <p className="text-xs text-navy-400 font-medium mt-0.5">Approved</p>
         </Link>
-
-        {/* This Week */}
-        <div className="relative overflow-hidden p-5 rounded-2xl bg-white dark:bg-white/[0.04] border border-surface-200/70 dark:border-white/[0.06]">
-          <div className="absolute inset-y-0 left-0 w-[3px] rounded-l-2xl bg-gradient-to-b from-emerald-400 to-teal-500" />
-          <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-emerald-600 dark:text-emerald-400 mb-3 pl-3">
-            This Week
-          </p>
-          {loading ? (
-            <div className="skeleton h-9 w-14 mb-2 ml-3" />
-          ) : (
-            <div className="font-display font-bold text-4xl text-navy-950 dark:text-white pl-3 mb-1 tabular-nums">
-              {stats.weekTotal}
-            </div>
-          )}
-          {!loading && (
-            <p className="text-xs pl-3">
-              <span className="font-semibold text-emerald-600 dark:text-emerald-400">{stats.weekApproved} approved</span>
-              <span className="text-navy-300 mx-1">·</span>
-              <span className="font-semibold text-danger-500">{stats.weekRejected} rejected</span>
-            </p>
-          )}
+        <Link to="/approvals" className="bg-white rounded-xl border border-surface-200 p-4 hover:shadow-sm transition-shadow">
+          <p className="text-3xl font-bold text-amber-600 tabular-nums">{loading ? '—' : stats.pending}</p>
+          <p className="text-xs text-navy-400 font-medium mt-0.5">Pending</p>
+        </Link>
+        <div className="bg-white rounded-xl border border-surface-200 p-4">
+          <p className="text-3xl font-bold text-danger-600 tabular-nums">{loading ? '—' : stats.rejectedToday}</p>
+          <p className="text-xs text-navy-400 font-medium mt-0.5">Rejected</p>
         </div>
       </div>
 
