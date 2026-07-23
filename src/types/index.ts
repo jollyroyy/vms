@@ -146,6 +146,25 @@ export type AuditLog = {
   profile?: Pick<Profile, 'id' | 'full_name' | 'email'>;
 };
 
+export type RecurringVisit = {
+  id: string;
+  department_id: string;
+  host_id: string;
+  created_by: string;
+  visitor_name: string;
+  visitor_phone: string;
+  visitor_company: string | null;
+  purpose: string;
+  recurrence_type: 'daily' | 'weekly' | 'monthly';
+  recurrence_day: number | null;
+  start_date: string;
+  end_date: string | null;
+  is_active: boolean;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
 // Database interface consumed by the Supabase typed client.
 // Each table entry must include Relationships (required by @supabase/postgrest-js GenericTable).
 export type Database = {
@@ -174,6 +193,7 @@ export type Database = {
       gate_pass_items:{ Row: GatePassItem;  Insert: Omit<GatePassItem, 'id'>;                  Update: Partial<GatePassItem>;  Relationships: [] };
       notifications:  { Row: Notification;  Insert: Omit<Notification, 'id' | 'created_at'>;   Update: Partial<Notification>;  Relationships: [] };
       audit_logs:     { Row: AuditLog;      Insert: Omit<AuditLog, 'id' | 'created_at'>;        Update: Partial<AuditLog>;      Relationships: [] };
+      recurring_visits: { Row: RecurringVisit; Insert: Omit<RecurringVisit, 'id' | 'created_at' | 'updated_at'>; Update: Partial<RecurringVisit>; Relationships: [] };
     };
     Views:     Record<string, never>;
     Functions: Record<string, never>;

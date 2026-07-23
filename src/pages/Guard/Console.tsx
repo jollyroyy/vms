@@ -7,16 +7,16 @@ import { formatDateTime, formatTime, formatDuration } from '../../lib/formatDate
 import { maskPhone } from '../../lib/pii';
 import { exportToCsv } from '../../lib/exportUtils';
 import { Link } from 'react-router-dom';
+import CheckInPanel from './CheckInPanel';
 import VisitorForm from './VisitorForm';
 import Badge from '../../components/Badge';
 import VisitorDetails from '../../components/VisitorDetails';
 
-type Tab = 'active' | 'register' | 'exit';
+type Tab = 'checkin' | 'today' | 'exit';
 type StatusFilter = 'all' | Visit['status'];
 
-
 export default function GuardConsole(): React.ReactElement {
-  const [tab, setTab] = useState<Tab>('active');
+  const [tab, setTab] = useState<Tab>('checkin');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [visits, setVisits] = useState<Visit[]>([]);
   const [loading, setLoading] = useState(true);
@@ -25,6 +25,8 @@ export default function GuardConsole(): React.ReactElement {
   const [today] = useState(() => new Date().toISOString().slice(0, 10));
   const [successMsg, setSuccessMsg] = useState('');
   const [actionErr, setActionErr] = useState('');
+  const [showFullForm, setShowFullForm] = useState(false);
+
   const loadVisits = useCallback(async () => {
     setLoading(true);
     const { data, error } = await supabase
@@ -58,16 +60,6 @@ export default function GuardConsole(): React.ReactElement {
     } catch (err) { setActionErr(safeErrorMessage(err, 'Failed to log exit.')); }
   };
 
-  const checkIn = async (visit: Visit) => {
-    if (visit.status !== 'approved' && visit.status !== 'walkin_approved') { setActionErr('Only approved visits can be checked in.'); return; }
-    setActionErr('');
-    try {
-      const { error } = await supabase.from('visits').update({ status: 'checked_in', checked_in_at: new Date().toISOString() }).eq('id', visit.id);
-      if (error) { setActionErr(safeErrorMessage(error, 'Failed to check in.')); return; }
-      void loadVisits();
-    } catch (err) { setActionErr(safeErrorMessage(err, 'Failed to check in.')); }
-  };
-
   const STATUS_STYLES: Record<Visit['status'], { bg: string; text: string; dot: string }> = {
     pending_approval: { bg: 'bg-warning-50', text: 'text-warning-700', dot: 'bg-warning-500' },
     approved: { bg: 'bg-success-50', text: 'text-success-700', dot: 'bg-success-500' },
@@ -84,7 +76,6 @@ export default function GuardConsole(): React.ReactElement {
   const checkedOut = visits.filter((v) => v.status === 'checked_out');
 
   const filtered = statusFilter === 'all' ? visits : visits.filter((v) => v.status === statusFilter);
-
 
   return (
     <div className="space-y-6">
@@ -119,27 +110,27 @@ export default function GuardConsole(): React.ReactElement {
 
       {/* Stat cards */}
       <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-        <button onClick={() => { setStatusFilter(statusFilter === 'checked_in' ? 'all' : 'checked_in'); setTab('active'); }}
+        <button onClick={() => { setStatusFilter(statusFilter === 'checked_in' ? 'all' : 'checked_in'); setTab('today'); }}
           className={`stat-card items-center text-center cursor-pointer card-hover animate-slide-up stagger-1 bg-gradient-to-b from-brand-50/60 to-transparent ${statusFilter === 'checked_in' ? 'ring-2 ring-brand-500 shadow-glow-sm' : ''}`}>
           <p className="stat-value text-brand-600">{checkedIn.length}</p>
           <p className="stat-label">Inside</p>
         </button>
-        <button onClick={() => { setStatusFilter(statusFilter === 'pending_approval' ? 'all' : 'pending_approval'); setTab('active'); }}
+        <button onClick={() => { setStatusFilter(statusFilter === 'pending_approval' ? 'all' : 'pending_approval'); setTab('today'); }}
           className={`stat-card items-center text-center cursor-pointer card-hover animate-slide-up stagger-2 bg-gradient-to-b from-warning-50/60 to-transparent ${statusFilter === 'pending_approval' ? 'ring-2 ring-brand-500 shadow-glow-sm' : ''}`}>
           <p className="stat-value text-warning-600">{pending.length}</p>
           <p className="stat-label">Pending</p>
         </button>
-        <button onClick={() => { setStatusFilter(statusFilter === 'approved' ? 'all' : 'approved'); setTab('active'); }}
+        <button onClick={() => { setStatusFilter(statusFilter === 'approved' ? 'all' : 'approved'); setTab('today'); }}
           className={`stat-card items-center text-center cursor-pointer card-hover animate-slide-up stagger-3 bg-gradient-to-b from-success-50/60 to-transparent ${statusFilter === 'approved' ? 'ring-2 ring-brand-500 shadow-glow-sm' : ''}`}>
           <p className="stat-value text-success-600">{approved.length}</p>
           <p className="stat-label">Approved</p>
         </button>
-        <button onClick={() => { setStatusFilter(statusFilter === 'rejected' ? 'all' : 'rejected'); setTab('active'); }}
+        <button onClick={() => { setStatusFilter(statusFilter === 'rejected' ? 'all' : 'rejected'); setTab('today'); }}
           className={`stat-card items-center text-center cursor-pointer card-hover animate-slide-up stagger-4 bg-gradient-to-b from-danger-50/60 to-transparent ${statusFilter === 'rejected' ? 'ring-2 ring-brand-500 shadow-glow-sm' : ''}`}>
           <p className="stat-value text-danger-600">{rejected.length}</p>
           <p className="stat-label">Rejected</p>
         </button>
-        <button onClick={() => { setStatusFilter(statusFilter === 'checked_out' ? 'all' : 'checked_out'); setTab('active'); }}
+        <button onClick={() => { setStatusFilter(statusFilter === 'checked_out' ? 'all' : 'checked_out'); setTab('today'); }}
           className={`stat-card items-center text-center cursor-pointer card-hover animate-slide-up stagger-5 bg-gradient-to-b from-surface-200/60 to-transparent col-span-2 sm:col-span-1 ${statusFilter === 'checked_out' ? 'ring-2 ring-brand-500 shadow-glow-sm' : ''}`}>
           <p className="stat-value text-navy-500">{checkedOut.length}</p>
           <p className="stat-label">Checked Out</p>
@@ -165,25 +156,29 @@ export default function GuardConsole(): React.ReactElement {
       {/* === PRIMARY ACTION TABS === */}
       <div className="grid grid-cols-3 gap-3">
         <button
-          onClick={() => setTab('active')}
-          className={`card p-4 text-center font-semibold text-sm transition-all duration-200 hover:-translate-y-0.5 relative overflow-hidden ${tab === 'active' ? 'shadow-elevated' : ''}`}
-          style={tab === 'active' ? { outline: '2px solid rgba(124,58,237,0.3)', outlineOffset: '-1px' } : undefined}
+          onClick={() => setTab('checkin')}
+          className={`card p-4 text-center font-semibold text-sm transition-all duration-200 hover:-translate-y-0.5 relative overflow-hidden ${tab === 'checkin' ? 'shadow-elevated' : ''}`}
+          style={tab === 'checkin' ? { outline: '2px solid rgba(124,58,237,0.3)', outlineOffset: '-1px' } : undefined}
         >
-          {tab === 'active' && <div className="absolute top-0 left-0 right-0 h-[3px]" style={{ background: 'linear-gradient(90deg, #7c3aed, #d946ef, transparent)' }} />}
-          <svg className={`w-5 h-5 mx-auto mb-1.5 transition-colors ${tab === 'active' ? 'text-brand-600' : 'text-navy-400'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M8.25 6.75h12M8.25 12h12m-12 5.25h12M3.75 6.75h.007v.008H3.75V6.75zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zM3.75 12h.007v.008H3.75V12zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm-.375 5.25h.007v.008H3.75v-.008zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" /></svg>
-          <span className={tab === 'active' ? 'text-brand-700' : 'text-navy-500'}>Today's Visits</span>
-          {visits.length > 0 && (
-            <span className={`ml-1.5 inline-flex items-center justify-center min-w-[18px] h-[18px] text-[10px] font-bold px-1 rounded-full ${tab === 'active' ? 'bg-brand-100 text-brand-700' : 'bg-surface-100 text-navy-500'}`}>{visits.length}</span>
-          )}
+          {tab === 'checkin' && <div className="absolute top-0 left-0 right-0 h-[3px]" style={{ background: 'linear-gradient(90deg, #7c3aed, #d946ef, transparent)' }} />}
+          <svg className={`w-5 h-5 mx-auto mb-1.5 transition-colors ${tab === 'checkin' ? 'text-brand-600' : 'text-navy-400'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <span className={tab === 'checkin' ? 'text-brand-700' : 'text-navy-500'}>Check In</span>
         </button>
         <button
-          onClick={() => setTab('register')}
-          className={`card p-4 text-center font-semibold text-sm transition-all duration-200 hover:-translate-y-0.5 relative overflow-hidden ${tab === 'register' ? 'shadow-elevated' : ''}`}
-          style={tab === 'register' ? { outline: '2px solid rgba(124,58,237,0.3)', outlineOffset: '-1px' } : undefined}
+          onClick={() => setTab('today')}
+          className={`card p-4 text-center font-semibold text-sm transition-all duration-200 hover:-translate-y-0.5 relative overflow-hidden ${tab === 'today' ? 'shadow-elevated' : ''}`}
+          style={tab === 'today' ? { outline: '2px solid rgba(124,58,237,0.3)', outlineOffset: '-1px' } : undefined}
         >
-          {tab === 'register' && <div className="absolute top-0 left-0 right-0 h-[3px]" style={{ background: 'linear-gradient(90deg, #7c3aed, #d946ef, transparent)' }} />}
-          <svg className={`w-5 h-5 mx-auto mb-1.5 transition-colors ${tab === 'register' ? 'text-brand-600' : 'text-navy-400'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7.5v3m0 0v3m0-3h3m-3 0h-3m-2.25-4.125a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zM4 19.235v-.11a6.375 6.375 0 0112.75 0v.109A12.318 12.318 0 0110.374 21c-2.331 0-4.512-.645-6.374-1.766z" /></svg>
-          <span className={tab === 'register' ? 'text-brand-700' : 'text-navy-500'}>Register Visitor</span>
+          {tab === 'today' && <div className="absolute top-0 left-0 right-0 h-[3px]" style={{ background: 'linear-gradient(90deg, #7c3aed, #d946ef, transparent)' }} />}
+          <svg className={`w-5 h-5 mx-auto mb-1.5 transition-colors ${tab === 'today' ? 'text-brand-600' : 'text-navy-400'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 6.75h12M8.25 12h12m-12 5.25h12M3.75 6.75h.007v.008H3.75V6.75zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zM3.75 12h.007v.008H3.75V12zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm-.375 5.25h.007v.008H3.75v-.008zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
+          </svg>
+          <span className={tab === 'today' ? 'text-brand-700' : 'text-navy-500'}>Today's Visits</span>
+          {visits.length > 0 && (
+            <span className={`ml-1.5 inline-flex items-center justify-center min-w-[18px] h-[18px] text-[10px] font-bold px-1 rounded-full ${tab === 'today' ? 'bg-brand-100 text-brand-700' : 'bg-surface-100 text-navy-500'}`}>{visits.length}</span>
+          )}
         </button>
         <button
           onClick={() => setTab('exit')}
@@ -191,7 +186,9 @@ export default function GuardConsole(): React.ReactElement {
           style={tab === 'exit' ? { outline: '2px solid rgba(124,58,237,0.3)', outlineOffset: '-1px' } : undefined}
         >
           {tab === 'exit' && <div className="absolute top-0 left-0 right-0 h-[3px]" style={{ background: 'linear-gradient(90deg, #7c3aed, #d946ef, transparent)' }} />}
-          <svg className={`w-5 h-5 mx-auto mb-1.5 transition-colors ${tab === 'exit' ? 'text-brand-600' : 'text-navy-400'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" /></svg>
+          <svg className={`w-5 h-5 mx-auto mb-1.5 transition-colors ${tab === 'exit' ? 'text-brand-600' : 'text-navy-400'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" />
+          </svg>
           <span className={tab === 'exit' ? 'text-brand-700' : 'text-navy-500'}>Log Exit</span>
           {checkedIn.length > 0 && (
             <span className={`ml-1.5 inline-flex items-center justify-center min-w-[18px] h-[18px] text-[10px] font-bold px-1 rounded-full ${tab === 'exit' ? 'bg-brand-100 text-brand-700' : 'bg-surface-100 text-navy-500'}`}>{checkedIn.length}</span>
@@ -199,15 +196,34 @@ export default function GuardConsole(): React.ReactElement {
         </button>
       </div>
 
-      {/* Register tab */}
-      {tab === 'register' && (
-        <VisitorForm onRegistered={(name) => { setSuccessMsg(`"${name}" registered — awaiting HOD approval.`); setTab('active'); void loadVisits(); setTimeout(() => setSuccessMsg(''), 6000); }} />
+      {/* Check-in tab */}
+      {tab === 'checkin' && (
+        <div className="animate-fade-in">
+          {showFullForm ? (
+            <div className="space-y-4">
+              <button onClick={() => setShowFullForm(false)} className="text-sm text-brand-600 hover:text-brand-700 font-semibold flex items-center gap-1">
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" /></svg>
+                Back to check-in
+              </button>
+              <VisitorForm onRegistered={(name) => { setSuccessMsg(`"${name}" registered — awaiting HOD approval.`); setShowFullForm(false); void loadVisits(); setTimeout(() => setSuccessMsg(''), 6000); }} />
+            </div>
+          ) : (
+            <>
+              <div className="flex items-center justify-end mb-3">
+                <button onClick={() => setShowFullForm(true)} className="text-xs text-navy-400 hover:text-brand-600 transition-colors flex items-center gap-1">
+                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
+                  Full visitor registration (with photo)
+                </button>
+              </div>
+              <CheckInPanel today={today} onCheckInSuccess={(name) => { setSuccessMsg(`"${name}" checked in successfully.`); void loadVisits(); setTimeout(() => setSuccessMsg(''), 6000); }} />
+            </>
+          )}
+        </div>
       )}
 
-      {/* Active visits tab */}
-      {tab === 'active' && (
+      {/* Today's visits tab */}
+      {tab === 'today' && (
         <div className="space-y-3">
-          {/* Filter indicator */}
           {statusFilter !== 'all' && !loading && (
             <div className="flex items-center justify-between px-1">
               <p className="text-sm text-navy-500">
@@ -239,11 +255,6 @@ export default function GuardConsole(): React.ReactElement {
                 <svg className="w-6 h-6 text-navy-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0" /></svg>
               </div>
               <p className="text-navy-500 font-medium">{statusFilter === 'all' ? 'No visits today yet' : `No ${statusFilter.replace(/_/g, ' ')} visitors`}</p>
-              {statusFilter === 'all' && (
-                <button onClick={() => setTab('register')} className="mt-2 btn-accent text-sm">
-                  Register First Visitor
-                </button>
-              )}
             </div>
           ) : (
             filtered.map((v, idx) => {
@@ -276,7 +287,6 @@ export default function GuardConsole(): React.ReactElement {
                           {v.status.replace(/_/g, ' ')}
                         </span>
                       </div>
-                      {/* Info row with subtle separator */}
                       <div className="flex items-center gap-2 mt-2 pt-2" style={{ borderTop: '1px solid rgba(228,228,231,0.4)' }}>
                         <p className="text-[11px] text-navy-300 font-mono">{v.ref_number}</p>
                         <span className="text-navy-200">·</span>
@@ -299,11 +309,10 @@ export default function GuardConsole(): React.ReactElement {
                           Duration: {dur.text}{dur.isOvertime ? ' ⚠️ Over 9 hours' : ''}
                         </p>
                       )}
-                      {/* Action buttons */}
                       <div className="flex gap-2 mt-3" onClick={(e) => e.stopPropagation()}>
                         {(v.status === 'approved' || v.status === 'walkin_approved') && (
                           <>
-                            <button onClick={() => checkIn(v)} className="bg-gradient-to-r from-brand-600 to-brand-700 text-white rounded-xl text-xs px-4 py-2 font-semibold hover:from-brand-700 hover:to-brand-800 active:scale-[0.98] transition-all shadow-soft flex items-center gap-1.5">
+                            <button onClick={() => setTab('checkin')} className="bg-gradient-to-r from-brand-600 to-brand-700 text-white rounded-xl text-xs px-4 py-2 font-semibold hover:from-brand-700 hover:to-brand-800 active:scale-[0.98] transition-all shadow-soft flex items-center gap-1.5">
                               <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75" /></svg>
                               Check In
                             </button>

@@ -33,6 +33,8 @@ export default function PreApproveForm({ onPreApproved }: Props): React.ReactEle
   const [blacklistHit,  setBlacklistHit]  = useState<string | null>(null);
   const [submitting,    setSubmitting]    = useState(false);
   const [error,         setError]         = useState('');
+  const [successMsg,    setSuccessMsg]    = useState('');
+  const [batchMode,     setBatchMode]     = useState(false);
   const [userRole,      setUserRole]      = useState<string>('');
   const [userDept,      setUserDept]      = useState<string>('');
   const [activeVisitCheck, setActiveVisitCheck] = useState<{ checking: boolean; message: string | null }>({ checking: false, message: null });
@@ -112,7 +114,13 @@ export default function PreApproveForm({ onPreApproved }: Props): React.ReactEle
       });
       if (rpcErr) throw rpcErr;
       if (!data?.ref_number) throw new Error('Failed to create pre-approved visit.');
-      onPreApproved(fullName, data.ref_number);
+      if (batchMode) {
+        setSuccessMsg(`"${fullName}" pre-approved — ref ${data.ref_number}`);
+        setPhone(''); setFullName(''); setCompany(''); setVehicle(''); setHostId('');
+        setBlacklistHit(null);
+      } else {
+        onPreApproved(fullName, data.ref_number);
+      }
     } catch (err) { setError(safeErrorMessage(err, 'Pre-approval failed. Please try again.')); }
     finally { setSubmitting(false); }
   };
@@ -182,6 +190,14 @@ export default function PreApproveForm({ onPreApproved }: Props): React.ReactEle
         <div className="sm:col-span-2"><label className="label">Vehicle Number (optional)</label><input type="text" maxLength={20} value={vehicle} onChange={(e) => setVehicle(e.target.value)} className="input" placeholder="MH 12 AB 1234" /></div>
       </div>
 
+      {successMsg && (
+        <div className="alert-success">
+          <svg className="w-4 h-4 text-success-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+          <span className="flex-1">{successMsg}</span>
+          <button onClick={() => setSuccessMsg('')} className="text-success-500 hover:text-success-700 text-xs font-medium ml-auto">Dismiss</button>
+        </div>
+      )}
+
       {error && (
         <div className="alert-error">
           <svg className="w-4 h-4 text-danger-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" /></svg>
@@ -197,10 +213,24 @@ export default function PreApproveForm({ onPreApproved }: Props): React.ReactEle
         </div>
       )}
 
-      <button type="submit" disabled={submitting || !!blacklistHit}
-        className="btn-primary w-full !py-3.5">
-        {submitting ? 'Submitting...' : 'Pre-Approve Visitor'}
-      </button>
+      <div className="flex gap-3">
+        <button type="submit" disabled={submitting || !!blacklistHit}
+          className="btn-primary flex-1 !py-3.5">
+          {submitting ? 'Submitting...' : batchMode ? 'Save &amp; Add Another' : 'Pre-Approve Visitor'}
+        </button>
+        {!batchMode ? (
+          <button type="button" onClick={() => setBatchMode(true)}
+            className="btn-secondary px-4 !py-3.5 text-sm flex items-center gap-2">
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7.5v3m0 0v3m0-3h3m-3 0h-3m-2.25-4.125a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zM4 19.235v-.11a6.375 6.375 0 0112.75 0v.109A12.318 12.318 0 0110.374 21c-2.331 0-4.512-.645-6.374-1.766z" /></svg>
+            Batch Mode
+          </button>
+        ) : (
+          <button type="button" onClick={() => setBatchMode(false)}
+            className="btn-secondary px-4 !py-3.5 text-sm">
+            Exit Batch
+          </button>
+        )}
+      </div>
 
       <p className="text-xs text-navy-300 text-center">Pre-approved visitors skip the approval queue at entry</p>
     </form>

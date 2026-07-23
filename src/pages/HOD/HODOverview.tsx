@@ -1,8 +1,9 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../../supabaseClient';
-import type { Visit, Notification } from '../../types/index';
+import type { Visit, Notification, RecurringVisit } from '../../types/index';
 import { attachHostNames } from '../../lib/hostNames';
+import { formatRecurrenceLabel } from '../../lib/recurringVisits';
 
 const PURPOSE_LABELS: Record<string, string> = {
   meeting: 'Meeting', vendor: 'Vendor', interview: 'Interview',
@@ -24,6 +25,7 @@ export default function HODOverview(): React.ReactElement {
   const [stats, setStats] = useState<Stats>({ pending: 0, approvedToday: 0, weekTotal: 0, weekApproved: 0, weekRejected: 0 });
   const [upcoming, setUpcoming] = useState<Visit[]>([]);
   const [notifs, setNotifs] = useState<Notification[]>([]);
+  const [recurringVisits, setRecurringVisits] = useState<RecurringVisit[]>([]);
   const [clock, setClock] = useState(() => new Date());
 
   useEffect(() => {
@@ -97,6 +99,14 @@ export default function HODOverview(): React.ReactElement {
         .limit(10);
 
       setNotifs((notifData ?? []) as Notification[]);
+
+      const { data: recurringData } = await supabase
+        .from('recurring_visits')
+        .select('*')
+        .eq('department_id', deptId)
+        .order('visitor_name', { ascending: true });
+
+      setRecurringVisits((recurringData ?? []) as RecurringVisit[]);
     } catch {
       // silent — dashboard is read-only and defensive
     }
@@ -233,6 +243,77 @@ export default function HODOverview(): React.ReactElement {
           )}
         </div>
       </div>
+
+      {/* Regular Visitors section */}
+      {!loading && recurringVisits.length > 0 && (
+        <div className="bg-white dark:bg-white/[0.04] rounded-2xl border border-surface-200/70 dark:border-white/[0.06] overflow-hidden">
+          <div className="flex items-center justify-between px-6 pt-5 pb-4 border-b border-surface-100 dark:border-white/[0.05]">
+            <div>
+              <h2 className="font-display text-sm font-bold text-navy-950 dark:text-white">Regular Visitors</h2>
+              <p className="text-xs text-navy-400 mt-0.5">
+                {recurringVisits.filter(r => r.is_active).length} active · recurring maids, vendors &amp; contractors
+              </p>
+            </div>
+            <Link to="/approvals" className="text-[11px] font-semibold text-brand-600 hover:text-brand-700 transition-colors">
+              Manage
+            </Link>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-surface-100 dark:border-white/[0.05]">
+                  <th className="text-left text-[11px] font-bold text-navy-400 uppercase tracking-wider px-5 py-3">Name</th>
+                  <th className="text-left text-[11px] font-bold text-navy-400 uppercase tracking-wider px-5 py-3">Phone</th>
+                  <th className="text-left text-[11px] font-bold text-navy-400 uppercase tracking-wider px-5 py-3">Schedule</th>
+                  <th className="text-left text-[11px] font-bold text-navy-400 uppercase tracking-wider px-5 py-3">Status</th>
+                  <th className="text-right text-[11px] font-bold text-navy-400 uppercase tracking-wider px-5 py-3">Action</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-surface-100 dark:divide-white/[0.04]">
+                {recurringVisits.slice(0, 5).map((r) => (
+                  <tr key={r.id} className="hover:bg-surface-50/80 dark:hover:bg-white/[0.02] transition-colors">
+                    <td className="px-5 py-3.5 font-semibold text-navy-900 dark:text-white">{r.visitor_name}</td>
+                    <td className="px-5 py-3.5 text-navy-400">{r.visitor_phone}</td>
+                    <td className="px-5 py-3.5 text-navy-500">{formatRecurrenceLabel(r)}</td>
+                    <td className="px-5 py-3.5">
+                      <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full ${
+                        r.is_active
+                          ? 'bg-success-50 text-success-700'
+                          : 'bg-surface-100 text-navy-400'
+                      }`}>
+                        <span className={`h-1.5 w-1.5 rounded-full ${r.is_active ? 'bg-success-500 animate-pulse-soft' : 'bg-navy-300'}`} />
+                        {r.is_active ? 'Active' : 'Paused'}
+                      </span>
+                    </td>
+                    <td className="px-5 py-3.5 text-right">
+                      <button
+                        onClick={async () => {
+                          await supabase.from('recurring_visits').update({ is_active: !r.is_active }).eq('id', r.id);
+                          void load();
+                        }}
+                        className={`text-xs font-semibold px-3 py-1.5 rounded-lg transition-all ${
+                          r.is_active
+                            ? 'text-danger-600 hover:bg-danger-50 border border-danger-200/60'
+                            : 'text-success-600 hover:bg-success-50 border border-success-200/60'
+                        }`}
+                      >
+                        {r.is_active ? 'Pause' : 'Activate'}
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          {recurringVisits.length > 5 && (
+            <div className="px-5 py-3 border-t border-surface-100 dark:border-white/[0.05] text-center">
+              <Link to="/approvals" className="text-xs font-semibold text-brand-600 hover:text-brand-700">
+                View all {recurringVisits.length} regular visitors
+              </Link>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Main 2-column layout */}
       <div className="grid grid-cols-1 xl:grid-cols-[1fr_340px] gap-4 items-start">
