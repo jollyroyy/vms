@@ -185,7 +185,7 @@ export default function WhosInside(): React.ReactElement {
       {/* No "Clear All" for walkin_approved — only pre-approved can be batch-cleared */}
 
       {/* Clear all (pre-approved tab or filter) */}
-      {(tab === 'pre_approved' || activeFilter === 'pre_approved') && preApproved.length > 0 && (
+      {(tab === 'pre_approved' || activeFilter === 'pre_approved') && preApproved.length > 0 && userRole !== 'guard' && (
         <div className="flex items-center justify-end">
           <button
             onClick={handleClearAll}

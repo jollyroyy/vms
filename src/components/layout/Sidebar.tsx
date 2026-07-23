@@ -40,6 +40,7 @@ export default function Sidebar({ session, role, collapsed: collapsedProp, onCol
   const [deptName, setDeptName] = useState<string>('');
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [avatarError, setAvatarError] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [collapsedInternal, setCollapsedInternal] = useState<boolean>(() => {
     try { return window.localStorage.getItem(COLLAPSE_KEY) === '1'; } catch { return false; }
@@ -93,9 +94,10 @@ export default function Sidebar({ session, role, collapsed: collapsedProp, onCol
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    setAvatarError('');
     // Validate file
-    if (!file.type.startsWith('image/')) return;
-    if (file.size > 2 * 1024 * 1024) return; // 2 MB max
+    if (!file.type.startsWith('image/')) { setAvatarError('Please select an image file.'); return; }
+    if (file.size > 2 * 1024 * 1024) { setAvatarError('Image must be under 2 MB.'); return; }
 
     setUploading(true);
     try {
@@ -106,14 +108,27 @@ export default function Sidebar({ session, role, collapsed: collapsedProp, onCol
       const { error: uploadErr } = await supabase.storage
         .from('avatars')
         .upload(filePath, file, { upsert: true });
-      if (uploadErr) throw uploadErr;
+      if (uploadErr) {
+        // If bucket doesn't exist, show a clear message
+        if (uploadErr.message?.includes('not found') || uploadErr.message?.includes('Bucket')) {
+          setAvatarError('Storage not configured. Please run migration 033.');
+        } else {
+          setAvatarError(uploadErr.message || 'Upload failed.');
+        }
+        throw uploadErr;
+      }
 
       // Get public URL
       const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(filePath);
       const publicUrl = urlData.publicUrl + '?t=' + Date.now(); // cache-bust
 
       // Save to profile
-      await supabase.from('profiles').update({ avatar_url: publicUrl } as any).eq('id', session.user.id);
+      const { error: profileErr } = await supabase.from('profiles').update({ avatar_url: publicUrl } as any).eq('id', session.user.id);
+      if (profileErr) {
+        setAvatarError('Photo uploaded but profile update failed. Try again.');
+        console.error('Profile update failed:', profileErr);
+        return;
+      }
       setAvatarUrl(publicUrl);
     } catch (err) {
       console.error('Avatar upload failed:', err);
@@ -121,6 +136,8 @@ export default function Sidebar({ session, role, collapsed: collapsedProp, onCol
       setUploading(false);
       // Reset input so the same file can be re-selected
       if (fileInputRef.current) fileInputRef.current.value = '';
+      // Auto-clear error after 5 seconds
+      setTimeout(() => setAvatarError(''), 5000);
     }
   };
 
@@ -277,6 +294,10 @@ export default function Sidebar({ session, role, collapsed: collapsedProp, onCol
             </div>
           )}
         </div>
+
+        {avatarError && (
+          <p className="text-[11px] text-danger-600 font-medium text-center px-2 animate-fade-in">{avatarError}</p>
+        )}
 
         {/* Collapse toggle (desktop only) */}
         <button

@@ -382,8 +382,8 @@
     animation: modalFadeIn 0.2s ease-out;
   }
   .modal-content {
-    @apply rounded-3xl max-w-sm w-full;
-    background: rgb(var(--glass-bg) / 0.92);
+    @apply rounded-3xl max-w-md w-full overflow-hidden max-h-[90vh] overflow-y-auto;
+    background: rgb(var(--glass-bg) / 0.95);
     backdrop-filter: blur(28px) saturate(180%);
     -webkit-backdrop-filter: blur(28px) saturate(180%);
     border: 1px solid rgb(var(--glass-border) / var(--glass-border-opacity));
