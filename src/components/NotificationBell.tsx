@@ -16,7 +16,7 @@ export default function NotificationBell({ userId, role }: Props): React.ReactEl
   const [loading, setLoading] = useState(true);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const isEligible = role && ['hod', 'guard', 'admin', 'super_admin'].includes(role);
+  const isEligible = role && ['hod', 'guard', 'admin'].includes(role);
 
   const fetchNotifications = useCallback(async () => {
     try {

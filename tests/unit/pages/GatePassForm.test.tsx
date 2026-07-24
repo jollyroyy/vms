@@ -70,10 +70,29 @@ describe('S4-GATEPASS-FORM: GatePassForm', () => {
     expect(screen.getByText('NRGP')).toBeInTheDocument();
   });
 
-  it('renders direction toggle buttons (IN, OUT)', () => {
+  it('renders only OUT direction for NRGP (default type)', () => {
     renderForm();
+    expect(screen.getByText('OUT')).toBeInTheDocument();
+    expect(screen.queryByText('IN')).not.toBeInTheDocument();
+  });
+
+  it('renders both IN and OUT direction buttons when RGP is selected', () => {
+    renderForm();
+    fireEvent.click(screen.getByText('RGP'));
     expect(screen.getByText('IN')).toBeInTheDocument();
     expect(screen.getByText('OUT')).toBeInTheDocument();
+  });
+
+  it('resets direction to OUT when switching from RGP to NRGP', () => {
+    renderForm();
+    fireEvent.click(screen.getByText('RGP'));
+    fireEvent.click(screen.getByText('IN'));
+    const inBtn = screen.getByText('IN');
+    expect(inBtn.className).toContain('bg-gradient-to-r');
+    fireEvent.click(screen.getByText('NRGP'));
+    expect(screen.queryByText('IN')).not.toBeInTheDocument();
+    const outBtn = screen.getByText('OUT');
+    expect(outBtn.className).toContain('bg-gradient-to-r');
   });
 
   it('NRGP is selected by default', () => {
@@ -282,10 +301,11 @@ describe('S4-GATEPASS-FORM: GatePassForm', () => {
     expect(screen.queryByText('Expected Return Date *')).not.toBeInTheDocument();
   });
 
-  it('hides return date for NRGP + IN', () => {
+  it('NRGP does not show IN direction button', () => {
     renderForm();
-    fireEvent.click(screen.getByText('IN'));
-    expect(screen.queryByText('Expected Return Date *')).not.toBeInTheDocument();
+    // NRGP is default type — only OUT should be available
+    expect(screen.queryByText('IN')).not.toBeInTheDocument();
+    expect(screen.getByText('OUT')).toBeInTheDocument();
   });
 
   it('renders company name input', () => {

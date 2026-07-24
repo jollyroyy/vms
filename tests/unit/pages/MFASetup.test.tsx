@@ -8,7 +8,7 @@ import type { UserRole } from '../../../src/types/index';
 // MFA requirement logic - will be in src/lib/mfa.ts
 function requiresMFA(role: UserRole | null): boolean {
   if (!role) return false;
-  return ['admin', 'super_admin', 'hod'].includes(role);
+  return ['admin', 'hod'].includes(role);
 }
 
 function getMFARedirectPath(role: UserRole | null): string {
@@ -24,10 +24,6 @@ function isValidTOTPCode(code: string): boolean {
 describe('M23-MFA: MFA requirement logic', () => {
   it('admin requires MFA', () => {
     expect(requiresMFA('admin')).toBe(true);
-  });
-
-  it('super_admin requires MFA', () => {
-    expect(requiresMFA('super_admin')).toBe(true);
   });
 
   it('hod requires MFA', () => {

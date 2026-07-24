@@ -1,6 +1,6 @@
 /**
  * MFA Setup page — M23-MFA
- * Guides admin/HOD/super_admin users through TOTP enrollment.
+ * Guides admin/HOD users through TOTP enrollment.
  * Shown on first login if MFA is not yet configured.
  */
 import React, { useEffect, useState } from 'react';

@@ -338,7 +338,7 @@ function UsersTab(): React.ReactElement {
     finally { setInviting(false); }
   };
 
-  const ROLES: UserRole[] = ['guard', 'hod', 'staff', 'admin', 'super_admin'];
+  const ROLES: UserRole[] = ['guard', 'hod', 'staff', 'admin'];
   const updateRole = async (userId: string, role: UserRole) => {
     await supabase.from('profiles').update({ role }).eq('id', userId);
     setUsers((u) => u.map((p) => p.id === userId ? { ...p, role } : p));

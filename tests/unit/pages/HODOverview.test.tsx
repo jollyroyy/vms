@@ -29,7 +29,12 @@ vi.mock('../../../src/supabaseClient', () => ({
     from: (table: string) => {
       if (table === 'profiles') {
         return {
-          select: () => ({ eq: () => ({ maybeSingle: () => Promise.resolve({ data: { department_id: mockProfileDept, department: { name: mockProfileDeptName } }, error: null }) }) }),
+          select: () => ({ eq: () => ({ maybeSingle: () => Promise.resolve({ data: { department_id: mockProfileDept }, error: null }) }) }),
+        };
+      }
+      if (table === 'departments') {
+        return {
+          select: () => ({ eq: () => ({ maybeSingle: () => Promise.resolve({ data: { name: mockProfileDeptName }, error: null }) }) }),
         };
       }
       return {
@@ -56,7 +61,7 @@ vi.mock('../../../src/supabaseClient', () => ({
       };
     },
     rpc: vi.fn(),
-    channel: () => ({ on: () => ({ on: () => ({ subscribe: vi.fn().mockReturnValue('sub-1') }) }) }),
+    channel: () => ({ on: () => ({ on: () => ({ on: () => ({ subscribe: vi.fn().mockReturnValue('sub-1') }) }) }) }),
     removeChannel: vi.fn(),
   },
 }));

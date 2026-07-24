@@ -53,6 +53,17 @@ export default function AnalyticsPage(): React.ReactElement {
 
   useEffect(() => { if (userRole) void load(); }, [load, userRole]);
 
+  // Real-time subscription
+  useEffect(() => {
+    if (!userRole) return;
+    const filters: any = userDept ? { filter: `department_id=eq.${userDept}` } : {};
+    const ch = supabase.channel('analytics-live')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'visits', ...filters }, () => { void load(); })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'gate_passes', ...filters }, () => { void load(); })
+      .subscribe();
+    return () => { void supabase.removeChannel(ch); };
+  }, [userRole, userDept, load]);
+
   // Compute analytics
   const totalVisits = visits.length;
   const approvedVisits = visits.filter((v) => ['approved', 'walkin_approved', 'checked_in', 'checked_out'].includes(v.status)).length;
@@ -253,7 +264,7 @@ export default function AnalyticsPage(): React.ReactElement {
             </div>
 
             {/* Department comparison (admin only) */}
-            {['admin', 'super_admin'].includes(userRole) && (
+            {userRole === 'admin' && (
               <div className="card p-6">
                 <h3 className="text-sm font-semibold text-navy-800 mb-4">Department Comparison</h3>
                 {deptStats.length === 0 ? (

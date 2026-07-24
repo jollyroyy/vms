@@ -28,7 +28,7 @@ export default function WhosInside(): React.ReactElement {
       .select(`*, visitor:visitors(*), department:departments(id, name, code, created_at)`)
       .in('status', ['pending_approval', 'approved', 'walkin_approved', 'checked_in'])
       .gte('created_at', `${today}T00:00:00Z`);
-    if (userDeptId && userRole && !['admin', 'super_admin', 'guard'].includes(userRole)) {
+    if (userDeptId && userRole && !['admin', 'guard'].includes(userRole)) {
       query = query.eq('department_id', userDeptId);
     }
     const { data, error: err } = await query.order('created_at', { ascending: false });

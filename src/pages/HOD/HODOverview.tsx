@@ -34,23 +34,27 @@ export default function HODOverview(): React.ReactElement {
   }, []);
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
+    supabase.auth.getUser().then(async ({ data }) => {
       const uid = data.user?.id;
       if (!uid) return;
       setUserId(uid);
-      supabase.from('profiles').select('department_id, department:departments(name)').eq('id', uid).maybeSingle().then(({ data }) => {
-        const p = data as { department_id: string; department: { name: string } | null } | null;
-        setDeptId(p?.department_id ?? null);
-        setDeptName(p?.department?.name ?? null);
-      });
+      // Get department_id from JWT first, then profile as fallback
+      const jwtDeptId = (data.user?.app_metadata?.department_id as string) ?? '';
+      const { data: profile } = await supabase.from('profiles').select('department_id').eq('id', uid).maybeSingle();
+      const resolvedDeptId = jwtDeptId || (profile as any)?.department_id || null;
+      setDeptId(resolvedDeptId);
+      if (resolvedDeptId) {
+        const { data: dept } = await supabase.from('departments').select('name').eq('id', resolvedDeptId).maybeSingle();
+        setDeptName((dept as any)?.name ?? null);
+      }
     });
   }, []);
 
   const today = useMemo(() => new Date().toISOString().slice(0, 10), []);
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (silent = false) => {
     if (!deptId || !userId) { setLoading(false); return; }
-    setLoading(true);
+    if (!silent) setLoading(true);
     try {
       const { data: todayData } = await supabase
         .from('visits')
@@ -98,7 +102,7 @@ export default function HODOverview(): React.ReactElement {
     } catch {
       // silent — dashboard is read-only and defensive
     }
-    setLoading(false);
+    if (!silent) setLoading(false);
   }, [deptId, userId, today]);
 
   useEffect(() => { void load(); }, [load]);
@@ -106,8 +110,9 @@ export default function HODOverview(): React.ReactElement {
   useEffect(() => {
     if (!deptId || !userId) return;
     const ch = supabase.channel('hod-overview-live')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'visits', filter: `department_id=eq.${deptId}` }, () => { void load(); })
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications', filter: `recipient_id=eq.${userId}` }, () => { void load(); })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'visits', filter: `department_id=eq.${deptId}` }, () => { void load(true); })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'gate_passes', filter: `department_id=eq.${deptId}` }, () => { void load(true); })
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications', filter: `recipient_id=eq.${userId}` }, () => { void load(true); })
       .subscribe();
     return () => { void supabase.removeChannel(ch); };
   }, [deptId, userId, load]);

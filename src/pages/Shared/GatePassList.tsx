@@ -34,7 +34,7 @@ export default function GatePassList(): React.ReactElement {
   const load = useCallback(async () => {
     setLoading(true);
     let query = supabase.from('gate_passes').select(`*, items:gate_pass_items(*), department:departments(id, name, code, created_at)`);
-    if (userDeptId && userRole && !['admin', 'super_admin', 'guard'].includes(userRole)) {
+    if (userDeptId && userRole && !['admin', 'guard'].includes(userRole)) {
       query = query.eq('department_id', userDeptId);
     }
     if (filter === 'open_rgp') query = query.eq('type', 'RGP').in('status', ['approved', 'dispatched', 'awaiting_return', 'partially_returned']);

@@ -1,11 +1,11 @@
 /**
  * MFA utility functions — M23-MFA
- * TOTP Multi-Factor Authentication logic for admin/hod/super_admin roles.
+ * TOTP Multi-Factor Authentication logic for admin/hod roles.
  */
 import type { UserRole } from '../types/index';
 
 /** Roles that are required to complete TOTP MFA before accessing the app */
-const MFA_REQUIRED_ROLES: UserRole[] = ['admin', 'super_admin', 'hod'];
+const MFA_REQUIRED_ROLES: UserRole[] = ['admin', 'hod'];
 
 /** Returns true if the given role must complete MFA */
 export function requiresMFA(role: UserRole | null): boolean {

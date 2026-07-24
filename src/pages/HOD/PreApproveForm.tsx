@@ -175,7 +175,7 @@ export default function PreApproveForm({ onPreApproved }: Props): React.ReactEle
             {PURPOSES.map((p) => <option key={p.value} value={p.value}>{p.label}</option>)}
           </select>
         </div>
-        {['admin', 'super_admin'].includes(userRole) && (
+        {userRole === 'admin' && (
           <div>
             <label className="label">Department *</label>
             <select required value={deptId} onChange={(e) => setDeptId(e.target.value)} className="input">

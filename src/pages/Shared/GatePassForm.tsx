@@ -72,7 +72,7 @@ export default function GatePassForm(): React.ReactElement {
           <label className="label">Type</label>
           <div className="flex gap-2">
             {(['RGP', 'NRGP'] as GatePassType[]).map((t) => (
-              <button key={t} type="button" onClick={() => setType(t)}
+              <button key={t} type="button" onClick={() => { setType(t); if (t === 'NRGP') setDirection('OUT'); }}
                 className={`flex-1 rounded-xl py-2.5 text-sm font-semibold transition-all duration-200 ${type === t ? 'bg-gradient-to-r from-brand-600 to-accent-500 text-white shadow-glow-sm ring-1 ring-white/20' : 'bg-surface-100 text-navy-500 hover:bg-surface-200 border border-surface-200/60'}`}>{t}</button>
             ))}
           </div>
@@ -80,7 +80,7 @@ export default function GatePassForm(): React.ReactElement {
         <div>
           <label className="label">Direction</label>
           <div className="flex gap-2">
-            {(['IN', 'OUT'] as GatePassDir[]).map((d) => (
+            {(type === 'NRGP' ? ['OUT'] as GatePassDir[] : ['IN', 'OUT'] as GatePassDir[]).map((d) => (
               <button key={d} type="button" onClick={() => setDirection(d)}
                 className={`flex-1 rounded-xl py-2.5 text-sm font-semibold transition-all duration-200 ${direction === d ? 'bg-gradient-to-r from-brand-600 to-accent-500 text-white shadow-glow-sm ring-1 ring-white/20' : 'bg-surface-100 text-navy-500 hover:bg-surface-200 border border-surface-200/60'}`}>{d}</button>
             ))}

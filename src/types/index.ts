@@ -1,7 +1,7 @@
 // Shared TypeScript types — mirrors the Supabase schema (supabase/migrations/001_schema.sql).
 // Keep in sync whenever the schema changes.
 
-export type UserRole = 'guard' | 'hod' | 'staff' | 'admin' | 'super_admin';
+export type UserRole = 'guard' | 'hod' | 'staff' | 'admin';
 
 export type Department = {
   id: string;

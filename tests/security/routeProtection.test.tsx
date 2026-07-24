@@ -53,6 +53,9 @@ describe('SEC-7: frontend route protection', () => {
     it('guard is allowed on /kiosk', () => {
       expect(isForbidden('/kiosk', role)).toBe(false);
     });
+    it('guard is allowed on /guard/daily-staff', () => {
+      expect(isForbidden('/guard/daily-staff', role)).toBe(false);
+    });
     it('guard is FORBIDDEN on /reports', () => {
       expect(isForbidden('/reports', role)).toBe(true);
     });
@@ -81,8 +84,8 @@ describe('SEC-7: frontend route protection', () => {
     it('hod is FORBIDDEN on /admin', () => {
       expect(isForbidden('/admin', role)).toBe(true);
     });
-    it('hod is FORBIDDEN on /overview (removed from sidebar)', () => {
-      expect(isForbidden('/overview', role)).toBe(true);
+    it('hod is ALLOWED on /overview (dashboard tab)', () => {
+      expect(isForbidden('/overview', role)).toBe(false);
     });
   });
 
@@ -135,7 +138,7 @@ describe('SEC-7: frontend route protection', () => {
 
   // ── Route path match semantics ────────────────────────────
   it('/visitors is allowed for all authenticated roles', () => {
-    const allRoles = ['guard', 'hod', 'staff', 'admin', 'super_admin'] as const;
+    const allRoles = ['guard', 'hod', 'staff', 'admin'] as const;
     for (const r of allRoles) {
       expect(isForbidden('/visitors', r)).toBe(false);
     }
@@ -153,18 +156,6 @@ describe('SEC-7: frontend route protection', () => {
     }
   });
 
-  // ── Super admin ────────────────────────────────────────────
-  describe('super_admin', () => {
-    const role = 'super_admin' as const;
-
-    it('super_admin is allowed on /admin', () => {
-      expect(isForbidden('/admin', role)).toBe(false);
-    });
-    it('super_admin is FORBIDDEN on /guard', () => {
-      expect(isForbidden('/guard', role)).toBe(true);
-    });
-  });
-
   // ── ROLE_ROUTES completeness ───────────────────────────────
   it('every role has at least one allowed route (no role is fully locked out)', () => {
     for (const [role, routes] of Object.entries(ROLE_ROUTES)) {
@@ -172,7 +163,7 @@ describe('SEC-7: frontend route protection', () => {
     }
   });
 
-  it('no role except admin/super_admin can reach /admin', () => {
+  it('no role except admin can reach /admin', () => {
     const nonAdminRoles = ['guard', 'hod', 'staff'] as const;
     for (const role of nonAdminRoles) {
       expect(isForbidden('/admin', role), `${role} must be forbidden on /admin`).toBe(true);

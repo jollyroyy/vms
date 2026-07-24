@@ -76,7 +76,7 @@ export default function DashboardPage({ role }: Props): React.ReactElement {
       next.passesOpen = passRows.filter((p) => ['approved', 'dispatched', 'awaiting_return', 'partially_returned'].includes(p.status)).length;
 
       // Profiles (admin overview)
-      if (role === 'admin' || role === 'super_admin') {
+      if (role === 'admin') {
         const prof = await supabase.from('profiles').select('id', { count: 'exact', head: true });
         next.users = prof.count ?? 0;
       }
@@ -130,7 +130,6 @@ export default function DashboardPage({ role }: Props): React.ReactElement {
           { label: 'Passes Pending', value: c.passesPending ?? 0, icon: ICONS.clock, tint: 'from-emerald-500 to-teal-600', to: '/gate-passes' },
         ];
       case 'admin':
-      case 'super_admin':
         return [
           { label: "Today's Visits", value: c.today ?? 0, icon: ICONS.chart, tint: 'from-brand-500 to-brand-700', to: '/reports' },
           { label: 'Inside Now', value: c.inside ?? 0, icon: ICONS.users, tint: 'from-accent-500 to-accent-700', to: '/reports' },

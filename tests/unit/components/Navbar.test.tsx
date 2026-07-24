@@ -28,17 +28,37 @@ vi.mock('../../../src/supabaseClient', () => ({
       signOut: (...args: any[]) => mockSignOut(...args),
       getUser: (...args: any[]) => mockGetUser(...args),
     },
-    from: (table: string) => ({
-      select: () => ({
-        eq: () => ({
-          maybeSingle: () => {
-            if (table === 'departments') return Promise.resolve({ data: mockDeptData });
-            return Promise.resolve({ data: mockProfileData });
-          },
+    from: (table: string) => {
+      // For visits / gate_passes queries from SidebarAnalytics: select().eq().gte()
+      if (table === 'visits' || table === 'gate_passes') {
+        return {
+          select: () => ({
+            eq: () => ({
+              gte: () => Promise.resolve({ data: [], error: null }),
+              maybeSingle: () => Promise.resolve({ data: null }),
+            }),
+          }),
+        };
+      }
+      return {
+        select: () => ({
+          eq: () => ({
+            maybeSingle: () => {
+              if (table === 'departments') return Promise.resolve({ data: mockDeptData });
+              return Promise.resolve({ data: mockProfileData });
+            },
+          }),
         }),
-      }),
-      update: (data: any) => mockUpdate(data),
-    }),
+        update: (data: any) => mockUpdate(data),
+      };
+    },
+    channel: () => {
+      const ch: any = {};
+      ch.on = () => ch;
+      ch.subscribe = vi.fn().mockReturnValue(ch);
+      return ch;
+    },
+    removeChannel: vi.fn(),
     storage: {
       from: () => ({
         upload: (...args: any[]) => mockUpload(...args),
@@ -87,9 +107,11 @@ describe('Sidebar: navigation links', () => {
 
   it('renders correct nav links for guard role', () => {
     renderWithRouter(<Sidebar session={guardSession} role="guard" />);
+    expect(screen.getByText('Dashboard')).toBeInTheDocument();
     expect(screen.getByText('Visitors')).toBeInTheDocument();
     expect(screen.getByText('Gate Passes')).toBeInTheDocument();
-    expect(screen.getByText('On-site')).toBeInTheDocument();
+    expect(screen.getByText('Daily Staff')).toBeInTheDocument();
+    expect(screen.queryByText('On-site')).not.toBeInTheDocument();
     expect(screen.queryByText('Material Passes')).not.toBeInTheDocument();
     expect(screen.queryByText('Reports')).not.toBeInTheDocument();
     expect(screen.queryByText('Approvals')).not.toBeInTheDocument();
