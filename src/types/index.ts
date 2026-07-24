@@ -60,7 +60,6 @@ export type Visit = {
   exit_verified: boolean | null;
   rejection_reason: string | null;
   carrying_material: boolean;
-  expected_duration_minutes: number | null;
   scheduled_for: string | null;
   grace_period_minutes?: number;
   created_at: string;

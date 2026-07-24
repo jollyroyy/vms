@@ -23,7 +23,6 @@ const baseVisit: Visit = {
   carrying_material: false,
   emergency_contact_name: null,
   emergency_contact_phone: null,
-  expected_duration_minutes: 90,
   consent_privacy: true,
   consent_site_rules: true,
   nda_signature: null,
@@ -93,29 +92,4 @@ describe('M11-BADGE: Badge component', () => {
     expect(screen.getByText('Vendor')).toBeInTheDocument();
   });
 
-  // NEW TESTS - Expected duration display
-  it('renders 90 minutes as "1h 30m"', () => {
-    render(<Badge visit={{ ...baseVisit, expected_duration_minutes: 90 }} />);
-    expect(screen.getByText('1h 30m')).toBeInTheDocument();
-  });
-
-  it('renders 60 minutes as "1 hour"', () => {
-    render(<Badge visit={{ ...baseVisit, expected_duration_minutes: 60 }} />);
-    expect(screen.getByText('1 hour')).toBeInTheDocument();
-  });
-
-  it('renders 30 minutes as "30 min"', () => {
-    render(<Badge visit={{ ...baseVisit, expected_duration_minutes: 30 }} />);
-    expect(screen.getByText('30 min')).toBeInTheDocument();
-  });
-
-  it('renders null duration as "Not specified"', () => {
-    render(<Badge visit={{ ...baseVisit, expected_duration_minutes: null }} />);
-    expect(screen.getByText('Not specified')).toBeInTheDocument();
-  });
-
-  it('renders 120 minutes as "2 hours"', () => {
-    render(<Badge visit={{ ...baseVisit, expected_duration_minutes: 120 }} />);
-    expect(screen.getByText('2 hours')).toBeInTheDocument();
-  });
 });

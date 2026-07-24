@@ -89,7 +89,6 @@ export default function WalkInRequest({ onSubmitted, onCancel }: Props): React.R
       const { error: visitErr } = await supabase.from('visits').insert({
         visitor_id: vis.id, department_id: deptId, host_id: hostId, purpose,
         status: 'pending_approval', carrying_material: false,
-        expected_duration_minutes: 30,
         photo_path: null, photo_data: null,
         scheduled_for: null,
         checked_in_at: null, checked_out_at: null, exit_verified: null, rejection_reason: null,

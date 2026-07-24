@@ -154,7 +154,6 @@ export default function CheckInPanel({ today, onCheckInSuccess }: Props): React.
           checked_in_at: new Date().toISOString(),
           checked_out_at: null, exit_verified: null, rejection_reason: null,
           carrying_material: false,
-          expected_duration_minutes: 60,
           scheduled_for: null,
         });
         if (visitErr) throw visitErr;

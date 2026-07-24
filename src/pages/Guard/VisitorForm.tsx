@@ -37,8 +37,6 @@ export default function VisitorForm({ onRegistered }: Props): React.ReactElement
   const [carryingMaterial, setCarryingMaterial] = useState(false);
   const [photoBlob,   setPhotoBlob]   = useState<Blob | null>(null);
 
-  const [expectedDuration, setExpectedDuration] = useState<number>(30);
-
   const [blacklistHit,  setBlacklistHit]  = useState<string | null>(null);
   const [recalledName,  setRecalledName]  = useState<string | null>(null);
   const [submitting,    setSubmitting]    = useState(false);
@@ -183,7 +181,6 @@ export default function VisitorForm({ onRegistered }: Props): React.ReactElement
         visitor_id: vis.id, department_id: deptId, host_id: hostId, purpose,
         photo_path: photoPath, photo_data: photoData,
         status: 'pending_approval', carrying_material: carryingMaterial,
-        expected_duration_minutes: expectedDuration || null,
         scheduled_for: null,
         checked_in_at: null, checked_out_at: null, exit_verified: null, rejection_reason: null,
       });
@@ -349,7 +346,6 @@ export default function VisitorForm({ onRegistered }: Props): React.ReactElement
           Visit Info
         </h3>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div><label className="label">Expected Duration (min)</label><input type="number" min={5} max={480} value={expectedDuration} onChange={(e) => setExpectedDuration(Number(e.target.value))} className="input" /></div>
         </div>
       </div>
 

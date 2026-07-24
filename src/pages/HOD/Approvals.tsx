@@ -31,13 +31,6 @@ function timeAgo(iso: string): string {
   return `${Math.floor(hrs / 24)}d ago`;
 }
 
-function fmtDuration(minutes: number | null): string {
-  if (!minutes) return '--';
-  if (minutes < 60) return `${minutes}m`;
-  const h = Math.floor(minutes / 60);
-  const m = minutes % 60;
-  return m === 0 ? `${h}h` : `${h}h ${m}m`;
-}
 
 function purposeLabel(p: string): string {
   const map: Record<string, string> = {
@@ -387,12 +380,6 @@ export default function HODApprovals(): React.ReactElement {
                             <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-md bg-brand-50 text-brand-600 border border-brand-100">
                               {purposeLabel(v.purpose)}
                             </span>
-                            {v.expected_duration_minutes && (
-                              <span className="inline-flex items-center gap-1 text-[10px] text-navy-400 px-2 py-0.5 rounded-md bg-surface-100 border border-surface-200/60">
-                                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5" /></svg>
-                                {fmtDuration(v.expected_duration_minutes)}
-                              </span>
-                            )}
                             <span className="text-[10px] text-navy-300 ml-auto">{timeAgo(v.created_at)}</span>
                           </div>
                         </div>
