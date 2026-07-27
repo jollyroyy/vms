@@ -72,8 +72,6 @@ export default function DashboardPage({ role }: Props): React.ReactElement {
       const passes = await supabase.from('gate_passes').select('id, status', { count: 'exact' });
       const passRows = (passes.data ?? []) as Array<{ id: string; status: string }>;
       next.passesTotal = passes.count ?? passRows.length;
-      next.passesPending = passRows.filter((p) => p.status === 'pending_approval').length;
-      next.passesOpen = passRows.filter((p) => ['approved', 'dispatched', 'awaiting_return', 'partially_returned'].includes(p.status)).length;
 
       // Profiles (admin overview)
       if (role === 'admin') {
@@ -126,8 +124,6 @@ export default function DashboardPage({ role }: Props): React.ReactElement {
         return [
           { label: 'Inside Now', value: c.inside ?? 0, icon: ICONS.users, tint: 'from-accent-500 to-accent-700', to: '/whos-inside' },
           { label: "Today's Visits", value: c.today ?? 0, icon: ICONS.chart, tint: 'from-brand-500 to-brand-700', to: '/whos-inside' },
-          { label: 'Open Gate Passes', value: c.passesOpen ?? 0, icon: ICONS.doc, tint: 'from-amber-500 to-orange-600', to: '/gate-passes' },
-          { label: 'Passes Pending', value: c.passesPending ?? 0, icon: ICONS.clock, tint: 'from-emerald-500 to-teal-600', to: '/gate-passes' },
         ];
       case 'admin':
         return [

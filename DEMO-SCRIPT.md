@@ -51,7 +51,7 @@ The app runs at http://localhost:5173
 ## Demo Flow — Step by Step
 
 ### Act 1 — Visitor Registration (Guard perspective)
-*Tab: Guard Console, logged in as guard@demo.vms / Demo@1234*
+*Tab: Guard Console, logged in as guard@demo.vms / demo123*
 
 1. **Show the guard console** — point out the three tabs: Active Visits, Register, Exit Log.
 2. Click **Register New Visitor**.
@@ -71,7 +71,7 @@ The app runs at http://localhost:5173
 ---
 
 ### Act 2 — HOD Approval (HOD phone view)
-*Tab: HOD Approvals, logged in as hod.it@demo.vms / Demo@1234*
+*Tab: HOD Approvals, logged in as hod.it@demo.vms / demo123*
 
 10. Switch to the HOD tab (or hand the customer the phone).
     - ✨ **Notification badge appears** — the pending visit is already there.
@@ -138,7 +138,7 @@ The app runs at http://localhost:5173
 ---
 
 ### Act 9 — Admin Panel (if time allows)
-*Log in as admin@demo.vms / Demo@1234*
+*Log in as admin@demo.vms / demo123*
 
 29. Navigate to **Admin Panel** → Departments tab → add a new department.
 30. Users tab → change a user's role via dropdown.
@@ -167,12 +167,12 @@ npm run seed
 
 | Role | Email | Password |
 |------|-------|----------|
-| Guard | guard@demo.vms | Demo@1234 |
-| HOD (IT) | hod.it@demo.vms | Demo@1234 |
-| HOD (HR) | hod.hr@demo.vms | Demo@1234 |
-| HOD (Finance) | hod.fin@demo.vms | Demo@1234 |
-| Staff | staff@demo.vms | Demo@1234 |
-| Admin | admin@demo.vms | Demo@1234 |
+| Guard | guard@demo.vms | demo123 |
+| HOD (IT) | hod.it@demo.vms | demo123 |
+| HOD (HR) | hod.hr@demo.vms | demo123 |
+| HOD (Finance) | hod.fin@demo.vms | demo123 |
+| Staff | staff@demo.vms | demo123 |
+| Admin | admin@demo.vms | demo123 |
 
 ---
 

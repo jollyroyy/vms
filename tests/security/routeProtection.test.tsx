@@ -1,4 +1,4 @@
-// CHECK for goal.md SEC-7 (🎯) — Frontend route protection.
+// CHECK for goal.md SEC-7 — Frontend route protection.
 //
 // Imports ROLE_ROUTES and isForbidden from the SAME source used by ProtectedRoute in App.tsx.
 // This guarantees that passing tests mean the actual component enforces the correct rules.
@@ -47,9 +47,6 @@ describe('SEC-7: frontend route protection', () => {
     it('guard is allowed on /whos-inside', () => {
       expect(isForbidden('/whos-inside', role)).toBe(false);
     });
-    it('guard is allowed on /gate-passes', () => {
-      expect(isForbidden('/gate-passes', role)).toBe(false);
-    });
     it('guard is allowed on /kiosk', () => {
       expect(isForbidden('/kiosk', role)).toBe(false);
     });
@@ -87,15 +84,18 @@ describe('SEC-7: frontend route protection', () => {
     it('hod is ALLOWED on /overview (dashboard tab)', () => {
       expect(isForbidden('/overview', role)).toBe(false);
     });
+    it('hod is FORBIDDEN on /visitors (removed — use Overview)', () => {
+      expect(isForbidden('/visitors', role)).toBe(true);
+    });
+    it('hod is FORBIDDEN on /whos-inside (redundant — on-site info now lives on Overview)', () => {
+      expect(isForbidden('/whos-inside', role)).toBe(true);
+    });
   });
 
   // ── Staff ──────────────────────────────────────────────────
   describe('staff', () => {
     const role = 'staff' as const;
 
-    it('staff is allowed on /gate-passes', () => {
-      expect(isForbidden('/gate-passes', role)).toBe(false);
-    });
     it('staff is FORBIDDEN on /guard', () => {
       expect(isForbidden('/guard', role)).toBe(true);
     });
@@ -128,6 +128,48 @@ describe('SEC-7: frontend route protection', () => {
     });
   });
 
+  // ── Deleted gate-pass feature ──────────────────────────────
+  // The standalone gate-pass module (Guard/GatePassQueue, Shared/GatePassList,
+  // Shared/GatePassForm and their routes) was removed from App.tsx. ROLE_ROUTES
+  // never lists these top-level paths for any role, so isForbidden() denies
+  // them by construction — this locks that in as an explicit regression guard
+  // rather than relying on an absence of routes to stay accidental.
+  describe('deleted gate-pass routes (removed feature)', () => {
+    const allRoles = ['guard', 'hod', 'staff', 'admin'] as const;
+    const deletedRoutes = ['/gate-passes', '/gate-passes/new'];
+
+    for (const route of deletedRoutes) {
+      for (const role of allRoles) {
+        it(`${role} is FORBIDDEN on ${route} (deleted route)`, () => {
+          expect(isForbidden(route, role)).toBe(true);
+        });
+      }
+    }
+
+    // NOTE on /guard/gate-passes specifically: isForbidden() matches by prefix
+    // (`pathname.startsWith(allowedRoute)`), and 'guard' is allowed on the
+    // literal prefix '/guard'. So '/guard/gate-passes'.startsWith('/guard') is
+    // true and isForbidden returns false for the guard role on this exact
+    // path — the frontend sign-out gate in ProtectedRoute does NOT trigger.
+    // This is not a data-exposure hole: App.tsx no longer registers a <Route>
+    // for '/guard/gate-passes' at all, so React Router falls through to the
+    // catch-all `<Route path="*" element={<NotFoundPage />} />` regardless of
+    // role. But it IS a gap in the isForbidden() prefix model worth flagging:
+    // any now-deleted sub-path of an allowed prefix (e.g. anything starting
+    // with '/guard', '/visitors', '/reports', '/analytics') is silently
+    // "allowed" by this function even though no such route exists anymore.
+    // Document the current (safe-by-router, not safe-by-isForbidden) behavior
+    // explicitly instead of leaving it uncovered:
+    it("guard's own '/guard' prefix makes isForbidden() return false for the now-deleted /guard/gate-passes path (safety comes from App.tsx's catch-all NotFoundPage route, not from isForbidden)", () => {
+      expect(isForbidden('/guard/gate-passes', 'guard')).toBe(false);
+    });
+    it('non-guard roles ARE forbidden on /guard/gate-passes (no matching prefix in their ROLE_ROUTES)', () => {
+      expect(isForbidden('/guard/gate-passes', 'hod')).toBe(true);
+      expect(isForbidden('/guard/gate-passes', 'staff')).toBe(true);
+      expect(isForbidden('/guard/gate-passes', 'admin')).toBe(true);
+    });
+  });
+
   // ── Unauthenticated ────────────────────────────────────────
   describe('unauthenticated (role is null)', () => {
     it('null role is never forbidden (handled by session guard in App.tsx)', () => {
@@ -137,25 +179,19 @@ describe('SEC-7: frontend route protection', () => {
   });
 
   // ── Route path match semantics ────────────────────────────
-  it('/visitors is allowed for all authenticated roles', () => {
-    const allRoles = ['guard', 'hod', 'staff', 'admin'] as const;
-    for (const r of allRoles) {
-      expect(isForbidden('/visitors', r)).toBe(false);
-    }
+  it('/visitors is allowed for guard, staff, admin but NOT hod', () => {
+    expect(isForbidden('/visitors', 'guard')).toBe(false);
+    expect(isForbidden('/visitors', 'staff')).toBe(false);
+    expect(isForbidden('/visitors', 'admin')).toBe(false);
+    expect(isForbidden('/visitors', 'hod')).toBe(true);
   });
-  it('shared routes like /whos-inside are allowed for guard/hod/staff', () => {
-    const allowedRoles = ['guard', 'hod', 'staff'] as const;
+  it('/whos-inside is allowed for guard and staff, but FORBIDDEN for hod (on-site info now lives on Overview)', () => {
+    const allowedRoles = ['guard', 'staff'] as const;
     for (const r of allowedRoles) {
       expect(isForbidden('/whos-inside', r)).toBe(false);
     }
+    expect(isForbidden('/whos-inside', 'hod')).toBe(true);
   });
-  it('/gate-passes/new is allowed for all roles that can access /gate-passes', () => {
-    for (const [role, routes] of Object.entries(ROLE_ROUTES)) {
-      const allowed = routes.some((r) => '/gate-passes/new'.startsWith(r));
-      expect(isForbidden('/gate-passes/new', role as keyof typeof ROLE_ROUTES)).toBe(!allowed);
-    }
-  });
-
   // ── ROLE_ROUTES completeness ───────────────────────────────
   it('every role has at least one allowed route (no role is fully locked out)', () => {
     for (const [role, routes] of Object.entries(ROLE_ROUTES)) {

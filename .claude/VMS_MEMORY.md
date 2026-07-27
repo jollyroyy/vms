@@ -13,7 +13,7 @@
 - `src/lib/roleRoutes.ts` is the **single source of truth** for role→route access
 - `ROLE_ROUTES` is imported by both `App.tsx` (enforcement) and tests (verification)
 - **Never** duplicate route lists anywhere else
-- Current HOD routes: `/overview`, `/approvals`, `/whos-inside`, `/gate-passes`, `/reports`, `/analytics`
+- Current HOD routes: `/overview`, `/approvals`, `/whos-inside`, `/reports`, `/analytics`
 - HOD lands on `/overview` on login (first entry in array)
 
 ### Color / Design System
@@ -64,7 +64,6 @@ return () => { void supabase.removeChannel(ch); };
 | `/guard` | `GuardConsole` | guard |
 | `/kiosk` | `KioskPage` | guard |
 | `/whos-inside` | `WhosInside` | guard, hod, staff |
-| `/gate-passes` | `GatePassList` | guard, hod, staff |
 | `/reports` | `ReportsPage` | hod, staff, admin, super_admin |
 | `/analytics` | `AnalyticsPage` | hod, admin, super_admin |
 | `/admin` | `AdminPanel` | admin, super_admin |

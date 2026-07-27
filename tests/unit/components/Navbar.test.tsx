@@ -109,7 +109,7 @@ describe('Sidebar: navigation links', () => {
     renderWithRouter(<Sidebar session={guardSession} role="guard" />);
     expect(screen.getByText('Dashboard')).toBeInTheDocument();
     expect(screen.getByText('Visitors')).toBeInTheDocument();
-    expect(screen.getByText('Gate Passes')).toBeInTheDocument();
+    expect(screen.getByText('Self-Service Kiosk')).toBeInTheDocument();
     expect(screen.getByText('Daily Staff')).toBeInTheDocument();
     expect(screen.queryByText('On-site')).not.toBeInTheDocument();
     expect(screen.queryByText('Material Passes')).not.toBeInTheDocument();
@@ -120,12 +120,14 @@ describe('Sidebar: navigation links', () => {
 
   it('renders correct nav links for HOD role', () => {
     renderWithRouter(<Sidebar session={hodSession} role="hod" />);
-    expect(screen.getByText('Visitors')).toBeInTheDocument();
-    expect(screen.getByText('Material Passes')).toBeInTheDocument();
+    expect(screen.getByText('Overview')).toBeInTheDocument();
     expect(screen.getByText('Approvals')).toBeInTheDocument();
-    expect(screen.getByText('On-site')).toBeInTheDocument();
     expect(screen.getByText('Reports')).toBeInTheDocument();
+    expect(screen.getByText('Analytics')).toBeInTheDocument();
+    expect(screen.queryByText('On-site')).not.toBeInTheDocument();
+    expect(screen.queryByText('Visitors')).not.toBeInTheDocument();
     expect(screen.queryByText('Gate Passes')).not.toBeInTheDocument();
+    expect(screen.queryByText('Material Passes')).not.toBeInTheDocument();
     expect(screen.queryByText('Settings')).not.toBeInTheDocument();
   });
 
@@ -143,7 +145,6 @@ describe('Sidebar: navigation links', () => {
     renderWithRouter(<Sidebar session={staffSession} role="staff" />);
     expect(screen.getByText('Visitors')).toBeInTheDocument();
     expect(screen.getByText('On-site')).toBeInTheDocument();
-    expect(screen.getByText('Material Passes')).toBeInTheDocument();
     expect(screen.getByText('Reports')).toBeInTheDocument();
     expect(screen.queryByText('Approvals')).not.toBeInTheDocument();
     expect(screen.queryByText('Settings')).not.toBeInTheDocument();

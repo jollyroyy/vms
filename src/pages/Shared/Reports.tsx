@@ -3,8 +3,7 @@
  */
 import React, { useCallback, useEffect, useState } from 'react';
 import { supabase } from '../../supabaseClient';
-import type { Visit, GatePass } from '../../types/index';
-import { getRgpState } from '../../lib/rgpDueDate';
+import type { Visit } from '../../types/index';
 import { attachHostNames } from '../../lib/hostNames';
 import { maskPhone } from '../../lib/pii';
 import { exportToCsv, exportToJson } from '../../lib/exportUtils';
@@ -14,7 +13,6 @@ const TODAY = new Date().toISOString().slice(0, 10);
 export default function ReportsPage(): React.ReactElement {
   const [date, setDate] = useState(TODAY);
   const [visits, setVisits] = useState<Visit[]>([]);
-  const [openPasses, setOpenPasses] = useState<GatePass[]>([]);
   const [loading, setLoading] = useState(true);
   const [userRole, setUserRole] = useState<string | null>(null);
   const [userDeptId, setUserDeptId] = useState<string | null>(null);
@@ -33,33 +31,18 @@ export default function ReportsPage(): React.ReactElement {
 
   const load = useCallback(async () => {
     setLoading(true);
-    const [visitRows, { data: gp }] = await Promise.all([
-      (async (): Promise<Visit[]> => {
-        let query = supabase.from('visits').select(`*, visitor:visitors(*), department:departments(id,name,code,created_at)`)
-          .gte('created_at', `${date}T00:00:00Z`).lte('created_at', `${date}T23:59:59Z`);
-        if (userDeptId && userRole && !['admin', 'guard'].includes(userRole)) {
-          query = query.eq('department_id', userDeptId);
-        }
-        const { data, error } = await query.order('created_at', { ascending: true });
-        if (error) { console.error('[Reports] visits error:', error.message); return []; }
-        return attachHostNames((data ?? []) as unknown as Visit[]);
-      })(),
-      (async (): Promise<{ data: unknown; error: unknown }> => {
-        let query = supabase.from('gate_passes').select(`*, items:gate_pass_items(*), department:departments(id,name,code,created_at)`)
-          .eq('type', 'RGP').in('status', ['awaiting_return', 'partially_returned']);
-        if (userDeptId && userRole && !['admin', 'guard'].includes(userRole)) {
-          query = query.eq('department_id', userDeptId);
-        }
-        return await query;
-      })(),
-    ]);
-    setVisits(visitRows);
-    setOpenPasses((gp as unknown as GatePass[]) ?? []);
+    let query = supabase.from('visits').select(`*, visitor:visitors(*), department:departments(id,name,code,created_at)`)
+      .gte('created_at', `${date}T00:00:00Z`).lte('created_at', `${date}T23:59:59Z`);
+    if (userDeptId && userRole && !['admin', 'guard'].includes(userRole)) {
+      query = query.eq('department_id', userDeptId);
+    }
+    const { data, error } = await query.order('created_at', { ascending: true });
+    if (error) { console.error('[Reports] visits error:', error.message); setVisits([]); }
+    else { setVisits(await attachHostNames((data ?? []) as unknown as Visit[])); }
     setLoading(false);
   }, [date, userDeptId, userRole]);
 
   useEffect(() => { void load(); }, [load]);
-  const overdueCount = openPasses.filter((p) => p.expected_return_date && getRgpState(p.expected_return_date, TODAY) === 'overdue').length;
 
   const STATUS_COLORS: Record<string, string> = {
     rejected: 'text-danger-600', checked_out: 'text-navy-300', checked_in: 'text-brand-600', approved: 'text-brand-600', walkin_approved: 'text-brand-600', pending_approval: 'text-warning-600',
@@ -73,7 +56,7 @@ export default function ReportsPage(): React.ReactElement {
         </div>
         <div>
           <h1 className="page-title">Reports</h1>
-          <p className="page-subtitle">Daily visitor register and material tracking</p>
+          <p className="page-subtitle">Daily visitor register</p>
         </div>
       </div>
 
@@ -136,33 +119,6 @@ export default function ReportsPage(): React.ReactElement {
                 </tbody>
               </table>
             </div>
-          </div>
-        )}
-      </section>
-
-      <section className="no-print">
-        <div className="flex items-center gap-3 mb-4">
-          <h2 className="section-title">Open Returnables (RGP)</h2>
-          {overdueCount > 0 && (<span className="status-badge bg-danger-50 text-danger-700">{overdueCount} overdue</span>)}
-        </div>
-        {openPasses.length === 0 ? (
-          <div className="card p-8 text-center"><p className="text-sm text-navy-300">No open returnable passes</p></div>
-        ) : (
-          <div className="space-y-2">
-            {openPasses.map((p, idx) => {
-              const state = p.expected_return_date ? getRgpState(p.expected_return_date, TODAY) : 'ok';
-              const stripe: Record<string, string> = { ok: 'border-l-brand-400', due_soon: 'border-l-warning-500', due_today: 'border-l-warning-600', overdue: 'border-l-danger-500' };
-              const badge: Record<string, string> = { ok: 'bg-brand-50 text-brand-700', due_soon: 'bg-warning-50 text-warning-700', due_today: 'bg-warning-100 text-warning-700', overdue: 'bg-danger-50 text-danger-700' };
-              return (
-                <div key={p.id} className={`card card-hover border-l-4 ${stripe[state] ?? ''} p-4 animate-fade-in`} style={{ animationDelay: `${idx * 0.03}s` }}>
-                  <div className="flex justify-between items-start">
-                    <div><p className="font-semibold text-sm text-navy-900">{p.ref_number}</p><p className="text-xs text-navy-400 mt-0.5">{p.department?.name} · {p.reason}</p></div>
-                    <span className={`status-badge ${badge[state] ?? ''} capitalize`}>{state.replace(/_/g, ' ')}</span>
-                  </div>
-                  <p className="text-xs text-navy-300 mt-2">Due: {p.expected_return_date} · Status: {p.status.replace(/_/g, ' ')}</p>
-                </div>
-              );
-            })}
           </div>
         )}
       </section>

@@ -2,7 +2,7 @@
 
 > Maintained by the loop (goal.md §7). Update this table in the SAME iteration as any test change.
 > A §2.2 checkbox may only be ticked when every traced test for it passes.
-> Status: ⏸ pending (derived, queued in `tests/pending.list`, excluded from run) · 🔴 red (ACTIVATED, failing — iteration in progress) · 🟡 todo/fixme (scaffolded, converts in its feature's iteration) · 🟢 green
+> Status: ⏸ pending (derived, queued in `tests/pending.list`, excluded from run) · 🔴 red (ACTIVATED, failing — iteration in progress) · 🟡 todo/fixme (scaffolded, converts in its feature's iteration) · 🟢 green · ⚫ removed (feature deleted from the app; requirement ID kept, no longer traced)
 > Activation = remove the file's line from `tests/pending.list` (Red step, `/tdd-loop` skill). The pre-commit hook blocks commits while anything active is red.
 
 | Criterion | Milestone | FR / SEC tags | Test file | Layer | Status |
@@ -13,8 +13,8 @@
 | S2a rejection | 🎯 A | PRD §3.2 | `tests/unit/visitLifecycle.test.ts` (unit); e2e | unit+e2e | 🟢/🟡 (unit green; e2e awaits Supabase) |
 | S2b escalation timers | 🏭 B | FR-VIS-07, SLA-W1 | *(to write in Milestone B)* | unit | — |
 | S3 ref numbers & timestamps | 🎯 A | NFR-07 | `tests/unit/refNumber.test.ts` (7 tests 🟢) + `tests/security/rls.test.ts` (SEC-3 🟡 todo) | unit+sec | 🟢/🟡 |
-| S4 gate pass state machine | 🎯 A | PRD §4.4, FR-GP-06/07 | `tests/unit/gatePassStatus.test.ts` (11 tests 🟢) + e2e | unit+e2e | 🟢/🟡 (unit green; e2e awaits Supabase) |
-| S5 RGP due/overdue | 🎯 A | FR-GP-01/02, SLA-W4 | `tests/unit/rgpDueDate.test.ts` | unit | 🟢 (9 tests pass; criterion awaits browser verify) |
+| S4 gate pass state machine — REMOVED | ❌ removed (was 🎯 A) | PRD §4.4, FR-GP-06/07 | *(removed — `tests/unit/gatePassStatus.test.ts` deleted along with the gate-pass feature)* | unit+e2e | ⚫ removed — feature deleted from the app, no longer traced |
+| S5 RGP due/overdue — REMOVED | ❌ removed (was 🎯 A) | FR-GP-01/02, SLA-W4 | *(removed — `tests/unit/rgpDueDate.test.ts` deleted along with the gate-pass feature)* | unit | ⚫ removed — feature deleted from the app, no longer traced |
 | S6 who's-inside realtime | 🎯 A | FR-VIS-01 | `tests/e2e/demo-path.e2e.ts` | e2e | 🟡 (fixme — runs after Supabase project is live) |
 | S7 blacklist + recall | 🎯 A | FR-VIS-02/03 | `tests/unit/blacklist.test.ts` (5 tests 🟢) + e2e | unit+e2e | 🟢/🟡 (unit green; e2e awaits Supabase) |
 | S8 auto-checkout day close | 🏭 B | FR-VIS-08 | `tests/unit/visitLifecycle.test.ts` (2 tests, 🟢 — written early as pure logic) | unit | 🟢 (pure logic only; cron scheduling is Milestone B) |

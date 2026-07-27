@@ -29,8 +29,8 @@ The following criteria have full implementation in `src/` and Supabase SQL, but 
 | **S1** — Walk-in flow E2E | `Guard/VisitorForm.tsx`, `HOD/Approvals.tsx`, `components/Badge.tsx`, `Guard/Console.tsx` | Register visitor → webcam → HOD approves → badge → exit |
 | **S2a** — Rejection works | `HOD/Approvals.tsx` (rejection_reason field) | HOD rejects; guard console shows rejected status |
 | **S3** — Server ref numbers | `001_schema.sql` triggers | Ref `VIS-YYYYMMDD-NNNN` appears on submit; no client can edit it |
-| **S4** — All 4 gate pass types | `Shared/GatePassForm.tsx`, `Shared/GatePassList.tsx` | IN/OUT × RGP/NRGP; partial return flow |
-| **S5** — RGP tracking | `lib/rgpDueDate.ts`, `Shared/GatePassList.tsx`, `Shared/Reports.tsx` | Overdue entries show red; due_soon shows yellow |
+| **S4** — All 4 gate pass types — ❌ REMOVED (feature deleted from the app) | *(n/a — files deleted)* | Gate-pass feature removed from the product; criterion descoped, no longer tracked |
+| **S5** — RGP tracking — ❌ REMOVED (feature deleted from the app) | *(n/a — files deleted)* | Gate-pass feature removed from the product; criterion descoped, no longer tracked |
 | **S6** — Who's-inside live | `Shared/WhosInside.tsx` (Realtime subscription) | Check-in → second screen updates without reload |
 | **S7** — Blacklist + repeat recall | `Guard/VisitorForm.tsx`, `lib/blacklist.ts` | Known phone auto-fills; blacklisted phone blocked |
 | **S9** — Roles enforced by backend | `002_rls.sql` | Staff user cannot approve; guard cannot change timestamps manually |
@@ -43,8 +43,8 @@ The following criteria have full implementation in `src/` and Supabase SQL, but 
 | **FR-VIS-06** — Visit history search | `Guard/Console.tsx` (search bar in Exit Log tab) | Filter by name/phone/dept |
 | **FR-CAM-05** — Webcam UI | `components/PhotoCapture.tsx` | Live preview + oval + Capture/Retake |
 | **FR-CAM-06** — Camera-denied banner | `components/PhotoCapture.tsx` (catch on getUserMedia) | Deny camera → red banner + file-input fallback |
-| **FR-GP-04** — Printable gate pass | `Shared/GatePassList.tsx` (print button) | Pass page QR + items; print produces clean slip |
-| **FR-GP-05** — Mismatch handling | `Shared/GatePassForm.tsx` (discrepancy note field) | Guard records mismatch; HOD notified |
+| **FR-GP-04** — Printable gate pass — ❌ REMOVED (feature deleted from the app) | *(n/a — files deleted)* | Gate-pass feature removed from the product; criterion descoped, no longer tracked |
+| **FR-GP-05** — Mismatch handling — ❌ REMOVED (feature deleted from the app) | *(n/a — files deleted)* | Gate-pass feature removed from the product; criterion descoped, no longer tracked |
 | **FR-NOT-03** — Checked-in notification | `Guard/Console.tsx` (check-in sends notification insert) | Guard checks in → host receives "visitor on way" |
 | **NFR-01** — Responsive layout | `App.tsx` + all pages (Tailwind responsive classes) | 1280px guard, 375px HOD — all tappable |
 | **Admin module** | `Admin/AdminPanel.tsx` | CRUD departments; role dropdown; blacklist add/remove |

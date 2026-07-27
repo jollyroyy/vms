@@ -1,5 +1,4 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
 import { supabase } from '../../supabaseClient';
 import { attachHostNames } from '../../lib/hostNames';
 import { formatTime } from '../../lib/formatDate';
@@ -78,10 +77,6 @@ export default function VisitorsDashboard(): React.ReactElement {
           <p className="stat-label">Pending</p>
           <p className="stat-value text-amber-600">{loading ? '—' : stats.pending}</p>
         </div>
-        <Link to="/gate-passes" className="stat-card hover:shadow-sm transition-shadow cursor-pointer">
-          <p className="stat-label">Gate Passes</p>
-          <p className="stat-value text-indigo-600">{'→'}</p>
-        </Link>
       </div>
 
       {/* Live queue */}

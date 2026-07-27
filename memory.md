@@ -225,7 +225,7 @@ return () => { channel.unsubscribe(); };
 ### SEC-01
 
 **Pattern:** A user logged in as Guard (or HOD/Staff) navigates to `/admin` by editing the URL and sees the admin panel content — role enforcement is bypassed.
-**Cause:** `ProtectedRoute` received a per-route `allowedRoutes` prop (e.g., `allowedRoutes={['/admin']}`). The check was `pathname.startsWith('/admin')` — which is **always true** when the component renders at `/admin`. Any logged-in user passed the check. Additionally, shared routes (`/whos-inside`, `/gate-passes`, `/reports`) had no `ProtectedRoute` wrapper at all.
+**Cause:** `ProtectedRoute` received a per-route `allowedRoutes` prop (e.g., `allowedRoutes={['/admin']}`). The check was `pathname.startsWith('/admin')` — which is **always true** when the component renders at `/admin`. Any logged-in user passed the check. Additionally, shared routes (`/whos-inside`, `/gate-passes`, `/reports`) had no `ProtectedRoute` wrapper at all (`/gate-passes` has since been removed along with the gate pass UI feature; the historical scope described here is otherwise unchanged).
 **Fix:**
 1. Move `ROLE_ROUTES` to `src/lib/roleRoutes.ts` — single source of truth used by both App.tsx and tests.
 2. Export `isForbidden(pathname, role)` from the same file.
@@ -562,6 +562,7 @@ CREATE POLICY policy_name ON table_name FOR ... USING (...);
 **Pattern:** Department data is not scoped per-role — HOD/staff can see all departments' data in WhosInside, Reports, and GatePassList.
 **Cause:** Queries for WhosInside, Reports, and GatePassList don't filter by `department_id` from JWT. All authenticated users see all rows regardless of department.
 **Fix:** For non-admin roles, add `.eq('department_id', userDeptId)` filter, where `userDeptId` is read from `auth.getUser() -> app_metadata.department_id`. Applied in WhosInside, Reports, and GatePassList load functions.
+**Note (2026-07-27):** The gate pass UI feature (including `GatePassList`, its route, and related pages) has since been removed from the app entirely, so the GatePassList-specific part of this finding is moot. The department-scoping lesson still applies to WhosInside and Reports, which remain live.
 **Prevention:** Every list/table page that shows multi-department data must scope queries by the user's department. Admin/super_admin are the only roles that see all departments.
 **Tags:** `#security` `#data-isolation` `#supabase`
 **First seen:** 2026-07-21 (audit H-07)

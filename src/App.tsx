@@ -8,16 +8,15 @@ import { ThemeProvider } from './lib/theme';
 
 // Pages
 import LoginPage          from './pages/Login';
+import ResetPassword      from './pages/ResetPassword';
+import { hasRecoveryHash, isRecoveryPending, markRecoveryPending, clearRecoveryPending } from './lib/passwordRecovery';
 import VisitorsDashboard  from './pages/Shared/VisitorsDashboard';
 import GuardConsole       from './pages/Guard/Console';
 import GuardDashboard     from './pages/Guard/Dashboard';
-import GuardGatePassQueue from './pages/Guard/GatePassQueue';
 import DailyStaff         from './pages/Guard/DailyStaff';
 import HODApprovals       from './pages/HOD/Approvals';
 import HODOverview        from './pages/HOD/HODOverview';
 import WhosInside         from './pages/Shared/WhosInside';
-import GatePassList       from './pages/Shared/GatePassList';
-import GatePassForm       from './pages/Shared/GatePassForm';
 import ReportsPage        from './pages/Shared/Reports';
 import AnalyticsPage      from './pages/Shared/Analytics';
 import AdminPanel         from './pages/Admin/AdminPanel';
@@ -48,20 +47,40 @@ export default function App(): React.ReactElement {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [role, setRole]       = useState<UserRole | null>(null);
+  // Seeded synchronously: supabase-js consumes the recovery hash during client init,
+  // which can happen before onAuthStateChange is wired up below. The durable flag keeps
+  // the gate up across reloads, so abandoning the form cannot leave a usable session.
+  const [recovering, setRecovering] = useState<boolean>(() => {
+    if (hasRecoveryHash()) { markRecoveryPending(); return true; }
+    return isRecoveryPending();
+  });
 
   useEffect(() => {
-    document.title = 'SecureGate — Visitor & Material Gate Pass';
+    document.title = 'SecureGate — Visitor Management';
   }, []);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
+      // Flag set but no session means the recovery session already ended (expired or
+      // signed out) — drop the gate so the user isn't trapped on the reset screen.
+      if (!data.session && isRecoveryPending()) {
+        clearRecoveryPending();
+        setRecovering(false);
+      }
       setSession(data.session);
       if (data.session?.user?.app_metadata?.role) {
         setRole(data.session.user.app_metadata.role as UserRole);
       }
       setLoading(false);
     });
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, s) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, s) => {
+      // A recovery link signs the user into a normal, persisted session. Without this
+      // gate they land on their dashboard and never get to choose a new password.
+      if (event === 'PASSWORD_RECOVERY') { markRecoveryPending(); setRecovering(true); }
+      // Deliberately NOT cleared on SIGNED_OUT: ResetPassword signs the recovery
+      // session out on success, and clearing here would unmount the page before the
+      // user sees the confirmation. Its "Back to sign in" link is a full navigation,
+      // which reloads without the recovery hash and re-seeds this to false.
       setSession(s);
       if (s?.user?.app_metadata?.role) {
         setRole(s.user.app_metadata.role as UserRole);
@@ -97,12 +116,27 @@ export default function App(): React.ReactElement {
     );
   }
 
+  // Password recovery outranks everything: until a new password is set, the recovery
+  // session must not reach the application shell.
+  if (recovering) {
+    return (
+      <ThemeProvider>
+        <BrowserRouter>
+          <Routes>
+            <Route path="*" element={<ResetPassword />} />
+          </Routes>
+        </BrowserRouter>
+      </ThemeProvider>
+    );
+  }
+
   if (!session) {
     return (
       <ThemeProvider>
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<LoginPage />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </BrowserRouter>
@@ -122,14 +156,11 @@ export default function App(): React.ReactElement {
             <Route path="/visitors"       element={<ProtectedRoute role={role}>{role === 'guard' ? <GuardConsole /> : <VisitorsDashboard />}</ProtectedRoute>} />
             <Route path="/guard"           element={<ProtectedRoute role={role}><GuardConsole /></ProtectedRoute>} />
             <Route path="/guard/dashboard" element={<ProtectedRoute role={role}><GuardDashboard /></ProtectedRoute>} />
-            <Route path="/guard/gate-passes" element={<ProtectedRoute role={role}><GuardGatePassQueue /></ProtectedRoute>} />
             <Route path="/guard/daily-staff" element={<ProtectedRoute role={role}><DailyStaff /></ProtectedRoute>} />
             <Route path="/kiosk"          element={<ProtectedRoute role={role}><KioskPage /></ProtectedRoute>} />
             <Route path="/approvals"       element={<ProtectedRoute role={role}><HODApprovals /></ProtectedRoute>} />
             <Route path="/overview"        element={<ProtectedRoute role={role}><HODOverview /></ProtectedRoute>} />
             <Route path="/whos-inside"     element={<ProtectedRoute role={role}><WhosInside /></ProtectedRoute>} />
-            <Route path="/gate-passes"     element={<ProtectedRoute role={role}><GatePassList /></ProtectedRoute>} />
-            <Route path="/gate-passes/new" element={<ProtectedRoute role={role}><GatePassForm /></ProtectedRoute>} />
             <Route path="/reports"         element={<ProtectedRoute role={role}><ReportsPage /></ProtectedRoute>} />
             <Route path="/analytics"      element={<ProtectedRoute role={role}><AnalyticsPage /></ProtectedRoute>} />
             <Route path="/admin"           element={<ProtectedRoute role={role}><AdminPanel /></ProtectedRoute>} />

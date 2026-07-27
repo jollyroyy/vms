@@ -21,8 +21,19 @@ vi.mock('../../../src/lib/formatDate', () => ({
 }));
 
 let mockData: any;
+
+// The mock MUST honour the `statuses` passed to .in('status', …). Returning mockData
+// verbatim made every tab look correct even if Approvals.tsx requested the wrong
+// statuses — the tab filter was effectively untested.
+function applyStatusFilter(statuses: readonly string[]) {
+  if (!mockData || !Array.isArray(mockData.data)) return mockData;
+  return { ...mockData, data: mockData.data.filter((v: any) => statuses.includes(v.status)) };
+}
+
 const mockEqChain = vi.hoisted(() => vi.fn(() => ({
-  in: vi.fn(() => ({ order: (col: string, opts: any) => Promise.resolve(mockData) })),
+  in: vi.fn((_col: string, statuses: readonly string[]) => ({
+    order: (col: string, opts: any) => Promise.resolve(applyStatusFilter(statuses)),
+  })),
   gte: (col: string, val: any) => ({ order: (c: string, o: any) => Promise.resolve(mockData) }),
   eq: mockEqChain,
   order: (col: string, opts: any) => ({ limit: (n: number) => Promise.resolve(mockData) }),
@@ -132,6 +143,35 @@ describe('M12-HOD: HODApprovals', () => {
     });
   });
 
+  // Guards the tab->status mapping itself. With all three visits available, each tab
+  // must show ONLY its own statuses. If a tab requested the wrong filter, the rows it
+  // should not show would leak in and these assertions would fail.
+  it('each tab requests and shows only its own statuses', async () => {
+    setup({ data: [mockPending, mockApproved, mockRejected], error: null });
+    render(<MemoryRouter><HODApprovals /></MemoryRouter>);
+
+    // Pending tab: only the pending_approval row.
+    await waitFor(() => {
+      expect(screen.getByText('VIS-001')).toBeInTheDocument();
+    });
+    expect(screen.queryByText('Approved Visitor')).not.toBeInTheDocument();
+    expect(screen.queryByText('Rejected Visitor')).not.toBeInTheDocument();
+
+    // Approved tab: only the approved/walkin_approved row.
+    fireEvent.click(screen.getAllByText('Approved')[0]);
+    await waitFor(() => {
+      expect(screen.getAllByText('Approved Visitor').length).toBeGreaterThanOrEqual(1);
+    });
+    expect(screen.queryByText('Rejected Visitor')).not.toBeInTheDocument();
+
+    // Rejected tab: only the rejected row.
+    fireEvent.click(screen.getAllByText('Rejected')[0]);
+    await waitFor(() => {
+      expect(screen.getAllByText('Rejected Visitor').length).toBeGreaterThanOrEqual(1);
+    });
+    expect(screen.queryByText('Approved Visitor')).not.toBeInTheDocument();
+  });
+
   it('shows error when not authenticated', async () => {
     mockGetUser.mockResolvedValue({ data: { user: null } });
     mockChannel.mockReturnValue({ on: () => ({ subscribe: vi.fn().mockReturnValue('sub-1') }) });
@@ -141,11 +181,13 @@ describe('M12-HOD: HODApprovals', () => {
     });
   });
 
-  it('renders sidebar notifications', async () => {
+  // Notifications moved to the HOD Overview page; Approvals now shows only its own header/tabs.
+  it('renders the page header and subtitle', async () => {
     setup();
     render(<MemoryRouter><HODApprovals /></MemoryRouter>);
     await waitFor(() => {
-      expect(screen.getByText('Notifications')).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: /^Approvals$/i })).toBeInTheDocument();
     });
+    expect(screen.getByText(/Visitor approvals & activity/i)).toBeInTheDocument();
   });
 });

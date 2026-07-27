@@ -1,13 +1,12 @@
-# SecureGate VMS - Visitor & Material Gate Pass Management
+# SecureGate VMS - Visitor Management
 
-A role-based visitor management system for organizations to track visitors, manage gate passes, and monitor facility access in real time.
+A role-based visitor management system for organizations to track visitors and monitor facility access in real time.
 
 ## Purpose
 
 SecureGate VMS handles the full lifecycle of visitor management:
 - **Pre-approval**: HODs pre-approve expected visitors
 - **Check-in/out**: Guards verify and process visitors at the gate
-- **Gate passes**: Track material movement (returnable & non-returnable)
 - **Daily staff**: Manage recurring vendors, maids, and workers
 - **Live monitoring**: Real-time dashboards showing who is inside
 
@@ -15,9 +14,9 @@ SecureGate VMS handles the full lifecycle of visitor management:
 
 | Role | What they do |
 |------|-------------|
-| **Guard** | Check visitors in/out, process gate passes, monitor daily staff |
-| **HOD** | Pre-approve visitors, approve gate passes, view department analytics |
-| **Staff** | Request visitor passes, create gate passes |
+| **Guard** | Check visitors in/out, monitor daily staff |
+| **HOD** | Pre-approve visitors, approve visitor requests, view department analytics |
+| **Staff** | Request visitor passes |
 | **Admin** | Manage users, departments, system settings, view reports |
 
 ## Application Flow
@@ -33,15 +32,6 @@ Guard checks pre-approval status
     +-- Walk-in --> Guard creates walk-in request --> HOD approves/rejects
     |
     +-- Rejected --> Visitor turned away
-
-Material Gate Pass flow:
-    Staff/HOD creates gate pass (RGP or NRGP)
-        |
-        v
-    Guard signs off at gate
-        |
-        +-- RGP (Returnable) --> Track return status
-        +-- NRGP (Non-Returnable) --> One-way out
 ```
 
 ## Project Structure
@@ -52,7 +42,6 @@ src/
     Guard/
       Console.tsx         # Main guard check-in/out interface
       Dashboard.tsx       # Guard KPI stats at a glance
-      GatePassQueue.tsx   # Gate pass sign-off queue
       DailyStaff.tsx      # Daily vendors/maids/workers view
     HOD/
       Approvals.tsx       # Approve/reject visitor requests
@@ -62,8 +51,6 @@ src/
       Analytics.tsx       # Charts and analytics
       Reports.tsx         # Exportable reports
       WhosInside.tsx      # Live view of on-site visitors
-      GatePassList.tsx    # Gate pass listing with filters
-      GatePassForm.tsx    # Create new gate pass
       VisitorsDashboard.tsx # Visitor management for HOD/staff
     Admin/
       AdminPanel.tsx      # User and department management
@@ -111,7 +98,6 @@ tests/
 - **Route access**: `src/lib/roleRoutes.ts` is the single source of truth for which roles can access which routes. Both the app and tests import from this file.
 - **Real-time updates**: All dashboards use Supabase real-time subscriptions (`postgres_changes`) with silent refresh to avoid UI flash.
 - **Row-Level Security**: All database tables use Supabase RLS policies to enforce access control at the database level.
-- **Gate pass types**: RGP (Returnable Gate Pass) supports IN/OUT directions. NRGP (Non-Returnable) only supports OUT.
 
 ## Getting Started
 

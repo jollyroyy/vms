@@ -13,7 +13,6 @@
 - **Route access**: `src/lib/roleRoutes.ts` is the single source of truth. `isForbidden()` enforces in `App.tsx`.
 - **Real-time**: Supabase channels with `postgres_changes`. Use `silent` param in `load()` to avoid KPI flash on live refreshes.
 - **Auth**: JWT `app_metadata.role` + `department_id`. Fallback to `profiles` table.
-- **Gate passes**: RGP (returnable, IN/OUT), NRGP (non-returnable, OUT only).
 
 ## Hard Rules
 - **Max 300 lines per file.** If a component or module exceeds 300 lines, extract sub-components or helpers into separate files. No exceptions.
@@ -25,12 +24,13 @@
 ## Directory Layout
 ```
 src/
-  pages/Guard/       # Console, Dashboard, GatePassQueue, DailyStaff
-  pages/HOD/         # Approvals, HODOverview, PreApproveForm
-  pages/Shared/      # Analytics, Reports, WhosInside, GatePassList, GatePassForm, VisitorsDashboard
+  pages/Guard/       # Console, Dashboard, DailyStaff
+  pages/HOD/         # Approvals, ApprovalsPendingList, ApprovalsVisitList, HODOverview,
+                     # OverviewStatCards, OverviewUpcoming, OverviewNotifications, PreApproveForm
+  pages/Shared/      # Analytics, Reports, WhosInside, VisitorsDashboard
   pages/Admin/       # AdminPanel, Activity
   pages/Kiosk/       # Kiosk
-  components/layout/ # AppShell, Sidebar, SidebarAnalytics
+  components/layout/ # AppShell, Sidebar, SidebarAnalytics, SidebarProfile
   lib/               # roleRoutes, theme, errors, mfa
   types/             # index.ts (all DB types)
 supabase/migrations/ # Numbered SQL migrations (001-031+)

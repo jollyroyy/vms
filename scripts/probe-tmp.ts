@@ -20,7 +20,7 @@ async function main() {
   }
   // Can a role sign in?
   const client = createClient(url, anon, { auth: { autoRefreshToken: false, persistSession: false } });
-  const { data, error } = await client.auth.signInWithPassword({ email: 'staff@demo.vms', password: 'Demo@1234' });
+  const { data, error } = await client.auth.signInWithPassword({ email: 'staff@demo.vms', password: 'demo123' });
   console.log('staff sign-in:', error ? 'ERR: ' + error.message : 'OK, user=' + data.user?.id.slice(0, 8));
   if (data.session) {
     const meta = data.user?.user_metadata ?? {};

@@ -2,7 +2,7 @@
 //
 // These are DENIAL tests: they log in as the WRONG role and assert the backend says no.
 // They run against the live Supabase project in .env, using the seeded demo users
-// (scripts/seed.ts, password Demo@1234). Fixtures are created via the service-role
+// (scripts/seed.ts, password demo123). Fixtures are created via the service-role
 // client in beforeAll and removed in afterAll.
 //
 // Enforcement under test:
@@ -17,7 +17,7 @@ import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 const URL = process.env.VITE_SUPABASE_URL!;
 const ANON = process.env.VITE_SUPABASE_ANON_KEY!;
 const SERVICE = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-const PASS = 'Demo@1234';
+const PASS = 'demo123';
 const REF_RE = /^VIS-\d{8}-\d{4}$/;
 
 if (!URL || !ANON || !SERVICE) {
@@ -44,7 +44,24 @@ let visitorId = '';
 let vDeny = '', vApprove = '', vReject = '', vApproved = '', vCheckedIn = '', vHrPending = '';
 const cleanupVisits: string[] = [];
 const cleanupPasses: string[] = [];
+const cleanupVisitors: string[] = [];
 const PROBE_PATH = 'rls-probe/probe.txt';
+
+// Migration 017 forbids a visitor from holding two ACTIVE visits at once. The shared
+// fixture visitor deliberately has several, so any test that inserts a visit as a
+// normal (non-service) role must use a visitor of its own or it trips that trigger.
+let freshVisitorSeq = 0;
+async function freshVisitor(): Promise<string> {
+  const phone = `99988870${String(freshVisitorSeq++).padStart(2, '0')}`;
+  const { data, error } = await svc.from('visitors')
+    .upsert({ phone, full_name: `RLS Fresh Visitor ${phone}`, company: 'TestCo' }, { onConflict: 'phone' })
+    .select('id').single();
+  if (error) throw error;
+  // Clear any active visit left behind by an earlier aborted run.
+  await svc.from('visits').delete().eq('visitor_id', data!.id);
+  cleanupVisitors.push(data!.id);
+  return data!.id;
+}
 
 beforeAll(async () => {
   anon = createClient(URL, ANON, noSession);
@@ -102,6 +119,10 @@ afterAll(async () => {
   if (cleanupVisits.length) {
     await svc.from('notifications').delete().in('related_id', cleanupVisits);
     await svc.from('visits').delete().in('id', cleanupVisits);
+  }
+  if (cleanupVisitors.length) {
+    await svc.from('visits').delete().in('visitor_id', cleanupVisitors);
+    await svc.from('visitors').delete().in('id', cleanupVisitors).then(() => undefined, () => undefined);
   }
   if (visitorId) await svc.from('visitors').delete().eq('id', visitorId).then(() => undefined, () => undefined);
   await svc.storage.from('visitor-photos').remove([PROBE_PATH]);
@@ -196,9 +217,14 @@ describe('S9/SEC-5: role enforcement — HOD', () => {
   }, 30_000);
 
   it('HOD CAN approve/reject visits for their own department', async () => {
+    // approve_visit is the WALK-IN decision path (migration 014): a guard registers a
+    // walk-in as 'pending_approval' and the HOD approves it to 'walkin_approved'.
+    // Pre-approvals never pass through here — pre_approve_visitor_v2 inserts them
+    // directly as 'approved'. The fixtures below are 'pending_approval', so the
+    // correct post-condition is 'walkin_approved', not 'approved'.
     const { error: aErr } = await hodIT.rpc('approve_visit', { visit_id: vApprove });
     expect(aErr).toBeNull();
-    expect((await svcStatus(vApprove)).status).toBe('approved');
+    expect((await svcStatus(vApprove)).status).toBe('walkin_approved');
 
     const { error: rErr } = await hodIT.rpc('reject_visit', { visit_id: vReject, reason: 'RLS test rejection' });
     expect(rErr).toBeNull();
@@ -231,9 +257,10 @@ describe('S9/SEC-5: role enforcement — HOD', () => {
 
 describe('S9/SEC-3: server-authoritative data', () => {
   it('client-supplied reference numbers are ignored/rejected', async () => {
+    const ownVisitor = await freshVisitor();
     const { data: visit, error } = await guard.from('visits')
       .insert({
-        visitor_id: visitorId, department_id: itDept, host_id: hodItId, purpose: 'other',
+        visitor_id: ownVisitor, department_id: itDept, host_id: hodItId, purpose: 'other',
         carrying_material: false, ref_number: 'HACK-0001',
       } as never)
       .select('id, ref_number').single();
@@ -247,9 +274,10 @@ describe('S9/SEC-3: server-authoritative data', () => {
   }, 30_000);
 
   it('client-supplied timestamps are ignored/rejected', async () => {
+    const ownVisitor = await freshVisitor();
     const { data: visit, error } = await guard.from('visits')
       .insert({
-        visitor_id: visitorId, department_id: itDept, host_id: hodItId, purpose: 'other',
+        visitor_id: ownVisitor, department_id: itDept, host_id: hodItId, purpose: 'other',
         carrying_material: false, created_at: '2020-01-01T00:00:00Z',
       } as never)
       .select('id, created_at').single();

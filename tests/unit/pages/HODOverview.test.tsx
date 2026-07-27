@@ -12,14 +12,10 @@ vi.mock('../../../src/lib/hostNames', () => ({
   attachHostNames: (rows: any[]) => Promise.resolve(rows),
 }));
 
-vi.mock('../../../src/lib/recurringVisits', () => ({
-  formatRecurrenceLabel: () => 'Daily',
-}));
-
 let mockTodayData: any;
 let mockUpcomingData: any;
+let mockOnSiteData: any;
 let mockNotifData: any;
-let mockRecurringData: any;
 let mockProfileDept: string | null = 'dept1';
 let mockProfileDeptName: string | null = 'Information Technology';
 
@@ -47,11 +43,17 @@ vi.mock('../../../src/supabaseClient', () => ({
             };
           }
           // General case: select → eq → in → order → limit
+          // `.in('status', [...])` is used both for the "upcoming" query
+          // (pending_approval/approved) and the "on-site" query (checked_in
+          // only) — distinguish by the statuses actually requested.
           return {
             eq: () => ({
-              in: () => ({
+              in: (_col: string, statuses: string[]) => ({
                 order: () => ({
-                  limit: () => Promise.resolve({ data: mockUpcomingData, error: null }),
+                  limit: () => {
+                    const isOnSiteQuery = statuses.length === 1 && statuses[0] === 'checked_in';
+                    return Promise.resolve({ data: isOnSiteQuery ? mockOnSiteData : mockUpcomingData, error: null });
+                  },
                 }),
               }),
               gte: () => Promise.resolve({ data: mockTodayData, error: null }),
@@ -61,7 +63,12 @@ vi.mock('../../../src/supabaseClient', () => ({
       };
     },
     rpc: vi.fn(),
-    channel: () => ({ on: () => ({ on: () => ({ on: () => ({ subscribe: vi.fn().mockReturnValue('sub-1') }) }) }) }),
+    channel: () => {
+      const ch: any = {};
+      ch.on = () => ch;
+      ch.subscribe = () => 'sub-1';
+      return ch;
+    },
     removeChannel: vi.fn(),
   },
 }));
@@ -85,8 +92,8 @@ function setup(opts?: { deptId?: string | null; deptName?: string | null }) {
     { id: 'v5', status: 'checked_in' },
   ];
   mockUpcomingData = [];
+  mockOnSiteData = [];
   mockNotifData = [];
-  mockRecurringData = [];
 }
 
 describe('M12-HOD: HODOverview', () => {
@@ -157,5 +164,163 @@ describe('M12-HOD: HODOverview', () => {
     await waitFor(() => {
       expect(screen.getByText(/Your department at a glance/)).toBeInTheDocument();
     });
+  });
+});
+
+describe('M12-HOD: HODOverview — upcoming excludes past visits', () => {
+  const HOUR = 60 * 60 * 1000;
+  const DAY = 24 * HOUR;
+
+  it('does not show a visit whose scheduled_for is in the past', async () => {
+    setup();
+    const now = Date.now();
+    mockUpcomingData = [
+      {
+        id: 'p1', status: 'approved', purpose: 'meeting', host_id: 'h1',
+        scheduled_for: new Date(now - DAY).toISOString(),
+        created_at: new Date(now - DAY).toISOString(),
+        visitor: { full_name: 'Past Visitor', company: null },
+      },
+    ];
+    render(<MemoryRouter><HODOverview /></MemoryRouter>);
+    // Wait for the load to actually finish — the empty state only renders once !loading.
+    await waitFor(() => {
+      expect(screen.getByText('No upcoming visits')).toBeInTheDocument();
+    });
+    expect(screen.queryByText('Past Visitor')).not.toBeInTheDocument();
+  });
+
+  it('shows a visit whose scheduled_for is in the future', async () => {
+    setup();
+    const now = Date.now();
+    mockUpcomingData = [
+      {
+        id: 'f1', status: 'approved', purpose: 'meeting', host_id: 'h1',
+        scheduled_for: new Date(now + DAY).toISOString(),
+        created_at: new Date(now).toISOString(),
+        visitor: { full_name: 'Future Visitor', company: null },
+      },
+    ];
+    render(<MemoryRouter><HODOverview /></MemoryRouter>);
+    await waitFor(() => {
+      expect(screen.getByText('1 visit')).toBeInTheDocument();
+    });
+    expect(screen.getByText('Future Visitor')).toBeInTheDocument();
+  });
+
+  it('shows a null-scheduled visit created today', async () => {
+    setup();
+    const now = Date.now();
+    mockUpcomingData = [
+      {
+        id: 'n1', status: 'pending_approval', purpose: 'meeting', host_id: 'h1',
+        scheduled_for: null,
+        created_at: new Date(now).toISOString(),
+        visitor: { full_name: 'Null Today Visitor', company: null },
+      },
+    ];
+    render(<MemoryRouter><HODOverview /></MemoryRouter>);
+    await waitFor(() => {
+      expect(screen.getByText('1 visit')).toBeInTheDocument();
+    });
+    expect(screen.getByText('Null Today Visitor')).toBeInTheDocument();
+  });
+
+  it('excludes a null-scheduled visit created days ago', async () => {
+    setup();
+    const now = Date.now();
+    mockUpcomingData = [
+      {
+        id: 'n2', status: 'pending_approval', purpose: 'meeting', host_id: 'h1',
+        scheduled_for: null,
+        created_at: new Date(now - 5 * DAY).toISOString(),
+        visitor: { full_name: 'Null Old Visitor', company: null },
+      },
+    ];
+    render(<MemoryRouter><HODOverview /></MemoryRouter>);
+    await waitFor(() => {
+      expect(screen.getByText('No upcoming visits')).toBeInTheDocument();
+    });
+    expect(screen.queryByText('Null Old Visitor')).not.toBeInTheDocument();
+  });
+
+  it('orders upcoming visits soonest-first', async () => {
+    setup();
+    const now = Date.now();
+    mockUpcomingData = [
+      {
+        id: 'later', status: 'approved', purpose: 'meeting', host_id: 'h1',
+        scheduled_for: new Date(now + 3 * DAY).toISOString(),
+        created_at: new Date(now).toISOString(),
+        visitor: { full_name: 'Later Visitor', company: null },
+      },
+      {
+        id: 'sooner', status: 'approved', purpose: 'meeting', host_id: 'h1',
+        scheduled_for: new Date(now + HOUR).toISOString(),
+        created_at: new Date(now).toISOString(),
+        visitor: { full_name: 'Sooner Visitor', company: null },
+      },
+    ];
+    render(<MemoryRouter><HODOverview /></MemoryRouter>);
+    await waitFor(() => {
+      expect(screen.getByText('Sooner Visitor')).toBeInTheDocument();
+    });
+    const names = screen.getAllByText(/Visitor$/).map((el) => el.textContent);
+    const sIdx = names.indexOf('Sooner Visitor');
+    const lIdx = names.indexOf('Later Visitor');
+    expect(sIdx).toBeGreaterThanOrEqual(0);
+    expect(lIdx).toBeGreaterThan(sIdx);
+  });
+});
+
+describe('M12-HOD: HODOverview — on-site section', () => {
+  it('shows an empty state when no one is on site', async () => {
+    setup();
+    render(<MemoryRouter><HODOverview /></MemoryRouter>);
+    await waitFor(() => {
+      expect(screen.getByText('No one on site right now')).toBeInTheDocument();
+    });
+  });
+
+  it('lists currently checked-in visitors with host and check-in time', async () => {
+    setup();
+    mockOnSiteData = [
+      {
+        id: 'os1', status: 'checked_in', purpose: 'meeting', host_id: 'h1',
+        scheduled_for: null,
+        created_at: new Date().toISOString(),
+        checked_in_at: new Date().toISOString(),
+        visitor: { full_name: 'Onsite Visitor', company: 'Acme Co' },
+        host: { id: 'h1', full_name: 'Dr. Sharma' },
+      },
+    ];
+    render(<MemoryRouter><HODOverview /></MemoryRouter>);
+    await waitFor(() => {
+      expect(screen.getByText(/Onsite Visitor/)).toBeInTheDocument();
+    });
+    expect(screen.getByText(/Acme Co/)).toBeInTheDocument();
+    expect(screen.getByText(/Dr\. Sharma/)).toBeInTheDocument();
+  });
+
+  it('does not render the on-site count as a duplicate of the Inside stat value', async () => {
+    setup();
+    mockOnSiteData = [
+      {
+        id: 'os1', status: 'checked_in', purpose: 'meeting', host_id: 'h1',
+        scheduled_for: null,
+        created_at: new Date().toISOString(),
+        checked_in_at: new Date().toISOString(),
+        visitor: { full_name: 'Onsite Visitor', company: null },
+        host: { id: 'h1', full_name: 'Dr. Sharma' },
+      },
+    ];
+    render(<MemoryRouter><HODOverview /></MemoryRouter>);
+    await waitFor(() => {
+      expect(screen.getByText(/Onsite Visitor/)).toBeInTheDocument();
+    });
+    // "Inside" stat card shows 2 (from mockTodayData). The on-site widget
+    // must not separately print that same numeric value as a badge/count.
+    expect(screen.queryByText(/^2 visit/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/^2 on-site/i)).not.toBeInTheDocument();
   });
 });

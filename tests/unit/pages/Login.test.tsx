@@ -79,7 +79,21 @@ describe('M12-LOGIN: LoginPage', () => {
     fireEvent.change(screen.getByPlaceholderText('you@company.com'), { target: { value: 'test@test.com' } });
     fireEvent.click(screen.getByText(/forgot password/i));
     await waitFor(() => {
-      expect(mockResetPw).toHaveBeenCalledWith('test@test.com', { redirectTo: window.location.origin });
+      // Must land on the reset page, not the app root — otherwise the recovery
+      // session drops the user straight into the dashboard with no way to set a password.
+      expect(mockResetPw).toHaveBeenCalledWith('test@test.com', {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+    });
+  });
+
+  it('does not reveal whether the email is registered', async () => {
+    mockResetPw.mockResolvedValue({ error: null });
+    render(<LoginPage />);
+    fireEvent.change(screen.getByPlaceholderText('you@company.com'), { target: { value: 'test@test.com' } });
+    fireEvent.click(screen.getByText(/forgot password/i));
+    await waitFor(() => {
+      expect(screen.getByText(/if that email is registered/i)).toBeInTheDocument();
     });
   });
 

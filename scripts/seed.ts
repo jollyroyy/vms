@@ -39,10 +39,23 @@ async function createUser(email: string, password: string, fullName: string) {
     user_metadata: { full_name: fullName },
   });
   if (error) {
-    // If user already exists, fetch it
+    // If user already exists, fetch it and RESET its password to the seed value.
+    // Without the reset, re-seeding a project that already has the demo users leaves
+    // whatever password they were first created with. That silently breaks every
+    // consumer that assumes the documented demo123 — notably tests/security/rls.test.ts,
+    // which then fails with a misleading "Invalid login credentials".
     if (error.message?.includes('already')) {
-      const { data: list } = await admin.auth.admin.listUsers();
-      return list?.users.find((u) => u.email === email) ?? null;
+      const { data: list } = await admin.auth.admin.listUsers({ perPage: 1000 });
+      const existing = list?.users.find((u) => u.email === email) ?? null;
+      if (existing) {
+        const { error: pwErr } = await admin.auth.admin.updateUserById(existing.id, {
+          password,
+          email_confirm: true,
+          user_metadata: { full_name: fullName },
+        });
+        if (pwErr) throw new Error(`resetPassword ${email}: ${pwErr.message}`);
+      }
+      return existing;
     }
     throw new Error(`createUser ${email}: ${error.message}`);
   }
@@ -76,7 +89,7 @@ async function seed() {
 
   // ── 2. Auth users ──
   console.log('\n── Auth users');
-  const PASS = 'Demo@1234'; // same password for all demo users
+  const PASS = 'demo123'; // same password for all demo users (VMS + gatepass share this auth project)
   const users: Record<string, { id: string; email: string }> = {};
 
   const specs = [
@@ -338,7 +351,7 @@ async function seed() {
   // ── Done ──
   console.log('\n════════════════════════════════');
   console.log('✅  Seed complete.\n');
-  console.log('Demo user credentials (all use password: Demo@1234):');
+  console.log('Demo user credentials (all use password: demo123):');
   console.log(`  Guard:         guard@demo.vms`);
   console.log(`  HOD (IT):      hod.it@demo.vms, hod2.it@demo.vms`);
   console.log(`  HOD (HR):      hod.hr@demo.vms, hod2.hr@demo.vms`);

@@ -74,7 +74,7 @@ Security is **not** an operational nicety that waits for Milestone B. A visitor 
 
 ---
 
-The loop (for the **full product**) is finished when every checkbox below is TRUE and verified by actually running the app — not by reading the code. Tags: 🎯 = Milestone A (demo), 🏭 = Milestone B (production).
+The loop (for the **full product**) is finished when every checkbox below is TRUE and verified by actually running the app — not by reading the code. Tags: 🎯 = Milestone A (demo), 🏭 = Milestone B (production), ❌ = Removed/descoped (feature deleted from the app; requirement ID kept for the record, no longer traced by tests).
 
 ### 2.1 Hard gates (must pass every iteration, not just at the end)
 - [ ] `npm run build` succeeds with zero errors
@@ -87,8 +87,8 @@ The loop (for the **full product**) is finished when every checkbox below is TRU
 - [ ] 🎯 **S2a — Rejection works**: HOD rejects with a reason; guard console shows it live.
 - [ ] 🏭 **S2b — Escalation works**: approval timeout escalates HOD → delegate → Admin (`FR-VIS-07`, `SLA-W1` timings configurable).
 - [ ] 🎯 **S3 — Auto ref numbers & server timestamps**: `VIS-YYYYMMDD-NNNN` / `GP-IN|OUT-YYYYMMDD-NNNN`, generated server-side, never editable from any UI (`NFR-07`).
-- [ ] 🎯 **S4 — All 4 gate pass types work** (PRD §4): Inward/Outward × RGP/NRGP, itemized lines, HOD approval, guard gate verification, status machine `Draft → … → Closed` including **partial returns** (`FR-GP-06`) and visitor-linked passes (`FR-GP-07`). (For demo, partial returns may be data-seeded rather than UI-polished.)
-- [ ] 🎯 **S5 — RGP tracking**: open-returnables dashboard with overdue color coding (`FR-GP-01`); due/overdue state computed correctly across date boundaries.
+- [ ] ❌ **S4 — All 4 gate pass types work** — **REMOVED (gate-pass feature deleted from the app; descoped, no longer traced)**. ~~(PRD §4): Inward/Outward × RGP/NRGP, itemized lines, HOD approval, guard gate verification, status machine `Draft → … → Closed` including **partial returns** (`FR-GP-06`) and visitor-linked passes (`FR-GP-07`). (For demo, partial returns may be data-seeded rather than UI-polished.)~~
+- [ ] ❌ **S5 — RGP tracking** — **REMOVED (gate-pass feature deleted from the app; descoped, no longer traced)**. ~~open-returnables dashboard with overdue color coding (`FR-GP-01`); due/overdue state computed correctly across date boundaries.~~
 - [ ] 🎯 **S6 — Who's-inside / evacuation view** live-updates on check-in/check-out (`FR-VIS-01`, Supabase Realtime). **Big demo wow-moment — show it on a second screen while checking someone in.**
 - [ ] 🎯 **S7 — Blacklist** flags on registration attempt (`FR-VIS-02`); repeat-visitor recall by phone number auto-fills (`FR-VIS-03`). **Both are cheap to build and demo brilliantly.**
 - [ ] 🏭 **S8 — Auto-checkout at day close** with "not verified" flag (`FR-VIS-08`).
@@ -112,8 +112,8 @@ The loop (for the **full product**) is finished when every checkbox below is TRU
 - [ ] 🎯 **FR-VIS-06 — Visit history search**: guard / admin can search visits by name, phone, department, HOD, date range; results paginated.
 - [ ] 🎯 **FR-CAM-05 — Webcam UI**: live preview with a face-position oval overlay; single **Capture** button freezes the frame; unlimited **Retake** until saved; no page reload between retakes.
 - [ ] 🎯 **FR-CAM-06 — Camera-denied banner**: if `getUserMedia` is denied or no camera is detected, a persistent red banner with fix instructions appears — the registration form is still usable (file-input fallback, `FR-CAM-10`).
-- [ ] 🎯 **FR-GP-04 — Printable gate pass**: rendered gate pass page has a QR code, full item list, approver details, and carrier info; `window.print()` produces a pass suitable for the guard's printer.
-- [ ] 🎯 **FR-GP-05 — Mismatch handling**: guard can record a quantity or item discrepancy at the gate return with a note; the approving HOD is notified in-app.
+- [ ] ❌ **FR-GP-04 — Printable gate pass** — **REMOVED (gate-pass feature deleted from the app; descoped, no longer traced)**. ~~rendered gate pass page has a QR code, full item list, approver details, and carrier info; `window.print()` produces a pass suitable for the guard's printer.~~
+- [ ] ❌ **FR-GP-05 — Mismatch handling** — **REMOVED (gate-pass feature deleted from the app; descoped, no longer traced)**. ~~guard can record a quantity or item discrepancy at the gate return with a note; the approving HOD is notified in-app.~~
 - [ ] 🎯 **FR-NOT-03 — Checked-in notification**: when the guard logs entry (check-in), the host/HOD receives an in-app "visitor on the way" notification in real time.
 - [ ] 🎯 **NFR-01 — Responsive layout**: guard console renders correctly at 1280 px desktop width; HOD approval page renders correctly at 375 px (iPhone) — all interactive elements are tap-friendly.
 - [ ] 🎯 **Admin module — Departments & users**: Admin can create / edit departments, assign HODs and delegates, create/deactivate user accounts, assign roles; blacklist entries (phone + reason) can be added or removed.
@@ -280,13 +280,13 @@ The loop runs **goal → build → CHECK → adjust**, and the CHECK phase is ex
 - [ ] 🎯 **M2-VISIT**: Visit state machine (`pending_approval → approved → checked_in → checked_out`) enforces valid transitions; rejection is terminal; auto-checkout at day close flags unverified exits; pre-approval validates required fields.
 - Traced by: `tests/unit/visitLifecycle.test.ts` (10 tests, 🟢)
 
-### M3 — MODULE: Gate Pass State Machine (PRD §4.4)
-- [ ] 🎯 **M3-GP**: All 10 statuses (`draft → pending_approval → approved → dispatched → awaiting_return → partially_returned → returned → closed` + `rejected` + `cancelled`) enforce valid transitions; NRGP closes after dispatch; RGP requires return; partial returns tracked per-line; over-returning rejected.
-- Traced by: `tests/unit/gatePassStatus.test.ts` (11 tests, 🟢)
+### M3 — MODULE: Gate Pass State Machine (PRD §4.4) — ❌ REMOVED (feature deleted from the app)
+- [ ] ❌ **M3-GP**: **REMOVED — gate-pass feature deleted from the app; descoped, no longer traced.** ~~All 10 statuses (`draft → pending_approval → approved → dispatched → awaiting_return → partially_returned → returned → closed` + `rejected` + `cancelled`) enforce valid transitions; NRGP closes after dispatch; RGP requires return; partial returns tracked per-line; over-returning rejected.~~
+- Traced by: *(no longer traced — `tests/unit/gatePassStatus.test.ts` was deleted along with the gate-pass feature)*
 
-### M4 — MODULE: RGP Due-Date Tracking (FR-GP-01, FR-GP-02, SLA-W4)
-- [ ] 🎯 **M4-RGP**: `getRgpState()` returns correct state (`ok`, `due_soon`, `due_today`, `overdue`) across date/month/year boundaries; `isReminderDay()` fires at T-1, due date, and every 3rd day overdue.
-- Traced by: `tests/unit/rgpDueDate.test.ts` (9 tests, 🟢)
+### M4 — MODULE: RGP Due-Date Tracking (FR-GP-01, FR-GP-02, SLA-W4) — ❌ REMOVED (feature deleted from the app)
+- [ ] ❌ **M4-RGP**: **REMOVED — gate-pass feature deleted from the app; descoped, no longer traced.** ~~`getRgpState()` returns correct state (`ok`, `due_soon`, `due_today`, `overdue`) across date/month/year boundaries; `isReminderDay()` fires at T-1, due date, and every 3rd day overdue.~~
+- Traced by: *(no longer traced — `tests/unit/rgpDueDate.test.ts` was deleted along with the gate-pass feature)*
 
 ### M5 — MODULE: Blacklist & Phone Normalization (FR-VIS-02, FR-VIS-03)
 - [ ] 🎯 **M5-BLACK**: `normalizePhone()` strips formatting, normalizes country codes, rejects invalid numbers; `isBlacklisted()` matches regardless of phone formatting variant.
@@ -325,7 +325,7 @@ The loop runs **goal → build → CHECK → adjust**, and the CHECK phase is ex
 - [ ] 🎯 **M12-HOD**: HOD approvals shows pending visits; approve/reject flow works.
 - [ ] 🎯 **M12-WHOSINSIDE**: Who's Inside board shows checked-in visitors.
 - [ ] 🎯 **M12-REPORTS**: Reports page renders daily visitor register.
-- [ ] 🎯 **M12-GATEPASS**: Gate pass list and form render and submit correctly.
+- [ ] ❌ **M12-GATEPASS**: **REMOVED (gate-pass feature deleted from the app; descoped, no longer traced)**. ~~Gate pass list and form render and submit correctly.~~
 - [ ] 🎯 **M12-ADMIN**: Admin panel manages departments, users, blacklist.
 - [ ] 🎯 **M12-NOTFOUND**: 404 page renders.
 - Traced by: `tests/pages/` suite (tests TBD)
@@ -496,6 +496,7 @@ EC-01..EC-12 (guard console, sessions, pre-approval) are already audited in `lea
 | 2026-07-21 | iter-10 | v1.9: Added SEC-17 through SEC-24 (14 new security rules); added M14–M20 (7 new modules: QR Badge, Data Retention, Overstay, Document Signing, i18n, Export, Analytics) | Gap analysis vs commercial VMS: 30 missing features codified into modules; 14 implemented in code, rest scaffolded for external service integration |
 | 2026-07-21 | iter-11 | v2.0: Premium UI revamp completed (7 files: index.css, VisitorDetails, Badge, Console, WhosInside, Approvals, Login); fixed Approvals.tsx build errors (VisitStatus typing with `as const` + nullish coalescing for STATUS_STYLES); self-learning enforcement: agent must read learnings.md and memory.md before every action | "Premium-looking, modern UI" is now a stated priority; build stability restored after visual changes |
 | 2026-07-21 | iter-12 | v2.1: Added M21-M26 (6 new modules: EXIF stripping, email notifications, TOTP MFA, recurring visits, confidential flag, configurable check-in window); added FR-SEC-01 to FR-SEC-03 and FR-WF-01 to FR-WF-04 to PRD §14 | Gap analysis vs VisitorPortal: critical security and workflow gaps identified and codified into trackable modules |
+| 2026-07-27 | — | v2.2: Gate-pass feature (Material Gate Pass module) removed from the app — source files (`Shared/GatePassForm.tsx`, `Shared/GatePassList.tsx`, `components/gatePass/GateSignoffPanel.tsx`, `lib/gatePassStatus.ts`, `lib/rgpDueDate.ts`) and their tests deleted. Criteria **S4**, **S5**, **FR-GP-04**, **FR-GP-05**, **M3-GP**, **M4-RGP**, **M12-GATEPASS** marked ❌ REMOVED/descoped (new ❌ tag added to §2.2 legend); requirement IDs kept visible for the historical record, but "Traced by" lines pointing at deleted test files were cleared — they no longer make a passing-test claim | Feature removed from product scope; traceability must not claim tests trace code that no longer exists |
 
 **Bootstrap (iteration 0):** if `progress.md` / `learnings.md` / `memory.md` don't exist, create them. `progress.md` must contain the permanent `Deferred → Milestone B` section from day one (pre-populated with all 🏭 criteria + PRD §10 SLAs + PRD §11 Handover). Seed *Next Up* by decomposing the **🎯 Milestone A** criteria into ordered tasks along the demo path:
 `project scaffold → Supabase schema + basic roles → guard console + webcam capture → HOD mobile approval (realtime) → badge + exit flow → who's-inside live board → blacklist + repeat recall → gate passes (4 types) → RGP dashboard → visitor register report → seed script + DEMO-SCRIPT.md → full demo dry-run ×2`.
