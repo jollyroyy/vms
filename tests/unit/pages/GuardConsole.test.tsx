@@ -160,7 +160,7 @@ describe('M12-GUARD: GuardConsole', () => {
       });
       fireEvent.click(screen.getByText('People Inside').closest('button')!);
       await waitFor(() => {
-        expect(screen.getByText('No visitors checked in')).toBeInTheDocument();
+        expect(screen.getByText('No visitors inside right now.')).toBeInTheDocument();
       });
     });
 
@@ -190,8 +190,8 @@ describe('M12-GUARD: GuardConsole', () => {
       fireEvent.click(btn);
       await waitFor(() => {
         expect(screen.getAllByText('Alice Johnson').length).toBeGreaterThanOrEqual(1);
-        expect(screen.getAllByText('Over 9h').length).toBeGreaterThanOrEqual(1);
-        expect(screen.getAllByText('Engineering').length).toBeGreaterThanOrEqual(1);
+        expect(screen.getAllByText('Bob Smith').length).toBeGreaterThanOrEqual(1);
+        expect(screen.getAllByText('Check Out').length).toBeGreaterThanOrEqual(2);
       });
     });
 
@@ -205,11 +205,11 @@ describe('M12-GUARD: GuardConsole', () => {
       const btn = screen.getByText('People Inside').closest('button')!;
       fireEvent.click(btn);
       await waitFor(() => {
-        expect(screen.getByText('No visitors checked in')).toBeInTheDocument();
+        expect(screen.getByText('No visitors inside right now.')).toBeInTheDocument();
       });
       fireEvent.click(btn);
       await waitFor(() => {
-        expect(screen.queryByText('No visitors checked in')).not.toBeInTheDocument();
+        expect(screen.queryByText('No visitors inside right now.')).not.toBeInTheDocument();
       });
     });
   });
