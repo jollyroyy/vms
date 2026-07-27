@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { supabase } from '../../supabaseClient';
 import type { Visit, VisitStatus } from '../../types/index';
 import { attachHostNames } from '../../lib/hostNames';
@@ -18,7 +19,13 @@ const TAB_CONFIG: { key: Tab; label: string; icon: React.ReactNode }[] = [
 ];
 
 export default function HODApprovals(): React.ReactElement {
-  const [tab, setTab] = useState<Tab>('pending');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const validTabs: Tab[] = ['pending', 'approved', 'rejected', 'pre-approve'];
+  const tabParam = searchParams.get('tab');
+  const tab: Tab = validTabs.includes(tabParam as Tab) ? (tabParam as Tab) : 'pending';
+  const setTab = useCallback((t: Tab) => {
+    setSearchParams({ tab: t }, { replace: true });
+  }, [setSearchParams]);
   const [visits, setVisits] = useState<Visit[]>([]);
   const [loading, setLoading] = useState(true);
   const [reasons, setReasons] = useState<Record<string, string>>({});

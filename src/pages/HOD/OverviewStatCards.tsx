@@ -15,10 +15,10 @@ type Props = {
 
 export default function OverviewStatCards({ loading, stats }: Props): React.ReactElement {
   const cards = [
-    { value: stats.inside, label: 'Inside', color: 'text-brand-600', link: '/approvals' },
-    { value: stats.approvedToday, label: 'Approved', color: 'text-success-600', link: '/approvals' },
-    { value: stats.pending, label: 'Pending', color: 'text-amber-600', link: '/approvals' },
-    { value: stats.rejectedToday, label: 'Rejected', color: 'text-danger-600', link: null },
+    { value: stats.inside, label: 'Inside', color: 'text-brand-600', link: '/approvals?tab=pending' },
+    { value: stats.approvedToday, label: 'Approved', color: 'text-success-600', link: '/approvals?tab=approved' },
+    { value: stats.pending, label: 'Pending', color: 'text-amber-600', link: '/approvals?tab=pending' },
+    { value: stats.rejectedToday, label: 'Rejected', color: 'text-danger-600', link: '/approvals?tab=rejected' },
   ];
 
   return (

@@ -42,17 +42,19 @@ describe('OverviewStatCards', () => {
     expect(screen.getAllByText('0').length).toBe(4);
   });
 
-  it('links Inside, Approved and Pending cards to /approvals but leaves Rejected as a plain card', () => {
+  it('links each stat card to /approvals with the correct tab query param, Rejected is a plain card', () => {
     renderWithRouter(<OverviewStatCards loading={false} stats={stats} />);
     const insideLink = screen.getByText('Inside').closest('a');
     const approvedLink = screen.getByText('Approved').closest('a');
     const pendingLink = screen.getByText('Pending').closest('a');
     const rejectedLink = screen.getByText('Rejected').closest('a');
     expect(insideLink).not.toBeNull();
-    expect(insideLink).toHaveAttribute('href', '/approvals');
+    expect(insideLink).toHaveAttribute('href', '/approvals?tab=pending');
     expect(approvedLink).not.toBeNull();
+    expect(approvedLink).toHaveAttribute('href', '/approvals?tab=approved');
     expect(pendingLink).not.toBeNull();
-    // Rejected has no `link` value in the component's card config — must not be an <a>.
-    expect(rejectedLink).toBeNull();
+    expect(pendingLink).toHaveAttribute('href', '/approvals?tab=pending');
+    expect(rejectedLink).not.toBeNull();
+    expect(rejectedLink).toHaveAttribute('href', '/approvals?tab=rejected');
   });
 });
