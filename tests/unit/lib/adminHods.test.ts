@@ -187,6 +187,12 @@ describe('addHod', () => {
     await expect(addHod('d1', { fullName: 'R', email: 'r@corp.com' })).rejects.toThrow(/already registered/i);
   });
 
+  it('shows a helpful message when signUp is rate-limited', async () => {
+    state.lookupProfile = null;
+    state.signUpError = 'Email rate limit exceeded';
+    await expect(addHod('d1', { fullName: 'R', email: 'r@corp.com' })).rejects.toThrow(/rate-limited/i);
+  });
+
   it('throws when promoting an existing profile fails', async () => {
     state.lookupProfile = { id: 'p7' };
     state.error = 'permission denied';

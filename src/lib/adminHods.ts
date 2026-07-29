@@ -81,7 +81,17 @@ export async function addHod(
     password: tempPassword(),
     options: { data: { full_name: fullName } },
   });
-  if (signUpError) throw new Error(signUpError.message);
+  if (signUpError) {
+    if (/rate\s*limit/i.test(signUpError.message)) {
+      throw new Error(
+        'Invitation email could not be sent — the email service is rate-limited. '
+        + 'Wait about 60 seconds, then try again. '
+        + 'If this keeps happening, disable "Confirm email" in the Supabase Auth dashboard '
+        + 'so invites stop sending confirmation emails.',
+      );
+    }
+    throw new Error(signUpError.message);
+  }
 
   const newId = signUpData?.user?.id;
   if (!newId) throw new Error('Could not create the account for this HOD.');
