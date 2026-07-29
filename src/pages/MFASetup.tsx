@@ -23,7 +23,7 @@ export default function MFASetupPage(): React.ReactElement {
       try {
         const { data, error: enrollErr } = await supabase.auth.mfa.enroll({
           factorType: 'totp',
-          issuer: 'Quest Mall Secure Gate',
+          issuer: 'Secure Gate',
         });
         if (enrollErr || !data) {
           setError(enrollErr?.message ?? 'Failed to start MFA enrollment');

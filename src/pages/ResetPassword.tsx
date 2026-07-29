@@ -77,7 +77,7 @@ export default function ResetPassword(): React.ReactElement {
         <div className="flex flex-col items-center mb-5">
           <Logo size="lg" className="mb-3" />
           <h1 className="font-display text-2xl font-bold text-navy-900 tracking-tight">Set a new password</h1>
-          <p className="text-sm text-navy-500 mt-1.5 text-center">Choose a new password for your Quest Mall Secure Gate account</p>
+          <p className="text-sm text-navy-500 mt-1.5 text-center">Choose a new password for your Secure Gate account</p>
         </div>
 
         {done ? (

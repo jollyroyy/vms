@@ -57,7 +57,7 @@ export default function App(): React.ReactElement {
   });
 
   useEffect(() => {
-    document.title = 'Quest Mall Secure Gate — Visitor Management';
+    document.title = 'Secure Gate — Visitor Management';
   }, []);
 
   useEffect(() => {
@@ -103,7 +103,7 @@ export default function App(): React.ReactElement {
               <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-brand-500 to-accent-500 blur-lg opacity-50 animate-pulse-soft" />
               <Logo size="lg" className="relative" />
             </div>
-            <p className="font-display text-sm font-bold text-navy-600 tracking-tight">Quest Mall Secure Gate</p>
+            <p className="font-display text-sm font-bold text-navy-600 tracking-tight">Secure Gate</p>
             <div className="h-1 w-20 rounded-full bg-surface-200 overflow-hidden">
               <div className="h-full w-1/2 rounded-full bg-gradient-to-r from-brand-400 to-accent-500 animate-shimmer" />
             </div>

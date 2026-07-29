@@ -49,13 +49,13 @@ function buildCheckInEmail(params: {
     '',
     'Please proceed to the reception area.',
     '',
-    '-- Quest Mall Secure Gate',
+    '-- Secure Gate',
   ].join('\n');
 
   const bodyHtml = `
     <div style="font-family: -apple-system, sans-serif; max-width: 480px; margin: 0 auto;">
       <div style="background: linear-gradient(135deg, #2b2114, #453620); padding: 24px; border-radius: 12px 12px 0 0;">
-        <h2 style="color: #e8d5a8; margin: 0; font-size: 18px;">Quest Mall Secure Gate</h2>
+        <h2 style="color: #e8d5a8; margin: 0; font-size: 18px;">Secure Gate</h2>
         <p style="color: #c9a558; margin: 4px 0 0; font-size: 13px;">Visitor Management System</p>
       </div>
       <div style="background: #faf8f4; padding: 24px; border-radius: 0 0 12px 12px; border: 1px solid #e8e2d3; border-top: none;">

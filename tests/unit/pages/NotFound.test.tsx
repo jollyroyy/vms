@@ -9,7 +9,7 @@ afterEach(cleanup);
 describe('M12-NOTFOUND: NotFoundPage', () => {
   it('renders brand heading', () => {
     render(<MemoryRouter><NotFoundPage /></MemoryRouter>);
-    expect(screen.getByText('Quest Mall Secure Gate')).toBeInTheDocument();
+    expect(screen.getByText('Secure Gate')).toBeInTheDocument();
   });
 
   it('renders "Page not found" message', () => {

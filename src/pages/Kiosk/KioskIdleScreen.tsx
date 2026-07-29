@@ -10,7 +10,7 @@ export default function KioskIdleScreen({ onStart }: Props): React.ReactElement 
       <AuroraBackdrop />
       <div className="relative animate-fade-in text-center max-w-lg">
         <Logo size="lg" className="mx-auto mb-8 shadow-glow-mix ring-4 ring-white/10" />
-        <h1 className="text-4xl font-bold text-white tracking-tight font-display mb-2">Quest Mall Secure Gate</h1>
+        <h1 className="text-4xl font-bold text-white tracking-tight font-display mb-2">Secure Gate</h1>
         <p className="text-lg text-brand-200/80 mb-2">Visitor Self Check-in Kiosk</p>
         <p className="text-sm text-white/50 mb-12">Touch the screen to begin</p>
         <button onClick={onStart}

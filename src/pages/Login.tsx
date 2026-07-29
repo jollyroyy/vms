@@ -75,8 +75,8 @@ export default function LoginPage(): React.ReactElement {
         {/* Brand */}
         <div className="flex flex-col items-center mb-5">
           <Logo size="lg" className="mb-3" />
-          <h1 className="font-display text-2xl font-bold text-navy-900 tracking-tight">Quest Mall Secure Gate</h1>
-          <p className="text-xs text-navy-500 mt-1">Visitor &amp; Material Gate Pass Management</p>
+          <h1 className="font-display text-2xl font-bold text-navy-900 tracking-tight">Secure Gate</h1>
+          <p className="text-xs text-navy-500 mt-1">Visitor Management System</p>
         </div>
 
         {/* Subtitle */}

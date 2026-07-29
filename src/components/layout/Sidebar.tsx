@@ -93,8 +93,8 @@ export default function Sidebar({ session, role, collapsed: collapsedProp, onCol
         <Logo size={isCollapsed ? 'sm' : 'md'} />
         {!isCollapsed && (
           <div className="min-w-0">
-            <span className="font-display font-bold text-base text-navy-950 tracking-tight block leading-tight">Quest Mall Secure Gate</span>
-            <span className="text-[10px] text-navy-400 block leading-tight mt-0.5">Visitor &amp; Material Gate Pass</span>
+            <span className="font-display font-bold text-base text-navy-950 tracking-tight block leading-tight">Secure Gate</span>
+            <span className="text-[10px] text-navy-400 block leading-tight mt-0.5">Visitor Management System</span>
           </div>
         )}
       </Link>

@@ -143,7 +143,7 @@ export default function AppShell({ session, role, children }: Props): React.Reac
         {/* Footer */}
         <footer className="no-print px-8 pb-6">
           <p className="text-center text-[11px] text-navy-300 tracking-wide">
-            Quest Mall Secure Gate — Visitor &amp; Material Gate Pass Management System
+            Secure Gate — Visitor Management System
           </p>
         </footer>
       </div>

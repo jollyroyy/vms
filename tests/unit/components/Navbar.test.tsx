@@ -100,9 +100,9 @@ function renderWithRouter(
 /* ─── Navigation link tests ──────────────────────────────────────────── */
 
 describe('Sidebar: navigation links', () => {
-  it('renders brand logo and Quest Mall Secure Gate text', () => {
+  it('renders brand logo and Secure Gate text', () => {
     renderWithRouter(<Sidebar session={guardSession} role="guard" />);
-    expect(screen.getByText('Quest Mall Secure Gate')).toBeInTheDocument();
+    expect(screen.getByText('Secure Gate')).toBeInTheDocument();
   });
 
   it('renders correct nav links for guard role', () => {
