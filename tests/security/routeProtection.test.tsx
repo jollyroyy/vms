@@ -225,7 +225,7 @@ describe('SEC-7: frontend route protection', () => {
 
       // The login page has a login button; the dashboard does NOT appear
       await waitFor(() => {
-        expect(screen.getByRole('button', { name: 'Sign in' })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /sign in/i })).toBeInTheDocument();
       });
       expect(screen.queryByText("Today's Visits")).not.toBeInTheDocument();
     });

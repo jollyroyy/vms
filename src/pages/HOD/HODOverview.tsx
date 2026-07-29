@@ -160,8 +160,7 @@ export default function HODOverview(): React.ReactElement {
         {deptName && (
           <p className="text-xs font-bold uppercase tracking-[0.18em] text-brand-500 dark:text-brand-300 mb-1">{deptName} Department</p>
         )}
-        <h1 className="font-display text-2xl font-bold text-navy-950 dark:text-white tracking-tight">Overview</h1>
-        <p className="text-sm text-navy-400 mt-0.5">Your department at a glance</p>
+        <p className="text-sm text-navy-400 mt-0.5">Your visitors at a glance</p>
       </div>
 
       {successMsg && (

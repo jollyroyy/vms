@@ -5,16 +5,20 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { supabase } from '../../supabaseClient';
 import type { Visit } from '../../types/index';
 import { attachHostNames } from '../../lib/hostNames';
+import { attachVisitActors, type VisitActor } from '../../lib/visitActors';
+import { visitStatusLabel } from '../../lib/visitStatusLabel';
 import { maskPhone } from '../../lib/pii';
 import { computeDateRange, type RangePreset } from '../../lib/reportsDateRange';
 import ReportsToolbar from './ReportsToolbar';
+
+type ReportVisit = Visit & { actor?: VisitActor | null };
 
 const TODAY = new Date().toISOString().slice(0, 10);
 
 export default function ReportsPage(): React.ReactElement {
   const [date, setDate] = useState(TODAY);
   const [preset, setPreset] = useState<RangePreset>('today');
-  const [visits, setVisits] = useState<Visit[]>([]);
+  const [visits, setVisits] = useState<ReportVisit[]>([]);
   const [loading, setLoading] = useState(true);
   const [userRole, setUserRole] = useState<string | null>(null);
   const [userDeptId, setUserDeptId] = useState<string | null>(null);
@@ -42,7 +46,10 @@ export default function ReportsPage(): React.ReactElement {
     }
     const { data, error } = await query.order('created_at', { ascending: true });
     if (error) { console.error('[Reports] visits error:', error.message); setVisits([]); }
-    else { setVisits(await attachHostNames((data ?? []) as unknown as Visit[])); }
+    else {
+      const withHosts = await attachHostNames((data ?? []) as unknown as Visit[]);
+      setVisits(await attachVisitActors(withHosts));
+    }
     setLoading(false);
   }, [range.from, range.to, userDeptId, userRole]);
 
@@ -50,6 +57,11 @@ export default function ReportsPage(): React.ReactElement {
 
   const STATUS_COLORS: Record<string, string> = {
     rejected: 'text-danger-600', checked_out: 'text-navy-300', checked_in: 'text-brand-600', approved: 'text-brand-600', walkin_approved: 'text-brand-600', pending_approval: 'text-warning-600',
+  };
+  // Rejected/approved statuses render as a full sentence ("Rejected by Jane (Host)") —
+  // CSS capitalize would upper-case every word ("By", "Host"), so only plain statuses get it.
+  const PLAIN_STATUS: Record<string, boolean> = {
+    pending_approval: true, checked_in: true, checked_out: true, cancelled: true, no_show: true,
   };
 
   const rangeLabel = preset === 'today' ? range.to : `${range.from} to ${range.to}`;
@@ -113,7 +125,7 @@ export default function ReportsPage(): React.ReactElement {
                       <td className="px-3.5 py-3 text-navy-500 capitalize">{v.purpose}</td>
                       <td className="px-3.5 py-3 text-xs text-navy-400 whitespace-nowrap">{v.checked_in_at ? new Date(v.checked_in_at).toLocaleTimeString('en-IN') : '—'}</td>
                       <td className="px-3.5 py-3 text-xs text-navy-400 whitespace-nowrap">{v.checked_out_at ? new Date(v.checked_out_at).toLocaleTimeString('en-IN') : v.exit_verified === false ? 'Auto-closed' : '—'}</td>
-                      <td className={`px-3.5 py-3 capitalize font-medium ${STATUS_COLORS[v.status] ?? 'text-navy-500'}`}>{v.status.replace(/_/g, ' ')}</td>
+                      <td className={`px-3.5 py-3 font-medium ${PLAIN_STATUS[v.status] ? 'capitalize' : ''} ${STATUS_COLORS[v.status] ?? 'text-navy-500'}`}>{visitStatusLabel(v)}</td>
                     </tr>
                   ))}
                   {visits.length === 0 && (<tr><td colSpan={11} className="px-4 py-12 text-center text-navy-300">No visits between {range.from} and {range.to}</td></tr>)}

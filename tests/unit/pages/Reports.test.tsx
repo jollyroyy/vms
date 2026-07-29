@@ -7,6 +7,7 @@ import ReportsPage from '../../../src/pages/Shared/Reports';
 const mockOrder = vi.hoisted(() => vi.fn());
 const mockIn = vi.hoisted(() => vi.fn());
 const mockExportCsv = vi.hoisted(() => vi.fn());
+const mockAttachVisitActors = vi.hoisted(() => vi.fn((rows: any[]) => Promise.resolve(rows)));
 
 vi.mock('../../../src/lib/exportUtils', () => ({
   exportToCsv: mockExportCsv,
@@ -25,6 +26,10 @@ vi.mock('../../../src/supabaseClient', () => ({
 
 vi.mock('../../../src/lib/hostNames', () => ({
   attachHostNames: (rows: any[]) => Promise.resolve(rows),
+}));
+
+vi.mock('../../../src/lib/visitActors', () => ({
+  attachVisitActors: mockAttachVisitActors,
 }));
 
 afterEach(() => {
@@ -100,6 +105,49 @@ describe('M12-REPORTS: Reports', () => {
     render(<MemoryRouter><ReportsPage /></MemoryRouter>);
     await waitFor(() => {
       expect(screen.getByText('Test Visitor')).toBeInTheDocument();
+    });
+  });
+
+  it('shows who rejected a visit, with their name and role', async () => {
+    const mockVisits = [
+      {
+        id: 'v2', ref_number: 'VIS-002', visitor_id: 'vis2', department_id: 'dept1', host_id: 'h1',
+        status: 'rejected' as const, purpose: 'meeting' as const, photo_path: null, photo_data: null,
+        checked_in_at: null, checked_out_at: null, exit_verified: null,
+        rejection_reason: 'Not expected', carrying_material: false, created_at: new Date().toISOString(),
+        visitor: { id: 'vis2', full_name: 'Rejected Visitor', phone: '9876500000', company: 'Test Corp' },
+        department: { id: 'dept1', name: 'IT', code: 'IT' },
+        host: { id: 'h1', full_name: 'Test Host' },
+      },
+    ];
+    mockOrder.mockResolvedValue({ data: mockVisits, error: null });
+    mockIn.mockResolvedValue({ data: [], error: null });
+    mockAttachVisitActors.mockImplementationOnce((rows: any[]) =>
+      Promise.resolve(rows.map((r) => ({ ...r, actor: { name: 'Jane HOD', role: 'hod' } }))),
+    );
+    render(<MemoryRouter><ReportsPage /></MemoryRouter>);
+    await waitFor(() => {
+      expect(screen.getByText('Rejected by Jane HOD (Host)')).toBeInTheDocument();
+    });
+  });
+
+  it('shows walk-in approvals as "Pre-approved"/"Walk-in approved" without an actor', async () => {
+    const mockVisits = [
+      {
+        id: 'v3', ref_number: 'VIS-003', visitor_id: 'vis3', department_id: 'dept1', host_id: 'h1',
+        status: 'walkin_approved' as const, purpose: 'meeting' as const, photo_path: null, photo_data: null,
+        checked_in_at: null, checked_out_at: null, exit_verified: null,
+        rejection_reason: null, carrying_material: false, created_at: new Date().toISOString(),
+        visitor: { id: 'vis3', full_name: 'Walkin Visitor', phone: '9876511111', company: 'Test Corp' },
+        department: { id: 'dept1', name: 'IT', code: 'IT' },
+        host: { id: 'h1', full_name: 'Test Host' },
+      },
+    ];
+    mockOrder.mockResolvedValue({ data: mockVisits, error: null });
+    mockIn.mockResolvedValue({ data: [], error: null });
+    render(<MemoryRouter><ReportsPage /></MemoryRouter>);
+    await waitFor(() => {
+      expect(screen.getByText('Walk-in approved')).toBeInTheDocument();
     });
   });
 });

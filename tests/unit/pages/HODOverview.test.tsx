@@ -103,11 +103,11 @@ function setup(opts?: { deptId?: string | null; deptName?: string | null }) {
 }
 
 describe('M12-HOD: HODOverview', () => {
-  it('renders page heading as Overview', async () => {
+  it('renders the visitors-at-a-glance subtitle', async () => {
     setup();
     render(<MemoryRouter><HODOverview /></MemoryRouter>);
     await waitFor(() => {
-      expect(screen.getByRole('heading', { name: /^Overview$/i })).toBeInTheDocument();
+      expect(screen.getByText('Your visitors at a glance')).toBeInTheDocument();
     });
   });
 
@@ -117,7 +117,7 @@ describe('M12-HOD: HODOverview', () => {
     await waitFor(() => {
       expect(screen.getByText('Inside')).toBeInTheDocument();
       expect(screen.getByText('Approved')).toBeInTheDocument();
-      expect(screen.getByText('Pending')).toBeInTheDocument();
+      expect(screen.getByText('Pending Approval')).toBeInTheDocument();
       expect(screen.getByText('Rejected')).toBeInTheDocument();
     });
     // checked_in count = 2, approved count = 1, pending = 1, rejected = 1
@@ -168,7 +168,7 @@ describe('M12-HOD: HODOverview', () => {
     setup();
     render(<MemoryRouter><HODOverview /></MemoryRouter>);
     await waitFor(() => {
-      expect(screen.getByText(/Your department at a glance/)).toBeInTheDocument();
+      expect(screen.getByText(/Your visitors at a glance/)).toBeInTheDocument();
     });
   });
 
@@ -178,7 +178,7 @@ describe('M12-HOD: HODOverview', () => {
     await waitFor(() => {
       expect(screen.getByText('Inside')).toBeInTheDocument();
       expect(screen.getByText('Approved')).toBeInTheDocument();
-      expect(screen.getByText('Pending')).toBeInTheDocument();
+      expect(screen.getByText('Pending Approval')).toBeInTheDocument();
       expect(screen.getByText('Rejected')).toBeInTheDocument();
     });
   });
@@ -266,8 +266,8 @@ describe('M12-HOD: HODOverview', () => {
       host: { id: 'h1', full_name: 'Host' },
     }];
     render(<MemoryRouter><HODOverview /></MemoryRouter>);
-    await waitFor(() => { expect(screen.getByText('Pending')).toBeInTheDocument(); });
-    fireEvent.click(screen.getByText('Pending').closest('button')!);
+    await waitFor(() => { expect(screen.getByText('Pending Approval')).toBeInTheDocument(); });
+    fireEvent.click(screen.getByText('Pending Approval').closest('button')!);
     await waitFor(() => { expect(screen.getByText('Pending Visitor')).toBeInTheDocument(); });
     fireEvent.click(screen.getByText('Pending Visitor'));
     await waitFor(() => { expect(screen.getByText('Approve')).toBeInTheDocument(); });

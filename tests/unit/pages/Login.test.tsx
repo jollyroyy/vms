@@ -26,15 +26,15 @@ describe('M12-LOGIN: LoginPage', () => {
   it('renders sign-in form', () => {
     render(<LoginPage />);
     expect(screen.getByPlaceholderText('you@company.com')).toBeInTheDocument();
-    expect(screen.getByPlaceholderText('Enter your password')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022')).toBeInTheDocument();
   });
 
   it('calls signInWithPassword on submit', () => {
     mockSignIn.mockResolvedValue({ error: null });
     render(<LoginPage />);
     fireEvent.change(screen.getByPlaceholderText('you@company.com'), { target: { value: 'test@test.com' } });
-    fireEvent.change(screen.getByPlaceholderText('Enter your password'), { target: { value: 'password123' } });
-    fireEvent.click(screen.getByText('Sign in'));
+    fireEvent.change(screen.getByPlaceholderText('\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022'), { target: { value: 'password123' } });
+    fireEvent.click(screen.getByText('Sign In'));
     expect(mockSignIn).toHaveBeenCalledWith({ email: 'test@test.com', password: 'password123' });
   });
 
@@ -42,9 +42,9 @@ describe('M12-LOGIN: LoginPage', () => {
     mockSignIn.mockReturnValue(new Promise(() => {}));
     render(<LoginPage />);
     fireEvent.change(screen.getByPlaceholderText('you@company.com'), { target: { value: 'test@test.com' } });
-    fireEvent.change(screen.getByPlaceholderText('Enter your password'), { target: { value: 'password123' } });
-    fireEvent.click(screen.getByText('Sign in'));
-    expect(screen.getByText('Signing in...')).toBeInTheDocument();
+    fireEvent.change(screen.getByPlaceholderText('\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022'), { target: { value: 'password123' } });
+    fireEvent.click(screen.getByText('Sign In'));
+    expect(screen.getByText('Signing in\u2026')).toBeInTheDocument();
   });
 
   it('blocks submit after 5 failed attempts with rate-limit message', async () => {
@@ -53,8 +53,8 @@ describe('M12-LOGIN: LoginPage', () => {
     render(<LoginPage />);
     for (let i = 0; i < 5; i++) {
       fireEvent.change(screen.getByPlaceholderText('you@company.com'), { target: { value: 'bad@test.com' } });
-      fireEvent.change(screen.getByPlaceholderText('Enter your password'), { target: { value: 'wrong' } });
-      fireEvent.click(screen.getByText('Sign in'));
+      fireEvent.change(screen.getByPlaceholderText('\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022'), { target: { value: 'wrong' } });
+      fireEvent.click(screen.getByText('Sign In'));
       await act(() => Promise.resolve());
     }
     await act(async () => { vi.advanceTimersByTime(1100); });
@@ -101,8 +101,8 @@ describe('M12-LOGIN: LoginPage', () => {
     mockSignIn.mockResolvedValue({ error: { message: 'Invalid login credentials' } });
     render(<LoginPage />);
     fireEvent.change(screen.getByPlaceholderText('you@company.com'), { target: { value: 'bad@test.com' } });
-    fireEvent.change(screen.getByPlaceholderText('Enter your password'), { target: { value: 'wrong' } });
-    fireEvent.click(screen.getByText('Sign in'));
+    fireEvent.change(screen.getByPlaceholderText('\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022'), { target: { value: 'wrong' } });
+    fireEvent.click(screen.getByText('Sign In'));
     await waitFor(() => {
       expect(screen.getByText('Invalid login credentials')).toBeInTheDocument();
     });

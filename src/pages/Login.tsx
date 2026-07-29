@@ -3,13 +3,39 @@ import { supabase } from '../supabaseClient';
 import { getRateLimit, recordFailedAttempt, recordPageLoad } from '../lib/rateLimiter';
 import { safeErrorMessage } from '../lib/errors';
 import Logo from '../components/Logo';
+import AuthField from '../components/AuthField';
+
+const MailIcon = (
+  <svg className="w-[18px] h-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.7}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 0 1-2.25 2.25h-15a2.25 2.25 0 0 1-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25m19.5 0v.243a2.25 2.25 0 0 1-1.07 1.916l-7.5 4.615a2.25 2.25 0 0 1-2.36 0L3.32 8.91a2.25 2.25 0 0 1-1.07-1.916V6.75" />
+  </svg>
+);
+
+const LockIcon = (
+  <svg className="w-[18px] h-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.7}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z" />
+  </svg>
+);
+
+const EyeIcon = (
+  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.7}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z" />
+    <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+  </svg>
+);
+
+const EyeOffIcon = (
+  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.7}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M3.98 8.223A10.477 10.477 0 0 0 1.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0 1 12 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 0 1-4.293 5.774M6.228 6.228 3 3m3.228 3.228 3.65 3.65m7.894 7.894L21 21m-3.228-3.228-3.65-3.65m0 0a3 3 0 1 0-4.243-4.243m4.242 4.242L9.88 9.88" />
+  </svg>
+);
 
 export default function LoginPage(): React.ReactElement {
-  const [email,    setEmail]    = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [showPw,   setShowPw]   = useState(false);
-  const [loading,  setLoading]  = useState(false);
-  const [error,    setError]    = useState('');
+  const [showPw, setShowPw] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
   const [rateLimited, setRateLimited] = useState(false);
   const [rateLimitMsg, setRateLimitMsg] = useState('');
@@ -55,184 +81,219 @@ export default function LoginPage(): React.ReactElement {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-navy-950 p-4 relative overflow-hidden">
-      {/* Background photo layer (decorative only, never in tab order) */}
-      <div aria-hidden="true" className="sg-login-photo fixed inset-0 z-0" />
-
-      {/* Scrim + vignette: sits above the photo, below the card, guarantees AA contrast */}
+    <div
+      className="relative min-h-screen flex items-center justify-center
+                 lg:justify-start lg:pl-[9vw] p-4 overflow-hidden"
+      style={{ background: '#16161A' }}
+    >
       <div
-        aria-hidden="true"
-        className="fixed inset-0 z-0 backdrop-blur-[1px]"
+        aria-hidden
+        className="absolute inset-0 bg-cover bg-center"
+        style={{ backgroundImage: "url('/login-bg.jpg')" }}
+      />
+      <div aria-hidden className="absolute inset-0" style={{ background: 'rgba(14,13,16,0.52)' }} />
+      <div
+        aria-hidden
+        className="absolute inset-0"
         style={{
           background:
-            'linear-gradient(180deg, rgba(6,9,20,0.55) 0%, rgba(6,9,20,0.35) 45%, rgba(6,9,20,0.68) 100%), ' +
-            'radial-gradient(ellipse at center, rgba(6,9,20,0) 38%, rgba(4,6,16,0.62) 100%)',
+            'linear-gradient(100deg, rgba(10,9,12,0.90) 0%, rgba(10,9,12,0.72) 34%, rgba(10,9,12,0.30) 62%, rgba(10,9,12,0.42) 100%)',
         }}
       />
 
-      {/* Card — solid white so it reads clearly against the dark photo */}
-      <div className="relative z-10 w-full max-w-[460px] bg-white border border-black/5 rounded-3xl shadow-2xl shadow-black/40 px-8 py-6 sm:px-10 sm:py-7 animate-fade-in">
-        {/* Brand */}
-        <div className="flex flex-col items-center mb-5">
-          <Logo size="lg" className="mb-3" />
-          <h1 className="font-display text-2xl font-bold text-navy-900 tracking-tight">Secure Gate</h1>
-          <p className="text-xs text-navy-500 mt-1">Visitor Management System</p>
+      <div className="relative w-full max-w-[400px] animate-fade-in">
+        <div className="flex flex-col items-center lg:items-start mb-7">
+          <Logo size="lg" className="mb-3"           />
+          <div aria-hidden className="mt-5 mb-4 h-px w-16"
+            style={{ background: 'linear-gradient(90deg, #C6A15B, rgba(198,161,91,0))' }} />
+          <p
+            className="text-[11px] text-brand-200/90 uppercase tracking-[0.26em] font-semibold"
+            style={{ textShadow: '0 1px 10px rgba(0,0,0,0.7)' }}
+          >
+            Visitor Management System
+          </p>
         </div>
+        <form
+          onSubmit={handleSubmit}
+          className="relative rounded-3xl p-7 space-y-5 overflow-hidden"
+          style={{
+            background: '#FBFAF8',
+            border: '1px solid rgba(198,161,91,0.30)',
+            boxShadow: '0 32px 64px -16px rgba(0,0,0,0.65), 0 0 0 1px rgba(16,16,20,0.06)',
+          }}
+        >
+          <div
+            aria-hidden
+            className="absolute inset-x-0 top-0 h-[3px]"
+            style={{ background: 'linear-gradient(90deg, #8A6C32, #D0AD68 45%, #EBD9B4 70%, #C6A15B)' }}
+          />
 
-        {/* Subtitle */}
-        <p className="text-center text-sm text-navy-500 mb-5">Sign in to your account to continue</p>
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Email */}
-          <div>
-            <label className="block text-xs font-bold text-navy-600 uppercase tracking-wider mb-2">Email Address</label>
-            <div className="relative group">
-              <div className="absolute left-4 top-1/2 -translate-y-1/2 text-navy-300 group-focus-within:text-brand-600 transition-colors">
-                <svg className="w-[18px] h-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
-                </svg>
-              </div>
-              <input
-                type="email" required value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@company.com"
-                autoFocus
-                className="w-full h-12 pl-11 pr-4 rounded-xl border border-navy-200 bg-navy-50 text-navy-900 placeholder-navy-400 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/40 focus:border-brand-500 transition-all"
-              />
-            </div>
+          <div className="mb-1">
+            <h2
+              className="text-[22px] leading-tight font-normal font-display tracking-[0.01em]"
+              style={{ color: '#16161A' }}
+            >
+              Welcome back
+            </h2>
+            <p className="text-xs mt-1.5" style={{ color: '#7C766C' }}>
+              Sign in to continue to the gate console.
+            </p>
           </div>
 
-          {/* Password */}
-          <div>
-            <label className="block text-xs font-bold text-navy-600 uppercase tracking-wider mb-2">Password</label>
-            <div className="relative group">
-              <div className="absolute left-4 top-1/2 -translate-y-1/2 text-navy-300 group-focus-within:text-brand-600 transition-colors">
-                <svg className="w-[18px] h-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
-                </svg>
-              </div>
-              <input
-                type={showPw ? 'text' : 'password'} required value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Enter your password"
-                className="w-full h-12 pl-11 pr-11 rounded-xl border border-navy-200 bg-navy-50 text-navy-900 placeholder-navy-400 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/40 focus:border-brand-500 transition-all"
-              />
-              <button type="button" onClick={() => setShowPw((p) => !p)} tabIndex={-1}
-                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-navy-300 hover:text-navy-600 transition-colors">
-                {showPw ? (
-                  <svg className="w-[18px] h-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.242 4.242L9.88 9.88" /></svg>
-                ) : (
-                  <svg className="w-[18px] h-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" /><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-                )}
+          <AuthField
+            id="email"
+            label="Email"
+            type="email"
+            value={email}
+            onChange={setEmail}
+            placeholder="you@company.com"
+            autoComplete="username"
+            icon={MailIcon}
+          />
+
+          <AuthField
+            id="password"
+            label="Password"
+            type={showPw ? 'text' : 'password'}
+            value={password}
+            onChange={setPassword}
+            placeholder="••••••••"
+            autoComplete="current-password"
+            icon={LockIcon}
+            trailing={
+              <button
+                type="button"
+                tabIndex={-1}
+                onClick={() => setShowPw((s) => !s)}
+                className="transition-colors p-1"
+                style={{ color: '#A8A39A' }}
+                onMouseEnter={(e) => (e.currentTarget.style.color = '#A8853F')}
+                onMouseLeave={(e) => (e.currentTarget.style.color = '#A8A39A')}
+                aria-label={showPw ? 'Hide password' : 'Show password'}
+              >
+                {showPw ? EyeOffIcon : EyeIcon}
               </button>
-            </div>
-          </div>
+            }
+          />
 
-          {/* Alerts */}
-          {successMsg && (
-            <div className="flex items-start gap-3 p-3 rounded-xl bg-success-50 border border-success-200">
-              <svg className="w-4 h-4 shrink-0 mt-0.5 text-success-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              <p className="text-sm text-success-700">{successMsg}</p>
-            </div>
-          )}
-
-          {rateLimited && (
-            <div className="flex items-start gap-3 p-3 rounded-xl bg-warning-50 border border-warning-200">
-              <svg className="w-4 h-4 shrink-0 mt-0.5 text-warning-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
-              </svg>
-              <div className="flex-1">
-                <p className="text-sm font-semibold text-warning-700">Too many attempts</p>
-                <p className="text-xs text-warning-600 mt-0.5">{rateLimitMsg}</p>
-              </div>
-            </div>
-          )}
-
-          {error && !rateLimited && (
-            <div className="flex items-start gap-3 p-3 rounded-xl bg-danger-50 border border-danger-200">
-              <svg className="w-4 h-4 shrink-0 mt-0.5 text-danger-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
-              </svg>
-              <p className="text-sm text-danger-700">{error}</p>
-            </div>
-          )}
-
-          {/* Forgot password */}
-          <div className="flex items-center justify-end">
-            <button type="button" disabled={loading || rateLimited} onClick={async () => {
-              if (!email) { setError('Enter your email address first.'); return; }
-              // Reset requests were previously unthrottled — the same lockout that
-              // guards sign-in now guards this, so it can't be used to spray emails.
-              const rl = getRateLimit();
-              if (rl.blocked) {
-                setRateLimited(true); setRateLimitMsg(rl.message); setRateLimitCountdown(rl.remainingSeconds);
-                return;
-              }
-              setLoading(true); setError(''); setSuccessMsg('');
-              const { error: pwErr } = await supabase.auth.resetPasswordForEmail(email, {
-                redirectTo: `${window.location.origin}/reset-password`,
-              });
-              if (pwErr) {
-                recordFailedAttempt();
-                setError(safeErrorMessage(pwErr, 'Password reset request failed.'));
+          <div className="flex justify-end -mt-2">
+            <button
+              type="button"
+              onClick={async () => {
+                if (!email) { setError('Enter your email address first.'); return; }
+                const rl = getRateLimit();
+                if (rl.blocked) {
+                  setRateLimited(true); setRateLimitMsg(rl.message); setRateLimitCountdown(rl.remainingSeconds);
+                  return;
+                }
+                setLoading(true); setError(''); setSuccessMsg('');
+                const { error: pwErr } = await supabase.auth.resetPasswordForEmail(email, {
+                  redirectTo: `${window.location.origin}/reset-password`,
+                });
+                if (pwErr) {
+                  recordFailedAttempt();
+                  setError(safeErrorMessage(pwErr, 'Password reset request failed.'));
+                  setLoading(false);
+                  return;
+                }
+                setError('');
+                setSuccessMsg('If that email is registered, a reset link is on its way.');
                 setLoading(false);
-                return;
-              }
-              setError('');
-              // Deliberately not confirming whether the address exists.
-              setSuccessMsg('If that email is registered, a reset link is on its way.');
-              setLoading(false);
-            }} className="text-xs font-semibold text-brand-600 hover:text-brand-800 transition-colors disabled:opacity-50">
+              }}
+              disabled={loading || rateLimited}
+              className="text-xs font-semibold hover:underline transition-colors disabled:opacity-50"
+              style={{ color: '#A8853F' }}
+            >
               Forgot password?
             </button>
           </div>
 
-          {/* Submit */}
+          {successMsg && (
+            <div
+              className="text-sm rounded-xl px-3.5 py-2.5 flex items-start gap-2"
+              style={{
+                color: '#065f46',
+                background: 'rgba(16,185,129,0.08)',
+                border: '1px solid rgba(16,185,129,0.25)',
+              }}
+            >
+              <svg className="w-4 h-4 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+              </svg>
+              {successMsg}
+            </div>
+          )}
+
+          {error && (
+            <div
+              className="text-sm rounded-xl px-3.5 py-2.5 flex items-start gap-2"
+              style={{
+                color: '#b91c1c',
+                background: 'rgba(239,68,68,0.08)',
+                border: '1px solid rgba(239,68,68,0.25)',
+              }}
+            >
+              <svg className="w-4 h-4 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z" />
+              </svg>
+              {error}
+            </div>
+          )}
+
+          {rateLimited && (
+            <div
+              className="text-sm rounded-xl px-3.5 py-2.5 flex items-start gap-2"
+              style={{
+                color: '#92400e',
+                background: 'rgba(245,158,11,0.08)',
+                border: '1px solid rgba(245,158,11,0.25)',
+              }}
+            >
+              <svg className="w-4 h-4 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z" />
+              </svg>
+              <div>
+                <p className="font-semibold">Too many attempts</p>
+                <p className="text-xs mt-0.5 opacity-80">{rateLimitMsg}</p>
+              </div>
+            </div>
+          )}
+
           <button
             type="submit"
             disabled={loading || rateLimited}
-            className="w-full h-12 rounded-xl bg-gradient-to-r from-brand-500 to-brand-700 hover:from-brand-600 hover:to-brand-800 text-white text-sm font-bold tracking-wide shadow-lg shadow-brand-500/25 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98]"
+            className="w-full rounded-xl px-5 py-3 text-sm font-bold uppercase tracking-[0.12em]
+                       text-shell-ink bg-gradient-to-r from-brand-500 to-brand-600
+                       hover:brightness-105 active:scale-[0.985]
+                       disabled:opacity-60 disabled:cursor-not-allowed disabled:active:scale-100
+                       transition-all duration-200 flex items-center justify-center gap-2"
+            style={{ boxShadow: '0 10px 28px -8px rgba(198,161,91,0.70)' }}
           >
-            {rateLimited ? (
+            {loading ? (
+              'Signing in…'
+            ) : rateLimited ? (
               <span>Try again in {rateLimitCountdown}s</span>
-            ) : loading ? (
-              <span className="flex items-center justify-center gap-2.5">
-                <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+            ) : (
+              <>
+                Sign In
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
                 </svg>
-                Signing in...
-              </span>
-            ) : 'Sign in'}
+              </>
+            )}
           </button>
         </form>
 
-        {/* Footer */}
-        <div className="flex items-center justify-center gap-2 mt-5">
-          <svg className="w-3.5 h-3.5 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
+        <p
+          className="flex items-center justify-center lg:justify-start gap-1.5 text-[11px] mt-6"
+          style={{ color: 'rgba(235,217,180,0.75)', textShadow: '0 1px 8px rgba(0,0,0,0.75)' }}
+        >
+          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.7}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75 11.25 15 15 9.75m-3-7.036A11.96 11.96 0 0 1 3.598 6 12 12 0 0 0 3 9.75c0 5.592 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.75h-.152c-3.196 0-6.1-1.25-8.25-3.286Z" />
           </svg>
-          <p className="text-[11px] text-navy-400">Connection secured with TLS encryption</p>
-        </div>
+          Accounts are provisioned by an administrator.
+        </p>
       </div>
-
-      {/* Photo grading + HDR-look tuning, scoped to this page only */}
-      <style>{`
-        .sg-login-photo {
-          background-image: url('/securegate-login-bg.png');
-          background-size: cover;
-          background-position: center;
-          background-repeat: no-repeat;
-          filter: brightness(1.15) contrast(1.12) saturate(1.1);
-        }
-        @media (dynamic-range: high), (color-gamut: p3) {
-          .sg-login-photo {
-            filter: brightness(1.2) contrast(1.18) saturate(1.25);
-          }
-        }
-      `}</style>
     </div>
   );
 }

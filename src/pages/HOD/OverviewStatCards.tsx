@@ -18,7 +18,7 @@ export default function OverviewStatCards({ loading, stats, activeFilter, onSele
   const cards = [
     { key: 'inside',   value: stats.inside,        label: 'Inside',   color: 'text-brand-600' },
     { key: 'approved', value: stats.approvedToday,  label: 'Approved', color: 'text-success-600' },
-    { key: 'pending',  value: stats.pending,        label: 'Pending',  color: 'text-amber-600' },
+    { key: 'pending',  value: stats.pending,        label: 'Pending Approval', color: 'text-amber-600' },
     { key: 'rejected', value: stats.rejectedToday,  label: 'Rejected', color: 'text-danger-600' },
   ];
 
