@@ -31,6 +31,7 @@
 | S15 coverage targets | 🏭 B | — | this whole directory | meta | — |
 
 ## Layer commands
+| M12-HOD HOD overview filters | 🎯 A | FR-VIS-01 | `tests/unit/pages/OverviewFilteredView.test.tsx` (9 🟢) | unit | 🟢 (filtered inside/approved/pending/rejected views with modal) |
 | M19 compliance export | 🎯 A | SEC-23 | `tests/unit/exportUtils.test.ts` (14 🟢) + page tests | unit+component | 🟢 (14 unit + 6 component pass) |
 | Layer | Command | Cadence (goal.md §7) |
 |---|---|---|---|

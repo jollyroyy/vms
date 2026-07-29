@@ -1,11 +1,12 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { supabase } from '../../supabaseClient';
-import type { Visit, Notification } from '../../types/index';
+import type { Visit, Notification, VisitStatus } from '../../types/index';
 import { attachHostNames } from '../../lib/hostNames';
 import OverviewStatCards from './OverviewStatCards';
 import OverviewUpcoming from './OverviewUpcoming';
 import OverviewOnSite from './OverviewOnSite';
 import OverviewNotifications from './OverviewNotifications';
+import OverviewFilteredView from './OverviewFilteredView';
 
 interface Stats {
   inside: number;
@@ -13,6 +14,8 @@ interface Stats {
   pending: number;
   rejectedToday: number;
 }
+
+type FilterKey = 'inside' | 'approved' | 'pending' | 'rejected';
 
 export default function HODOverview(): React.ReactElement {
   const [loading, setLoading] = useState(true);
@@ -23,6 +26,9 @@ export default function HODOverview(): React.ReactElement {
   const [upcoming, setUpcoming] = useState<Visit[]>([]);
   const [onSite, setOnSite] = useState<Visit[]>([]);
   const [notifs, setNotifs] = useState<Notification[]>([]);
+  const [activeFilter, setActiveFilter] = useState<FilterKey | ''>('');
+  const [filteredVisits, setFilteredVisits] = useState<Visit[]>([]);
+  const [filterLoading, setFilterLoading] = useState(false);
 
   useEffect(() => {
     supabase.auth.getUser().then(async ({ data }) => {
@@ -82,8 +88,10 @@ export default function HODOverview(): React.ReactElement {
       onSiteRows = await attachHostNames(onSiteRows);
       setOnSite(onSiteRows.map(v => ({ ...v, photo_url: v.photo_data ?? undefined })));
 
+      await supabase.from('notifications').delete().lt('created_at', `${today}T00:00:00Z`);
       const { data: notifData } = await supabase
         .from('notifications').select('*').eq('recipient_id', userId)
+        .gte('created_at', `${today}T00:00:00Z`)
         .order('created_at', { ascending: false }).limit(10);
       setNotifs((notifData ?? []) as Notification[]);
     } catch { /* dashboard is read-only and defensive */ }
@@ -101,14 +109,46 @@ export default function HODOverview(): React.ReactElement {
     return () => { void supabase.removeChannel(ch); };
   }, [deptId, userId, load]);
 
+  // Fetch filtered data when activeFilter changes
+  const loadFiltered = useCallback(async (key: FilterKey) => {
+    if (!deptId) return;
+    setFilterLoading(true);
+    try {
+      const statuses: readonly VisitStatus[] =
+        key === 'inside' ? ['checked_in']
+        : key === 'approved' ? ['approved', 'walkin_approved']
+        : key === 'pending' ? ['pending_approval']
+        : ['rejected'];
+
+      const { data } = await supabase
+        .from('visits').select('*, visitor:visitors(*), department:departments(id, name, code, created_at)')
+        .eq('department_id', deptId).in('status', statuses)
+        .gte('created_at', `${today}T00:00:00Z`)
+        .order('created_at', { ascending: false }).limit(50);
+      let rows = ((data as unknown as Visit[]) ?? []);
+      rows = await attachHostNames(rows);
+      setFilteredVisits(rows.map(v => ({ ...v, photo_url: v.photo_data ?? undefined })));
+    } catch { /* defensive */ }
+    setFilterLoading(false);
+  }, [deptId, today]);
+
+  const handleFilterSelect = useCallback((key: string) => {
+    if (!key) { setActiveFilter(''); return; }
+    const fk = key as FilterKey;
+    setActiveFilter(fk);
+    void loadFiltered(fk);
+  }, [loadFiltered]);
+
   const markRead = async (id: string) => {
-    await supabase.from('notifications').update({ is_read: true }).eq('id', id);
-    setNotifs(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n));
-  };
-  const dismiss = (id: string) => {
-    void supabase.from('notifications').update({ is_read: true }).eq('id', id);
+    await supabase.from('notifications').delete().eq('id', id);
     setNotifs(prev => prev.filter(n => n.id !== id));
   };
+  const dismiss = (id: string) => {
+    void supabase.from('notifications').delete().eq('id', id);
+    setNotifs(prev => prev.filter(n => n.id !== id));
+  };
+
+  const rootDisplay = !activeFilter;
 
   return (
     <div className="space-y-5 animate-fade-in">
@@ -120,14 +160,25 @@ export default function HODOverview(): React.ReactElement {
         <p className="text-sm text-navy-400 mt-0.5">Your department at a glance</p>
       </div>
 
-      <OverviewStatCards loading={loading} stats={stats} />
+      <OverviewStatCards loading={loading} stats={stats} activeFilter={activeFilter} onSelect={handleFilterSelect} />
 
-      <OverviewOnSite loading={loading} onSite={onSite} />
+      {activeFilter ? (
+        <OverviewFilteredView
+          mode={activeFilter as FilterKey}
+          visits={filteredVisits}
+          loading={filterLoading}
+          onClearFilter={() => setActiveFilter('')}
+        />
+      ) : (
+        <>
+          <OverviewOnSite loading={loading} onSite={onSite} />
 
-      <div className="grid grid-cols-1 xl:grid-cols-[1fr_340px] gap-3 items-start">
-        <OverviewUpcoming loading={loading} upcoming={upcoming} />
-        <OverviewNotifications loading={loading} notifs={notifs} onMarkRead={markRead} onDismiss={dismiss} />
-      </div>
+          <div className="grid grid-cols-1 xl:grid-cols-[1fr_340px] gap-3 items-start">
+            <OverviewUpcoming loading={loading} upcoming={upcoming} />
+            <OverviewNotifications loading={loading} notifs={notifs} onMarkRead={markRead} onDismiss={dismiss} />
+          </div>
+        </>
+      )}
     </div>
   );
 }

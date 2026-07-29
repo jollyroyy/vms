@@ -1,6 +1,6 @@
 import React from 'react';
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { render, screen, cleanup, waitFor } from '@testing-library/react';
+import { render, screen, cleanup, waitFor, fireEvent } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import HODOverview from '../../../src/pages/HOD/HODOverview';
 
@@ -14,6 +14,7 @@ let mockTodayData: any;
 let mockUpcomingData: any;
 let mockOnSiteData: any;
 let mockNotifData: any;
+let mockFilteredData: any;
 let mockProfileDept: string | null = 'dept1';
 let mockProfileDeptName: string | null = 'Information Technology';
 
@@ -52,6 +53,11 @@ vi.mock('../../../src/supabaseClient', () => ({
                     const isOnSiteQuery = statuses.length === 1 && statuses[0] === 'checked_in';
                     return Promise.resolve({ data: isOnSiteQuery ? mockOnSiteData : mockUpcomingData, error: null });
                   },
+                }),
+                gte: () => ({
+                  order: () => ({
+                    limit: () => Promise.resolve({ data: mockFilteredData, error: null }),
+                  }),
                 }),
               }),
               gte: () => Promise.resolve({ data: mockTodayData, error: null }),
@@ -92,6 +98,7 @@ function setup(opts?: { deptId?: string | null; deptName?: string | null }) {
   mockUpcomingData = [];
   mockOnSiteData = [];
   mockNotifData = [];
+  mockFilteredData = [];
 }
 
 describe('M12-HOD: HODOverview', () => {
@@ -161,6 +168,67 @@ describe('M12-HOD: HODOverview', () => {
     render(<MemoryRouter><HODOverview /></MemoryRouter>);
     await waitFor(() => {
       expect(screen.getByText(/Your department at a glance/)).toBeInTheDocument();
+    });
+  });
+
+  it('renders OverviewStatCards with activeFilter="" prop initially', async () => {
+    setup();
+    render(<MemoryRouter><HODOverview /></MemoryRouter>);
+    await waitFor(() => {
+      expect(screen.getByText('Inside')).toBeInTheDocument();
+      expect(screen.getByText('Approved')).toBeInTheDocument();
+      expect(screen.getByText('Pending')).toBeInTheDocument();
+      expect(screen.getByText('Rejected')).toBeInTheDocument();
+    });
+  });
+
+  it('clicking Inside stat card triggers filter and shows filtered view', async () => {
+    setup();
+    render(<MemoryRouter><HODOverview /></MemoryRouter>);
+    await waitFor(() => {
+      expect(screen.getByText('Inside')).toBeInTheDocument();
+    });
+    const btn = screen.getByText('Inside').closest('button')!;
+    fireEvent.click(btn);
+    await waitFor(() => {
+      expect(screen.getByText('Currently Inside')).toBeInTheDocument();
+    });
+  });
+
+  it('clicking Approved stat card shows filtered view with premium card', async () => {
+    setup();
+    render(<MemoryRouter><HODOverview /></MemoryRouter>);
+    await waitFor(() => {
+      expect(screen.getByText('Approved')).toBeInTheDocument();
+    });
+    const btn = screen.getByText('Approved').closest('button')!;
+    fireEvent.click(btn);
+    await waitFor(() => {
+      expect(screen.getByText('Approved Today')).toBeInTheDocument();
+    });
+    await waitFor(() => {
+      expect(screen.getByText("Today's Approvals")).toBeInTheDocument();
+    });
+  });
+
+  it('clicking Back to overview restores full layout', async () => {
+    setup();
+    render(<MemoryRouter><HODOverview /></MemoryRouter>);
+    await waitFor(() => {
+      expect(screen.getByText('Upcoming visits')).toBeInTheDocument();
+    });
+    const insideBtn = screen.getByText('Inside').closest('button')!;
+    fireEvent.click(insideBtn);
+    await waitFor(() => {
+      expect(screen.getByText('Currently Inside')).toBeInTheDocument();
+    });
+    const backBtn = screen.getByText('Back to overview');
+    fireEvent.click(backBtn);
+    await waitFor(() => {
+      expect(screen.getByText('Upcoming visits')).toBeInTheDocument();
+    });
+    await waitFor(() => {
+      expect(screen.getByText(/Status & Notifications/i)).toBeInTheDocument();
     });
   });
 });
