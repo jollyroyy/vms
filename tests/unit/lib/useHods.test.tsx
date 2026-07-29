@@ -1,18 +1,20 @@
-// TDD: shared live department list.
-// Every role-facing screen that offers a department picker uses this hook, so an
-// admin adding/renaming/deleting a department must reach guards, HODs, staff and
-// the kiosk immediately — without a page reload.
+// TDD: shared live HOD list.
+// The Admin Panel and every department card render "who is the head of department"
+// from this hook. A failed `profiles` read (e.g. the RLS policy recursion fixed in
+// migration 040) must surface as an error, never as a silently empty "No head of
+// department assigned" state.
 
 import React from 'react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, cleanup, waitFor, act } from '@testing-library/react';
-import { useDepartments } from '../../../src/lib/useDepartments';
-import type { Department } from '../../../src/types/index';
+import { useHods } from '../../../src/lib/useHods';
+import type { Profile } from '../../../src/types/index';
 
 const state = vi.hoisted(() => ({
   rows: [] as any[],
   rowsError: null as { message: string } | null,
   fetchCount: 0,
+  eqCalls: [] as Array<[string, any]>,
   handlers: [] as Array<{ config: any; cb: (payload: any) => void }>,
   channelNames: [] as string[],
   subscribed: 0,
@@ -23,9 +25,14 @@ vi.mock('../../../src/supabaseClient', () => ({
   supabase: {
     from: () => ({
       select: () => ({
-        order: () => {
-          state.fetchCount += 1;
-          return Promise.resolve({ data: state.rows, error: state.rowsError });
+        eq: (col: string, val: any) => {
+          state.eqCalls.push([col, val]);
+          return {
+            order: () => {
+              state.fetchCount += 1;
+              return Promise.resolve({ data: state.rows, error: state.rowsError });
+            },
+          };
         },
       }),
     }),
@@ -47,6 +54,7 @@ beforeEach(() => {
   state.rows = [];
   state.rowsError = null;
   state.fetchCount = 0;
+  state.eqCalls = [];
   state.handlers = [];
   state.channelNames = [];
   state.subscribed = 0;
@@ -55,17 +63,23 @@ beforeEach(() => {
 
 afterEach(cleanup);
 
-const dept = (over: Partial<Department> = {}): Department => ({
-  id: 'd1', name: 'Human Resources', code: 'HR', created_at: 'now', ...over,
-});
+const hod = (over: Partial<Profile> = {}): Profile => ({
+  id: 'p1',
+  full_name: 'Asha Rao',
+  email: 'asha@example.com',
+  role: 'hod',
+  department_id: 'd1',
+  created_at: 'now',
+  ...over,
+} as Profile);
 
 function Probe(): React.ReactElement {
-  const { departments, loading, error } = useDepartments();
+  const { hods, loading, error } = useHods();
   return (
     <div>
       <span data-testid="loading">{String(loading)}</span>
       <span data-testid="error">{error ?? ''}</span>
-      <ul>{departments.map((d) => <li key={d.id}>{d.name} ({d.code})</li>)}</ul>
+      <ul>{hods.map((h) => <li key={h.id}>{h.full_name}</li>)}</ul>
     </div>
   );
 }
@@ -78,13 +92,13 @@ async function emitChange(payload: any = { eventType: 'INSERT' }) {
   });
 }
 
-describe('useDepartments', () => {
-  it('loads departments on mount', async () => {
-    state.rows = [dept(), dept({ id: 'd2', name: 'Finance', code: 'FIN' })];
+describe('useHods', () => {
+  it('loads HODs on mount and renders their names', async () => {
+    state.rows = [hod(), hod({ id: 'p2', full_name: 'Ben Cole' })];
     render(<Probe />);
     await waitFor(() => {
-      expect(screen.getByText('Human Resources (HR)')).toBeInTheDocument();
-      expect(screen.getByText('Finance (FIN)')).toBeInTheDocument();
+      expect(screen.getByText('Asha Rao')).toBeInTheDocument();
+      expect(screen.getByText('Ben Cole')).toBeInTheDocument();
     });
   });
 
@@ -93,50 +107,43 @@ describe('useDepartments', () => {
     await waitFor(() => expect(screen.getByTestId('loading')).toHaveTextContent('false'));
   });
 
-  it('subscribes to postgres_changes on the departments table', async () => {
+  it("filters on role='hod'", async () => {
+    render(<Probe />);
+    await waitFor(() => expect(state.eqCalls).toContainEqual(['role', 'hod']));
+  });
+
+  it('subscribes to postgres_changes on the profiles table', async () => {
     render(<Probe />);
     await waitFor(() => expect(state.subscribed).toBe(1));
     expect(state.handlers).toHaveLength(1);
     expect(state.handlers[0].config).toMatchObject({
       event: '*',
       schema: 'public',
-      table: 'departments',
+      table: 'profiles',
     });
   });
 
-  it('refetches when a department is INSERTed elsewhere (admin adds one)', async () => {
-    state.rows = [dept()];
+  it('refetches when a profiles change is emitted (a newly promoted HOD appears)', async () => {
+    state.rows = [hod()];
     render(<Probe />);
-    await waitFor(() => expect(screen.getByText('Human Resources (HR)')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText('Asha Rao')).toBeInTheDocument());
 
-    state.rows = [dept(), dept({ id: 'd2', name: 'Finance', code: 'FIN' })];
-    await emitChange({ eventType: 'INSERT' });
-
-    await waitFor(() => expect(screen.getByText('Finance (FIN)')).toBeInTheDocument());
-  });
-
-  it('reflects a rename immediately (admin modifies one)', async () => {
-    state.rows = [dept()];
-    render(<Probe />);
-    await waitFor(() => expect(screen.getByText('Human Resources (HR)')).toBeInTheDocument());
-
-    state.rows = [dept({ name: 'People Operations', code: 'POPS' })];
+    state.rows = [hod(), hod({ id: 'p2', full_name: 'Ben Cole' })];
     await emitChange({ eventType: 'UPDATE' });
 
-    await waitFor(() => expect(screen.getByText('People Operations (POPS)')).toBeInTheDocument());
-    expect(screen.queryByText('Human Resources (HR)')).not.toBeInTheDocument();
+    await waitFor(() => expect(screen.getByText('Ben Cole')).toBeInTheDocument());
   });
 
-  it('drops a deleted department immediately (admin deletes one)', async () => {
-    state.rows = [dept(), dept({ id: 'd2', name: 'Finance', code: 'FIN' })];
+  it('drops a demoted HOD when a change is emitted', async () => {
+    state.rows = [hod(), hod({ id: 'p2', full_name: 'Ben Cole' })];
     render(<Probe />);
-    await waitFor(() => expect(screen.getByText('Finance (FIN)')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText('Ben Cole')).toBeInTheDocument());
 
-    state.rows = [dept()];
-    await emitChange({ eventType: 'DELETE' });
+    state.rows = [hod()];
+    await emitChange({ eventType: 'UPDATE' });
 
-    await waitFor(() => expect(screen.queryByText('Finance (FIN)')).not.toBeInTheDocument());
-    expect(screen.getByText('Human Resources (HR)')).toBeInTheDocument();
+    await waitFor(() => expect(screen.queryByText('Ben Cole')).not.toBeInTheDocument());
+    expect(screen.getByText('Asha Rao')).toBeInTheDocument();
   });
 
   it('removes its channel on unmount so subscriptions do not leak', async () => {
@@ -155,26 +162,26 @@ describe('useDepartments', () => {
 
   it('surfaces a failed load as an error instead of an empty list', async () => {
     state.rows = null as any;
-    state.rowsError = { message: 'infinite recursion detected in policy for relation "departments"' };
+    state.rowsError = { message: 'infinite recursion detected in policy for relation "profiles"' };
     render(<Probe />);
     await waitFor(() => expect(screen.getByTestId('loading')).toHaveTextContent('false'));
     expect(screen.getByTestId('error')).toHaveTextContent(
-      'infinite recursion detected in policy for relation "departments"'
+      'infinite recursion detected in policy for relation "profiles"'
     );
     expect(screen.queryByRole('listitem')).not.toBeInTheDocument();
   });
 
-  it('keeps previously loaded departments on screen when a later refetch fails', async () => {
-    state.rows = [dept()];
+  it('keeps previously loaded HODs on screen when a later refetch fails', async () => {
+    state.rows = [hod()];
     render(<Probe />);
-    await waitFor(() => expect(screen.getByText('Human Resources (HR)')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText('Asha Rao')).toBeInTheDocument());
 
-    state.rowsError = { message: 'infinite recursion detected in policy for relation "departments"' };
+    state.rowsError = { message: 'infinite recursion detected in policy for relation "profiles"' };
     await emitChange({ eventType: 'UPDATE' });
 
     await waitFor(() => expect(screen.getByTestId('error')).toHaveTextContent(
-      'infinite recursion detected in policy for relation "departments"'
+      'infinite recursion detected in policy for relation "profiles"'
     ));
-    expect(screen.getByText('Human Resources (HR)')).toBeInTheDocument();
+    expect(screen.getByText('Asha Rao')).toBeInTheDocument();
   });
 });

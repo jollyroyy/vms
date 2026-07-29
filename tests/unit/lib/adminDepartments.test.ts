@@ -9,7 +9,9 @@ import {
   createDepartment,
   updateDepartment,
   deleteDepartment,
+  describeDeleteError,
   DEPT_CODE_MAX,
+  DELETE_BLOCKED,
 } from '../../../src/lib/adminDepartments';
 import type { Department } from '../../../src/types/index';
 
@@ -21,6 +23,7 @@ const state = vi.hoisted(() => ({
   calls: [] as any[],
   error: null as string | null,
   row: null as any,
+  deletedRows: [{ id: 'd1' }] as any[] | null,
 }));
 
 /** A promise that also exposes `.select()` so both `await q` and `q.select().single()` work. */
@@ -50,7 +53,10 @@ vi.mock('../../../src/supabaseClient', () => ({
       delete: () => ({
         eq: (col: string, val: any) => {
           state.calls.push({ table, op: 'delete', col, val });
-          return thenable(state.error ? { error: { message: state.error } } : { error: null });
+          const result = state.error
+            ? { data: null, error: { message: state.error } }
+            : { data: state.deletedRows, error: null };
+          return thenable(result, { select: () => Promise.resolve(result) });
         },
       }),
     }),
@@ -61,6 +67,7 @@ beforeEach(() => {
   state.calls = [];
   state.error = null;
   state.row = null;
+  state.deletedRows = [{ id: 'd1' }];
 });
 
 const dept = (over: Partial<Department> = {}): Department => ({
@@ -188,5 +195,43 @@ describe('deleteDepartment', () => {
   it('rethrows other errors unchanged', async () => {
     state.error = 'permission denied for table departments';
     await expect(deleteDepartment('d1')).rejects.toThrow(/permission denied/);
+  });
+
+  it('resolves when the delete returns a row', async () => {
+    state.deletedRows = [{ id: 'd1' }];
+    await expect(deleteDepartment('d1')).resolves.toBeUndefined();
+  });
+
+  it('throws DELETE_BLOCKED when the delete returns an empty array (RLS silently filtered it)', async () => {
+    state.deletedRows = [];
+    await expect(deleteDepartment('d1')).rejects.toThrow(/Nothing was deleted/i);
+    state.deletedRows = [];
+    await expect(deleteDepartment('d1')).rejects.toThrow(DELETE_BLOCKED);
+  });
+
+  it('throws DELETE_BLOCKED when the delete returns null data', async () => {
+    state.deletedRows = null;
+    await expect(deleteDepartment('d1')).rejects.toThrow(DELETE_BLOCKED);
+  });
+});
+
+/* ─── describeDeleteError ───────────────────────────────── */
+
+describe('describeDeleteError', () => {
+  it('translates a foreign-key violation into an actionable message', () => {
+    const msg = describeDeleteError(
+      'update or delete on table "departments" violates foreign key constraint',
+    );
+    expect(msg).toMatch(/visits, gate passes or users/i);
+  });
+
+  it('translates a profiles RLS recursion error into a migration hint', () => {
+    const msg = describeDeleteError('infinite recursion detected in policy for relation "profiles"');
+    expect(msg).toMatch(/policy recursion/i);
+    expect(msg).toContain('040');
+  });
+
+  it('passes an unrecognised message through unchanged', () => {
+    expect(describeDeleteError('some other database error')).toBe('some other database error');
   });
 });

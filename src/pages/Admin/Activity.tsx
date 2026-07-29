@@ -48,7 +48,7 @@ export default function ActivityPage(): React.ReactElement {
       </div>
 
       {error && (
-        <div className="alert-error">
+        <div className="alert-error" role="alert">
           <svg className="w-4 h-4 text-danger-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" /></svg>
           {error}
         </div>
@@ -100,7 +100,9 @@ export default function ActivityPage(): React.ReactElement {
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-semibold text-sm text-navy-900">{log.profile?.full_name ?? log.user_id.slice(0, 8)}</span>
+                    <span className="font-semibold text-sm text-navy-900">
+                      {log.profile?.full_name ?? (log.user_id ? log.user_id.slice(0, 8) : 'System')}
+                    </span>
                     <span className={`status-badge text-xs ${lbl.color}`}>{lbl.text}</span>
                   </div>
                   <p className="text-xs text-navy-400 mt-0.5">

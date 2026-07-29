@@ -62,10 +62,18 @@ export async function updateDepartment(id: string, input: DepartmentInput): Prom
   return data as Department;
 }
 
+export const DELETE_BLOCKED =
+  'Nothing was deleted. Your account is not allowed to delete departments, or the '
+  + 'department was already removed. Sign out and back in, then try again.';
+
 /**
  * Deletes a department. Members are unlinked first — the FK from profiles would
  * otherwise block the delete, and a dangling department_id would leave an HOD
  * approving for a department that no longer exists.
+ *
+ * The delete is verified with `.select()`: a DELETE filtered out by RLS comes back
+ * with error === null and zero rows, so without this check the UI would report a
+ * cheerful success while the row was still there.
  */
 export async function deleteDepartment(id: string): Promise<void> {
   const { error: unlinkError } = await supabase
@@ -74,14 +82,23 @@ export async function deleteDepartment(id: string): Promise<void> {
     .eq('department_id', id);
   if (unlinkError) throw new Error(describeDeleteError(unlinkError.message));
 
-  const { error } = await supabase.from('departments').delete().eq('id', id);
+  const { data, error } = await supabase
+    .from('departments')
+    .delete()
+    .eq('id', id)
+    .select('id');
   if (error) throw new Error(describeDeleteError(error.message));
+  if (!data || data.length === 0) throw new Error(DELETE_BLOCKED);
 }
 
-/** Turns a raw Postgres FK violation into something an admin can act on. */
+/** Turns a raw Postgres error into something an admin can act on. */
 export function describeDeleteError(message: string): string {
   if (/foreign key|violates foreign/i.test(message)) {
     return 'Cannot delete: visits, gate passes or users are still linked to this department. Reassign them first.';
+  }
+  if (/infinite recursion/i.test(message)) {
+    return 'Database access rules for profiles are misconfigured (policy recursion). '
+      + 'Apply migration 040_fix_profiles_select_recursion.sql.';
   }
   return message;
 }

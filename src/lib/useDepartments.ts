@@ -10,16 +10,25 @@ import type { Department } from '../types/index';
 export type UseDepartments = {
   departments: Department[];
   loading: boolean;
+  error: string | null;
   reload: () => Promise<void>;
 };
 
 export function useDepartments(): UseDepartments {
   const [departments, setDepartments] = useState<Department[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
+  // On failure keep whatever was already on screen and report the error, rather
+  // than blanking the list — an empty picker looks like "no departments exist".
   const load = useCallback(async () => {
-    const { data } = await supabase.from('departments').select('*').order('name');
-    setDepartments(data ?? []);
+    const { data, error: err } = await supabase.from('departments').select('*').order('name');
+    if (err) {
+      setError(err.message);
+    } else {
+      setError(null);
+      setDepartments(data ?? []);
+    }
     setLoading(false);
   }, []);
 
@@ -36,5 +45,5 @@ export function useDepartments(): UseDepartments {
     return () => { supabase.removeChannel(channel); };
   }, [load]);
 
-  return { departments, loading, reload: load };
+  return { departments, loading, error, reload: load };
 }

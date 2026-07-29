@@ -160,7 +160,8 @@ export type Notification = {
 
 export type AuditLog = {
   id: string;
-  user_id: string;
+  // Null for actions taken without a signed-in user (service role, scheduled jobs).
+  user_id: string | null;
   action: string;
   entity_type: string;
   entity_id: string | null;

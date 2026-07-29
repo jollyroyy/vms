@@ -21,8 +21,8 @@ const message = (err: unknown, fallback: string) =>
   err instanceof Error ? err.message : fallback;
 
 export default function DepartmentsManager(): React.ReactElement {
-  const { departments, reload: reloadDepartments } = useDepartments();
-  const { hods, reload: reloadHods } = useHods();
+  const { departments, error: deptError, reload: reloadDepartments } = useDepartments();
+  const { hods, error: hodError, reload: reloadHods } = useHods();
   const msg = useAdminMessages();
 
   const [createKey, setCreateKey] = useState(0);
@@ -97,7 +97,7 @@ export default function DepartmentsManager(): React.ReactElement {
     try {
       await deleteDepartment(target.id);
       setPendingDelete(null);
-      msg.showSuccess(`Department "${target.name}" deleted.`);
+      msg.showSuccess(`Department "${target.name}" deleted successfully.`);
       await Promise.all([reloadDepartments(), reloadHods()]);
     } catch (err) {
       setPendingDelete(null);
@@ -165,7 +165,8 @@ export default function DepartmentsManager(): React.ReactElement {
         unassignedCount={unassigned}
       />
 
-      <AdminAlerts success={msg.success} error={msg.error} />
+      {/* A load failure is surfaced, never silently rendered as an empty list. */}
+      <AdminAlerts success={msg.success} error={msg.error || deptError || hodError || ''} />
 
       <div className="card-premium p-5 animate-fade-in">
         <p className="section-title mb-3">New Department</p>
