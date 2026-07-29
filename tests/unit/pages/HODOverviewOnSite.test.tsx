@@ -94,73 +94,54 @@ function setup(opts?: { deptId?: string | null; deptName?: string | null }) {
   mockNotifData = [];
 }
 
-describe('M12-HOD: HODOverview', () => {
-  it('renders page heading as Overview', async () => {
+describe('M12-HOD: HODOverview — on-site section', () => {
+  it('shows an empty state when no one is on site', async () => {
     setup();
     render(<MemoryRouter><HODOverview /></MemoryRouter>);
     await waitFor(() => {
-      expect(screen.getByRole('heading', { name: /^Overview$/i })).toBeInTheDocument();
+      expect(screen.getByText('No one on site right now')).toBeInTheDocument();
     });
   });
 
-  it('shows all four stat cards with correct counts', async () => {
+  it('lists currently checked-in visitors with host and check-in time', async () => {
     setup();
+    mockOnSiteData = [
+      {
+        id: 'os1', status: 'checked_in', purpose: 'meeting', host_id: 'h1',
+        scheduled_for: null,
+        created_at: new Date().toISOString(),
+        checked_in_at: new Date().toISOString(),
+        visitor: { full_name: 'Onsite Visitor', company: 'Acme Co' },
+        host: { id: 'h1', full_name: 'Dr. Sharma' },
+      },
+    ];
     render(<MemoryRouter><HODOverview /></MemoryRouter>);
     await waitFor(() => {
-      expect(screen.getByText('Inside')).toBeInTheDocument();
-      expect(screen.getByText('Approved')).toBeInTheDocument();
-      expect(screen.getByText('Pending')).toBeInTheDocument();
-      expect(screen.getByText('Rejected')).toBeInTheDocument();
+      expect(screen.getByText(/Onsite Visitor/)).toBeInTheDocument();
     });
-    // checked_in count = 2, approved count = 1, pending = 1, rejected = 1
-    await waitFor(() => {
-      const two = screen.getAllByText('2');
-      expect(two.length).toBeGreaterThanOrEqual(1);
-    });
+    expect(screen.getByText(/Acme Co/)).toBeInTheDocument();
+    expect(screen.getByText(/Dr\. Sharma/)).toBeInTheDocument();
   });
 
-  it('shows stat card numbers after data loads', async () => {
+  it('does not render the on-site count as a duplicate of the Inside stat value', async () => {
     setup();
+    mockOnSiteData = [
+      {
+        id: 'os1', status: 'checked_in', purpose: 'meeting', host_id: 'h1',
+        scheduled_for: null,
+        created_at: new Date().toISOString(),
+        checked_in_at: new Date().toISOString(),
+        visitor: { full_name: 'Onsite Visitor', company: null },
+        host: { id: 'h1', full_name: 'Dr. Sharma' },
+      },
+    ];
     render(<MemoryRouter><HODOverview /></MemoryRouter>);
     await waitFor(() => {
-      expect(screen.getByText('Inside')).toBeInTheDocument();
+      expect(screen.getByText(/Onsite Visitor/)).toBeInTheDocument();
     });
-    // Data has 2 checked_in → Inside = 2
-    await waitFor(() => {
-      const two = screen.getAllByText('2');
-      expect(two.length).toBeGreaterThanOrEqual(1);
-    });
-  });
-
-  it('renders upcoming visits section', async () => {
-    setup();
-    render(<MemoryRouter><HODOverview /></MemoryRouter>);
-    await waitFor(() => {
-      expect(screen.getByText('Upcoming visits')).toBeInTheDocument();
-    });
-  });
-
-  it('renders notifications panel', async () => {
-    setup();
-    render(<MemoryRouter><HODOverview /></MemoryRouter>);
-    await waitFor(() => {
-      expect(screen.getByText(/Status & Notifications/i)).toBeInTheDocument();
-    });
-  });
-
-  it('shows department name at top of dashboard', async () => {
-    setup({ deptName: 'Information Technology' });
-    render(<MemoryRouter><HODOverview /></MemoryRouter>);
-    await waitFor(() => {
-      expect(screen.getByText('Information Technology Department')).toBeInTheDocument();
-    });
-  });
-
-  it('shows catchy subtitle phrase', async () => {
-    setup();
-    render(<MemoryRouter><HODOverview /></MemoryRouter>);
-    await waitFor(() => {
-      expect(screen.getByText(/Your department at a glance/)).toBeInTheDocument();
-    });
+    // "Inside" stat card shows 2 (from mockTodayData). The on-site widget
+    // must not separately print that same numeric value as a badge/count.
+    expect(screen.queryByText(/^2 visit/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/^2 on-site/i)).not.toBeInTheDocument();
   });
 });

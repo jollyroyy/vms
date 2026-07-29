@@ -55,18 +55,28 @@
 ## Directory Layout
 ```
 src/
-  pages/Guard/       # Console, Dashboard, DailyStaff
+  pages/Guard/       # Console (shell) + GuardConsoleModeTabs, GuardConsoleModeContent,
+                     # GuardConsoleInsideCard, GuardConsoleVisitorRow;
+                     # CheckInPanel + CheckInMatchList, CheckInPhotoStep;
+                     # VisitorForm + VisitorFormFields, VisitorFormAlerts,
+                     # VisitorFormPreApproved; Dashboard, DailyStaff, WalkInRequest
   pages/HOD/         # Approvals, ApprovalsPendingList, ApprovalsVisitList, HODOverview,
                      # OverviewStatCards, OverviewUpcoming, OverviewNotifications, PreApproveForm
-  pages/Shared/      # Analytics, Reports, WhosInside, VisitorsDashboard
+  pages/Shared/      # Analytics (shell) + AnalyticsKPICards, AnalyticsCharts,
+                     # AnalyticsGatePassSummary; WhosInside + WhosInsideVisitorCard;
+                     # Reports, VisitorsDashboard
   pages/Admin/       # AdminPanel (shell), DepartmentsManager (state), DepartmentCard,
                      # DepartmentForm, HodList, HodForm, AdminStats, AdminAlerts,
                      # ConfirmDialog, Activity
-  pages/Kiosk/       # Kiosk
+  pages/Kiosk/       # Kiosk (state machine) + KioskIdleScreen, KioskPhoneScreen,
+                     # KioskFormScreen, KioskBadgeScreen, KioskAuroraBackdrop
   components/layout/ # AppShell, Sidebar, SidebarAnalytics, SidebarProfile
   lib/               # roleRoutes, theme, errors, mfa,
                      # adminDepartments, adminHods (admin CRUD + validation),
                      # useDepartments, useHods (live, realtime-subscribed)
+  styles/            # tokens, base, components-forms, components-surfaces,
+                     # components-feedback, aurora, animations
+                     # — all @imported by index.css (see CSS note below)
   types/             # index.ts (all DB types)
 supabase/migrations/ # Numbered SQL migrations (001-031+)
 tests/
@@ -82,6 +92,11 @@ tests/
 - Channel mock: use `const ch: any = {}; ch.on = () => ch;` to avoid TDZ errors
 
 ## Conventions
+- **CSS `@import` must come before `@tailwind`** in `src/index.css`. CSS spec requires
+  `@import` to precede all other statements; putting the `src/styles/*.css` imports after
+  the `@tailwind` directives makes Vite drop them silently (the bundle shrinks from
+  ~94 kB to ~69 kB with no error, only a build warning). Tailwind still collects
+  `@layer` blocks from the whole resolved file, so import order is safe.
 - Silent refresh: `load(silent=true)` skips `setLoading` to avoid UI flash during real-time updates
 - Sidebar nav: `ALL_LINKS` array in `Sidebar.tsx`, each link has `roles: UserRole[]`
 - Status badges: `status-badge`, `tab-active`/`tab-inactive`, `card-hover`, `card-premium`

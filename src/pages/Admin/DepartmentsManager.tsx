@@ -47,6 +47,10 @@ export default function DepartmentsManager(): React.ReactElement {
     return map;
   }, [hods]);
 
+  // Count only HODs actually attached to a listed department, so the tiles agree
+  // with what the cards below show (a stray hod row with a dangling department_id
+  // would otherwise inflate the total without appearing anywhere).
+  const assignedHodCount = departments.reduce((n, d) => n + (hodsByDept.get(d.id)?.length ?? 0), 0);
   const unassigned = departments.filter((d) => (hodsByDept.get(d.id) ?? []).length === 0).length;
 
   /* ── departments ───────────────────────────────────── */
@@ -157,7 +161,7 @@ export default function DepartmentsManager(): React.ReactElement {
     <div className="space-y-5">
       <AdminStats
         departmentCount={departments.length}
-        hodCount={hods.length}
+        hodCount={assignedHodCount}
         unassignedCount={unassigned}
       />
 

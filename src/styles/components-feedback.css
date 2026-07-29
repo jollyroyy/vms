@@ -1,0 +1,86 @@
+@layer components {
+  /* --- Alerts --- */
+  .alert-success {
+    @apply rounded-xl bg-success-50 border border-success-500/20 px-4 py-3 text-sm text-success-700
+           flex items-center gap-2.5 animate-fade-in;
+  }
+  .alert-error {
+    @apply rounded-xl bg-danger-50 border border-danger-500/20 px-4 py-3 text-sm text-danger-700
+           flex items-center gap-2.5 animate-fade-in;
+  }
+  .alert-warning {
+    @apply rounded-xl bg-warning-50 border border-warning-500/20 px-4 py-3 text-sm text-warning-700
+           flex items-center gap-2.5 animate-fade-in;
+  }
+
+  /* --- Avatar --- */
+  .avatar {
+    @apply rounded-full flex items-center justify-center font-semibold shrink-0;
+  }
+  .avatar-sm {
+    @apply avatar h-8 w-8 text-[11px];
+  }
+  .avatar-md {
+    @apply avatar h-10 w-10 text-xs;
+  }
+  .avatar-lg {
+    @apply avatar h-12 w-12 text-sm;
+  }
+  .avatar-gradient {
+    background: linear-gradient(135deg, #7c3aed, #d946ef);
+    color: #fff;
+    box-shadow: 0 2px 10px -2px rgb(124 58 237 / 0.5), inset 0 1px 0 0 rgb(255 255 255 / 0.25);
+  }
+
+  /* --- Skeleton loading with shimmer --- */
+  .skeleton {
+    @apply bg-surface-100 rounded-lg;
+    position: relative;
+    overflow: hidden;
+  }
+  .skeleton::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.5), transparent);
+    animation: shimmer 1.8s ease-in-out infinite;
+  }
+  .dark .skeleton::after {
+    background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.08), transparent);
+  }
+
+  /* --- Divider --- */
+  .divider {
+    @apply border-t border-surface-100;
+  }
+
+  /* --- Sidebar links --- */
+  .sidebar-link {
+    @apply relative flex items-center gap-3 rounded-xl text-sm font-medium
+           text-navy-500 transition-all duration-200;
+  }
+  .sidebar-link:hover {
+    @apply text-navy-800;
+    background: rgb(var(--c-surface-100) / 0.8);
+  }
+  .dark .sidebar-link:hover {
+    background: rgb(255 255 255 / 0.05);
+  }
+  .sidebar-link-active {
+    @apply text-white font-semibold;
+    background: linear-gradient(120deg, rgb(124 58 237 / 0.92), rgb(217 70 239 / 0.85));
+    box-shadow: 0 4px 18px -4px rgb(124 58 237 / 0.55), inset 0 1px 0 0 rgb(255 255 255 / 0.22);
+  }
+  .sidebar-link-active:hover {
+    @apply text-white;
+    background: linear-gradient(120deg, rgb(124 58 237 / 1), rgb(217 70 239 / 0.95));
+  }
+
+  /* --- Glass chip --- */
+  .glass-chip {
+    @apply inline-flex items-center gap-1.5 rounded-full text-xs font-medium px-3 py-1;
+    background: rgb(var(--glass-bg) / 0.5);
+    border: 1px solid rgb(var(--glass-border) / var(--glass-border-opacity));
+    backdrop-filter: blur(12px);
+  }
+}

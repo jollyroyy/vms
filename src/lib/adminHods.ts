@@ -86,21 +86,26 @@ export async function addHod(
   const newId = signUpData?.user?.id;
   if (!newId) throw new Error('Could not create the account for this HOD.');
 
-  // Upsert rather than update: handle_new_user (migration 010) already inserted a
-  // row for this id, so we merge the role/department onto it without racing it.
-  const { error } = await supabase.from('profiles').upsert({
-    id: newId,
-    email,
-    full_name: fullName,
-    role: 'hod',
-    department_id: departmentId,
-  } as never);
+  // UPDATE, not upsert. There is no insert policy on profiles (migration 013 drops
+  // "profiles: admin can insert"), so an `INSERT .. ON CONFLICT` would be refused by
+  // RLS even when the row already exists. handle_new_user (migration 010) inserts the
+  // row inside the signUp transaction and seeds id/email/full_name, so by the time
+  // signUp resolves there is a row here to promote.
+  const { error } = await supabase
+    .from('profiles')
+    .update({ full_name: fullName, role: 'hod', department_id: departmentId })
+    .eq('id', newId);
   if (error) throw new Error(error.message);
 
   return { created: true };
 }
 
-/** Renames / re-addresses an HOD. Does not change which department they head. */
+/**
+ * Renames / re-addresses an HOD. Does not change which department they head.
+ * NOTE: this updates the `profiles` row only — it does NOT change the address the
+ * user signs in with. Changing an auth email requires an admin API call from a
+ * trusted server context, which the browser client deliberately cannot make.
+ */
 export async function updateHod(profileId: string, input: HodInput): Promise<void> {
   const { fullName, email } = normalizeHodInput(input);
   const { error } = await supabase

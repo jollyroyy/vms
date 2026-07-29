@@ -94,73 +94,108 @@ function setup(opts?: { deptId?: string | null; deptName?: string | null }) {
   mockNotifData = [];
 }
 
-describe('M12-HOD: HODOverview', () => {
-  it('renders page heading as Overview', async () => {
+describe('M12-HOD: HODOverview — upcoming excludes past visits', () => {
+  const HOUR = 60 * 60 * 1000;
+  const DAY = 24 * HOUR;
+
+  it('does not show a visit whose scheduled_for is in the past', async () => {
     setup();
+    const now = Date.now();
+    mockUpcomingData = [
+      {
+        id: 'p1', status: 'approved', purpose: 'meeting', host_id: 'h1',
+        scheduled_for: new Date(now - DAY).toISOString(),
+        created_at: new Date(now - DAY).toISOString(),
+        visitor: { full_name: 'Past Visitor', company: null },
+      },
+    ];
     render(<MemoryRouter><HODOverview /></MemoryRouter>);
+    // Wait for the load to actually finish — the empty state only renders once !loading.
     await waitFor(() => {
-      expect(screen.getByRole('heading', { name: /^Overview$/i })).toBeInTheDocument();
+      expect(screen.getByText('No upcoming visits')).toBeInTheDocument();
     });
+    expect(screen.queryByText('Past Visitor')).not.toBeInTheDocument();
   });
 
-  it('shows all four stat cards with correct counts', async () => {
+  it('shows a visit whose scheduled_for is in the future', async () => {
     setup();
+    const now = Date.now();
+    mockUpcomingData = [
+      {
+        id: 'f1', status: 'approved', purpose: 'meeting', host_id: 'h1',
+        scheduled_for: new Date(now + DAY).toISOString(),
+        created_at: new Date(now).toISOString(),
+        visitor: { full_name: 'Future Visitor', company: null },
+      },
+    ];
     render(<MemoryRouter><HODOverview /></MemoryRouter>);
     await waitFor(() => {
-      expect(screen.getByText('Inside')).toBeInTheDocument();
-      expect(screen.getByText('Approved')).toBeInTheDocument();
-      expect(screen.getByText('Pending')).toBeInTheDocument();
-      expect(screen.getByText('Rejected')).toBeInTheDocument();
+      expect(screen.getByText('1 visit')).toBeInTheDocument();
     });
-    // checked_in count = 2, approved count = 1, pending = 1, rejected = 1
-    await waitFor(() => {
-      const two = screen.getAllByText('2');
-      expect(two.length).toBeGreaterThanOrEqual(1);
-    });
+    expect(screen.getByText('Future Visitor')).toBeInTheDocument();
   });
 
-  it('shows stat card numbers after data loads', async () => {
+  it('shows a null-scheduled visit created today', async () => {
     setup();
+    const now = Date.now();
+    mockUpcomingData = [
+      {
+        id: 'n1', status: 'pending_approval', purpose: 'meeting', host_id: 'h1',
+        scheduled_for: null,
+        created_at: new Date(now).toISOString(),
+        visitor: { full_name: 'Null Today Visitor', company: null },
+      },
+    ];
     render(<MemoryRouter><HODOverview /></MemoryRouter>);
     await waitFor(() => {
-      expect(screen.getByText('Inside')).toBeInTheDocument();
+      expect(screen.getByText('1 visit')).toBeInTheDocument();
     });
-    // Data has 2 checked_in → Inside = 2
-    await waitFor(() => {
-      const two = screen.getAllByText('2');
-      expect(two.length).toBeGreaterThanOrEqual(1);
-    });
+    expect(screen.getByText('Null Today Visitor')).toBeInTheDocument();
   });
 
-  it('renders upcoming visits section', async () => {
+  it('excludes a null-scheduled visit created days ago', async () => {
     setup();
+    const now = Date.now();
+    mockUpcomingData = [
+      {
+        id: 'n2', status: 'pending_approval', purpose: 'meeting', host_id: 'h1',
+        scheduled_for: null,
+        created_at: new Date(now - 5 * DAY).toISOString(),
+        visitor: { full_name: 'Null Old Visitor', company: null },
+      },
+    ];
     render(<MemoryRouter><HODOverview /></MemoryRouter>);
     await waitFor(() => {
-      expect(screen.getByText('Upcoming visits')).toBeInTheDocument();
+      expect(screen.getByText('No upcoming visits')).toBeInTheDocument();
     });
+    expect(screen.queryByText('Null Old Visitor')).not.toBeInTheDocument();
   });
 
-  it('renders notifications panel', async () => {
+  it('orders upcoming visits soonest-first', async () => {
     setup();
+    const now = Date.now();
+    mockUpcomingData = [
+      {
+        id: 'later', status: 'approved', purpose: 'meeting', host_id: 'h1',
+        scheduled_for: new Date(now + 3 * DAY).toISOString(),
+        created_at: new Date(now).toISOString(),
+        visitor: { full_name: 'Later Visitor', company: null },
+      },
+      {
+        id: 'sooner', status: 'approved', purpose: 'meeting', host_id: 'h1',
+        scheduled_for: new Date(now + HOUR).toISOString(),
+        created_at: new Date(now).toISOString(),
+        visitor: { full_name: 'Sooner Visitor', company: null },
+      },
+    ];
     render(<MemoryRouter><HODOverview /></MemoryRouter>);
     await waitFor(() => {
-      expect(screen.getByText(/Status & Notifications/i)).toBeInTheDocument();
+      expect(screen.getByText('Sooner Visitor')).toBeInTheDocument();
     });
-  });
-
-  it('shows department name at top of dashboard', async () => {
-    setup({ deptName: 'Information Technology' });
-    render(<MemoryRouter><HODOverview /></MemoryRouter>);
-    await waitFor(() => {
-      expect(screen.getByText('Information Technology Department')).toBeInTheDocument();
-    });
-  });
-
-  it('shows catchy subtitle phrase', async () => {
-    setup();
-    render(<MemoryRouter><HODOverview /></MemoryRouter>);
-    await waitFor(() => {
-      expect(screen.getByText(/Your department at a glance/)).toBeInTheDocument();
-    });
+    const names = screen.getAllByText(/Visitor$/).map((el) => el.textContent);
+    const sIdx = names.indexOf('Sooner Visitor');
+    const lIdx = names.indexOf('Later Visitor');
+    expect(sIdx).toBeGreaterThanOrEqual(0);
+    expect(lIdx).toBeGreaterThan(sIdx);
   });
 });

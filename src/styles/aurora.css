@@ -1,0 +1,48 @@
+/* ============================================================
+   AURORA AMBIENT BACKGROUND
+   ============================================================ */
+.aurora-stage {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 0;
+}
+.aurora-blob {
+  position: absolute;
+  border-radius: 9999px;
+  filter: blur(90px);
+  will-change: transform;
+}
+.aurora-blob-1 {
+  width: 44rem; height: 44rem;
+  top: -14rem; left: -10rem;
+  background: radial-gradient(circle, rgb(139 92 246 / 0.35), transparent 65%);
+  animation: auroraDrift 18s ease-in-out infinite;
+}
+.aurora-blob-2 {
+  width: 38rem; height: 38rem;
+  top: 20%; right: -12rem;
+  background: radial-gradient(circle, rgb(217 70 239 / 0.28), transparent 65%);
+  animation: auroraDriftAlt 22s ease-in-out infinite;
+}
+.aurora-blob-3 {
+  width: 34rem; height: 34rem;
+  bottom: -12rem; left: 30%;
+  background: radial-gradient(circle, rgb(99 102 241 / 0.25), transparent 65%);
+  animation: auroraDrift 26s ease-in-out infinite reverse;
+}
+.dark .aurora-blob-1 { background: radial-gradient(circle, rgb(124 58 237 / 0.30), transparent 65%); }
+.dark .aurora-blob-2 { background: radial-gradient(circle, rgb(217 70 239 / 0.22), transparent 65%); }
+.dark .aurora-blob-3 { background: radial-gradient(circle, rgb(76 29 149 / 0.30), transparent 65%); }
+
+.aurora-grid {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgb(var(--c-navy-300) / 0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(var(--c-navy-300) / 0.08) 1px, transparent 1px);
+  background-size: 44px 44px;
+  mask-image: radial-gradient(ellipse 90% 70% at 50% 0%, black 30%, transparent 75%);
+  -webkit-mask-image: radial-gradient(ellipse 90% 70% at 50% 0%, black 30%, transparent 75%);
+}

@@ -159,16 +159,22 @@ describe('addHod', () => {
     expect(signUp.password.length).toBeGreaterThanOrEqual(12);
   });
 
-  it('upserts the profile of a newly invited user as HOD of the department', async () => {
+  // Must be an UPDATE, never an upsert: there is NO insert policy on profiles
+  // (migration 013 drops "profiles: admin can insert"), so `INSERT .. ON CONFLICT`
+  // would be refused by RLS. The handle_new_user trigger (migration 010) already
+  // created the row inside the signUp transaction, so the row is there to update.
+  it('updates the newly invited user\'s profile to HOD of the department', async () => {
     state.lookupProfile = null;
     await addHod('d1', { fullName: 'Ravi Kumar', email: 'ravi@corp.com' });
 
-    const upsert = state.calls.find((c) => c.op === 'upsert');
-    expect(upsert).toBeDefined();
-    expect(upsert.table).toBe('profiles');
-    expect(upsert.payload).toMatchObject({
-      id: 'new-user-id',
-      email: 'ravi@corp.com',
+    expect(state.calls.some((c) => c.op === 'upsert')).toBe(false);
+
+    const update = state.calls.find((c) => c.op === 'update');
+    expect(update).toBeDefined();
+    expect(update.table).toBe('profiles');
+    expect(update.col).toBe('id');
+    expect(update.val).toBe('new-user-id');
+    expect(update.payload).toMatchObject({
       full_name: 'Ravi Kumar',
       role: 'hod',
       department_id: 'd1',

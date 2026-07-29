@@ -1,0 +1,49 @@
+@layer base {
+  * { touch-action: manipulation; }
+
+  html {
+    font-size: 18px;
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply antialiased text-navy-900 bg-surface-50;
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+    transition: background-color 0.3s ease, color 0.3s ease;
+  }
+
+  ::selection {
+    @apply bg-brand-200/60 text-brand-950;
+  }
+  .dark ::selection {
+    @apply bg-brand-500/40 text-white;
+  }
+
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    @apply w-1.5;
+  }
+  ::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply bg-navy-200 rounded-full hover:bg-navy-300;
+  }
+}
+
+/* ============================================================
+   THEME REMAPS — keep legacy raw utilities theme-safe
+   ============================================================ */
+@layer components {
+  .dark .bg-white { background-color: rgb(var(--glass-bg) / 0.72); }
+  .dark .bg-white\/70 { background-color: rgb(var(--glass-bg) / 0.55); }
+  .dark .bg-white\/80 { background-color: rgb(var(--glass-bg) / 0.65); }
+  .dark .bg-white\/90 { background-color: rgb(var(--glass-bg) / 0.80); }
+  .dark .bg-white\/95 { background-color: rgb(var(--glass-bg) / 0.88); }
+}
+
+@media print {
+  .no-print { display: none !important; }
+  .print-only { display: block !important; }
+}
+.print-only { display: none; }

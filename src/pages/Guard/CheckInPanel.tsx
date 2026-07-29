@@ -5,12 +5,12 @@ import { normalizePhone } from '../../lib/blacklist';
 import { safeErrorMessage } from '../../lib/errors';
 import { attachHostNames } from '../../lib/hostNames';
 import { useDepartments } from '../../lib/useDepartments';
-import PhotoCapture from '../../components/PhotoCapture';
-import WalkInRequest from './WalkInRequest';
+import CheckInPhotoStep from './CheckInPhotoStep';
+import CheckInMatchList from './CheckInMatchList';
 
 type MatchSource = 'pre_approved' | 'recurring';
 
-interface MatchItem {
+export interface MatchItem {
   id: string;
   source: MatchSource;
   visitorName: string;
@@ -218,158 +218,40 @@ export default function CheckInPanel({ today, onCheckInSuccess }: Props): React.
     return items;
   }, [preApproved, recurringToday, search, deptFilter]);
 
-  if (selectedMatch && photoBlob === null) {
+  if (selectedMatch) {
     return (
-      <div className="space-y-4 animate-fade-in max-w-lg mx-auto">
-        <button onClick={() => { setSelectedMatch(null); setError(''); }} className="text-sm text-brand-600 hover:text-brand-700 font-semibold flex items-center gap-1">
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" /></svg>
-          Back to search
-        </button>
-        <div className="bg-white rounded-2xl p-5 shadow-sm border border-surface-100 space-y-4">
-          <div>
-            <p className="text-xl font-bold text-navy-900">{selectedMatch.visitorName}</p>
-            <p className="text-sm text-navy-400">{selectedMatch.departmentName} · {selectedMatch.purpose}</p>
-            <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full mt-1 ${
-              selectedMatch.source === 'pre_approved' ? 'bg-success-50 text-success-700' : 'bg-accent-50 text-accent-700'
-            }`}>
-              {selectedMatch.source === 'pre_approved' ? 'Pre-Approved' : 'Regular Visitor'}
-            </span>
-          </div>
-          <p className="text-sm font-semibold text-navy-700">Take a photo to check in</p>
-          <PhotoCapture onCapture={(blob) => setPhotoBlob(blob)} />
-        </div>
-        {error && <div className="bg-danger-50 text-danger-700 px-4 py-3 rounded-xl text-sm font-semibold">{error}</div>}
-      </div>
-    );
-  }
-
-  if (selectedMatch && photoBlob) {
-    return (
-      <div className="space-y-4 animate-fade-in max-w-lg mx-auto">
-        <div className="bg-white rounded-2xl p-5 shadow-sm border border-surface-100 space-y-4">
-          <div className="flex items-center gap-3">
-            <img src={URL.createObjectURL(photoBlob)} alt="" className="w-14 h-[72px] object-cover rounded-xl ring-2 ring-success-200" />
-            <div className="flex-1 min-w-0">
-              <p className="font-bold text-navy-900">{selectedMatch.visitorName}</p>
-              <p className="text-sm text-navy-400 truncate">{selectedMatch.departmentName}</p>
-              <p className="text-xs text-success-600 font-semibold mt-1">Photo captured</p>
-            </div>
-            <button onClick={() => setPhotoBlob(null)} className="text-danger-600 hover:text-danger-700 text-sm font-semibold shrink-0">Retake</button>
-          </div>
-          <div className="flex gap-3">
-            <button onClick={() => { setSelectedMatch(null); setPhotoBlob(null); }} className="flex-1 bg-surface-50 hover:bg-surface-100 text-navy-700 font-bold rounded-xl py-3 text-sm transition-all">Cancel</button>
-            <button onClick={performCheckIn} disabled={checkingIn}
-              className="flex-1 bg-brand-600 hover:bg-brand-700 text-white font-bold rounded-xl py-3 text-sm transition-all disabled:opacity-50 flex items-center justify-center gap-2">
-              {checkingIn ? (
-                <><svg className="animate-spin h-4 w-4" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg> Checking in...</>
-              ) : 'Check In'}
-            </button>
-          </div>
-        </div>
-        {error && <div className="bg-danger-50 text-danger-700 px-4 py-3 rounded-xl text-sm font-semibold">{error}</div>}
-      </div>
+      <CheckInPhotoStep
+        selectedMatch={selectedMatch}
+        photoBlob={photoBlob}
+        error={error}
+        checkingIn={checkingIn}
+        onBack={() => { setSelectedMatch(null); setError(''); }}
+        onCapture={(blob) => setPhotoBlob(blob)}
+        onRetake={() => setPhotoBlob(null)}
+        onCancel={() => { setSelectedMatch(null); setPhotoBlob(null); }}
+        onConfirm={performCheckIn}
+      />
     );
   }
 
   return (
-    <div className="space-y-4 animate-fade-in">
-      {error && (
-        <div className="bg-danger-50 text-danger-700 px-4 py-3 rounded-xl text-sm font-semibold">{error}</div>
-      )}
-
-      <div className="flex flex-col sm:flex-row gap-3">
-        <div className="relative flex-1">
-          <svg className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-navy-300 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
-          </svg>
-          <input type="text" placeholder="Search by phone or name..." value={search}
-            onChange={(e) => { setSearch(e.target.value); setShowWalkIn(false); }}
-            className="w-full pl-12 pr-4 py-3.5 bg-surface-50 border border-surface-200 rounded-2xl text-base font-medium text-navy-900 placeholder-navy-300 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all" autoFocus />
-        </div>
-        <select value={deptFilter} onChange={(e) => setDeptFilter(e.target.value)}
-          className="w-full sm:w-44 px-4 py-3.5 bg-surface-50 border border-surface-200 rounded-2xl text-sm text-navy-700 focus:outline-none focus:ring-2 focus:ring-brand-500">
-          <option value="">All Departments</option>
-          {departments.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
-        </select>
-      </div>
-
-      {loading ? (
-        <div className="space-y-2">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="h-16 skeleton rounded-2xl" />
-          ))}
-        </div>
-      ) : allMatches.length > 0 ? (
-        <div className="space-y-2">
-          {allMatches.map((m, idx) => {
-            const isRecurring = m.source === 'recurring';
-            const isCheckedIn = m.source === 'pre_approved' && checkedInIds.has(preApproved.find((v) => v.id === m.visitId)?.visitor_id ?? '');
-            const visitRecord = m.source === 'pre_approved' ? preApproved.find((v) => v.id === m.visitId) : null;
-            const expired = visitRecord ? isExpired(visitRecord) : false;
-            const disabled = isCheckedIn || expired;
-            return (
-              <div key={`${m.id}-${idx}`}
-                className={`bg-white rounded-2xl p-4 shadow-sm border border-surface-100 flex items-center justify-between transition-all ${
-                  disabled ? 'opacity-50' : 'hover:shadow-md cursor-pointer'
-                }`}
-                onClick={() => {
-                  if (!disabled) { setSelectedMatch(m); setPhotoBlob(null); setError(''); }
-                }}>
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <p className="font-bold text-navy-900">{m.visitorName}</p>
-                    <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
-                      isRecurring ? 'bg-accent-50 text-accent-700' : 'bg-success-50 text-success-700'
-                    }`}>
-                      {isRecurring ? 'Regular' : 'Pre-Approved'}
-                    </span>
-                    {isCheckedIn && (
-                      <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-brand-50 text-brand-700">Checked In</span>
-                    )}
-                    {expired && !isCheckedIn && (
-                      <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-danger-50 text-danger-700">Expired</span>
-                    )}
-                  </div>
-                  <p className="text-sm text-navy-400 mt-0.5 truncate">{m.departmentName} · {m.purpose}</p>
-                </div>
-                {!disabled && (
-                  <button onClick={(e) => { e.stopPropagation(); setSelectedMatch(m); setPhotoBlob(null); setError(''); }}
-                    className="shrink-0 ml-3 bg-brand-600 hover:bg-brand-700 text-white font-bold px-5 py-2.5 rounded-xl text-sm transition-all">
-                    Check In
-                  </button>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      ) : search || deptFilter ? (
-        <div className="text-center py-12 bg-surface-50 rounded-2xl space-y-3">
-          <p className="text-lg font-bold text-navy-600">No match found</p>
-          <p className="text-sm text-navy-400">No pre-approved or regular visitor matches your search.</p>
-          {!showWalkIn ? (
-            <button onClick={() => setShowWalkIn(true)}
-              className="inline-flex items-center gap-2 bg-brand-600 hover:bg-brand-700 text-white font-bold px-6 py-3 rounded-xl text-sm transition-all">
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
-              Request Walk-in Approval
-            </button>
-          ) : (
-            <div className="max-w-lg mx-auto">
-              <WalkInRequest
-                onSubmitted={(name) => { onCheckInSuccess(name); setShowWalkIn(false); setSearch(''); void loadData(); }}
-                onCancel={() => setShowWalkIn(false)}
-              />
-            </div>
-          )}
-        </div>
-      ) : (
-        <div className="text-center py-16 bg-surface-50 rounded-2xl">
-          <svg className="w-12 h-12 mx-auto text-navy-300 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
-          </svg>
-          <p className="text-lg font-bold text-navy-600">Search for a visitor</p>
-          <p className="text-sm text-navy-400 mt-1">Type name or phone number above</p>
-        </div>
-      )}
-    </div>
+    <CheckInMatchList
+      error={error}
+      search={search}
+      onSearchChange={(value) => { setSearch(value); setShowWalkIn(false); }}
+      deptFilter={deptFilter}
+      onDeptFilterChange={setDeptFilter}
+      departments={departments}
+      loading={loading}
+      allMatches={allMatches}
+      preApproved={preApproved}
+      checkedInIds={checkedInIds}
+      isExpired={isExpired}
+      onSelectMatch={(m) => { setSelectedMatch(m); setPhotoBlob(null); setError(''); }}
+      showWalkIn={showWalkIn}
+      onShowWalkIn={() => setShowWalkIn(true)}
+      onWalkInSubmitted={(name) => { onCheckInSuccess(name); setShowWalkIn(false); setSearch(''); void loadData(); }}
+      onWalkInCancel={() => setShowWalkIn(false)}
+    />
   );
 }
