@@ -72,19 +72,19 @@ export default function ResetPassword(): React.ReactElement {
         }}
       />
 
-      <div className="relative z-10 w-full max-w-[460px] bg-navy-950/70 backdrop-blur-xl border border-white/10 rounded-3xl shadow-2xl shadow-black/40 p-8 sm:p-10 animate-fade-in">
-        <div className="flex flex-col items-center mb-8">
-          <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-[#7C3AED] to-[#5B21B6] flex items-center justify-center shadow-glow-sm mb-5">
-            <svg className="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <div className="relative z-10 w-full max-w-[460px] bg-white border border-black/5 rounded-3xl shadow-2xl shadow-black/40 px-8 py-6 sm:px-10 sm:py-7 animate-fade-in">
+        <div className="flex flex-col items-center mb-5">
+          <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-[#7C3AED] to-[#5B21B6] flex items-center justify-center shadow-glow-sm mb-3">
+            <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
             </svg>
           </div>
-          <h1 className="font-display text-2xl font-bold text-white tracking-tight">Set a new password</h1>
-          <p className="text-sm text-white/65 mt-1.5 text-center">Choose a new password for your SecureGate account</p>
+          <h1 className="font-display text-2xl font-bold text-navy-900 tracking-tight">Set a new password</h1>
+          <p className="text-sm text-navy-500 mt-1.5 text-center">Choose a new password for your SecureGate account</p>
         </div>
 
         {done ? (
-          <div className="space-y-5">
+          <div className="space-y-4">
             <div className="flex items-start gap-3 p-3 rounded-xl bg-success-50 border border-success-200">
               <svg className="w-4 h-4 shrink-0 mt-0.5 text-success-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -99,9 +99,9 @@ export default function ResetPassword(): React.ReactElement {
             </a>
           </div>
         ) : (
-          <form onSubmit={handleSubmit} className="space-y-5">
+          <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label htmlFor="new-password" className="block text-xs font-bold text-white/80 uppercase tracking-wider mb-2">
+              <label htmlFor="new-password" className="block text-xs font-bold text-navy-600 uppercase tracking-wider mb-2">
                 New Password
               </label>
               <div className="relative">
@@ -113,14 +113,14 @@ export default function ResetPassword(): React.ReactElement {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder={`At least ${MIN_LENGTH} characters`}
-                  className="w-full h-12 px-4 pr-11 rounded-xl border border-white/15 bg-white/5 text-white placeholder-white/35 text-sm focus:outline-none focus:ring-2 focus:ring-[#7C3AED]/40 focus:border-[#7C3AED] transition-all"
+                  className="w-full h-12 px-4 pr-11 rounded-xl border border-navy-200 bg-navy-50 text-navy-900 placeholder-navy-400 text-sm focus:outline-none focus:ring-2 focus:ring-[#7C3AED]/40 focus:border-[#7C3AED] transition-all"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPw((p) => !p)}
                   tabIndex={-1}
                   aria-label={showPw ? 'Hide password' : 'Show password'}
-                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-white/40 hover:text-white/80 transition-colors text-xs font-semibold"
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-navy-300 hover:text-navy-600 transition-colors text-xs font-semibold"
                 >
                   {showPw ? 'Hide' : 'Show'}
                 </button>
@@ -128,7 +128,7 @@ export default function ResetPassword(): React.ReactElement {
             </div>
 
             <div>
-              <label htmlFor="confirm-password" className="block text-xs font-bold text-white/80 uppercase tracking-wider mb-2">
+              <label htmlFor="confirm-password" className="block text-xs font-bold text-navy-600 uppercase tracking-wider mb-2">
                 Confirm New Password
               </label>
               <input
@@ -138,7 +138,7 @@ export default function ResetPassword(): React.ReactElement {
                 value={confirm}
                 onChange={(e) => setConfirm(e.target.value)}
                 placeholder="Re-enter your new password"
-                className="w-full h-12 px-4 rounded-xl border border-white/15 bg-white/5 text-white placeholder-white/35 text-sm focus:outline-none focus:ring-2 focus:ring-[#7C3AED]/40 focus:border-[#7C3AED] transition-all"
+                className="w-full h-12 px-4 rounded-xl border border-navy-200 bg-navy-50 text-navy-900 placeholder-navy-400 text-sm focus:outline-none focus:ring-2 focus:ring-[#7C3AED]/40 focus:border-[#7C3AED] transition-all"
               />
             </div>
 
@@ -162,7 +162,7 @@ export default function ResetPassword(): React.ReactElement {
             {/* Escape hatch: an expired or already-used link leaves the form unusable. */}
             <p className="text-center">
               <button type="button" onClick={abandon}
-                className="text-xs font-semibold text-[#c4b5fd] hover:text-white transition-colors">
+                className="text-xs font-semibold text-[#7C3AED] hover:text-[#5B21B6] transition-colors">
                 Back to sign in
               </button>
             </p>
