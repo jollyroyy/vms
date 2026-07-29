@@ -1,9 +1,17 @@
+import React from 'react';
 import type { Visit } from '../types/index';
 import { formatDateTime, formatDuration } from '../lib/formatDate';
+import VisitorDetailsActions from './VisitorDetailsActions';
 
 interface Props {
   visit: Visit;
   onClose: () => void;
+  acting?: string | null;
+  reason?: string;
+  onReasonChange?: (value: string) => void;
+  onApprove?: () => void;
+  onReject?: () => void;
+  onCancel?: () => void;
 }
 
 const STATUS_COLORS: Record<string, { bg: string; text: string; dot: string }> = {
@@ -30,13 +38,15 @@ function InfoRow({ icon, label, value }: { icon: React.ReactNode; label: string;
   );
 }
 
-export default function VisitorDetails({ visit: v, onClose }: Props) {
+export default function VisitorDetails({
+  visit: v, onClose, acting, reason, onReasonChange, onApprove, onReject, onCancel,
+}: Props) {
   const dur = v.checked_in_at ? formatDuration(v.checked_in_at) : null;
   const s = STATUS_COLORS[v.status] ?? { bg: 'bg-surface-100', text: 'text-navy-500', dot: 'bg-navy-300' };
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+      <div className="modal-content sm:max-w-lg" onClick={(e) => e.stopPropagation()}>
 
         {/* Header with gradient */}
         <div className="relative bg-gradient-to-br from-navy-900 via-navy-800 to-brand-900 px-6 pt-5 pb-14">
@@ -151,6 +161,16 @@ export default function VisitorDetails({ visit: v, onClose }: Props) {
             )}
           </div>
         </div>
+
+        <VisitorDetailsActions
+          visit={v}
+          busy={acting === v.id}
+          reason={reason ?? ''}
+          onReasonChange={onReasonChange}
+          onApprove={onApprove}
+          onReject={onReject}
+          onCancel={onCancel}
+        />
       </div>
     </div>
   );

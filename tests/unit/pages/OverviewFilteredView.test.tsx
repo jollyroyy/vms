@@ -5,10 +5,13 @@ import OverviewFilteredView from '../../../src/pages/HOD/OverviewFilteredView';
 import type { Visit } from '../../../src/types/index';
 
 vi.mock('../../../src/components/VisitorDetails', () => ({
-  default: ({ visit, onClose }: any) => (
+  default: ({ visit, onClose, onApprove, onReject, onCancel }: any) => (
     <div data-testid="visitor-details">
       Details for {visit.visitor?.full_name}
       <button onClick={onClose}>Close</button>
+      {onApprove && <button onClick={onApprove}>Modal Approve</button>}
+      {onReject && <button onClick={onReject}>Modal Reject</button>}
+      {onCancel && <button onClick={onCancel}>Modal Cancel</button>}
     </div>
   ),
 }));
@@ -164,5 +167,46 @@ describe('OverviewFilteredView', () => {
     render(<OverviewFilteredView mode="inside" visits={[baseVisit]} loading={false} onClearFilter={onClearFilter} />);
     fireEvent.click(screen.getByText('Back to overview'));
     expect(onClearFilter).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows a premium field grid with department, reason, date and phone', () => {
+    render(<OverviewFilteredView mode="inside" visits={[baseVisit]} loading={false} onClearFilter={vi.fn()} />);
+    expect(screen.getByText('Department')).toBeInTheDocument();
+    expect(screen.getByText('Engineering')).toBeInTheDocument();
+    expect(screen.getByText('Reason')).toBeInTheDocument();
+    expect(screen.getByText('Meeting')).toBeInTheDocument();
+    expect(screen.getByText('Date')).toBeInTheDocument();
+    expect(screen.getByText('Phone')).toBeInTheDocument();
+    expect(screen.getByText('9999999999')).toBeInTheDocument();
+  });
+
+  it('passes approve/reject/cancel handlers into the detail modal and closes it after use', () => {
+    const onApprove = vi.fn();
+    const onReject = vi.fn();
+    const onCancel = vi.fn();
+    render(
+      <OverviewFilteredView
+        mode="pending" visits={[baseVisit]} loading={false} onClearFilter={vi.fn()}
+        onApprove={onApprove} onReject={onReject} onCancel={onCancel}
+      />,
+    );
+    fireEvent.click(screen.getByText('John Doe'));
+    fireEvent.click(screen.getByText('Modal Approve'));
+    expect(onApprove).toHaveBeenCalledWith('v1');
+    expect(screen.queryByTestId('visitor-details')).not.toBeInTheDocument();
+  });
+
+  it('shows Clear All in approved mode when onClearAll is provided and calls it', () => {
+    const onClearAll = vi.fn();
+    render(
+      <OverviewFilteredView mode="approved" visits={[baseVisit]} loading={false} onClearFilter={vi.fn()} onClearAll={onClearAll} />,
+    );
+    fireEvent.click(screen.getByText('Clear All'));
+    expect(onClearAll).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not show Clear All when onClearAll is not provided', () => {
+    render(<OverviewFilteredView mode="approved" visits={[baseVisit]} loading={false} onClearFilter={vi.fn()} />);
+    expect(screen.queryByText('Clear All')).not.toBeInTheDocument();
   });
 });

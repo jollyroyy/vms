@@ -67,15 +67,18 @@ describe('ApprovalsPendingList', () => {
     expect(screen.queryByText('All caught up')).not.toBeInTheDocument();
   });
 
-  it('pre-fills the rejection reason input from the reasons prop', () => {
+  it('does not show the rejection reason input until Reject is clicked', () => {
     render(<ApprovalsPendingList {...baseProps} visits={[pendingVisit()]} reasons={{ v1: 'Wrong department' }} />);
+    expect(screen.queryByPlaceholderText('Rejection reason (required to reject)')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByText('Reject'));
     const input = screen.getByPlaceholderText('Rejection reason (required to reject)') as HTMLInputElement;
     expect(input.value).toBe('Wrong department');
   });
 
-  it('calls onReasonChange with the visit id and typed value', () => {
+  it('calls onReasonChange with the visit id and typed value after Reject reveals the input', () => {
     const onReasonChange = vi.fn();
     render(<ApprovalsPendingList {...baseProps} visits={[pendingVisit()]} onReasonChange={onReasonChange} />);
+    fireEvent.click(screen.getByText('Reject'));
     const input = screen.getByPlaceholderText('Rejection reason (required to reject)');
     fireEvent.change(input, { target: { value: 'Not on the guest list' } });
     expect(onReasonChange).toHaveBeenCalledWith('v1', 'Not on the guest list');
@@ -88,11 +91,33 @@ describe('ApprovalsPendingList', () => {
     expect(onDecide).toHaveBeenCalledWith('v1', true);
   });
 
-  it('calls onDecide(id, false) when Reject is clicked', () => {
+  it('reveals the reason box on Reject click without deciding yet, then calls onDecide(id, false) on Confirm Reject', () => {
     const onDecide = vi.fn();
-    render(<ApprovalsPendingList {...baseProps} visits={[pendingVisit()]} onDecide={onDecide} />);
+    render(<ApprovalsPendingList {...baseProps} visits={[pendingVisit()]} reasons={{ v1: 'Not authorized' }} onDecide={onDecide} />);
     fireEvent.click(screen.getByText('Reject'));
+    expect(onDecide).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByText('Confirm Reject'));
     expect(onDecide).toHaveBeenCalledWith('v1', false);
+  });
+
+  it('Confirm Reject is disabled until a reason is entered', () => {
+    render(<ApprovalsPendingList {...baseProps} visits={[pendingVisit()]} reasons={{}} />);
+    fireEvent.click(screen.getByText('Reject'));
+    expect(screen.getByText('Confirm Reject').closest('button')).toBeDisabled();
+  });
+
+  it('Cancel inside the reject box collapses it without calling onDecide', () => {
+    const onDecide = vi.fn();
+    render(<ApprovalsPendingList {...baseProps} visits={[pendingVisit()]} reasons={{ v1: 'x' }} onDecide={onDecide} />);
+    fireEvent.click(screen.getByText('Reject'));
+    fireEvent.click(screen.getByText('Cancel'));
+    expect(onDecide).not.toHaveBeenCalled();
+    expect(screen.queryByPlaceholderText('Rejection reason (required to reject)')).not.toBeInTheDocument();
+  });
+
+  it('shows the visitor phone number', () => {
+    render(<ApprovalsPendingList {...baseProps} visits={[pendingVisit()]} />);
+    expect(screen.getByText('9876543210')).toBeInTheDocument();
   });
 
   it('calls onViewDetails with the visit when Details is clicked', () => {

@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { supabase } from '../../supabaseClient';
 import type { Visit, Notification, VisitStatus } from '../../types/index';
 import { attachHostNames } from '../../lib/hostNames';
+import { useVisitDecisions } from './useVisitDecisions';
 import OverviewStatCards from './OverviewStatCards';
 import OverviewUpcoming from './OverviewUpcoming';
 import OverviewOnSite from './OverviewOnSite';
@@ -29,6 +30,8 @@ export default function HODOverview(): React.ReactElement {
   const [activeFilter, setActiveFilter] = useState<FilterKey | ''>('');
   const [filteredVisits, setFilteredVisits] = useState<Visit[]>([]);
   const [filterLoading, setFilterLoading] = useState(false);
+
+  const { acting, error: actionError, successMsg, reasons, onReasonChange, decide, cancelVisit, clearAllApproved } = useVisitDecisions(deptId);
 
   useEffect(() => {
     supabase.auth.getUser().then(async ({ data }) => {
@@ -100,15 +103,6 @@ export default function HODOverview(): React.ReactElement {
 
   useEffect(() => { void load(); }, [load]);
 
-  useEffect(() => {
-    if (!deptId || !userId) return;
-    const ch = supabase.channel('hod-overview-live')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'visits', filter: `department_id=eq.${deptId}` }, () => { void load(true); })
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications', filter: `recipient_id=eq.${userId}` }, () => { void load(true); })
-      .subscribe();
-    return () => { void supabase.removeChannel(ch); };
-  }, [deptId, userId, load]);
-
   // Fetch filtered data when activeFilter changes
   const loadFiltered = useCallback(async (key: FilterKey) => {
     if (!deptId) return;
@@ -132,6 +126,18 @@ export default function HODOverview(): React.ReactElement {
     setFilterLoading(false);
   }, [deptId, today]);
 
+  useEffect(() => {
+    if (!deptId || !userId) return;
+    const ch = supabase.channel('hod-overview-live')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'visits', filter: `department_id=eq.${deptId}` }, () => {
+        void load(true);
+        if (activeFilter) void loadFiltered(activeFilter);
+      })
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications', filter: `recipient_id=eq.${userId}` }, () => { void load(true); })
+      .subscribe();
+    return () => { void supabase.removeChannel(ch); };
+  }, [deptId, userId, load, activeFilter, loadFiltered]);
+
   const handleFilterSelect = useCallback((key: string) => {
     if (!key) { setActiveFilter(''); return; }
     const fk = key as FilterKey;
@@ -148,8 +154,6 @@ export default function HODOverview(): React.ReactElement {
     setNotifs(prev => prev.filter(n => n.id !== id));
   };
 
-  const rootDisplay = !activeFilter;
-
   return (
     <div className="space-y-5 animate-fade-in">
       <div>
@@ -160,6 +164,19 @@ export default function HODOverview(): React.ReactElement {
         <p className="text-sm text-navy-400 mt-0.5">Your department at a glance</p>
       </div>
 
+      {successMsg && (
+        <div className="alert-success">
+          <svg className="w-4 h-4 text-success-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+          <span className="flex-1">{successMsg}</span>
+        </div>
+      )}
+      {actionError && (
+        <div className="alert-error">
+          <svg className="w-4 h-4 text-danger-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" /></svg>
+          <span className="flex-1">{actionError}</span>
+        </div>
+      )}
+
       <OverviewStatCards loading={loading} stats={stats} activeFilter={activeFilter} onSelect={handleFilterSelect} />
 
       {activeFilter ? (
@@ -168,6 +185,13 @@ export default function HODOverview(): React.ReactElement {
           visits={filteredVisits}
           loading={filterLoading}
           onClearFilter={() => setActiveFilter('')}
+          acting={acting}
+          reasons={reasons}
+          onReasonChange={onReasonChange}
+          onApprove={(id) => void decide(id, true)}
+          onReject={(id) => void decide(id, false)}
+          onCancel={(id) => void cancelVisit(id)}
+          onClearAll={() => void clearAllApproved()}
         />
       ) : (
         <>

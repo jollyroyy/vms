@@ -1,6 +1,6 @@
 import React from 'react';
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { render, screen, cleanup, waitFor, fireEvent } from '@testing-library/react';
+import { render, screen, cleanup, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import HODApprovals from '../../../src/pages/HOD/Approvals';
 
@@ -94,15 +94,15 @@ describe('M12-HOD: HODApprovals', () => {
     await waitFor(() => expect(screen.getByText('Approvals')).toBeInTheDocument());
   });
 
-  it('shows all four tabs', async () => {
+  it('shows only the Pending and Pre-Approve tabs (Approved/Rejected moved to Overview)', async () => {
     setup();
     render(<MemoryRouter><HODApprovals /></MemoryRouter>);
     await waitFor(() => {
       expect(screen.getAllByText('Pending').length).toBeGreaterThanOrEqual(1);
-      expect(screen.getAllByText('Approved').length).toBeGreaterThanOrEqual(1);
-      expect(screen.getAllByText('Rejected').length).toBeGreaterThanOrEqual(1);
       expect(screen.getByText('Pre-Approve')).toBeInTheDocument();
     });
+    expect(screen.queryByText('Approved')).not.toBeInTheDocument();
+    expect(screen.queryByText('Rejected')).not.toBeInTheDocument();
   });
 
   it('shows empty state when no pending visits', async () => {
@@ -121,55 +121,16 @@ describe('M12-HOD: HODApprovals', () => {
     });
   });
 
-  it('shows approved visits in Approved tab', async () => {
-    setup({ data: [mockApproved], error: null });
-    render(<MemoryRouter><HODApprovals /></MemoryRouter>);
-    await waitFor(() => {
-      expect(screen.getAllByText('Pending').length).toBeGreaterThanOrEqual(1);
-    });
-    fireEvent.click(screen.getAllByText('Approved')[0]);
-    await waitFor(() => {
-      expect(screen.getAllByText('Approved Visitor').length).toBeGreaterThanOrEqual(1);
-    });
-  });
-
-  it('shows rejected visits with reason in Rejected tab', async () => {
-    setup({ data: [mockRejected], error: null });
-    render(<MemoryRouter><HODApprovals /></MemoryRouter>);
-    fireEvent.click(screen.getAllByText('Rejected')[0]);
-    await waitFor(() => {
-      expect(screen.getAllByText('Rejected Visitor').length).toBeGreaterThanOrEqual(1);
-      expect(screen.getByText(/Not authorized/)).toBeInTheDocument();
-    });
-  });
-
-  // Guards the tab->status mapping itself. With all three visits available, each tab
-  // must show ONLY its own statuses. If a tab requested the wrong filter, the rows it
-  // should not show would leak in and these assertions would fail.
-  it('each tab requests and shows only its own statuses', async () => {
+  // Pending tab must request and show only pending_approval rows — approved/rejected
+  // visits belong on the Overview page now, not here.
+  it('pending tab shows only pending_approval visits, never approved/rejected ones', async () => {
     setup({ data: [mockPending, mockApproved, mockRejected], error: null });
     render(<MemoryRouter><HODApprovals /></MemoryRouter>);
-
-    // Pending tab: only the pending_approval row.
     await waitFor(() => {
       expect(screen.getByText('VIS-001')).toBeInTheDocument();
     });
     expect(screen.queryByText('Approved Visitor')).not.toBeInTheDocument();
     expect(screen.queryByText('Rejected Visitor')).not.toBeInTheDocument();
-
-    // Approved tab: only the approved/walkin_approved row.
-    fireEvent.click(screen.getAllByText('Approved')[0]);
-    await waitFor(() => {
-      expect(screen.getAllByText('Approved Visitor').length).toBeGreaterThanOrEqual(1);
-    });
-    expect(screen.queryByText('Rejected Visitor')).not.toBeInTheDocument();
-
-    // Rejected tab: only the rejected row.
-    fireEvent.click(screen.getAllByText('Rejected')[0]);
-    await waitFor(() => {
-      expect(screen.getAllByText('Rejected Visitor').length).toBeGreaterThanOrEqual(1);
-    });
-    expect(screen.queryByText('Approved Visitor')).not.toBeInTheDocument();
   });
 
   it('shows error when not authenticated', async () => {

@@ -11,6 +11,13 @@ type Props = {
   visits: Visit[];
   loading: boolean;
   onClearFilter: () => void;
+  acting?: string | null;
+  reasons?: Record<string, string>;
+  onReasonChange?: (id: string, value: string) => void;
+  onApprove?: (id: string) => void;
+  onReject?: (id: string) => void;
+  onCancel?: (id: string) => void;
+  onClearAll?: () => void;
 };
 
 const MODE_META: Record<ViewMode, { title: string; subtitle: string }> = {
@@ -20,12 +27,25 @@ const MODE_META: Record<ViewMode, { title: string; subtitle: string }> = {
   rejected: { title: 'Rejected Today',     subtitle: 'Visitors denied entry today' },
 };
 
-export default function OverviewFilteredView({ mode, visits, loading, onClearFilter }: Props): React.ReactElement {
+export default function OverviewFilteredView({
+  mode, visits, loading, onClearFilter, acting, reasons, onReasonChange, onApprove, onReject, onCancel, onClearAll,
+}: Props): React.ReactElement {
   const [detailVisit, setDetailVisit] = useState<Visit | null>(null);
 
   return (
     <div className="animate-fade-in space-y-4">
-      {detailVisit && <VisitorDetails visit={detailVisit} onClose={() => setDetailVisit(null)} />}
+      {detailVisit && (
+        <VisitorDetails
+          visit={detailVisit}
+          onClose={() => setDetailVisit(null)}
+          acting={acting}
+          reason={reasons?.[detailVisit.id] ?? ''}
+          onReasonChange={onReasonChange ? (val) => onReasonChange(detailVisit.id, val) : undefined}
+          onApprove={onApprove ? () => { onApprove(detailVisit.id); setDetailVisit(null); } : undefined}
+          onReject={onReject ? () => { onReject(detailVisit.id); setDetailVisit(null); } : undefined}
+          onCancel={onCancel ? () => { onCancel(detailVisit.id); setDetailVisit(null); } : undefined}
+        />
+      )}
 
       {/* Header row */}
       <div className="flex items-center justify-between">
@@ -37,6 +57,15 @@ export default function OverviewFilteredView({ mode, visits, loading, onClearFil
           <span className="text-[11px] font-bold text-navy-400 bg-surface-100 dark:bg-white/[0.06] px-3 py-1.5 rounded-full">
             {loading ? '—' : visits.length} {visits.length === 1 ? 'visitor' : 'visitors'}
           </span>
+          {mode === 'approved' && onClearAll && visits.length > 0 && (
+            <button
+              onClick={onClearAll}
+              disabled={acting === 'clear-all'}
+              className="text-[11px] font-semibold text-danger-600 hover:text-danger-700 bg-danger-50 hover:bg-danger-100 dark:bg-danger-500/10 px-3 py-1.5 rounded-full transition-all disabled:opacity-50"
+            >
+              Clear All
+            </button>
+          )}
           <button
             onClick={onClearFilter}
             className="text-[11px] font-semibold text-brand-600 dark:text-brand-400 hover:underline"
@@ -102,87 +131,98 @@ export default function OverviewFilteredView({ mode, visits, loading, onClearFil
   );
 }
 
+const PURPOSE_LABELS: Record<string, string> = {
+  meeting: 'Meeting', vendor: 'Vendor', interview: 'Interview',
+  delivery: 'Delivery', maintenance: 'Maintenance', audit: 'Audit', other: 'Other',
+};
+
+function Field({ label, value }: { label: string; value: string | null | undefined }): React.ReactElement | null {
+  if (!value) return null;
+  return (
+    <div className="min-w-0">
+      <p className="text-[9px] font-bold text-navy-300 dark:text-navy-500 uppercase tracking-wider leading-none mb-1">{label}</p>
+      <p className="text-[12.5px] font-semibold text-navy-800 dark:text-navy-100 truncate leading-tight">{value}</p>
+    </div>
+  );
+}
+
 function VisitorCard({ visit: v, index: idx, onClick }: { visit: Visit; index: number; onClick: () => void }): React.ReactElement {
   const style = STATUS_STYLES[v.status];
   const dur = v.status === 'checked_in' && v.checked_in_at ? formatDuration(v.checked_in_at) : null;
+  const when = v.scheduled_for ?? v.created_at;
+  const dateStr = new Date(when).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' });
+  const timeStr = formatTime(when);
+
   return (
     <div
-      className="bg-white dark:bg-white/[0.04] rounded-xl border border-surface-200 p-4 cursor-pointer card-hover animate-fade-in"
+      className="bg-white dark:bg-navy-900/40 rounded-2xl border border-surface-200/80 dark:border-white/[0.07] p-4 cursor-pointer card-hover animate-fade-in shadow-sm hover:shadow-md transition-shadow"
       style={{ animationDelay: `${idx * 0.03}s` }}
       onClick={onClick}
     >
-      <div className="flex gap-3 items-start">
+      {/* Identity row */}
+      <div className="flex gap-3 items-center">
         <div className="shrink-0 relative">
           {v.photo_url ? (
-            <img src={v.photo_url} alt="" className="w-12 h-16 object-cover rounded-xl ring-2 ring-brand-500/10" />
+            <img src={v.photo_url} alt="" className="w-12 h-12 object-cover rounded-full ring-2 ring-brand-500/15" />
           ) : (
-            <div className="w-12 h-16 bg-gradient-to-br from-surface-100 to-surface-200 rounded-xl flex items-center justify-center">
-              <svg className="w-5 h-5 text-navy-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0" />
-              </svg>
+            <div className="w-12 h-12 bg-gradient-to-br from-brand-100 to-accent-100 dark:from-brand-500/20 dark:to-accent-500/20 rounded-full flex items-center justify-center">
+              <span className="text-base font-bold text-brand-500">{(v.visitor?.full_name ?? '?').charAt(0).toUpperCase()}</span>
             </div>
           )}
         </div>
         <div className="flex-1 min-w-0">
-          <div className="flex items-start justify-between gap-1">
-            <p className="font-semibold text-navy-900 dark:text-white truncate text-sm">{v.visitor?.full_name ?? '—'}</p>
-            <span className={`shrink-0 status-badge ${style.bg} ${style.text}`}>
-              <span className={`h-1.5 w-1.5 rounded-full ${style.dot} ${v.status === 'checked_in' ? 'animate-pulse-soft' : ''}`} />
-              {style.label}
-            </span>
-          </div>
-          {v.visitor?.company && <p className="text-xs text-navy-400 truncate mt-0.5">{v.visitor.company}</p>}
-          <div className="mt-2 pt-2 border-t border-surface-200/60 dark:border-white/[0.06] space-y-1">
-            <p className="text-xs font-semibold text-navy-600 dark:text-navy-300 truncate">{v.department?.name ?? '—'}</p>
-            {v.host?.full_name && <p className="text-xs text-navy-400 truncate">Host: {v.host.full_name}</p>}
-            <p className="text-[10px] text-navy-300 font-mono">{v.ref_number}</p>
-            <div className="mt-1.5 space-y-0.5">
-              {v.status === 'approved' && (
-                <p className="text-[11px] text-success-600 font-semibold flex items-center gap-1">
-                  <span className="h-1.5 w-1.5 rounded-full bg-success-500" />
-                  Awaiting Arrival
-                  {v.scheduled_for && <span className="text-navy-300 font-normal ml-1">· ETA {formatTime(v.scheduled_for)}</span>}
-                </p>
-              )}
-              {v.status === 'pending_approval' && (
-                <p className="text-[11px] text-amber-600 font-semibold flex items-center gap-1">
-                  <span className="h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse" />
-                  Pending HOD Approval
-                </p>
-              )}
-              {v.status === 'walkin_approved' && (
-                <p className="text-[11px] text-brand-600 font-semibold flex items-center gap-1">
-                  <span className="h-1.5 w-1.5 rounded-full bg-brand-500" />
-                  Walk-in Approved — Awaiting Check-in
-                </p>
-              )}
-              {v.checked_in_at && (
-                <p className="text-[11px] text-brand-600 flex items-center gap-1">
-                  <svg className="w-3 h-3 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  Checked in at {formatTime(v.checked_in_at)}
-                </p>
-              )}
-            </div>
-            {dur && (
-              <p className={`text-xs mt-1 flex items-center gap-1 ${dur.isOvertime ? 'text-danger-600 font-bold' : 'text-navy-400'}`}>
-                <svg className="w-3 h-3 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                {dur.text} on-site{dur.isOvertime ? ' — Overtime' : ''}
-              </p>
-            )}
-            {v.rejection_reason && (
-              <p className="text-[11px] text-danger-600 mt-1 flex items-center gap-1">
-                <svg className="w-3 h-3 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
-                </svg>
-                {v.rejection_reason}
-              </p>
-            )}
-          </div>
+          <p className="font-display font-bold text-navy-950 dark:text-white truncate text-[15px] leading-tight">{v.visitor?.full_name ?? '—'}</p>
+          {v.visitor?.company && <p className="text-[12px] text-navy-400 dark:text-navy-400 truncate mt-0.5">{v.visitor.company}</p>}
         </div>
+        <span className={`shrink-0 status-badge ${style.bg} ${style.text}`}>
+          <span className={`h-1.5 w-1.5 rounded-full ${style.dot} ${v.status === 'checked_in' ? 'animate-pulse-soft' : ''}`} />
+          {style.label}
+        </span>
+      </div>
+
+      {/* Field grid */}
+      <div className="mt-3.5 pt-3.5 border-t border-surface-200/60 dark:border-white/[0.06] grid grid-cols-2 gap-x-3 gap-y-2.5">
+        <Field label="Department" value={v.department?.name} />
+        <Field label="Reason" value={PURPOSE_LABELS[v.purpose] ?? v.purpose} />
+        <Field label="Date" value={`${dateStr} · ${timeStr}`} />
+        <Field label="Phone" value={v.visitor?.phone} />
+      </div>
+
+      {/* Status context + ref */}
+      <div className="mt-3 flex items-center justify-between gap-2">
+        <div className="min-w-0">
+          {v.status === 'approved' && (
+            <p className="text-[11px] text-success-600 dark:text-success-400 font-semibold truncate flex items-center gap-1">
+              <span className="h-1.5 w-1.5 rounded-full bg-success-500 shrink-0" />
+              Awaiting Arrival{v.scheduled_for && ` · ETA ${formatTime(v.scheduled_for)}`}
+            </p>
+          )}
+          {v.status === 'pending_approval' && (
+            <p className="text-[11px] text-amber-600 dark:text-amber-400 font-semibold flex items-center gap-1">
+              <span className="h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse shrink-0" />
+              Pending HOD Approval
+            </p>
+          )}
+          {v.status === 'walkin_approved' && (
+            <p className="text-[11px] text-brand-600 dark:text-brand-400 font-semibold truncate flex items-center gap-1">
+              <span className="h-1.5 w-1.5 rounded-full bg-brand-500 shrink-0" />
+              Walk-in — Awaiting Check-in
+            </p>
+          )}
+          {v.checked_in_at && v.status === 'checked_in' && (
+            <p className={`text-[11px] font-semibold flex items-center gap-1 ${dur?.isOvertime ? 'text-danger-600' : 'text-brand-600 dark:text-brand-400'}`}>
+              <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${dur?.isOvertime ? 'bg-danger-500' : 'bg-brand-500'}`} />
+              {dur?.text} on-site{dur?.isOvertime ? ' — Overtime' : ''}
+            </p>
+          )}
+          {v.rejection_reason && (
+            <p className="text-[11px] text-danger-600 dark:text-danger-400 font-medium truncate flex items-center gap-1">
+              <span className="h-1.5 w-1.5 rounded-full bg-danger-500 shrink-0" />
+              {v.rejection_reason}
+            </p>
+          )}
+        </div>
+        <span className="text-[10px] text-navy-300 dark:text-navy-600 font-mono shrink-0">{v.ref_number}</span>
       </div>
     </div>
   );

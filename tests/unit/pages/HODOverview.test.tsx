@@ -5,6 +5,7 @@ import { MemoryRouter } from 'react-router-dom';
 import HODOverview from '../../../src/pages/HOD/HODOverview';
 
 const mockGetUser = vi.hoisted(() => vi.fn());
+const mockRpc = vi.hoisted(() => vi.fn().mockResolvedValue({ error: null }));
 
 vi.mock('../../../src/lib/hostNames', () => ({
   attachHostNames: (rows: any[]) => Promise.resolve(rows),
@@ -66,7 +67,7 @@ vi.mock('../../../src/supabaseClient', () => ({
         },
       };
     },
-    rpc: vi.fn(),
+    rpc: mockRpc,
     channel: () => {
       const ch: any = {};
       ch.on = () => ch;
@@ -229,6 +230,50 @@ describe('M12-HOD: HODOverview', () => {
     });
     await waitFor(() => {
       expect(screen.getByText(/Status & Notifications/i)).toBeInTheDocument();
+    });
+  });
+
+  it('excludes visits whose scheduled time has already passed from Upcoming visits', async () => {
+    setup();
+    const past = new Date(Date.now() - 3600_000).toISOString();
+    const future = new Date(Date.now() + 3600_000).toISOString();
+    const makeVisit = (id: string, name: string, when: string) => ({
+      id, ref_number: `VIS-${id}`, visitor_id: `${id}-vis`, department_id: 'dept1', host_id: 'h1',
+      purpose: 'meeting', photo_path: null, photo_data: null, status: 'approved',
+      checked_in_at: null, checked_out_at: null, exit_verified: null, rejection_reason: null,
+      carrying_material: false, scheduled_for: when, created_at: when,
+      visitor: { id: `${id}-vis`, full_name: name, phone: '9000000000', company: null },
+      department: { id: 'dept1', name: 'IT' },
+      host: { id: 'h1', full_name: 'Host' },
+    });
+    mockUpcomingData = [makeVisit('past1', 'Past Visitor', past), makeVisit('future1', 'Future Visitor', future)];
+    render(<MemoryRouter><HODOverview /></MemoryRouter>);
+    await waitFor(() => {
+      expect(screen.getByText('Future Visitor')).toBeInTheDocument();
+    });
+    expect(screen.queryByText('Past Visitor')).not.toBeInTheDocument();
+  });
+
+  it('wires Approve/Reject/Cancel actions through the filtered view into the detail modal', async () => {
+    setup();
+    mockFilteredData = [{
+      id: 'pv1', ref_number: 'VIS-PV1', visitor_id: 'v1', department_id: 'dept1', host_id: 'h1',
+      purpose: 'meeting', photo_path: null, photo_data: null, status: 'pending_approval',
+      checked_in_at: null, checked_out_at: null, exit_verified: null, rejection_reason: null,
+      carrying_material: false, scheduled_for: null, created_at: new Date().toISOString(),
+      visitor: { id: 'v1', full_name: 'Pending Visitor', phone: '9000000000', company: null },
+      department: { id: 'dept1', name: 'IT' },
+      host: { id: 'h1', full_name: 'Host' },
+    }];
+    render(<MemoryRouter><HODOverview /></MemoryRouter>);
+    await waitFor(() => { expect(screen.getByText('Pending')).toBeInTheDocument(); });
+    fireEvent.click(screen.getByText('Pending').closest('button')!);
+    await waitFor(() => { expect(screen.getByText('Pending Visitor')).toBeInTheDocument(); });
+    fireEvent.click(screen.getByText('Pending Visitor'));
+    await waitFor(() => { expect(screen.getByText('Approve')).toBeInTheDocument(); });
+    fireEvent.click(screen.getByText('Approve'));
+    await waitFor(() => {
+      expect(mockRpc).toHaveBeenCalledWith('approve_visit', { visit_id: 'pv1' });
     });
   });
 });
