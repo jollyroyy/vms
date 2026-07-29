@@ -87,12 +87,14 @@ afterEach(cleanup);
 const renderPanel = () => render(<MemoryRouter><AdminPanel /></MemoryRouter>);
 const setValue = (el: Element, value: string) => fireEvent.change(el, { target: { value } });
 
-/** Opens the add-HOD form on the first department card and submits it. */
-function submitNewHod(name: string, email: string) {
+/** Opens the add-HOD form on the first department card, fills it, and confirms the dialog. */
+async function submitNewHod(name: string, email: string) {
   fireEvent.click(screen.getByRole('button', { name: /add head of department/i }));
   setValue(screen.getByLabelText(/hod name/i), name);
   setValue(screen.getByLabelText(/email/i), email);
   fireEvent.click(screen.getByRole('button', { name: /save hod/i }));
+  const modal = await screen.findByRole('dialog');
+  fireEvent.click(within(modal).getByRole('button', { name: /^add hod$/i }));
 }
 
 /* ─── Add ───────────────────────────────────────────────── */
@@ -108,29 +110,49 @@ describe('AdminPanel — add HOD', () => {
     await waitFor(() => expect(h.reloadHods).toHaveBeenCalled());
   });
 
-  it('blocks submission and shows the validation message when invalid', async () => {
+  it('blocks submission, shows the validation message, and never opens a dialog when invalid', async () => {
     h.validateHod.mockReturnValue('Enter a valid email address.');
     renderPanel();
-    submitNewHod('Asha', 'nope');
+    fireEvent.click(screen.getByRole('button', { name: /add head of department/i }));
+    setValue(screen.getByLabelText(/hod name/i), 'Asha');
+    setValue(screen.getByLabelText(/email/i), 'nope');
+    fireEvent.click(screen.getByRole('button', { name: /save hod/i }));
 
     expect(await screen.findByText(/valid email/i)).toBeInTheDocument();
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(h.addHod).not.toHaveBeenCalled();
+  });
+
+  it('does nothing when the confirmation dialog is cancelled', async () => {
+    renderPanel();
+    fireEvent.click(screen.getByRole('button', { name: /add head of department/i }));
+    setValue(screen.getByLabelText(/hod name/i), 'Asha Rao');
+    setValue(screen.getByLabelText(/email/i), 'asha@corp.com');
+    fireEvent.click(screen.getByRole('button', { name: /save hod/i }));
+    const modal = await screen.findByRole('dialog');
+    fireEvent.click(within(modal).getByRole('button', { name: /cancel/i }));
+
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
     expect(h.addHod).not.toHaveBeenCalled();
   });
 
   it('tells the admin when a brand-new account was invited', async () => {
     h.addHod.mockResolvedValue({ created: true });
     renderPanel();
-    submitNewHod('Asha Rao', 'asha@corp.com');
+    await submitNewHod('Asha Rao', 'asha@corp.com');
 
-    expect(await screen.findByText(/invit/i)).toBeInTheDocument();
+    await waitFor(() => expect(h.addHod).toHaveBeenCalled());
+    const banner = await screen.findByRole('status');
+    expect(banner).toHaveTextContent(/invitation sent/i);
   });
 
   it('surfaces an error from addHod', async () => {
     h.addHod.mockRejectedValue(new Error('User already registered'));
     renderPanel();
-    submitNewHod('Asha Rao', 'asha@corp.com');
+    await submitNewHod('Asha Rao', 'asha@corp.com');
 
-    expect(await screen.findByText(/already registered/i)).toBeInTheDocument();
+    await waitFor(() => expect(h.addHod).toHaveBeenCalled());
+    expect(await screen.findByRole('alert')).toHaveTextContent(/already registered/i);
   });
 
   it('adds to the department whose card the form was opened on', async () => {
@@ -142,6 +164,8 @@ describe('AdminPanel — add HOD', () => {
     setValue(screen.getByLabelText(/hod name/i), 'Ravi Kumar');
     setValue(screen.getByLabelText(/email/i), 'ravi@corp.com');
     fireEvent.click(screen.getByRole('button', { name: /save hod/i }));
+    const modal = await screen.findByRole('dialog');
+    fireEvent.click(within(modal).getByRole('button', { name: /^add hod$/i }));
 
     await waitFor(() => {
       expect(h.addHod).toHaveBeenCalledWith('d2', { fullName: 'Ravi Kumar', email: 'ravi@corp.com' });

@@ -33,6 +33,7 @@ export default function DepartmentsManager(): React.ReactElement {
   const [deleteBusy, setDeleteBusy] = useState(false);
   const [hodSlot, setHodSlot] = useState<HodFormSlot | null>(null);
   const [hodBusy, setHodBusy] = useState(false);
+  const [pendingAddHod, setPendingAddHod] = useState<{ departmentId: string; input: HodInput } | null>(null);
   const [pendingRemoveHod, setPendingRemoveHod] = useState<Profile | null>(null);
   const [removeBusy, setRemoveBusy] = useState(false);
 
@@ -117,20 +118,38 @@ export default function DepartmentsManager(): React.ReactElement {
     const invalid = validateHod(input, deptHods, excludeId);
     if (invalid) { msg.showError(invalid); return; }
 
-    setHodBusy(true);
-    try {
-      if (hodSlot.kind === 'edit') {
+    if (hodSlot.kind === 'edit') {
+      setHodBusy(true);
+      try {
         await updateHod(hodSlot.hod.id, input);
         msg.showSuccess(`${input.fullName} updated.`);
-      } else {
-        const { created } = await addHod(hodSlot.departmentId, input);
-        msg.showSuccess(created
-          ? `Invitation sent to ${input.email} — they will set their own password.`
-          : `${input.fullName} is now a head of department.`);
+        setHodSlot(null);
+        await reloadHods();
+      } catch (err) {
+        msg.showError(message(err, 'Failed to save head of department.'));
+      } finally {
+        setHodBusy(false);
       }
+    } else {
+      setPendingAddHod({ departmentId: hodSlot.departmentId, input });
+    }
+  };
+
+  const handleConfirmAddHod = async () => {
+    if (!pendingAddHod) return;
+    const { departmentId, input } = pendingAddHod;
+    msg.clear();
+    setHodBusy(true);
+    try {
+      const { created } = await addHod(departmentId, input);
+      setPendingAddHod(null);
       setHodSlot(null);
+      msg.showSuccess(created
+        ? `Invitation sent to ${input.email} — they will set their own password.`
+        : `${input.fullName} is now a head of department.`);
       await reloadHods();
     } catch (err) {
+      setPendingAddHod(null);
       msg.showError(message(err, 'Failed to save head of department.'));
     } finally {
       setHodBusy(false);
@@ -212,7 +231,7 @@ export default function DepartmentsManager(): React.ReactElement {
       {pendingDelete && (
         <ConfirmDialog
           title="Delete Department?"
-          message={`"${pendingDelete.name}" will be removed. Its members are unlinked and any head of department is demoted to staff. Linked visits or gate passes will block the deletion.`}
+          message={`Are you sure you want to delete "${pendingDelete.name}"? It will be removed permanently. Its members are unlinked and any head of department is demoted to staff. Linked visits or gate passes will block the deletion.`}
           confirmLabel="Delete"
           busyLabel="Deleting…"
           busy={deleteBusy}
@@ -221,10 +240,23 @@ export default function DepartmentsManager(): React.ReactElement {
         />
       )}
 
+      {pendingAddHod && (
+        <ConfirmDialog
+          title="Add Head of Department?"
+          message={`Add "${pendingAddHod.input.fullName}" (${pendingAddHod.input.email}) as Head of ${departments.find((d) => d.id === pendingAddHod.departmentId)?.name ?? ''}? An invitation email will be sent so they can set their own password.`}
+          confirmLabel="Add HOD"
+          busyLabel="Adding…"
+          busy={hodBusy}
+          danger={false}
+          onConfirm={handleConfirmAddHod}
+          onCancel={() => setPendingAddHod(null)}
+        />
+      )}
+
       {pendingRemoveHod && (
         <ConfirmDialog
           title="Remove Head of Department?"
-          message={`${pendingRemoveHod.full_name} will be demoted to staff and detached from this department. Their account is not deleted.`}
+          message={`Are you sure you want to remove ${pendingRemoveHod.full_name}? They will be demoted to staff and detached from this department. Their account is not deleted.`}
           confirmLabel="Remove"
           busyLabel="Removing…"
           busy={removeBusy}
