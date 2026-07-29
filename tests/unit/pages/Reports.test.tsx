@@ -58,7 +58,19 @@ describe('M12-REPORTS: Reports', () => {
     mockIn.mockResolvedValue({ data: [], error: null });
     render(<MemoryRouter><ReportsPage /></MemoryRouter>);
     await waitFor(() => {
-      expect(screen.getByText(`No visits on ${TODAY}`)).toBeInTheDocument();
+      expect(screen.getByText(`No visits between ${TODAY} and ${TODAY}`)).toBeInTheDocument();
+    });
+  });
+
+  it('shows range preset buttons', async () => {
+    mockOrder.mockResolvedValue({ data: [], error: null });
+    mockIn.mockResolvedValue({ data: [], error: null });
+    render(<MemoryRouter><ReportsPage /></MemoryRouter>);
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Last 7 Days' })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Last 30 Days' })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Last 3 Months' })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Last 1 Year' })).toBeInTheDocument();
     });
   });
 

@@ -15,6 +15,7 @@ vi.mock('../../../src/supabaseClient', () => ({
     from: vi.fn(() => ({
       select: vi.fn().mockReturnThis(),
       eq: vi.fn().mockReturnThis(),
+      gte: vi.fn().mockReturnThis(),
       order: vi.fn().mockReturnThis(),
       limit: mockLimit,
       update: vi.fn().mockReturnThis(),
@@ -34,16 +35,6 @@ const mockNotifications = [
     body: 'A visitor is waiting for your approval.',
     related_id: 'visit-1',
     is_read: false,
-    created_at: new Date().toISOString(),
-  },
-  {
-    id: 'n2',
-    recipient_id: 'user-1',
-    type: 'visit_approved' as const,
-    title: 'Visit Approved',
-    body: 'Visitor has been approved.',
-    related_id: 'visit-2',
-    is_read: true,
     created_at: new Date().toISOString(),
   },
   {

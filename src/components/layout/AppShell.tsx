@@ -65,7 +65,7 @@ export default function AppShell({ session, role, children }: Props): React.Reac
 
       <Sidebar session={session} role={role} collapsed={collapsed} onCollapsedChange={setCollapsed} />
 
-      <div className={`relative z-10 flex flex-col min-h-screen transition-[padding] duration-300 ease-in-out ${collapsed ? 'lg:pl-[84px]' : 'lg:pl-[264px]'}`}>
+      <div className={`app-shell-content relative z-10 flex flex-col min-h-screen transition-[padding] duration-300 ease-in-out ${collapsed ? 'lg:pl-[84px]' : 'lg:pl-[264px]'}`}>
         {/* Top strip — search, scanner, notifications */}
         <header className="no-print sticky top-0 z-30 card-glass !rounded-none !border-x-0 !border-t-0">
           <div className="flex items-center gap-3 h-16 px-4 sm:px-6 lg:px-8 pl-16 lg:pl-8">
@@ -136,7 +136,7 @@ export default function AppShell({ session, role, children }: Props): React.Reac
         )}
 
         {/* Content */}
-        <main className="flex-1 w-full mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
+        <main className="app-shell-main flex-1 w-full mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
           {children}
         </main>
 

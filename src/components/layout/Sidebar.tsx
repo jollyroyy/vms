@@ -157,7 +157,7 @@ export default function Sidebar({ session, role, collapsed: collapsedProp, onCol
     <>
       {/* Mobile hamburger */}
       <button type="button" onClick={() => setMobileOpen(!mobileOpen)} aria-label="Open menu"
-        className="lg:hidden fixed top-3.5 left-4 z-50 h-9 w-9 rounded-xl flex items-center justify-center text-navy-600 dark:text-navy-300 card-glass !rounded-xl active:scale-95 transition-all">
+        className="no-print lg:hidden fixed top-3.5 left-4 z-50 h-9 w-9 rounded-xl flex items-center justify-center text-navy-600 dark:text-navy-300 card-glass !rounded-xl active:scale-95 transition-all">
         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
           {mobileOpen
             ? <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -167,7 +167,7 @@ export default function Sidebar({ session, role, collapsed: collapsedProp, onCol
 
       {/* Mobile drawer */}
       {mobileOpen && (
-        <div className="lg:hidden fixed inset-0 z-40">
+        <div className="no-print lg:hidden fixed inset-0 z-40">
           <div className="absolute inset-0 bg-black/40 backdrop-blur-sm animate-fade-in" onClick={() => setMobileOpen(false)} />
           <aside className="absolute left-0 top-0 bottom-0 w-72 max-w-[85vw] card-glass !rounded-none !border-y-0 !border-l-0 animate-slide-down overflow-hidden">
             {navContent(false)}

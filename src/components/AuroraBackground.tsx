@@ -6,7 +6,7 @@ import React from 'react';
  */
 export default function AuroraBackground(): React.ReactElement {
   return (
-    <div className="aurora-stage" aria-hidden="true">
+    <div className="no-print aurora-stage" aria-hidden="true">
       <div className="aurora-blob aurora-blob-1" />
       <div className="aurora-blob aurora-blob-2" />
       <div className="aurora-blob aurora-blob-3" />

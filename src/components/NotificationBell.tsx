@@ -12,24 +12,25 @@ const UNREAD_POLL_MS = 30000;
 export default function NotificationBell({ userId, role }: Props): React.ReactElement | null {
   const [open, setOpen] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const unreadCount = notifications.length;
 
   const isEligible = role && ['hod', 'guard', 'admin'].includes(role);
 
   const fetchNotifications = useCallback(async () => {
     try {
+      const todayStart = `${new Date().toISOString().slice(0, 10)}T00:00:00Z`;
       const { data, error } = await supabase
         .from('notifications')
         .select('*')
         .eq('recipient_id', userId)
+        .eq('is_read', false)
+        .gte('created_at', todayStart)
         .order('created_at', { ascending: false })
         .limit(20);
       if (error) return;
-      const rows = (data ?? []) as unknown as Notification[];
-      setNotifications(rows);
-      setUnreadCount(rows.filter((n) => !n.is_read).length);
+      setNotifications((data ?? []) as unknown as Notification[]);
     } finally {
       setLoading(false);
     }
@@ -51,18 +52,16 @@ export default function NotificationBell({ userId, role }: Props): React.ReactEl
 
   const markRead = async (id: string) => {
     if (loading) return;
+    setNotifications((prev) => prev.filter((n) => n.id !== id));
     await supabase.from('notifications').update({ is_read: true }).eq('id', id);
-    setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, is_read: true } : n)));
-    setUnreadCount((prev) => Math.max(0, prev - 1));
   };
 
   const markAllRead = async () => {
     if (loading) return;
-    const unreadIds = notifications.filter((n) => !n.is_read).map((n) => n.id);
+    const unreadIds = notifications.map((n) => n.id);
     if (unreadIds.length === 0) return;
+    setNotifications([]);
     await supabase.from('notifications').update({ is_read: true }).in('id', unreadIds);
-    setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
-    setUnreadCount(0);
   };
 
   if (!isEligible) return null;
@@ -113,29 +112,22 @@ export default function NotificationBell({ userId, role }: Props): React.ReactEl
               ) : (
                 <ul className="divide-y divide-surface-100">
                   {notifications.map((n) => (
-                    <li
-                      key={n.id}
-                      className={`px-5 py-3.5 transition-colors ${!n.is_read ? 'bg-brand-50/40' : 'hover:bg-surface-50'}`}
-                    >
+                    <li key={n.id} className="px-5 py-3.5 transition-colors bg-brand-50/40">
                       <div className="flex items-start gap-3">
-                        <div className={`shrink-0 mt-0.5 h-2 w-2 rounded-full ${!n.is_read ? 'bg-brand-500' : 'bg-transparent'}`} />
+                        <div className="shrink-0 mt-0.5 h-2 w-2 rounded-full bg-brand-500" />
                         <div className="flex-1 min-w-0">
-                          <p className={`text-sm ${!n.is_read ? 'font-semibold text-navy-900' : 'font-medium text-navy-700'}`}>
-                            {n.title}
-                          </p>
+                          <p className="text-sm font-semibold text-navy-900">{n.title}</p>
                           <p className="text-xs text-navy-400 mt-0.5 line-clamp-2">{n.body}</p>
                           <p className="text-[10px] text-navy-300 mt-1">
                             {new Date(n.created_at).toLocaleString()}
                           </p>
                         </div>
-                        {!n.is_read && (
-                          <button
-                            onClick={() => void markRead(n.id)}
-                            className="shrink-0 text-[10px] font-semibold text-brand-600 hover:text-brand-700 mt-1"
-                          >
-                            Read
-                          </button>
-                        )}
+                        <button
+                          onClick={() => void markRead(n.id)}
+                          className="shrink-0 text-[10px] font-semibold text-brand-600 hover:text-brand-700 mt-1"
+                        >
+                          Read
+                        </button>
                       </div>
                     </li>
                   ))}
