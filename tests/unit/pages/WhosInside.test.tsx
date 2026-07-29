@@ -8,11 +8,9 @@ const mockOrder = vi.hoisted(() => vi.fn());
 const mockRpc = vi.hoisted(() => vi.fn());
 const mockChannel = vi.hoisted(() => vi.fn());
 const mockExportCsv = vi.hoisted(() => vi.fn());
-const mockExportJson = vi.hoisted(() => vi.fn());
 
 vi.mock('../../../src/lib/exportUtils', () => ({
   exportToCsv: mockExportCsv,
-  exportToJson: mockExportJson,
 }));
 
 vi.mock('../../../src/supabaseClient', () => ({

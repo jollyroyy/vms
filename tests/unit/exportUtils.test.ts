@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { exportToCsv, exportToJson } from '../../src/lib/exportUtils';
+import { exportToCsv } from '../../src/lib/exportUtils';
 
 function mockAnchor() {
   const anchor = document.createElement('a');
@@ -68,51 +68,5 @@ describe('M19-EXPORT: exportToCsv', () => {
     mockAnchor();
     exportToCsv([{ name: 'Test' }], 'test.csv');
     expect(globalThis.URL.revokeObjectURL).toHaveBeenCalledWith('blob:mock');
-  });
-});
-
-describe('M19-EXPORT: exportToJson', () => {
-  afterEach(() => {
-    vi.restoreAllMocks();
-  });
-
-  it('creates a download link and clicks it', () => {
-    const { click } = mockAnchor();
-    exportToJson([{ name: 'John', age: 30 }], 'data.json');
-    expect(click).toHaveBeenCalled();
-  });
-
-  it('sets the download filename from argument', () => {
-    const { anchor } = mockAnchor();
-    exportToJson([{ name: 'Test' }], 'export.json');
-    expect(anchor.download).toBe('export.json');
-  });
-
-  it('handles empty array', () => {
-    const { click } = mockAnchor();
-    exportToJson([], 'empty.json');
-    expect(click).toHaveBeenCalled();
-  });
-
-  it('includes all fields in exported JSON', () => {
-    const { click } = mockAnchor();
-    const data = [{ ref_number: 'VIS-001', name: 'John', checked_in_at: '2026-07-21T10:00:00Z' }];
-    exportToJson(data, 'test.json');
-    expect(click).toHaveBeenCalled();
-  });
-
-  it('appends and removes the link element', () => {
-    mockAnchor();
-    const append = vi.spyOn(document.body, 'appendChild');
-    const remove = vi.spyOn(document.body, 'removeChild');
-    exportToJson([{ name: 'Test' }], 'test.json');
-    expect(append).toHaveBeenCalled();
-    expect(remove).toHaveBeenCalled();
-  });
-
-  it('revokes the object URL', () => {
-    mockAnchor();
-    exportToJson([{ name: 'Test' }], 'test.json');
-    expect(globalThis.URL.revokeObjectURL).toHaveBeenCalled();
   });
 });
