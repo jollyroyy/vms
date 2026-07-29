@@ -7,7 +7,7 @@ export const ROLE_ROUTES: Record<UserRole, string[]> = {
   guard:       ['/guard/dashboard', '/visitors', '/guard', '/guard/daily-staff', '/kiosk', '/whos-inside'],
   hod:         ['/overview', '/approvals', '/reports', '/analytics'],
   staff:       ['/visitors', '/whos-inside', '/reports'],
-  admin:       ['/visitors', '/reports', '/analytics', '/admin'],
+  admin:       ['/reports', '/analytics', '/admin'], // admin is restricted to reports, analytics and settings — no visitor data
 };
 
 /** Returns true if the given pathname is forbidden for this role. */

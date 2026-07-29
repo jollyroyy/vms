@@ -126,6 +126,15 @@ describe('SEC-7: frontend route protection', () => {
     it('admin is allowed on /analytics', () => {
       expect(isForbidden('/analytics', role)).toBe(false);
     });
+    it('admin is FORBIDDEN on /visitors (visitor data access removed — settings/reports/analytics only)', () => {
+      expect(isForbidden('/visitors', role)).toBe(true);
+    });
+    it('admin is FORBIDDEN on /whos-inside (visitor data access removed — settings/reports/analytics only)', () => {
+      expect(isForbidden('/whos-inside', role)).toBe(true);
+    });
+    it('admin is FORBIDDEN on /kiosk (visitor data access removed — settings/reports/analytics only)', () => {
+      expect(isForbidden('/kiosk', role)).toBe(true);
+    });
   });
 
   // ── Deleted gate-pass feature ──────────────────────────────
@@ -179,10 +188,10 @@ describe('SEC-7: frontend route protection', () => {
   });
 
   // ── Route path match semantics ────────────────────────────
-  it('/visitors is allowed for guard, staff, admin but NOT hod', () => {
+  it('/visitors is allowed for guard and staff, but FORBIDDEN for hod and admin', () => {
     expect(isForbidden('/visitors', 'guard')).toBe(false);
     expect(isForbidden('/visitors', 'staff')).toBe(false);
-    expect(isForbidden('/visitors', 'admin')).toBe(false);
+    expect(isForbidden('/visitors', 'admin')).toBe(true);
     expect(isForbidden('/visitors', 'hod')).toBe(true);
   });
   it('/whos-inside is allowed for guard and staff, but FORBIDDEN for hod (on-site info now lives on Overview)', () => {

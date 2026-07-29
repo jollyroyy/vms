@@ -2,9 +2,10 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { supabase } from '../../supabaseClient';
 import { normalizePhone, isBlacklisted } from '../../lib/blacklist';
 import { safeErrorMessage } from '../../lib/errors';
+import { useDepartments } from '../../lib/useDepartments';
 import PhotoCapture from '../../components/PhotoCapture';
 import Badge from '../../components/Badge';
-import type { Department, Profile, Visit, VisitorPurpose } from '../../types/index';
+import type { Profile, Visit, VisitorPurpose } from '../../types/index';
 
 const PURPOSES: { value: VisitorPurpose; label: string }[] = [
   { value: 'meeting',     label: 'Meeting' },
@@ -39,7 +40,7 @@ export default function Kiosk(): React.ReactElement {
   const [purpose, setPurpose] = useState<VisitorPurpose>('meeting');
   const [deptId, setDeptId] = useState('');
   const [hostId, setHostId] = useState('');
-  const [departments, setDepartments] = useState<Department[]>([]);
+  const { departments } = useDepartments();
   const [hosts, setHosts] = useState<Profile[]>([]);
   const [photoBlob, setPhotoBlob] = useState<Blob | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -58,7 +59,6 @@ export default function Kiosk(): React.ReactElement {
   const countdownRef = useRef<ReturnType<typeof setInterval>>();
 
   useEffect(() => {
-    supabase.from('departments').select('*').order('name').then(({ data }) => setDepartments(data ?? []));
     supabase.from('visitors').select('phone, blacklist_reason').eq('is_blacklisted', true).then(({ data }) => {
       setBlacklist((data ?? []).map((r) => ({ phone: r.phone, reason: r.blacklist_reason ?? 'Flagged' })));
     });

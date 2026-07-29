@@ -2,7 +2,8 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { supabase } from '../../supabaseClient';
 import { normalizePhone, isBlacklisted } from '../../lib/blacklist';
 import { safeErrorMessage } from '../../lib/errors';
-import type { Department, Profile, VisitorPurpose } from '../../types/index';
+import { useDepartments } from '../../lib/useDepartments';
+import type { Profile, VisitorPurpose } from '../../types/index';
 
 const PURPOSES: { value: VisitorPurpose; label: string }[] = [
   { value: 'meeting',     label: 'Meeting' },
@@ -20,7 +21,7 @@ type Props = {
 };
 
 export default function WalkInRequest({ onSubmitted, onCancel }: Props): React.ReactElement {
-  const [departments, setDepartments] = useState<Department[]>([]);
+  const { departments } = useDepartments();
   const [hosts, setHosts] = useState<Profile[]>([]);
   const [blacklist, setBlacklist] = useState<{ phone: string; reason: string }[]>([]);
   const [phone, setPhone] = useState('');
@@ -35,7 +36,6 @@ export default function WalkInRequest({ onSubmitted, onCancel }: Props): React.R
   const [blacklistHit, setBlacklistHit] = useState<string | null>(null);
 
   useEffect(() => {
-    supabase.from('departments').select('*').order('name').then(({ data }) => setDepartments(data ?? []));
     supabase.from('visitors').select('phone, blacklist_reason').eq('is_blacklisted', true).then(({ data }) => {
       setBlacklist((data ?? []).map((r) => ({ phone: r.phone, reason: r.blacklist_reason ?? 'Flagged' })));
     });

@@ -131,11 +131,15 @@ describe('Sidebar: navigation links', () => {
     expect(screen.queryByText('Settings')).not.toBeInTheDocument();
   });
 
+  // Admin is limited to Reports, Analytics and Settings — visitor records are out
+  // of scope for the role, so the Visitors link is gone (see tests/unit/components/
+  // Sidebar.test.tsx and ROLE_ROUTES.admin in src/lib/roleRoutes.ts).
   it('renders correct nav links for admin role', () => {
     renderWithRouter(<Sidebar session={adminSession} role="admin" />);
-    expect(screen.getByText('Visitors')).toBeInTheDocument();
     expect(screen.getByText('Reports')).toBeInTheDocument();
+    expect(screen.getByText('Analytics')).toBeInTheDocument();
     expect(screen.getByText('Settings')).toBeInTheDocument();
+    expect(screen.queryByText('Visitors')).not.toBeInTheDocument();
     expect(screen.queryByText('Approvals')).not.toBeInTheDocument();
     expect(screen.queryByText('On-site')).not.toBeInTheDocument();
     expect(screen.queryByText('Material Passes')).not.toBeInTheDocument();

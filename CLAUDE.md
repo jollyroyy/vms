@@ -14,8 +14,39 @@
 - **Real-time**: Supabase channels with `postgres_changes`. Use `silent` param in `load()` to avoid KPI flash on live refreshes.
 - **Auth**: JWT `app_metadata.role` + `department_id`. Fallback to `profiles` table.
 
+### Admin scope
+- Admin navigation is **Reports, Analytics and Settings only**. Admins have **no route to
+  visitor records** — `/visitors`, `/whos-inside` and `/kiosk` are all forbidden for the
+  role. Do not re-add them to `ROLE_ROUTES.admin` or to the `/visitors` entry in
+  `ALL_LINKS`.
+- The Admin Panel (`/admin`) manages **departments and their heads of department** only.
+  It has no Users tab and no Blacklist tab.
+- HODs are added by **name + email**. `addHod()` promotes an existing profile if that
+  email is already known, otherwise it invites a new account via `supabase.auth.signUp`
+  and upserts the profile. Writing `profiles.role` is enough — the
+  `sync_profile_role_to_auth` trigger (migration 010) mirrors it into JWT `app_metadata`.
+
+### Live shared data
+- `src/lib/useDepartments.ts` and `src/lib/useHods.ts` fetch **and** subscribe to
+  `postgres_changes`. Every screen with a department picker uses `useDepartments()` —
+  never re-add a one-shot `supabase.from('departments')` fetch in a component, or admin
+  edits will stop propagating to guards/HODs/staff/kiosk.
+- Both tables are in the `supabase_realtime` publication with `replica identity full`
+  (migration `039_realtime_departments_profiles.sql`). Realtime still honours RLS.
+
 ## Hard Rules
-- **Max 300 lines per file.** If a component or module exceeds 300 lines, extract sub-components or helpers into separate files. No exceptions.
+- **Max 300 lines per file. FORBIDDEN to exceed. No exceptions.**
+  This applies to **every** file in the repo — `src/` components, hooks, libs, `tests/`
+  test files, CSS, and SQL. There is no "it's just a test file" or "it's just styles"
+  exemption. If a file would cross 300 lines, split it *before* committing:
+  - Components → extract sub-components / presentational children into sibling files.
+  - Hooks & libs → split by concern, one exported concern per file.
+  - Tests → split by the behaviour under test (e.g. `Foo.test.tsx` +
+    `FooEditing.test.tsx`), each with its own mock harness.
+  - CSS → split into layer files and `@import` them.
+  Check before every commit:
+  `find src tests -type f \( -name "*.ts" -o -name "*.tsx" -o -name "*.css" \) -exec wc -l {} + | awk '$1 > 300'`
+  must print nothing.
 - **No fuzzy string matching for known enums.** Use a direct lookup map (`Record<string, T>`) instead of `includes()` chains.
 - **No duplicate renders.** Never render the same data value twice in a single card/widget.
 - **Every new page needs a test file.** No page ships without at least: heading render, empty state, data render, and edge case tests.
@@ -28,10 +59,14 @@ src/
   pages/HOD/         # Approvals, ApprovalsPendingList, ApprovalsVisitList, HODOverview,
                      # OverviewStatCards, OverviewUpcoming, OverviewNotifications, PreApproveForm
   pages/Shared/      # Analytics, Reports, WhosInside, VisitorsDashboard
-  pages/Admin/       # AdminPanel, Activity
+  pages/Admin/       # AdminPanel (shell), DepartmentsManager (state), DepartmentCard,
+                     # DepartmentForm, HodList, HodForm, AdminStats, AdminAlerts,
+                     # ConfirmDialog, Activity
   pages/Kiosk/       # Kiosk
   components/layout/ # AppShell, Sidebar, SidebarAnalytics, SidebarProfile
-  lib/               # roleRoutes, theme, errors, mfa
+  lib/               # roleRoutes, theme, errors, mfa,
+                     # adminDepartments, adminHods (admin CRUD + validation),
+                     # useDepartments, useHods (live, realtime-subscribed)
   types/             # index.ts (all DB types)
 supabase/migrations/ # Numbered SQL migrations (001-031+)
 tests/

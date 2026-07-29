@@ -4,6 +4,7 @@ import type { Department, Profile, Visit, RecurringVisit, VisitorPurpose } from 
 import { normalizePhone } from '../../lib/blacklist';
 import { safeErrorMessage } from '../../lib/errors';
 import { attachHostNames } from '../../lib/hostNames';
+import { useDepartments } from '../../lib/useDepartments';
 import PhotoCapture from '../../components/PhotoCapture';
 import WalkInRequest from './WalkInRequest';
 
@@ -29,7 +30,7 @@ type Props = {
 };
 
 export default function CheckInPanel({ today, onCheckInSuccess }: Props): React.ReactElement {
-  const [departments, setDepartments] = useState<Department[]>([]);
+  const { departments } = useDepartments();
   const [preApproved, setPreApproved] = useState<Visit[]>([]);
   const [recurringToday, setRecurringToday] = useState<RecurringWithDept[]>([]);
   const [checkedInIds, setCheckedInIds] = useState<Set<string>>(new Set());
@@ -42,10 +43,6 @@ export default function CheckInPanel({ today, onCheckInSuccess }: Props): React.
   const [checkingIn, setCheckingIn] = useState(false);
   const [showWalkIn, setShowWalkIn] = useState(false);
   const [error, setError] = useState('');
-
-  useEffect(() => {
-    supabase.from('departments').select('*').order('name').then(({ data }) => setDepartments(data ?? []));
-  }, []);
 
   const loadData = useCallback(async () => {
     setLoading(true);
