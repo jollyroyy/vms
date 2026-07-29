@@ -51,23 +51,19 @@ describe('S8/FR-VIS-08: auto-checkout at day close', () => {
 
 describe('HOD pre-approval', () => {
   it('accepts valid pre-approval input', () => {
-    expect(validatePreApproval({ department_id: 'dept-1', host_id: 'host-1', purpose: 'meeting' })).toBeNull();
+    expect(validatePreApproval({ department_id: 'dept-1', purpose: 'meeting' })).toBeNull();
   });
 
   it('rejects missing department_id', () => {
-    expect(validatePreApproval({ department_id: '', host_id: 'host-1', purpose: 'meeting' })).toBe('Department is required');
-  });
-
-  it('rejects missing host_id', () => {
-    expect(validatePreApproval({ department_id: 'dept-1', host_id: '', purpose: 'meeting' })).toBe('Host is required');
+    expect(validatePreApproval({ department_id: '', purpose: 'meeting' })).toBe('Department is required');
   });
 
   it('rejects missing purpose', () => {
-    expect(validatePreApproval({ department_id: 'dept-1', host_id: 'host-1', purpose: '' })).toBe('Purpose is required');
+    expect(validatePreApproval({ department_id: 'dept-1', purpose: '' })).toBe('Purpose is required');
   });
 
   it('rejects null department_id', () => {
-    expect(validatePreApproval({ department_id: null as unknown as string, host_id: 'host-1', purpose: 'meeting' })).toBe('Department is required');
+    expect(validatePreApproval({ department_id: null as unknown as string, purpose: 'meeting' })).toBe('Department is required');
   });
 });
 

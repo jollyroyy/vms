@@ -1,7 +1,7 @@
 import type { Config } from 'tailwindcss';
 
 /**
- * Aurora Glass design system.
+ * Quest Mall design system (Aurora Glass base, Quest Mall gold/bronze palette).
  * navy/surface/brand shades are CSS-variable driven so they automatically
  * flip between light and dark themes (see :root / .dark in index.css).
  */
@@ -11,32 +11,32 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Violet — primary brand (static mid-tones work on both themes)
+        // Quest Mall gold — primary brand (static mid-tones work on both themes)
         brand: {
           50:  'rgb(var(--c-brand-50) / <alpha-value>)',
           100: 'rgb(var(--c-brand-100) / <alpha-value>)',
-          200: '#c4b5fd',
-          300: '#a78bfa',
-          400: '#8b5cf6',
-          500: '#7c3aed',
-          600: '#6d28d9',
-          700: '#5b21b6',
-          800: '#4c1d95',
-          900: '#3b0764',
-          950: '#2e1065',
+          200: '#e8d5a8',
+          300: '#d9bd7a',
+          400: '#c9a558',
+          500: '#b8934a',
+          600: '#9c7a3c',
+          700: '#7d6130',
+          800: '#5f4a26',
+          900: '#453620',
+          950: '#2b2114',
         },
-        // Magenta / fuchsia — secondary accent
+        // Bronze / copper — secondary accent
         accent: {
-          50:  '#fdf4ff',
-          100: '#fae8ff',
-          200: '#f5d0fe',
-          300: '#f0abfc',
-          400: '#e879f9',
-          500: '#d946ef',
-          600: '#c026d3',
-          700: '#a21caf',
-          800: '#86198f',
-          900: '#701a75',
+          50:  '#fdf6f0',
+          100: '#fae8d9',
+          200: '#f0cba8',
+          300: '#e0a877',
+          400: '#c67f4e',
+          500: '#a8623a',
+          600: '#8a4d2d',
+          700: '#6b3a22',
+          800: '#4d2a19',
+          900: '#331b10',
         },
         // Semantic neutrals — auto-flip with theme via CSS vars
         navy: {
@@ -83,7 +83,7 @@ export default {
       },
       fontFamily: {
         sans: ['"Inter"', 'system-ui', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', 'sans-serif'],
-        display: ['"Space Grotesk"', '"Inter"', 'system-ui', 'sans-serif'],
+        display: ['"Playfair Display"', '"Inter"', 'system-ui', 'serif'],
       },
       boxShadow: {
         'xs':       '0 1px 2px 0 rgb(0 0 0 / 0.03)',
@@ -93,10 +93,10 @@ export default {
         'modal':    '0 20px 60px -12px rgb(0 0 0 / 0.25), 0 8px 20px -8px rgb(0 0 0 / 0.1)',
         'glass':    '0 8px 32px 0 rgb(15 12 40 / 0.10), inset 0 1px 0 0 rgb(255 255 255 / 0.35)',
         'glass-lg': '0 24px 70px -12px rgb(15 12 40 / 0.22), inset 0 1px 0 0 rgb(255 255 255 / 0.30)',
-        'glow':     '0 0 24px -6px rgb(124 58 237 / 0.45)',
-        'glow-sm':  '0 0 12px -3px rgb(124 58 237 / 0.35)',
-        'glow-accent': '0 0 24px -6px rgb(217 70 239 / 0.40)',
-        'glow-mix': '0 8px 30px -6px rgb(124 58 237 / 0.45), 0 4px 18px -4px rgb(217 70 239 / 0.35)',
+        'glow':     '0 0 24px -6px rgb(184 147 74 / 0.45)',
+        'glow-sm':  '0 0 12px -3px rgb(184 147 74 / 0.35)',
+        'glow-accent': '0 0 24px -6px rgb(168 98 58 / 0.40)',
+        'glow-mix': '0 8px 30px -6px rgb(184 147 74 / 0.45), 0 4px 18px -4px rgb(168 98 58 / 0.35)',
       },
       borderRadius: {
         '4xl': '2rem',

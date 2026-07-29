@@ -104,31 +104,6 @@ describe('PreApproveForm validation', () => {
     expect(screen.getByRole('button', { name: /pre-approve visitor/i })).toBeDisabled();
   });
 
-  /* ── Validation ────────────────────────────────────── */
-
-  it('shows validation error when host is not selected', async () => {
-    // Set up a mock that loads hosts so the select becomes visible, but don't select one
-    render(<PreApproveForm onPreApproved={vi.fn()} />);
-    await waitFor(() => expect(screen.getByDisplayValue('Meeting')).toBeInTheDocument());
-    // Wait for hosts to load
-    await waitFor(() => expect(screen.getByText('Test Host')).toBeInTheDocument());
-
-    // Fill required fields but leave host empty
-    const inputs = screen.getAllByRole('textbox');
-    fireEvent.change(inputs[0], { target: { value: '9876543210' } });
-    fireEvent.change(inputs[1], { target: { value: 'Test Visitor' } });
-    fireEvent.change(inputs[2], { target: { value: 'Test Corp' } });
-
-    // Submit the form directly to avoid any button-interaction edge cases
-    const form = screen.getByRole('button', { name: /pre-approve visitor/i }).closest('form');
-    expect(form).not.toBeNull();
-    fireEvent.submit(form!);
-
-    await waitFor(() => {
-      expect(screen.getByText(/Host is required/i)).toBeInTheDocument();
-    });
-  });
-
   /* ── Phone Validation ──────────────────────────────── */
 
   it('shows error for invalid phone number', async () => {
@@ -138,8 +113,6 @@ describe('PreApproveForm validation', () => {
     fireEvent.change(screen.getAllByRole('textbox')[0], { target: { value: '123' } }); // too short
     fireEvent.change(screen.getAllByRole('textbox')[1], { target: { value: 'Test Visitor' } });
     fireEvent.change(screen.getAllByRole('textbox')[2], { target: { value: 'Test Corp' } });
-    await waitFor(() => expect(screen.getByText('Test Host')).toBeInTheDocument());
-    fireEvent.change(screen.getAllByRole('combobox')[1], { target: { value: 'h1' } });
     fireEvent.click(screen.getByRole('button', { name: /pre-approve visitor/i }));
 
     await waitFor(() => {
@@ -158,8 +131,6 @@ describe('PreApproveForm validation', () => {
     fireEvent.change(screen.getAllByRole('textbox')[0], { target: { value: '9876543210' } });
     fireEvent.change(screen.getAllByRole('textbox')[1], { target: { value: 'Test Visitor' } });
     fireEvent.change(screen.getAllByRole('textbox')[2], { target: { value: 'Test Corp' } });
-    await waitFor(() => expect(screen.getByText('Test Host')).toBeInTheDocument());
-    fireEvent.change(screen.getAllByRole('combobox')[1], { target: { value: 'h1' } });
     fireEvent.click(screen.getByRole('button', { name: /pre-approve visitor/i }));
 
     await waitFor(() => {

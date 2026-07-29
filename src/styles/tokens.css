@@ -4,27 +4,27 @@
    ============================================================ */
 @layer base {
   :root {
-    /* Neutrals (light) */
-    --c-navy-50: 246 247 251;
-    --c-navy-100: 236 238 244;
-    --c-navy-200: 213 218 228;
-    --c-navy-300: 176 185 201;
-    --c-navy-400: 133 146 171;
-    --c-navy-500: 102 117 145;
-    --c-navy-600: 81 94 120;
-    --c-navy-700: 67 77 98;
-    --c-navy-800: 58 66 83;
-    --c-navy-900: 51 58 71;
-    --c-navy-950: 26 31 43;
+    /* Neutrals (light) — warm charcoal/graphite, matches Quest Mall wordmark */
+    --c-navy-50: 250 249 246;
+    --c-navy-100: 243 241 236;
+    --c-navy-200: 227 223 214;
+    --c-navy-300: 199 193 180;
+    --c-navy-400: 158 151 136;
+    --c-navy-500: 128 120 106;
+    --c-navy-600: 104 97 85;
+    --c-navy-700: 87 81 71;
+    --c-navy-800: 74 69 61;
+    --c-navy-900: 64 60 53;
+    --c-navy-950: 33 30 26;
 
-    --c-surface-50: 250 250 252;
-    --c-surface-100: 244 244 247;
-    --c-surface-200: 228 228 233;
-    --c-surface-300: 212 212 218;
-    --c-surface-400: 161 161 170;
+    --c-surface-50: 251 250 247;
+    --c-surface-100: 246 244 240;
+    --c-surface-200: 233 230 222;
+    --c-surface-300: 218 214 203;
+    --c-surface-400: 172 166 152;
 
-    --c-brand-50: 245 243 255;
-    --c-brand-100: 237 233 254;
+    --c-brand-50: 250 246 237;
+    --c-brand-100: 245 237 219;
 
     --c-success-50: 240 253 244;
     --c-success-100: 220 252 231;
@@ -37,7 +37,7 @@
     --c-danger-700: 185 28 28;
 
     /* Glass surfaces */
-    --glass-bg: 255 255 255;
+    --glass-bg: 253 251 246;
     --glass-bg-opacity: 0.62;
     --glass-border-opacity: 0.55;
     --glass-border: 255 255 255;
@@ -46,27 +46,27 @@
   }
 
   .dark {
-    /* Neutrals (dark — inverted scale) */
-    --c-navy-50: 19 19 30;
-    --c-navy-100: 26 26 40;
-    --c-navy-200: 46 46 66;
-    --c-navy-300: 90 90 118;
-    --c-navy-400: 128 128 158;
-    --c-navy-500: 152 152 182;
-    --c-navy-600: 176 176 204;
-    --c-navy-700: 196 196 218;
-    --c-navy-800: 214 214 230;
-    --c-navy-900: 232 232 242;
-    --c-navy-950: 246 246 252;
+    /* Neutrals (dark — inverted scale, warm charcoal) */
+    --c-navy-50: 20 19 16;
+    --c-navy-100: 28 26 22;
+    --c-navy-200: 48 45 38;
+    --c-navy-300: 92 86 74;
+    --c-navy-400: 130 122 106;
+    --c-navy-500: 154 145 128;
+    --c-navy-600: 178 168 149;
+    --c-navy-700: 198 189 172;
+    --c-navy-800: 216 209 195;
+    --c-navy-900: 233 228 218;
+    --c-navy-950: 248 246 241;
 
-    --c-surface-50: 10 10 18;
-    --c-surface-100: 18 18 28;
-    --c-surface-200: 40 40 58;
-    --c-surface-300: 62 62 84;
-    --c-surface-400: 110 110 138;
+    --c-surface-50: 16 15 12;
+    --c-surface-100: 24 22 18;
+    --c-surface-200: 44 41 34;
+    --c-surface-300: 68 63 53;
+    --c-surface-400: 118 111 96;
 
-    --c-brand-50: 32 24 56;
-    --c-brand-100: 46 33 80;
+    --c-brand-50: 42 34 20;
+    --c-brand-100: 56 45 26;
 
     --c-success-50: 18 42 30;
     --c-success-100: 22 55 38;
@@ -78,7 +78,7 @@
     --c-danger-100: 66 24 30;
     --c-danger-700: 248 113 113;
 
-    --glass-bg: 22 22 36;
+    --glass-bg: 24 21 16;
     --glass-bg-opacity: 0.55;
     --glass-border-opacity: 0.09;
     --glass-border: 255 255 255;

@@ -105,8 +105,6 @@ describe('PreApproveForm submission', () => {
     fireEvent.change(screen.getAllByRole('textbox')[1], { target: { value: 'Test Visitor' } });
     fireEvent.change(screen.getAllByRole('textbox')[2], { target: { value: 'Test Corp' } });
 
-    await waitFor(() => expect(screen.getByText('Test Host')).toBeInTheDocument());
-    fireEvent.change(screen.getAllByRole('combobox')[1], { target: { value: 'h1' } });
     fireEvent.click(screen.getByRole('button', { name: /pre-approve visitor/i }));
 
     await waitFor(() => {
@@ -115,7 +113,7 @@ describe('PreApproveForm submission', () => {
         p_full_name: 'Test Visitor',
         p_company: 'Test Corp',
         p_department_id: 'dept1',
-        p_host_id: 'h1',
+        p_host_id: 'u1',
         p_purpose: 'meeting',
       });
     });
@@ -139,8 +137,6 @@ describe('PreApproveForm submission', () => {
     fireEvent.change(screen.getAllByRole('textbox')[0], { target: { value: '9876543210' } });
     fireEvent.change(screen.getAllByRole('textbox')[1], { target: { value: 'Test Visitor' } });
     fireEvent.change(screen.getAllByRole('textbox')[2], { target: { value: 'Test Corp' } });
-    await waitFor(() => expect(screen.getByText('Test Host')).toBeInTheDocument());
-    fireEvent.change(screen.getAllByRole('combobox')[1], { target: { value: 'h1' } });
     fireEvent.click(screen.getByRole('button', { name: /pre-approve visitor/i }));
 
     await waitFor(() => {
@@ -154,42 +150,9 @@ describe('PreApproveForm submission', () => {
     });
   });
 
-  /* ── Batch Mode ────────────────────────────────────── */
-
-  it('batch mode clears form and shows success message on submit', async () => {
-    render(<PreApproveForm onPreApproved={vi.fn()} />);
-
-    await waitFor(() => expect(screen.getByPlaceholderText(/\+91/)).toBeInTheDocument());
-
-    // Enable batch mode
-    fireEvent.click(screen.getByText('Batch Mode'));
-    await waitFor(() => expect(screen.getByText(/Save.*Add Another/i)).toBeInTheDocument());
-
-    // Fill form
-    fireEvent.change(screen.getAllByRole('textbox')[0], { target: { value: '9876543210' } });
-    fireEvent.change(screen.getAllByRole('textbox')[1], { target: { value: 'Test Visitor' } });
-    fireEvent.change(screen.getAllByRole('textbox')[2], { target: { value: 'Test Corp' } });
-    await waitFor(() => expect(screen.getByText('Test Host')).toBeInTheDocument());
-    fireEvent.change(screen.getAllByRole('combobox')[1], { target: { value: 'h1' } });
-    fireEvent.click(screen.getByRole('button', { name: /save.*add another/i }));
-
-    await waitFor(() => {
-      expect(screen.getByText('Visitor Pre-Approved')).toBeInTheDocument();
-    });
-
-    fireEvent.click(screen.getByText('Got it'));
-
-    // Form should be cleared — phone input should be empty
-    await waitFor(() => {
-      expect(screen.getAllByRole('textbox')[0]).toHaveValue('');
-      expect(screen.getAllByRole('textbox')[1]).toHaveValue('');
-    });
-  });
-
   /* ── Phone Recall ──────────────────────────────────── */
 
   it('recallByPhone fills existing visitor data on blur', async () => {
-    // Create a thenable eq return that also has maybeSingle
     const createEqReturn = (resolveData: any) => {
       const thenable = Promise.resolve({ data: resolveData, error: null });
       return Object.assign(thenable, {
@@ -210,7 +173,6 @@ describe('PreApproveForm submission', () => {
           select: () => ({
             eq: vi.fn(() => {
               recallCallCount++;
-              // First call is blacklist (no maybeSingle), second call is recall
               if (recallCallCount === 2) {
                 return createEqReturn({ full_name: 'Existing User', company: 'Existing Corp', phone: '9876543210' });
               }

@@ -17,24 +17,24 @@
 .aurora-blob-1 {
   width: 44rem; height: 44rem;
   top: -14rem; left: -10rem;
-  background: radial-gradient(circle, rgb(139 92 246 / 0.35), transparent 65%);
+  background: radial-gradient(circle, rgb(201 165 88 / 0.28), transparent 65%);
   animation: auroraDrift 18s ease-in-out infinite;
 }
 .aurora-blob-2 {
   width: 38rem; height: 38rem;
   top: 20%; right: -12rem;
-  background: radial-gradient(circle, rgb(217 70 239 / 0.28), transparent 65%);
+  background: radial-gradient(circle, rgb(168 98 58 / 0.22), transparent 65%);
   animation: auroraDriftAlt 22s ease-in-out infinite;
 }
 .aurora-blob-3 {
   width: 34rem; height: 34rem;
   bottom: -12rem; left: 30%;
-  background: radial-gradient(circle, rgb(99 102 241 / 0.25), transparent 65%);
+  background: radial-gradient(circle, rgb(184 147 74 / 0.20), transparent 65%);
   animation: auroraDrift 26s ease-in-out infinite reverse;
 }
-.dark .aurora-blob-1 { background: radial-gradient(circle, rgb(124 58 237 / 0.30), transparent 65%); }
-.dark .aurora-blob-2 { background: radial-gradient(circle, rgb(217 70 239 / 0.22), transparent 65%); }
-.dark .aurora-blob-3 { background: radial-gradient(circle, rgb(76 29 149 / 0.30), transparent 65%); }
+.dark .aurora-blob-1 { background: radial-gradient(circle, rgb(184 147 74 / 0.24), transparent 65%); }
+.dark .aurora-blob-2 { background: radial-gradient(circle, rgb(168 98 58 / 0.18), transparent 65%); }
+.dark .aurora-blob-3 { background: radial-gradient(circle, rgb(95 74 38 / 0.26), transparent 65%); }
 
 .aurora-grid {
   position: absolute;

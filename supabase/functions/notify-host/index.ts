@@ -49,24 +49,24 @@ function buildCheckInEmail(params: {
     '',
     'Please proceed to the reception area.',
     '',
-    '-- SecureGate VMS',
+    '-- Quest Mall Secure Gate',
   ].join('\n');
 
   const bodyHtml = `
     <div style="font-family: -apple-system, sans-serif; max-width: 480px; margin: 0 auto;">
-      <div style="background: linear-gradient(135deg, #1e3a5f, #1e293b); padding: 24px; border-radius: 12px 12px 0 0;">
-        <h2 style="color: white; margin: 0; font-size: 18px;">🏢 SecureGate VMS</h2>
-        <p style="color: #94a3b8; margin: 4px 0 0; font-size: 13px;">Visitor Management System</p>
+      <div style="background: linear-gradient(135deg, #2b2114, #453620); padding: 24px; border-radius: 12px 12px 0 0;">
+        <h2 style="color: #e8d5a8; margin: 0; font-size: 18px;">Quest Mall Secure Gate</h2>
+        <p style="color: #c9a558; margin: 4px 0 0; font-size: 13px;">Visitor Management System</p>
       </div>
-      <div style="background: #f8fafc; padding: 24px; border-radius: 0 0 12px 12px; border: 1px solid #e2e8f0; border-top: none;">
-        <p style="color: #1e293b; margin-top: 0;">Hi <strong>${hostName}</strong>,</p>
-        <p style="color: #475569;">Your visitor <strong>${visitorName}</strong>${visitorCompany ? ` from <em>${visitorCompany}</em>` : ''} has arrived at the gate and checked in.</p>
+      <div style="background: #faf8f4; padding: 24px; border-radius: 0 0 12px 12px; border: 1px solid #e8e2d3; border-top: none;">
+        <p style="color: #33302a; margin-top: 0;">Hi <strong>${hostName}</strong>,</p>
+        <p style="color: #57524a;">Your visitor <strong>${visitorName}</strong>${visitorCompany ? ` from <em>${visitorCompany}</em>` : ''} has arrived at the gate and checked in.</p>
         <table style="width: 100%; border-collapse: collapse; margin: 16px 0;">
-          <tr><td style="padding: 8px 0; color: #64748b; font-size: 13px;">Reference</td><td style="padding: 8px 0; font-weight: 600; font-family: monospace;">${refNumber}</td></tr>
-          <tr><td style="padding: 8px 0; color: #64748b; font-size: 13px;">Purpose</td><td style="padding: 8px 0;">${purposeLabel}</td></tr>
-          <tr><td style="padding: 8px 0; color: #64748b; font-size: 13px;">Check-in time</td><td style="padding: 8px 0;">${timeStr}</td></tr>
+          <tr><td style="padding: 8px 0; color: #80786a; font-size: 13px;">Reference</td><td style="padding: 8px 0; font-weight: 600; font-family: monospace;">${refNumber}</td></tr>
+          <tr><td style="padding: 8px 0; color: #80786a; font-size: 13px;">Purpose</td><td style="padding: 8px 0;">${purposeLabel}</td></tr>
+          <tr><td style="padding: 8px 0; color: #80786a; font-size: 13px;">Check-in time</td><td style="padding: 8px 0;">${timeStr}</td></tr>
         </table>
-        <p style="color: #475569; margin-bottom: 0;">Please proceed to the reception area.</p>
+        <p style="color: #57524a; margin-bottom: 0;">Please proceed to the reception area.</p>
       </div>
     </div>
   `;
@@ -102,7 +102,7 @@ Deno.serve(async (req) => {
   const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
   const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
   const resendKey = Deno.env.get('RESEND_API_KEY');
-  const fromEmail = Deno.env.get('FROM_EMAIL') ?? 'noreply@securegate.local';
+  const fromEmail = Deno.env.get('FROM_EMAIL') ?? 'noreply@questmallsecuregate.local';
 
   if (!resendKey) {
     console.warn('[notify-host] RESEND_API_KEY not set — skipping email');

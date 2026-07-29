@@ -91,8 +91,6 @@ describe('PreApproveForm errors', () => {
     fireEvent.change(screen.getAllByRole('textbox')[0], { target: { value: '9876543210' } });
     fireEvent.change(screen.getAllByRole('textbox')[1], { target: { value: 'Test Visitor' } });
     fireEvent.change(screen.getAllByRole('textbox')[2], { target: { value: 'Test Corp' } });
-    await waitFor(() => expect(screen.getByText('Test Host')).toBeInTheDocument());
-    fireEvent.change(screen.getAllByRole('combobox')[1], { target: { value: 'h1' } });
     fireEvent.click(screen.getByRole('button', { name: /pre-approve visitor/i }));
 
     await waitFor(() => {
@@ -118,8 +116,6 @@ describe('PreApproveForm errors', () => {
     fireEvent.change(screen.getAllByRole('textbox')[0], { target: { value: '9876543210' } });
     fireEvent.change(screen.getAllByRole('textbox')[1], { target: { value: 'Test Visitor' } });
     fireEvent.change(screen.getAllByRole('textbox')[2], { target: { value: 'Test Corp' } });
-    await waitFor(() => expect(screen.getByText('Test Host')).toBeInTheDocument());
-    fireEvent.change(screen.getAllByRole('combobox')[1], { target: { value: 'h1' } });
     fireEvent.click(screen.getByRole('button', { name: /pre-approve visitor/i }));
 
     await waitFor(() => {
@@ -140,8 +136,6 @@ describe('PreApproveForm errors', () => {
     fireEvent.change(screen.getAllByRole('textbox')[0], { target: { value: '9876543210' } });
     fireEvent.change(screen.getAllByRole('textbox')[1], { target: { value: 'Test Visitor' } });
     fireEvent.change(screen.getAllByRole('textbox')[2], { target: { value: 'Test Corp' } });
-    await waitFor(() => expect(screen.getByText('Test Host')).toBeInTheDocument());
-    fireEvent.change(screen.getAllByRole('combobox')[1], { target: { value: 'h1' } });
     fireEvent.click(screen.getByRole('button', { name: /pre-approve visitor/i }));
 
     await waitFor(() => {
@@ -162,8 +156,6 @@ describe('PreApproveForm errors', () => {
     fireEvent.change(screen.getAllByRole('textbox')[0], { target: { value: '9876543210' } });
     fireEvent.change(screen.getAllByRole('textbox')[1], { target: { value: 'Test Visitor' } });
     fireEvent.change(screen.getAllByRole('textbox')[2], { target: { value: 'Test Corp' } });
-    await waitFor(() => expect(screen.getByText('Test Host')).toBeInTheDocument());
-    fireEvent.change(screen.getAllByRole('combobox')[1], { target: { value: 'h1' } });
     fireEvent.click(screen.getByRole('button', { name: /pre-approve visitor/i }));
 
     await waitFor(() => {
@@ -185,12 +177,9 @@ describe('PreApproveForm errors', () => {
     fireEvent.change(screen.getAllByRole('textbox')[0], { target: { value: '9876543210' } });
     fireEvent.change(screen.getAllByRole('textbox')[1], { target: { value: 'Test Visitor' } });
     fireEvent.change(screen.getAllByRole('textbox')[2], { target: { value: 'Test Corp' } });
-    await waitFor(() => expect(screen.getByText('Test Host')).toBeInTheDocument());
-    fireEvent.change(screen.getAllByRole('combobox')[1], { target: { value: 'h1' } });
     fireEvent.click(screen.getByRole('button', { name: /pre-approve visitor/i }));
 
     await waitFor(() => {
-      // safeErrorMessage should surface the original error message
       expect(screen.getByText(/RPC connection failed/i)).toBeInTheDocument();
     });
   });

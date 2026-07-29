@@ -4,7 +4,7 @@ import { normalizePhone, isBlacklisted } from '../../lib/blacklist';
 import { validatePreApproval } from '../../lib/visitLifecycle';
 import { safeErrorMessage } from '../../lib/errors';
 import { useDepartments } from '../../lib/useDepartments';
-import type { Profile, VisitorPurpose } from '../../types/index';
+import type { VisitorPurpose } from '../../types/index';
 import SuccessPopup from '../../components/SuccessPopup';
 
 const PURPOSES: { value: VisitorPurpose; label: string }[] = [
@@ -21,7 +21,6 @@ type Props = { onPreApproved: (name: string, refNumber: string) => void };
 
 export default function PreApproveForm({ onPreApproved }: Props): React.ReactElement {
   const { departments } = useDepartments();
-  const [hosts,       setHosts]       = useState<Profile[]>([]);
   const [blacklist,   setBlacklist]   = useState<{ phone: string; reason: string }[]>([]);
 
   const [phone,       setPhone]       = useState('');
@@ -35,7 +34,6 @@ export default function PreApproveForm({ onPreApproved }: Props): React.ReactEle
   const [blacklistHit,    setBlacklistHit]    = useState<string | null>(null);
   const [submitting,      setSubmitting]      = useState(false);
   const [error,           setError]           = useState('');
-  const [batchMode,       setBatchMode]       = useState(false);
   const [userRole,        setUserRole]        = useState<string>('');
   const [userDept,        setUserDept]        = useState<string>('');
   const [scheduledFor,    setScheduledFor]    = useState<string>('');
@@ -44,33 +42,18 @@ export default function PreApproveForm({ onPreApproved }: Props): React.ReactEle
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
-      const meta = data.user?.app_metadata ?? {};
+      const user = data.user;
+      const meta = user?.app_metadata ?? {};
       setUserRole((meta.role as string) ?? '');
       const dept = (meta.department_id as string) ?? '';
       setUserDept(dept);
       if (dept) setDeptId(dept);
+      if (user?.id) setHostId(user.id);
     });
     supabase.from('visitors').select('phone, blacklist_reason').eq('is_blacklisted', true).then(({ data }) => {
       setBlacklist((data ?? []).map((r) => ({ phone: r.phone, reason: r.blacklist_reason ?? 'Flagged' })));
     });
   }, []);
-
-  const loadHosts = useCallback(async (departmentId: string) => {
-    try {
-      const { data, error } = await (supabase as any).rpc('get_hosts_for_department', { dept_id: departmentId });
-      if (error) throw error;
-      setHosts((data ?? []) as Profile[]);
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Unknown error';
-      console.error('Failed to load hosts:', msg);
-      setHosts([]);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (!deptId) { setHosts([]); return; }
-    void loadHosts(deptId);
-  }, [deptId, loadHosts]);
 
   const recallByPhone = useCallback(async () => {
     if (!phone) return;
@@ -86,7 +69,7 @@ export default function PreApproveForm({ onPreApproved }: Props): React.ReactEle
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    const validationError = validatePreApproval({ department_id: deptId, host_id: hostId, purpose });
+    const validationError = validatePreApproval({ department_id: deptId, purpose });
     if (validationError) { setError(validationError); return; }
     if (blacklistHit) return;
     const { data: { session } } = await supabase.auth.getSession();
@@ -126,13 +109,10 @@ export default function PreApproveForm({ onPreApproved }: Props): React.ReactEle
 
   const handlePopupClose = useCallback(() => {
     setSuccessPopup(null);
-    if (batchMode) {
-      setPhone(''); setFullName(''); setCompany(''); setVehicle(''); setHostId(''); setScheduledFor('');
-      setBlacklistHit(null);
-    } else if (successPopup) {
+    if (successPopup) {
       onPreApproved(fullName, successPopup.refNumber);
     }
-  }, [batchMode, successPopup, fullName, onPreApproved]);
+  }, [successPopup, fullName, onPreApproved]);
 
   return (
     <form onSubmit={handleSubmit} className="card-premium p-6 sm:p-8 space-y-6 max-w-2xl animate-fade-in">
@@ -184,13 +164,7 @@ export default function PreApproveForm({ onPreApproved }: Props): React.ReactEle
             </select>
           </div>
         )}
-        <div>
-          <label className="label">Person to Meet *</label>
-          <select required value={hostId} onChange={(e) => setHostId(e.target.value)} className="input" disabled={!deptId}>
-            <option value="">{deptId ? 'Select person' : 'Select department first'}</option>
-            {hosts.map((h) => <option key={h.id} value={h.id}>{h.full_name}</option>)}
-          </select>
-        </div>
+
         <div className="sm:col-span-2"><label className="label">Vehicle Number (optional)</label><input type="text" maxLength={20} value={vehicle} onChange={(e) => setVehicle(e.target.value)} className="input" placeholder="MH 12 AB 1234" /></div>
         <div className="sm:col-span-2">
           <label className="label">Schedule for (optional)</label>
@@ -215,24 +189,10 @@ export default function PreApproveForm({ onPreApproved }: Props): React.ReactEle
         </div>
       )}
 
-      <div className="flex gap-3">
-        <button type="submit" disabled={submitting || !!blacklistHit}
-          className="btn-primary flex-1 !py-3.5">
-          {submitting ? 'Submitting...' : batchMode ? 'Save &amp; Add Another' : 'Pre-Approve Visitor'}
-        </button>
-        {!batchMode ? (
-          <button type="button" onClick={() => setBatchMode(true)}
-            className="btn-secondary px-4 !py-3.5 text-sm flex items-center gap-2">
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7.5v3m0 0v3m0-3h3m-3 0h-3m-2.25-4.125a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zM4 19.235v-.11a6.375 6.375 0 0112.75 0v.109A12.318 12.318 0 0110.374 21c-2.331 0-4.512-.645-6.374-1.766z" /></svg>
-            Batch Mode
-          </button>
-        ) : (
-          <button type="button" onClick={() => setBatchMode(false)}
-            className="btn-secondary px-4 !py-3.5 text-sm">
-            Exit Batch
-          </button>
-        )}
-      </div>
+      <button type="submit" disabled={submitting || !!blacklistHit}
+        className="btn-primary w-full !py-3.5">
+        {submitting ? 'Submitting...' : 'Pre-Approve Visitor'}
+      </button>
 
       <p className="text-xs text-navy-300 text-center">Pre-approved visitors skip the approval queue at entry</p>
     </form>

@@ -15,10 +15,10 @@
     @apply card hover:-translate-y-0.5;
   }
   .card-hover:hover {
-    box-shadow: 0 16px 44px -8px rgb(15 12 40 / 0.16), 0 0 0 1px rgb(124 58 237 / 0.10), inset 0 1px 0 0 rgb(255 255 255 / 0.40);
+    box-shadow: 0 16px 44px -8px rgb(15 12 40 / 0.16), 0 0 0 1px rgb(184 147 74 / 0.10), inset 0 1px 0 0 rgb(255 255 255 / 0.40);
   }
   .dark .card-hover:hover {
-    box-shadow: 0 16px 44px -8px rgb(0 0 0 / 0.5), 0 0 24px -6px rgb(124 58 237 / 0.25), inset 0 1px 0 0 rgb(255 255 255 / 0.08);
+    box-shadow: 0 16px 44px -8px rgb(0 0 0 / 0.5), 0 0 24px -6px rgb(184 147 74 / 0.25), inset 0 1px 0 0 rgb(255 255 255 / 0.08);
   }
   .card-glass {
     @apply rounded-2xl;
@@ -49,7 +49,7 @@
     inset: 0;
     border-radius: 1rem;
     padding: 1px;
-    background: linear-gradient(135deg, rgb(139 92 246 / 0.35), rgb(217 70 239 / 0.18), rgb(139 92 246 / 0.10));
+    background: linear-gradient(135deg, rgb(201 165 88 / 0.35), rgb(168 98 58 / 0.18), rgb(201 165 88 / 0.10));
     mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
     mask-composite: exclude;
     -webkit-mask-composite: xor;
@@ -58,7 +58,7 @@
 
   /* --- Gradient text --- */
   .gradient-text {
-    background: linear-gradient(120deg, #8b5cf6, #d946ef, #8b5cf6);
+    background: linear-gradient(120deg, #c9a558, #a8623a, #c9a558);
     background-size: 200% auto;
     -webkit-background-clip: text;
     background-clip: text;
@@ -125,7 +125,7 @@
     left: 0;
     right: 0;
     height: 3px;
-    background: linear-gradient(90deg, rgb(139 92 246 / 0.55), rgb(217 70 239 / 0.25), transparent);
+    background: linear-gradient(90deg, rgb(201 165 88 / 0.55), rgb(168 98 58 / 0.25), transparent);
     border-radius: 2px 2px 0 0;
   }
   .stat-value {

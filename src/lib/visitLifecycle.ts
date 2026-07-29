@@ -39,13 +39,11 @@ export function canTransition(from: VisitStatus, to: VisitStatus): boolean {
 
 type PreApprovalInput = {
   department_id: string;
-  host_id: string;
   purpose: string;
 };
 
 export function validatePreApproval(input: PreApprovalInput): string | null {
   if (!input.department_id) return 'Department is required';
-  if (!input.host_id) return 'Host is required';
   if (!input.purpose) return 'Purpose is required';
   return null;
 }

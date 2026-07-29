@@ -27,9 +27,9 @@
     @apply avatar h-12 w-12 text-sm;
   }
   .avatar-gradient {
-    background: linear-gradient(135deg, #7c3aed, #d946ef);
+    background: linear-gradient(135deg, #b8934a, #a8623a);
     color: #fff;
-    box-shadow: 0 2px 10px -2px rgb(124 58 237 / 0.5), inset 0 1px 0 0 rgb(255 255 255 / 0.25);
+    box-shadow: 0 2px 10px -2px rgb(184 147 74 / 0.5), inset 0 1px 0 0 rgb(255 255 255 / 0.25);
   }
 
   /* --- Skeleton loading with shimmer --- */
@@ -68,12 +68,12 @@
   }
   .sidebar-link-active {
     @apply text-white font-semibold;
-    background: linear-gradient(120deg, rgb(124 58 237 / 0.92), rgb(217 70 239 / 0.85));
-    box-shadow: 0 4px 18px -4px rgb(124 58 237 / 0.55), inset 0 1px 0 0 rgb(255 255 255 / 0.22);
+    background: linear-gradient(120deg, rgb(184 147 74 / 0.92), rgb(168 98 58 / 0.85));
+    box-shadow: 0 4px 18px -4px rgb(184 147 74 / 0.55), inset 0 1px 0 0 rgb(255 255 255 / 0.22);
   }
   .sidebar-link-active:hover {
     @apply text-white;
-    background: linear-gradient(120deg, rgb(124 58 237 / 1), rgb(217 70 239 / 0.95));
+    background: linear-gradient(120deg, rgb(184 147 74 / 1), rgb(168 98 58 / 0.95));
   }
 
   /* --- Glass chip --- */

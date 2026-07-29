@@ -13,6 +13,7 @@ import React, { useState } from 'react';
 import { supabase } from '../supabaseClient';
 import { safeErrorMessage } from '../lib/errors';
 import { clearRecoveryPending } from '../lib/passwordRecovery';
+import Logo from '../components/Logo';
 
 const MIN_LENGTH = 6;
 
@@ -74,13 +75,9 @@ export default function ResetPassword(): React.ReactElement {
 
       <div className="relative z-10 w-full max-w-[460px] bg-white border border-black/5 rounded-3xl shadow-2xl shadow-black/40 px-8 py-6 sm:px-10 sm:py-7 animate-fade-in">
         <div className="flex flex-col items-center mb-5">
-          <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-[#7C3AED] to-[#5B21B6] flex items-center justify-center shadow-glow-sm mb-3">
-            <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
-            </svg>
-          </div>
+          <Logo size="lg" className="mb-3" />
           <h1 className="font-display text-2xl font-bold text-navy-900 tracking-tight">Set a new password</h1>
-          <p className="text-sm text-navy-500 mt-1.5 text-center">Choose a new password for your SecureGate account</p>
+          <p className="text-sm text-navy-500 mt-1.5 text-center">Choose a new password for your Quest Mall Secure Gate account</p>
         </div>
 
         {done ? (
@@ -93,7 +90,7 @@ export default function ResetPassword(): React.ReactElement {
             </div>
             <a
               href="/"
-              className="block w-full h-12 leading-[3rem] text-center rounded-xl bg-gradient-to-r from-[#7C3AED] to-[#5B21B6] hover:from-[#6D28D9] hover:to-[#4C1D95] text-white text-sm font-bold tracking-wide shadow-lg shadow-[#7C3AED]/25 transition-all"
+              className="block w-full h-12 leading-[3rem] text-center rounded-xl bg-gradient-to-r from-brand-500 to-brand-700 hover:from-brand-600 hover:to-brand-800 text-white text-sm font-bold tracking-wide shadow-lg shadow-brand-500/25 transition-all"
             >
               Back to sign in
             </a>
@@ -113,7 +110,7 @@ export default function ResetPassword(): React.ReactElement {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder={`At least ${MIN_LENGTH} characters`}
-                  className="w-full h-12 px-4 pr-11 rounded-xl border border-navy-200 bg-navy-50 text-navy-900 placeholder-navy-400 text-sm focus:outline-none focus:ring-2 focus:ring-[#7C3AED]/40 focus:border-[#7C3AED] transition-all"
+                  className="w-full h-12 px-4 pr-11 rounded-xl border border-navy-200 bg-navy-50 text-navy-900 placeholder-navy-400 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/40 focus:border-brand-500 transition-all"
                 />
                 <button
                   type="button"
@@ -138,7 +135,7 @@ export default function ResetPassword(): React.ReactElement {
                 value={confirm}
                 onChange={(e) => setConfirm(e.target.value)}
                 placeholder="Re-enter your new password"
-                className="w-full h-12 px-4 rounded-xl border border-navy-200 bg-navy-50 text-navy-900 placeholder-navy-400 text-sm focus:outline-none focus:ring-2 focus:ring-[#7C3AED]/40 focus:border-[#7C3AED] transition-all"
+                className="w-full h-12 px-4 rounded-xl border border-navy-200 bg-navy-50 text-navy-900 placeholder-navy-400 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/40 focus:border-brand-500 transition-all"
               />
             </div>
 
@@ -154,7 +151,7 @@ export default function ResetPassword(): React.ReactElement {
             <button
               type="submit"
               disabled={loading}
-              className="w-full h-12 rounded-xl bg-gradient-to-r from-[#7C3AED] to-[#5B21B6] hover:from-[#6D28D9] hover:to-[#4C1D95] text-white text-sm font-bold tracking-wide shadow-lg shadow-[#7C3AED]/25 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98]"
+              className="w-full h-12 rounded-xl bg-gradient-to-r from-brand-500 to-brand-700 hover:from-brand-600 hover:to-brand-800 text-white text-sm font-bold tracking-wide shadow-lg shadow-brand-500/25 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98]"
             >
               {loading ? 'Updating…' : 'Update password'}
             </button>
@@ -162,7 +159,7 @@ export default function ResetPassword(): React.ReactElement {
             {/* Escape hatch: an expired or already-used link leaves the form unusable. */}
             <p className="text-center">
               <button type="button" onClick={abandon}
-                className="text-xs font-semibold text-[#7C3AED] hover:text-[#5B21B6] transition-colors">
+                className="text-xs font-semibold text-brand-600 hover:text-brand-800 transition-colors">
                 Back to sign in
               </button>
             </p>

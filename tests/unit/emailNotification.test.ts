@@ -29,7 +29,7 @@ function buildCheckInEmail(params: {
     '',
     'Please proceed to the reception area.',
     '',
-    '-- SecureGate VMS',
+    '-- Quest Mall Secure Gate',
   ].join('\n');
 
   return { subject, bodyText };
