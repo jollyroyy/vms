@@ -43,6 +43,17 @@ describe('M-VISIT-ACTORS: attachVisitActors', () => {
     expect(mockRpc).toHaveBeenCalledWith('get_profile_names', { profile_ids: ['u1'] });
   });
 
+  it('attaches the audit log timestamp as actorAt', async () => {
+    mockOrder.mockResolvedValue({
+      data: [{ user_id: 'u1', entity_id: 'v1', created_at: '2026-01-02T09:30:00Z' }],
+      error: null,
+    });
+    mockRpc.mockResolvedValue({ data: [{ id: 'u1', full_name: 'Jane HOD', role: 'hod' }], error: null });
+    const rows = [{ id: 'v1', status: 'walkin_approved' }];
+    const result = await attachVisitActors(rows as any);
+    expect(result[0]!.actorAt).toBe('2026-01-02T09:30:00Z');
+  });
+
   it('picks the first (most recent, already ordered desc) log when a visit has multiple entries', async () => {
     mockOrder.mockResolvedValue({
       data: [

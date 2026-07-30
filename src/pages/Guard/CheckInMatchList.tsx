@@ -1,6 +1,7 @@
 import React from 'react';
 import type { Department, Visit } from '../../types/index';
 import WalkInRequest from './WalkInRequest';
+import CheckInMatchCard from './CheckInMatchCard';
 import type { MatchItem } from './CheckInPanel';
 
 type Props = {
@@ -58,50 +59,13 @@ export default function CheckInMatchList({
       ) : allMatches.length > 0 ? (
         <div className="space-y-2">
           {allMatches.map((m, idx) => {
-            const isRecurring = m.source === 'recurring';
             const isCheckedIn = m.source === 'pre_approved' && checkedInIds.has(preApproved.find((v) => v.id === m.visitId)?.visitor_id ?? '');
             const visitRecord = m.source === 'pre_approved' ? preApproved.find((v) => v.id === m.visitId) : null;
             const expired = visitRecord ? isExpired(visitRecord) : false;
             const disabled = isCheckedIn || expired;
             return (
-              <div key={`${m.id}-${idx}`}
-                className={`bg-white rounded-2xl p-4 shadow-sm border border-surface-100 flex items-center justify-between transition-all ${
-                  disabled ? 'opacity-50' : 'hover:shadow-md cursor-pointer'
-                }`}
-                onClick={() => {
-                  if (!disabled) onSelectMatch(m);
-                }}>
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <p className="font-bold text-navy-900">{m.visitorName}</p>
-                    <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
-                      isRecurring ? 'bg-accent-50 text-accent-700' : 'bg-success-50 text-success-700'
-                    }`}>
-                      {isRecurring ? 'Regular' : 'Pre-Approved'}
-                    </span>
-                    {isCheckedIn && (
-                      <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-brand-50 text-brand-700">Checked In</span>
-                    )}
-                    {expired && !isCheckedIn && (
-                      <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-danger-50 text-danger-700">Expired</span>
-                    )}
-                  </div>
-                  <p className="text-sm text-navy-400 mt-0.5 truncate">{m.departmentName} · {m.purpose}</p>
-                  {(m.hostName || m.company) && (
-                    <p className="text-sm text-navy-400 truncate">
-                      {m.hostName && <>Host: {m.hostName}</>}
-                      {m.hostName && m.company && ' · '}
-                      {m.company}
-                    </p>
-                  )}
-                </div>
-                {!disabled && (
-                  <button onClick={(e) => { e.stopPropagation(); onSelectMatch(m); }}
-                    className="shrink-0 ml-3 bg-brand-600 hover:bg-brand-700 text-white font-bold px-5 py-2.5 rounded-xl text-sm transition-all">
-                    Check In
-                  </button>
-                )}
-              </div>
+              <CheckInMatchCard key={`${m.id}-${idx}`} match={m} disabled={disabled} isCheckedIn={isCheckedIn}
+                expired={expired} onSelect={() => onSelectMatch(m)} />
             );
           })}
         </div>

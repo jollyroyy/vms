@@ -2,9 +2,18 @@ import React from 'react';
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { render, screen, cleanup } from '@testing-library/react';
 import CheckInMatchList from '../../../src/pages/Guard/CheckInMatchList';
+import { formatDateTime } from '../../../src/lib/formatDate';
 import type { MatchItem } from '../../../src/pages/Guard/CheckInPanel';
 
 afterEach(() => cleanup());
+
+// Text like "Host: Alex Host" is split across a parent node and a nested
+// <span> for the bolded value — getByText's default matcher only looks at
+// direct text-node children, so an exact-textContent function matcher is
+// needed here instead of a plain string/regex.
+function fullText(text: string) {
+  return (_content: string, node: Element | null) => node?.textContent === text;
+}
 
 function baseProps(overrides: Partial<React.ComponentProps<typeof CheckInMatchList>> = {}) {
   return {
@@ -38,6 +47,8 @@ function match(overrides: Partial<MatchItem> = {}): MatchItem {
     purpose: 'meeting',
     hostName: '',
     company: '',
+    approvalType: 'pre_approved',
+    approvedAt: null,
     visitId: '1',
     ...overrides,
   };
@@ -48,15 +59,15 @@ describe('CheckInMatchList — host name and company', () => {
     render(<CheckInMatchList {...baseProps({
       allMatches: [match({ hostName: 'Alex Host', company: 'Acme Corp' })],
     })} />);
-    expect(screen.getByText(/Host: Alex Host/)).toBeInTheDocument();
-    expect(screen.getByText(/Acme Corp/)).toBeInTheDocument();
+    expect(screen.getAllByText(fullText('Host: Alex Host')).length).toBeGreaterThan(0);
+    expect(screen.getByText('Acme Corp')).toBeInTheDocument();
   });
 
   it('shows only the host name when no company is present', () => {
     render(<CheckInMatchList {...baseProps({
       allMatches: [match({ hostName: 'Alex Host', company: '' })],
     })} />);
-    expect(screen.getByText('Host: Alex Host')).toBeInTheDocument();
+    expect(screen.getAllByText(fullText('Host: Alex Host')).length).toBeGreaterThan(0);
   });
 
   it('renders no host/company line when both are absent', () => {
@@ -64,5 +75,55 @@ describe('CheckInMatchList — host name and company', () => {
       allMatches: [match({ hostName: '', company: '' })],
     })} />);
     expect(screen.queryByText(/Host:/)).not.toBeInTheDocument();
+  });
+});
+
+describe('CheckInMatchList — pre-approved vs walk-in-approved segregation', () => {
+  it('labels a pre-approved visit as Pre-Approved', () => {
+    render(<CheckInMatchList {...baseProps({
+      allMatches: [match({ approvalType: 'pre_approved' })],
+    })} />);
+    expect(screen.getByText('Pre-Approved')).toBeInTheDocument();
+    expect(screen.queryByText('Walk-in Approved')).not.toBeInTheDocument();
+  });
+
+  it('labels a walk-in-approved visit as Walk-in Approved, distinct from Pre-Approved', () => {
+    render(<CheckInMatchList {...baseProps({
+      allMatches: [match({ id: 'pre:2', approvalType: 'walkin_approved' })],
+    })} />);
+    expect(screen.getByText('Walk-in Approved')).toBeInTheDocument();
+    expect(screen.queryByText('Pre-Approved')).not.toBeInTheDocument();
+  });
+
+  it('labels a recurring visit as Regular', () => {
+    render(<CheckInMatchList {...baseProps({
+      allMatches: [match({ id: 'rec:1', source: 'recurring', approvalType: 'recurring' })],
+    })} />);
+    expect(screen.getByText('Regular')).toBeInTheDocument();
+  });
+});
+
+describe('CheckInMatchList — exact approval date and time', () => {
+  it('shows the formatted approval timestamp for a pre-approved visit', () => {
+    const approvedAt = '2026-07-30T10:15:00Z';
+    render(<CheckInMatchList {...baseProps({
+      allMatches: [match({ approvalType: 'pre_approved', approvedAt })],
+    })} />);
+    expect(screen.getByText(new RegExp(formatDateTime(approvedAt).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')))).toBeInTheDocument();
+  });
+
+  it('shows the formatted approval timestamp for a walk-in-approved visit', () => {
+    const approvedAt = '2026-07-30T14:42:00Z';
+    render(<CheckInMatchList {...baseProps({
+      allMatches: [match({ approvalType: 'walkin_approved', approvedAt })],
+    })} />);
+    expect(screen.getByText(new RegExp(formatDateTime(approvedAt).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')))).toBeInTheDocument();
+  });
+
+  it('renders no approval timestamp line for a recurring visit', () => {
+    render(<CheckInMatchList {...baseProps({
+      allMatches: [match({ id: 'rec:1', source: 'recurring', approvalType: 'recurring', approvedAt: null })],
+    })} />);
+    expect(screen.queryByText(/on \d/)).not.toBeInTheDocument();
   });
 });

@@ -4,11 +4,13 @@ import type { Department, Profile, Visit, RecurringVisit, VisitorPurpose } from 
 import { normalizePhone } from '../../lib/blacklist';
 import { safeErrorMessage } from '../../lib/errors';
 import { attachHostNames } from '../../lib/hostNames';
+import { attachVisitActors } from '../../lib/visitActors';
 import { useDepartments } from '../../lib/useDepartments';
 import CheckInPhotoStep from './CheckInPhotoStep';
 import CheckInMatchList from './CheckInMatchList';
 
 type MatchSource = 'pre_approved' | 'recurring';
+export type ApprovalType = 'pre_approved' | 'walkin_approved' | 'recurring';
 
 export interface MatchItem {
   id: string;
@@ -19,12 +21,19 @@ export interface MatchItem {
   purpose: string;
   hostName: string;
   company: string;
+  approvalType: ApprovalType;
+  approvedAt: string | null;
   visitId?: string;
 }
 
 interface RecurringWithDept extends RecurringVisit {
   department?: Department;
   host?: Pick<Profile, 'id' | 'full_name'>;
+}
+
+interface PreApprovedVisit extends Visit {
+  actor?: { name: string; role: string } | null;
+  actorAt?: string | null;
 }
 
 type Props = {
@@ -34,7 +43,7 @@ type Props = {
 
 export default function CheckInPanel({ today, onCheckInSuccess }: Props): React.ReactElement {
   const { departments } = useDepartments();
-  const [preApproved, setPreApproved] = useState<Visit[]>([]);
+  const [preApproved, setPreApproved] = useState<PreApprovedVisit[]>([]);
   const [recurringToday, setRecurringToday] = useState<RecurringWithDept[]>([]);
   const [checkedInIds, setCheckedInIds] = useState<Set<string>>(new Set());
   const [search, setSearch] = useState('');
@@ -56,7 +65,7 @@ export default function CheckInPanel({ today, onCheckInSuccess }: Props): React.
       supabase
         .from('visits')
         .select(`*, visitor:visitors(*), department:departments(id, name, code, created_at)`)
-        .eq('status', 'approved')
+        .in('status', ['approved', 'walkin_approved'])
         .gte('created_at', todayStart)
         .lte('created_at', todayEnd)
         .order('created_at', { ascending: true }),
@@ -73,7 +82,8 @@ export default function CheckInPanel({ today, onCheckInSuccess }: Props): React.
 
     let rows = ((preRes.data as unknown as Visit[]) ?? []);
     rows = await attachHostNames(rows);
-    setPreApproved(rows.map((v) => ({ ...v, photo_url: v.photo_data ?? undefined })));
+    const rowsWithActors = await attachVisitActors(rows);
+    setPreApproved(rowsWithActors.map((v) => ({ ...v, photo_url: v.photo_data ?? undefined })));
 
     let recurringRows = (recurringRes.data ?? []) as RecurringWithDept[];
     recurringRows = await attachHostNames(recurringRows);
@@ -193,6 +203,7 @@ export default function CheckInPanel({ today, onCheckInSuccess }: Props): React.
       const phone = v.visitor?.phone ?? '';
       if (q && !name.toLowerCase().includes(q) && !phone.includes(q)) return;
       if (deptFilter && v.department_id !== deptFilter) return;
+      const isWalkin = v.status === 'walkin_approved';
       items.push({
         id: `pre:${v.id}`,
         source: 'pre_approved',
@@ -202,6 +213,8 @@ export default function CheckInPanel({ today, onCheckInSuccess }: Props): React.
         purpose: v.purpose,
         hostName: v.host?.full_name ?? '',
         company: v.visitor?.company ?? '',
+        approvalType: isWalkin ? 'walkin_approved' : 'pre_approved',
+        approvedAt: (isWalkin ? v.actorAt : null) ?? v.created_at,
         visitId: v.id,
       });
     });
@@ -220,6 +233,8 @@ export default function CheckInPanel({ today, onCheckInSuccess }: Props): React.
         purpose: r.purpose,
         hostName: r.host?.full_name ?? '',
         company: r.visitor_company ?? '',
+        approvalType: 'recurring',
+        approvedAt: null,
       });
     });
 

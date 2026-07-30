@@ -5,10 +5,10 @@ type HasId = { id: string; status: string };
 
 const ACTIONABLE_STATUSES = new Set(['walkin_approved', 'rejected']);
 
-/** Attach the actor (name + role) who last approved/rejected each visit, via audit_logs. */
+/** Attach the actor (name + role) and timestamp of the last approve/reject action, via audit_logs. */
 export async function attachVisitActors<T extends HasId>(
   visits: T[],
-): Promise<(T & { actor?: VisitActor | null })[]> {
+): Promise<(T & { actor?: VisitActor | null; actorAt?: string | null })[]> {
   const ids = visits.filter((v) => ACTIONABLE_STATUSES.has(v.status)).map((v) => v.id);
   if (ids.length === 0) { return visits; }
 
@@ -21,12 +21,14 @@ export async function attachVisitActors<T extends HasId>(
     .order('created_at', { ascending: false });
   if (error || !logs || logs.length === 0) { return visits; }
 
-  const latestByVisit = new Map<string, string | null>();
-  for (const log of logs as { user_id: string | null; entity_id: string }[]) {
-    if (!latestByVisit.has(log.entity_id)) { latestByVisit.set(log.entity_id, log.user_id); }
+  const latestByVisit = new Map<string, { userId: string | null; createdAt: string }>();
+  for (const log of logs as { user_id: string | null; entity_id: string; created_at: string }[]) {
+    if (!latestByVisit.has(log.entity_id)) {
+      latestByVisit.set(log.entity_id, { userId: log.user_id, createdAt: log.created_at });
+    }
   }
 
-  const userIds = [...new Set([...latestByVisit.values()].filter(Boolean))] as string[];
+  const userIds = [...new Set([...latestByVisit.values()].map((v) => v.userId).filter(Boolean))] as string[];
   const profileMap = new Map<string, VisitActor>();
   if (userIds.length > 0) {
     const { data: profiles } = await (supabase as any).rpc('get_profile_names', { profile_ids: userIds });
@@ -36,7 +38,11 @@ export async function attachVisitActors<T extends HasId>(
   }
 
   return visits.map((v) => {
-    const userId = latestByVisit.get(v.id);
-    return { ...v, actor: userId ? (profileMap.get(userId) ?? null) : null };
+    const entry = latestByVisit.get(v.id);
+    return {
+      ...v,
+      actor: entry?.userId ? (profileMap.get(entry.userId) ?? null) : null,
+      actorAt: entry?.createdAt ?? null,
+    };
   });
 }
