@@ -31,8 +31,26 @@
   `postgres_changes`. Every screen with a department picker uses `useDepartments()` —
   never re-add a one-shot `supabase.from('departments')` fetch in a component, or admin
   edits will stop propagating to guards/HODs/staff/kiosk.
-- Both tables are in the `supabase_realtime` publication with `replica identity full`
-  (migration `039_realtime_departments_profiles.sql`). Realtime still honours RLS.
+- Both tables are in the `supabase_realtime` publication with `replica identity full`.
+  Declared by `039_realtime_departments_profiles.sql`, but 039 was never applied to
+  the live project — it was actually landed by
+  `054_drift_realtime_departments_profiles.sql`. Realtime still honours RLS.
+
+### Migration drift
+- This project has always been migrated by hand, so
+  `supabase_migrations.schema_migrations` is **not** authoritative and the 3-digit
+  filename prefixes are not CLI-recognisable versions. `supabase db push` is not the
+  workflow here.
+- Migrations `046`-`055` reconciled a live-vs-disk audit (2026-07-30): eight files
+  had never been applied and two only partially. `055_drift_policy_convergence.sql`
+  holds the full audit ledger, including the files that are deliberately **not**
+  replayed and the bugs that were fixed while reconciling.
+- Before trusting a migration file as a description of live state, verify against the
+  live project. Two things the files got wrong on purpose-of-record: 021's
+  `pre_approve_visitor` is superseded by 026/029, and 022's
+  `visits: hod updates own department` must stay unapplied — every HOD write to a
+  visit goes through a security-definer RPC (`approve_visit`, `reject_visit`,
+  `cancel_visit`), so a direct UPDATE grant is attack surface with no feature behind it.
 
 ## Hard Rules
 - **Max 300 lines per file. FORBIDDEN to exceed. No exceptions.**
@@ -67,7 +85,10 @@ src/
                      # Reports, VisitorsDashboard
   pages/Admin/       # AdminPanel (shell), DepartmentsManager (state), DepartmentCard,
                      # DepartmentForm, HodList, HodForm, AdminStats, AdminAlerts,
-                     # ConfirmDialog, Activity
+                     # ConfirmDialog, AdminConfirmDialogs, Activity;
+                     # click-to-drill overview: adminOverviewView (view keys),
+                     # AdminOverviewPrompt (collapsed), DepartmentList,
+                     # HodDirectory, UnassignedDepartments
   pages/Kiosk/       # Kiosk (state machine) + KioskIdleScreen, KioskPhoneScreen,
                      # KioskFormScreen, KioskBadgeScreen, KioskAuroraBackdrop
   components/layout/ # AppShell, Sidebar, SidebarAnalytics, SidebarProfile
