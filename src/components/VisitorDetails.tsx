@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import type { Visit } from '../types/index';
 import { formatDateTime, formatDuration } from '../lib/formatDate';
 import VisitorDetailsActions from './VisitorDetailsActions';
@@ -44,18 +44,28 @@ export default function VisitorDetails({
   const dur = v.checked_in_at ? formatDuration(v.checked_in_at) : null;
   const s = STATUS_COLORS[v.status] ?? { bg: 'bg-surface-100', text: 'text-navy-500', dot: 'bg-navy-300' };
 
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [onClose]);
+
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-content sm:max-w-lg" onClick={(e) => e.stopPropagation()}>
 
         {/* Header with gradient */}
         <div className="relative bg-gradient-to-br from-navy-900 via-navy-800 to-brand-900 px-6 pt-5 pb-14">
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(51,150,255,0.2),transparent_70%)]" />
+          <div aria-hidden="true" className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(51,150,255,0.2),transparent_70%)]" />
+          {/* z-30 so the profile card below (a later sibling at z-10, pulled up
+              with -mt-10) can never overlap and swallow this click. */}
           <button
-            onClick={onClose}
-            className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white/80 hover:text-white transition-all z-10"
+            type="button"
+            aria-label="Close"
+            onClick={(e) => { e.stopPropagation(); onClose(); }}
+            className="absolute top-4 right-4 w-9 h-9 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white/80 hover:text-white transition-all z-30"
           >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+            <svg className="pointer-events-none w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>

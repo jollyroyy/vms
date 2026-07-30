@@ -44,6 +44,7 @@ let hodItId = '', staffId = '';
 let visitorId = '';
 // fixture visits (all IT department): see beforeAll
 let vDeny = '', vApprove = '', vReject = '', vCheckedIn = '', vHrPending = '';
+let vCancel = '', vHrApproved = '';
 const cleanupVisits: string[] = [];
 const cleanupPasses: string[] = [];
 
@@ -88,6 +89,8 @@ beforeAll(async () => {
   vReject = await mkVisit(itDept, 'pending_approval');
   vCheckedIn = await mkVisit(itDept, 'checked_in');
   vHrPending = await mkVisit(hrDept, 'pending_approval');
+  vCancel = await mkVisit(itDept, 'approved');
+  vHrApproved = await mkVisit(hrDept, 'approved');
 }, 120_000);
 
 afterAll(async () => {
@@ -202,6 +205,29 @@ describe('S9/SEC-5: role enforcement — HOD', () => {
     const rejected = await svcStatus(vReject);
     expect(rejected.status).toBe('rejected');
     expect(rejected.rejection_reason).toBe('RLS test rejection');
+  }, 30_000);
+
+  // Cancel Pre-Approval (migration 045). public.visits has NO hod UPDATE policy,
+  // so a direct .update({status:'cancelled'}) matches zero rows AND returns no
+  // error — the old code reported success while changing nothing. These tests
+  // pin the RPC path and the silent-failure behaviour that made it necessary.
+  it('HOD CAN cancel a pre-approval in their own department', async () => {
+    const { error } = await hodIT.rpc('cancel_visit', { visit_id: vCancel });
+    expect(error).toBeNull();
+    expect((await svcStatus(vCancel)).status).toBe('cancelled');
+  }, 30_000);
+
+  it("HOD CANNOT cancel another department's pre-approval", async () => {
+    const { error } = await hodFIN.rpc('cancel_visit', { visit_id: vHrApproved });
+    expect(error).not.toBeNull();
+    expect(error!.message).toMatch(/own department/i);
+    expect((await svcStatus(vHrApproved)).status).toBe('approved');
+  }, 30_000);
+
+  it('a direct HOD update to cancelled silently touches 0 rows (why the RPC exists)', async () => {
+    const { error } = await hodIT.from('visits').update({ status: 'cancelled' }).eq('id', vHrApproved);
+    expect(error).toBeNull(); // no policy match => PostgREST reports success
+    expect((await svcStatus(vHrApproved)).status).toBe('approved'); // but nothing changed
   }, 30_000);
 
   // Delegation/escalation is Milestone B scope (S2b, FR-VIS-07) — converts with that feature.
