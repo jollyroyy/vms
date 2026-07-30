@@ -17,11 +17,14 @@ export interface MatchItem {
   visitorPhone: string;
   departmentName: string;
   purpose: string;
+  hostName: string;
+  company: string;
   visitId?: string;
 }
 
 interface RecurringWithDept extends RecurringVisit {
   department?: Department;
+  host?: Pick<Profile, 'id' | 'full_name'>;
 }
 
 type Props = {
@@ -72,7 +75,8 @@ export default function CheckInPanel({ today, onCheckInSuccess }: Props): React.
     rows = await attachHostNames(rows);
     setPreApproved(rows.map((v) => ({ ...v, photo_url: v.photo_data ?? undefined })));
 
-    const recurringRows = (recurringRes.data ?? []) as RecurringWithDept[];
+    let recurringRows = (recurringRes.data ?? []) as RecurringWithDept[];
+    recurringRows = await attachHostNames(recurringRows);
     const todayDate = new Date(today);
     const dayOfWeek = todayDate.getDay();
     const dayOfMonth = todayDate.getDate();
@@ -196,6 +200,8 @@ export default function CheckInPanel({ today, onCheckInSuccess }: Props): React.
         visitorPhone: phone,
         departmentName: v.department?.name ?? '',
         purpose: v.purpose,
+        hostName: v.host?.full_name ?? '',
+        company: v.visitor?.company ?? '',
         visitId: v.id,
       });
     });
@@ -212,6 +218,8 @@ export default function CheckInPanel({ today, onCheckInSuccess }: Props): React.
         visitorPhone: phone,
         departmentName: r.department?.name ?? '',
         purpose: r.purpose,
+        hostName: r.host?.full_name ?? '',
+        company: r.visitor_company ?? '',
       });
     });
 

@@ -87,6 +87,13 @@ export default function CheckInMatchList({
                     )}
                   </div>
                   <p className="text-sm text-navy-400 mt-0.5 truncate">{m.departmentName} · {m.purpose}</p>
+                  {(m.hostName || m.company) && (
+                    <p className="text-sm text-navy-400 truncate">
+                      {m.hostName && <>Host: {m.hostName}</>}
+                      {m.hostName && m.company && ' · '}
+                      {m.company}
+                    </p>
+                  )}
                 </div>
                 {!disabled && (
                   <button onClick={(e) => { e.stopPropagation(); onSelectMatch(m); }}
