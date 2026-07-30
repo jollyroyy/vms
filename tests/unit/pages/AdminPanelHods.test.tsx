@@ -89,6 +89,9 @@ const setValue = (el: Element, value: string) => fireEvent.change(el, { target: 
 
 /** Opens the add-HOD form on the first department card, fills it, and confirms the dialog. */
 async function submitNewHod(name: string, email: string) {
+  // The admin overview starts collapsed; open the Departments view so the
+  // roster under test is on screen.
+  fireEvent.click(screen.getByTitle('Show Departments'));
   fireEvent.click(screen.getByRole('button', { name: /add head of department/i }));
   setValue(screen.getByLabelText(/hod name/i), name);
   setValue(screen.getByLabelText(/email/i), email);
@@ -113,6 +116,7 @@ describe('AdminPanel — add HOD', () => {
   it('blocks submission, shows the validation message, and never opens a dialog when invalid', async () => {
     h.validateHod.mockReturnValue('Enter a valid email address.');
     renderPanel();
+    fireEvent.click(screen.getByTitle('Show Departments'));
     fireEvent.click(screen.getByRole('button', { name: /add head of department/i }));
     setValue(screen.getByLabelText(/hod name/i), 'Asha');
     setValue(screen.getByLabelText(/email/i), 'nope');
@@ -125,6 +129,7 @@ describe('AdminPanel — add HOD', () => {
 
   it('does nothing when the confirmation dialog is cancelled', async () => {
     renderPanel();
+    fireEvent.click(screen.getByTitle('Show Departments'));
     fireEvent.click(screen.getByRole('button', { name: /add head of department/i }));
     setValue(screen.getByLabelText(/hod name/i), 'Asha Rao');
     setValue(screen.getByLabelText(/email/i), 'asha@corp.com');
@@ -158,6 +163,7 @@ describe('AdminPanel — add HOD', () => {
   it('adds to the department whose card the form was opened on', async () => {
     h.departments = [dept(), dept({ id: 'd2', name: 'Finance', code: 'FIN' })];
     renderPanel();
+    fireEvent.click(screen.getByTitle('Show Departments'));
 
     const buttons = screen.getAllByRole('button', { name: /add head of department/i });
     fireEvent.click(buttons[1]);
@@ -179,6 +185,7 @@ describe('AdminPanel — modify and remove HOD', () => {
   it('edits an HOD name and email', async () => {
     h.hods = [hod()];
     renderPanel();
+    fireEvent.click(screen.getByTitle('Show Departments'));
 
     fireEvent.click(screen.getByRole('button', { name: /edit asha rao/i }));
     setValue(screen.getByDisplayValue('Asha Rao'), 'Asha R Rao');
@@ -193,6 +200,7 @@ describe('AdminPanel — modify and remove HOD', () => {
   it('cancel closes the HOD edit form without saving', () => {
     h.hods = [hod()];
     renderPanel();
+    fireEvent.click(screen.getByTitle('Show Departments'));
 
     fireEvent.click(screen.getByRole('button', { name: /edit asha rao/i }));
     fireEvent.click(screen.getByRole('button', { name: /cancel/i }));
@@ -204,6 +212,7 @@ describe('AdminPanel — modify and remove HOD', () => {
   it('removes an HOD after confirmation', async () => {
     h.hods = [hod()];
     renderPanel();
+    fireEvent.click(screen.getByTitle('Show Departments'));
 
     fireEvent.click(screen.getByRole('button', { name: /remove asha rao/i }));
     const modal = await screen.findByRole('dialog');
@@ -216,6 +225,7 @@ describe('AdminPanel — modify and remove HOD', () => {
   it('does not remove an HOD when the confirmation is dismissed', async () => {
     h.hods = [hod()];
     renderPanel();
+    fireEvent.click(screen.getByTitle('Show Departments'));
 
     fireEvent.click(screen.getByRole('button', { name: /remove asha rao/i }));
     const modal = await screen.findByRole('dialog');
@@ -229,6 +239,7 @@ describe('AdminPanel — modify and remove HOD', () => {
     h.hods = [hod()];
     h.removeHod.mockRejectedValue(new Error('permission denied'));
     renderPanel();
+    fireEvent.click(screen.getByTitle('Show Departments'));
 
     fireEvent.click(screen.getByRole('button', { name: /remove asha rao/i }));
     const modal = await screen.findByRole('dialog');

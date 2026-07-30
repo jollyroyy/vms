@@ -191,10 +191,14 @@ function VisitorCard({ visit: v, index: idx, onClick }: { visit: Visit; index: n
       {/* Status context + ref */}
       <div className="mt-3 flex items-center justify-between gap-2">
         <div className="min-w-0">
+          {/* Which approval route the visit took is already named on the badge
+              above ('Pre-approved' vs 'Walk-in approved'), so this line carries
+              the one thing both routes share once the HOD has decided: the visit
+              is now waiting on the gate. */}
           {v.status === 'approved' && (
             <p className="text-[11px] text-success-600 dark:text-success-400 font-semibold truncate flex items-center gap-1">
               <span className="h-1.5 w-1.5 rounded-full bg-success-500 shrink-0" />
-              Awaiting Gate Approval{v.scheduled_for && ` · ETA ${formatTime(v.scheduled_for)}`}
+              Awaiting gate check{v.scheduled_for && ` · ETA ${formatTime(v.scheduled_for)}`}
             </p>
           )}
           {v.status === 'pending_approval' && (
@@ -206,7 +210,7 @@ function VisitorCard({ visit: v, index: idx, onClick }: { visit: Visit; index: n
           {v.status === 'walkin_approved' && (
             <p className="text-[11px] text-brand-600 dark:text-brand-400 font-semibold truncate flex items-center gap-1">
               <span className="h-1.5 w-1.5 rounded-full bg-brand-500 shrink-0" />
-              Walk-in — Awaiting Check-in
+              Awaiting gate check
             </p>
           )}
           {v.checked_in_at && v.status === 'checked_in' && (

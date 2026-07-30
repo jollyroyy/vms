@@ -68,14 +68,34 @@ describe('OverviewUpcoming', () => {
     expect(screen.queryByText('No upcoming visits')).not.toBeInTheDocument();
   });
 
-  it('shows "Pre-Approved" badge for approved status and "Pending" for pending_approval', () => {
+  it('shows "Pre-approved" for approved status, "Walk-in approved" for walkin_approved, "Pending" for pending_approval', () => {
     const upcoming = [
       upcomingVisit({ id: 'approved-1', status: 'approved' }),
-      upcomingVisit({ id: 'pending-1', status: 'pending_approval', visitor: { id: 'vis2', phone: '9000000000', full_name: 'Pending Visitor', company: null, id_type: null, id_last4: null, vehicle_number: null, is_blacklisted: false, blacklist_reason: null, created_at: new Date().toISOString() } }),
+      upcomingVisit({ id: 'walkin-1', status: 'walkin_approved', visitor: { id: 'vis2', phone: '9000000001', full_name: 'Walk-in Visitor', company: null, id_type: null, id_last4: null, vehicle_number: null, is_blacklisted: false, blacklist_reason: null, created_at: new Date().toISOString() } }),
+      upcomingVisit({ id: 'pending-1', status: 'pending_approval', visitor: { id: 'vis3', phone: '9000000002', full_name: 'Pending Visitor', company: null, id_type: null, id_last4: null, vehicle_number: null, is_blacklisted: false, blacklist_reason: null, created_at: new Date().toISOString() } }),
     ];
     renderWithRouter(<OverviewUpcoming loading={false} upcoming={upcoming} />);
-    expect(screen.getByText('Pre-Approved')).toBeInTheDocument();
+    expect(screen.getByText('Pre-approved')).toBeInTheDocument();
+    expect(screen.getByText('Walk-in approved')).toBeInTheDocument();
     expect(screen.getByText('Pending')).toBeInTheDocument();
+  });
+
+  it('shows "Awaiting gate check" for both approved and walkin_approved statuses', () => {
+    const upcoming = [
+      upcomingVisit({ id: 'approved-1', status: 'approved' }),
+      upcomingVisit({ id: 'walkin-1', status: 'walkin_approved', visitor: { id: 'vis2', phone: '9000000001', full_name: 'Walk-in Visitor', company: null, id_type: null, id_last4: null, vehicle_number: null, is_blacklisted: false, blacklist_reason: null, created_at: new Date().toISOString() } }),
+    ];
+    renderWithRouter(<OverviewUpcoming loading={false} upcoming={upcoming} />);
+    const awaitingGateTexts = screen.getAllByText('Awaiting gate check');
+    expect(awaitingGateTexts).toHaveLength(2);
+  });
+
+  it('does not show "Awaiting gate check" for pending_approval status', () => {
+    const upcoming = [
+      upcomingVisit({ id: 'pending-1', status: 'pending_approval', visitor: { id: 'vis3', phone: '9000000002', full_name: 'Pending Visitor', company: null, id_type: null, id_last4: null, vehicle_number: null, is_blacklisted: false, blacklist_reason: null, created_at: new Date().toISOString() } }),
+    ];
+    renderWithRouter(<OverviewUpcoming loading={false} upcoming={upcoming} />);
+    expect(screen.queryByText('Awaiting gate check')).not.toBeInTheDocument();
   });
 
   it('renders a plural count and an "Open details" link per row', () => {

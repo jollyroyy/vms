@@ -95,6 +95,9 @@ const renderPanel = () => render(<MemoryRouter><AdminPanel /></MemoryRouter>);
 
 /** Clicks Delete on the HR card and returns the confirmation dialog. */
 async function openConfirm() {
+  // The admin overview starts collapsed; open the Departments view so the
+  // roster under test is on screen.
+  fireEvent.click(screen.getByTitle('Show Departments'));
   fireEvent.click(screen.getByRole('button', { name: /delete human resources/i }));
   return screen.findByRole('dialog');
 }

@@ -3,10 +3,15 @@
 // postgres_changes), so a change made here reaches every other role immediately.
 import React, { useMemo, useState } from 'react';
 import AdminAlerts, { useAdminMessages } from './AdminAlerts';
+import AdminConfirmDialogs from './AdminConfirmDialogs';
+import AdminOverviewPrompt from './AdminOverviewPrompt';
 import AdminStats from './AdminStats';
-import ConfirmDialog from './ConfirmDialog';
-import DepartmentCard from './DepartmentCard';
-import DepartmentForm from './DepartmentForm';
+import DepartmentList from './DepartmentList';
+import HodDirectory from './HodDirectory';
+import UnassignedDepartments from './UnassignedDepartments';
+import {
+  ADMIN_OVERVIEW_HINTS, ADMIN_OVERVIEW_TITLES, type AdminOverviewView,
+} from './adminOverviewView';
 import type { HodFormSlot } from './HodList';
 import { useDepartments } from '../../lib/useDepartments';
 import { useHods } from '../../lib/useHods';
@@ -20,11 +25,18 @@ import type { Department, Profile } from '../../types/index';
 const message = (err: unknown, fallback: string) =>
   err instanceof Error ? err.message : fallback;
 
+// One id shared by every panel variant so the stat tiles' aria-controls always
+// points at whatever is currently rendered below them.
+const PANEL_ID = 'admin-overview-panel';
+
 export default function DepartmentsManager(): React.ReactElement {
   const { departments, error: deptError, reload: reloadDepartments } = useDepartments();
   const { hods, error: hodError, reload: reloadHods } = useHods();
   const msg = useAdminMessages();
 
+  // Nothing below the tiles renders until a count is clicked; clicking the
+  // active tile again collapses the panel.
+  const [view, setView] = useState<AdminOverviewView | null>(null);
   const [createKey, setCreateKey] = useState(0);
   const [createBusy, setCreateBusy] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -52,7 +64,18 @@ export default function DepartmentsManager(): React.ReactElement {
   // with what the cards below show (a stray hod row with a dangling department_id
   // would otherwise inflate the total without appearing anywhere).
   const assignedHodCount = departments.reduce((n, d) => n + (hodsByDept.get(d.id)?.length ?? 0), 0);
-  const unassigned = departments.filter((d) => (hodsByDept.get(d.id) ?? []).length === 0).length;
+  const unassignedDepartments = departments.filter((d) => (hodsByDept.get(d.id) ?? []).length === 0);
+
+  const selectView = (next: AdminOverviewView) =>
+    setView((current) => (current === next ? null : next));
+
+  // "Assign HOD" from the gap list hands off to the Departments view with that
+  // department's add-HOD form already open, so the admin lands where they can act.
+  const startAssignFromGap = (departmentId: string) => {
+    setEditingId(null);
+    setHodSlot({ kind: 'add', departmentId });
+    setView('departments');
+  };
 
   /* ── departments ───────────────────────────────────── */
 
@@ -181,89 +204,84 @@ export default function DepartmentsManager(): React.ReactElement {
       <AdminStats
         departmentCount={departments.length}
         hodCount={assignedHodCount}
-        unassignedCount={unassigned}
+        unassignedCount={unassignedDepartments.length}
+        active={view}
+        onSelect={selectView}
+        panelId={PANEL_ID}
       />
 
       {/* A load failure is surfaced, never silently rendered as an empty list. */}
       <AdminAlerts success={msg.success} error={msg.error || deptError || hodError || ''} />
 
-      <div className="card-premium p-5 animate-fade-in">
-        <p className="section-title mb-3">New Department</p>
-        <DepartmentForm key={createKey} mode="create" busy={createBusy} onSubmit={handleCreate} />
-      </div>
-
-      <div className="space-y-3">
-        {departments.map((d, i) => (
-          <DepartmentCard
-            key={d.id}
-            department={d}
-            hods={hodsByDept.get(d.id) ?? []}
-            index={i}
-            isEditing={editingId === d.id}
-            editBusy={editBusy}
-            hodBusy={hodBusy}
-            hodSlot={hodSlot}
-            onStartEdit={() => { setHodSlot(null); setEditingId(d.id); }}
-            onCancelEdit={() => setEditingId(null)}
-            onSubmitEdit={(input) => handleUpdate(d.id, input)}
-            onRequestDelete={() => setPendingDelete(d)}
-            onOpenAddHod={() => { setEditingId(null); setHodSlot({ kind: 'add', departmentId: d.id }); }}
-            onOpenEditHod={(hod) => { setEditingId(null); setHodSlot({ kind: 'edit', departmentId: d.id, hod }); }}
-            onCancelHod={() => setHodSlot(null)}
-            onSubmitHod={handleHodSubmit}
-            onRequestRemoveHod={(hod) => setPendingRemoveHod(hod)}
-          />
-        ))}
-
-        {departments.length === 0 && (
-          <div className="empty-state card">
-            <div className="mx-auto h-12 w-12 rounded-2xl bg-gradient-to-br from-brand-500/15 to-accent-500/10 border border-brand-500/20 flex items-center justify-center mb-3">
-              <svg className="w-6 h-6 text-brand-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.6}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 21h16.5M4.5 3h15M5.25 3v18m13.5-18v18M9 6.75h1.5m-1.5 3h1.5m-1.5 3h1.5m3-6H15m-1.5 3H15m-1.5 3H15" />
-              </svg>
-            </div>
-            <p className="text-sm font-medium text-navy-500">No departments yet</p>
-            <p className="text-xs text-navy-300 mt-1">Create your first one using the form above.</p>
+      {view && (
+        <div className="flex flex-wrap items-baseline justify-between gap-2">
+          <div>
+            <h2 className="section-title mb-0.5">{ADMIN_OVERVIEW_TITLES[view]}</h2>
+            <p className="text-xs text-navy-400">{ADMIN_OVERVIEW_HINTS[view]}</p>
           </div>
-        )}
-      </div>
+          <button
+            type="button"
+            onClick={() => setView(null)}
+            className="text-xs font-semibold px-3 py-1.5 rounded-xl border border-surface-300 text-navy-500 hover:border-brand-400 hover:text-brand-600 transition-all"
+          >
+            Hide
+          </button>
+        </div>
+      )}
 
-      {pendingDelete && (
-        <ConfirmDialog
-          title="Delete Department?"
-          message={`Are you sure you want to delete "${pendingDelete.name}"? It will be removed permanently. Its members are unlinked and any head of department is demoted to staff. Linked visits or gate passes will block the deletion.`}
-          confirmLabel="Delete"
-          busyLabel="Deleting…"
-          busy={deleteBusy}
-          onConfirm={handleDelete}
-          onCancel={() => setPendingDelete(null)}
+      {view === null && <AdminOverviewPrompt id={PANEL_ID} />}
+
+      {view === 'departments' && (
+        <DepartmentList
+          id={PANEL_ID}
+          departments={departments}
+          hodsByDept={hodsByDept}
+          createKey={createKey}
+          createBusy={createBusy}
+          editingId={editingId}
+          editBusy={editBusy}
+          hodBusy={hodBusy}
+          hodSlot={hodSlot}
+          onCreate={handleCreate}
+          onStartEdit={(id) => { setHodSlot(null); setEditingId(id); }}
+          onCancelEdit={() => setEditingId(null)}
+          onSubmitEdit={handleUpdate}
+          onRequestDelete={(d) => setPendingDelete(d)}
+          onOpenAddHod={(departmentId) => { setEditingId(null); setHodSlot({ kind: 'add', departmentId }); }}
+          onOpenEditHod={(departmentId, hod) => { setEditingId(null); setHodSlot({ kind: 'edit', departmentId, hod }); }}
+          onCancelHod={() => setHodSlot(null)}
+          onSubmitHod={handleHodSubmit}
+          onRequestRemoveHod={(hod) => setPendingRemoveHod(hod)}
         />
       )}
 
-      {pendingAddHod && (
-        <ConfirmDialog
-          title="Add Head of Department?"
-          message={`Add "${pendingAddHod.input.fullName}" (${pendingAddHod.input.email}) as Head of ${departments.find((d) => d.id === pendingAddHod.departmentId)?.name ?? ''}? An invitation email will be sent so they can set their own password.`}
-          confirmLabel="Add HOD"
-          busyLabel="Adding…"
-          busy={hodBusy}
-          danger={false}
-          onConfirm={handleConfirmAddHod}
-          onCancel={() => setPendingAddHod(null)}
+      {view === 'hods' && (
+        <HodDirectory id={PANEL_ID} departments={departments} hodsByDept={hodsByDept} />
+      )}
+
+      {view === 'unassigned' && (
+        <UnassignedDepartments
+          id={PANEL_ID}
+          departments={unassignedDepartments}
+          onAssign={(d) => startAssignFromGap(d.id)}
         />
       )}
 
-      {pendingRemoveHod && (
-        <ConfirmDialog
-          title="Remove Head of Department?"
-          message={`Are you sure you want to remove ${pendingRemoveHod.full_name}? They will be demoted to staff and detached from this department. Their account is not deleted.`}
-          confirmLabel="Remove"
-          busyLabel="Removing…"
-          busy={removeBusy}
-          onConfirm={handleRemoveHod}
-          onCancel={() => setPendingRemoveHod(null)}
-        />
-      )}
+      <AdminConfirmDialogs
+        departments={departments}
+        pendingDelete={pendingDelete}
+        deleteBusy={deleteBusy}
+        onConfirmDelete={handleDelete}
+        onCancelDelete={() => setPendingDelete(null)}
+        pendingAddHod={pendingAddHod}
+        hodBusy={hodBusy}
+        onConfirmAddHod={handleConfirmAddHod}
+        onCancelAddHod={() => setPendingAddHod(null)}
+        pendingRemoveHod={pendingRemoveHod}
+        removeBusy={removeBusy}
+        onConfirmRemoveHod={handleRemoveHod}
+        onCancelRemoveHod={() => setPendingRemoveHod(null)}
+      />
     </div>
   );
 }

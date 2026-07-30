@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '../../supabaseClient';
 import type { Visit } from '../../types/index';
 import { attachHostNames } from '../../lib/hostNames';
@@ -30,7 +30,7 @@ export default function HODApprovals(): React.ReactElement {
   const [detailVisit, setDetailVisit] = useState<Visit | null>(null);
   const [userDeptId, setUserDeptId] = useState<string | null>(null);
   const [pendingCount, setPendingCount] = useState(0);
-  const [preApproveMsg, setPreApproveMsg] = useState('');
+  const navigate = useNavigate();
 
   const { acting, error: actionError, successMsg, reasons, onReasonChange, decide } = useVisitDecisions(userDeptId);
 
@@ -122,10 +122,10 @@ export default function HODApprovals(): React.ReactElement {
         </button>
       </div>
 
-      {(successMsg || preApproveMsg) && (
+      {successMsg && (
         <div className="alert-success">
           <svg className="w-4 h-4 text-success-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-          <span className="flex-1">{successMsg || preApproveMsg}</span>
+          <span className="flex-1">{successMsg}</span>
         </div>
       )}
       {(error || actionError) && (
@@ -156,10 +156,10 @@ export default function HODApprovals(): React.ReactElement {
       )}
       {tab === 'pre-approve' && (
         <div className="animate-fade-in">
-          <PreApproveForm onPreApproved={(name, refNumber) => {
-            setPreApproveMsg(`"${name}" pre-approved — ref ${refNumber}`);
-            setTimeout(() => setPreApproveMsg(''), 6000);
-          }} />
+          {/* The form already shows one green success popup. Dismissing it hands
+              off straight to the pre-approved list rather than raising a second
+              banner here, so there is exactly one success confirmation. */}
+          <PreApproveForm onPreApproved={() => navigate('/overview?filter=approved')} />
         </div>
       )}
     </div>

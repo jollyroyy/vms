@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { supabase } from '../../supabaseClient';
 import type { Visit, Notification, VisitStatus } from '../../types/index';
 import { attachHostNames } from '../../lib/hostNames';
@@ -18,6 +19,16 @@ interface Stats {
 
 type FilterKey = 'inside' | 'approved' | 'pending' | 'rejected';
 
+// Direct lookup, so an arbitrary ?filter= value can never select a list.
+// `approved` is the pre-approved list — it is where the HOD lands straight after
+// pre-approving a visitor (see PreApproveForm -> Approvals -> /overview?filter=approved).
+const FILTER_KEYS: Record<string, FilterKey> = {
+  inside: 'inside',
+  approved: 'approved',
+  pending: 'pending',
+  rejected: 'rejected',
+};
+
 export default function HODOverview(): React.ReactElement {
   const [loading, setLoading] = useState(true);
   const [deptId, setDeptId] = useState<string | null>(null);
@@ -27,7 +38,12 @@ export default function HODOverview(): React.ReactElement {
   const [upcoming, setUpcoming] = useState<Visit[]>([]);
   const [onSite, setOnSite] = useState<Visit[]>([]);
   const [notifs, setNotifs] = useState<Notification[]>([]);
-  const [activeFilter, setActiveFilter] = useState<FilterKey | ''>('');
+  const [searchParams, setSearchParams] = useSearchParams();
+  // Deep-linkable: arriving at /overview?filter=approved opens the pre-approved
+  // list directly, which is how the pre-approval flow hands off to this page.
+  const [activeFilter, setActiveFilter] = useState<FilterKey | ''>(
+    () => FILTER_KEYS[searchParams.get('filter') ?? ''] ?? '',
+  );
   const [filteredVisits, setFilteredVisits] = useState<Visit[]>([]);
   const [filterLoading, setFilterLoading] = useState(false);
 
@@ -83,9 +99,14 @@ export default function HODOverview(): React.ReactElement {
         .slice(0, 15);
       setUpcoming(rows.map(v => ({ ...v, photo_url: v.photo_data ?? undefined })));
 
+      // Only today's arrivals. A visit that was checked in on an earlier day and
+      // never checked out still carries status 'checked_in', so without the date
+      // bound "On-site now" accumulates stale visitors from previous days.
+      // Same UTC day boundary the stats and notifications queries above use.
       const { data: onSiteData } = await supabase
         .from('visits').select('*, visitor:visitors(*), department:departments(id, name, code, created_at)')
         .eq('department_id', deptId).in('status', ['checked_in'])
+        .gte('checked_in_at', `${today}T00:00:00Z`)
         .order('checked_in_at', { ascending: false }).limit(20);
       let onSiteRows = ((onSiteData as unknown as Visit[]) ?? []);
       onSiteRows = await attachHostNames(onSiteRows);
@@ -138,12 +159,23 @@ export default function HODOverview(): React.ReactElement {
     return () => { void supabase.removeChannel(ch); };
   }, [deptId, userId, load, activeFilter, loadFiltered]);
 
+  // One fetch path for both a tile click and a ?filter= deep link, so a
+  // deep-linked list is never left empty waiting on a click that already happened.
+  useEffect(() => {
+    if (!deptId || !activeFilter) return;
+    void loadFiltered(activeFilter);
+  }, [deptId, activeFilter, loadFiltered]);
+
   const handleFilterSelect = useCallback((key: string) => {
-    if (!key) { setActiveFilter(''); return; }
-    const fk = key as FilterKey;
-    setActiveFilter(fk);
-    void loadFiltered(fk);
-  }, [loadFiltered]);
+    const next = FILTER_KEYS[key] ?? '';
+    setActiveFilter(next);
+    // Keep the URL honest, so a refresh or a shared link reopens the same list.
+    setSearchParams((prev) => {
+      const params = new URLSearchParams(prev);
+      if (next) params.set('filter', next); else params.delete('filter');
+      return params;
+    }, { replace: true });
+  }, [setSearchParams]);
 
   // Drop the row locally the moment the cancel succeeds so it leaves the
   // Approved list immediately, rather than waiting on the realtime round-trip.
@@ -197,7 +229,7 @@ export default function HODOverview(): React.ReactElement {
           mode={activeFilter as FilterKey}
           visits={filteredVisits}
           loading={filterLoading}
-          onClearFilter={() => setActiveFilter('')}
+          onClearFilter={() => handleFilterSelect('')}
           acting={acting}
           reasons={reasons}
           onReasonChange={onReasonChange}

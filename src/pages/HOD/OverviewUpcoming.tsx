@@ -7,6 +7,32 @@ const PURPOSE_LABELS: Record<string, string> = {
   delivery: 'Delivery', maintenance: 'Maintenance', audit: 'Audit', other: 'Other',
 };
 
+// The two HOD approval routes are named apart, rather than both reading
+// "Pre-Approved": 'approved' is a pre-approval raised before the visit,
+// 'walkin_approved' is an on-the-spot approval of someone already at the gate.
+// Direct lookup keyed by status — never a ternary chain over the enum.
+type UpcomingBadge = { label: string; cls: string; awaitingGate: boolean };
+
+const PENDING_BADGE: UpcomingBadge = {
+  label: 'Pending',
+  cls: 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/25',
+  awaitingGate: false,
+};
+
+const UPCOMING_BADGES: Record<string, UpcomingBadge> = {
+  pending_approval: PENDING_BADGE,
+  approved: {
+    label: 'Pre-approved',
+    cls: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/25',
+    awaitingGate: true,
+  },
+  walkin_approved: {
+    label: 'Walk-in approved',
+    cls: 'bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-500/10 dark:text-indigo-400 dark:border-indigo-500/25',
+    awaitingGate: true,
+  },
+};
+
 type Props = {
   loading: boolean;
   upcoming: Visit[];
@@ -52,7 +78,7 @@ export default function OverviewUpcoming({ loading, upcoming }: Props): React.Re
             const when = v.scheduled_for ?? v.created_at;
             const timeStr = fmtTime24(when);
             const dateStr = fmtDate(when).slice(0, 5);
-            const isApproved = v.status === 'approved' || v.status === 'walkin_approved';
+            const badge = UPCOMING_BADGES[v.status] ?? PENDING_BADGE;
             return (
               <div key={v.id} className="flex items-stretch hover:bg-surface-50/80 dark:hover:bg-white/[0.02] transition-colors">
                 <div className="shrink-0 w-[72px] flex flex-col items-center justify-center py-4 px-2">
@@ -72,7 +98,14 @@ export default function OverviewUpcoming({ loading, upcoming }: Props): React.Re
                       </p>
                     </div>
                     <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
-                      <span className={`text-[10px] font-bold px-2.5 py-1 rounded-md border whitespace-nowrap ${isApproved ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/25' : 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/25'}`}>{isApproved ? 'Pre-Approved' : 'Pending'}</span>
+                      <span className={`text-[10px] font-bold px-2.5 py-1 rounded-md border whitespace-nowrap ${badge.cls}`}>{badge.label}</span>
+                      {/* Both approval routes converge here: the HOD has decided,
+                          the gate has not checked the visitor in yet. */}
+                      {badge.awaitingGate && (
+                        <span className="text-[10px] font-semibold text-navy-500 dark:text-navy-400 whitespace-nowrap">
+                          Awaiting gate check
+                        </span>
+                      )}
                       <Link to="/approvals" className="text-[11px] font-semibold text-navy-600 dark:text-navy-300 bg-surface-100 dark:bg-white/[0.06] hover:bg-surface-200 dark:hover:bg-white/[0.10] border border-surface-200 dark:border-white/[0.08] px-3 py-1 rounded-lg transition-colors whitespace-nowrap">
                         Open details
                       </Link>
