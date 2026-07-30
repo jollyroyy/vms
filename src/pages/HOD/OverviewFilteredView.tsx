@@ -194,7 +194,7 @@ function VisitorCard({ visit: v, index: idx, onClick }: { visit: Visit; index: n
           {v.status === 'approved' && (
             <p className="text-[11px] text-success-600 dark:text-success-400 font-semibold truncate flex items-center gap-1">
               <span className="h-1.5 w-1.5 rounded-full bg-success-500 shrink-0" />
-              Awaiting Arrival{v.scheduled_for && ` · ETA ${formatTime(v.scheduled_for)}`}
+              Awaiting Gate Approval{v.scheduled_for && ` · ETA ${formatTime(v.scheduled_for)}`}
             </p>
           )}
           {v.status === 'pending_approval' && (
