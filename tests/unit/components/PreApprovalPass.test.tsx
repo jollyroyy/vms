@@ -88,11 +88,11 @@ describe('M-QR-PASS: PreApprovalPass', () => {
     const button = await screen.findByRole('button', { name: /download pdf/i });
     await waitFor(() => expect(button).not.toBeDisabled());
     fireEvent.click(button);
-    expect(mockDownloadQrPassPdf).toHaveBeenCalledWith(
+    await waitFor(() => expect(mockDownloadQrPassPdf).toHaveBeenCalledWith(
       baseVisit,
       expect.stringContaining('data:image/png'),
       null,
-    );
+    ));
   });
 
   it('hands the visitor photo to the PDF so the pass carries it next to the QR', async () => {
@@ -101,11 +101,26 @@ describe('M-QR-PASS: PreApprovalPass', () => {
     const button = await screen.findByRole('button', { name: /download pdf/i });
     await waitFor(() => expect(button).not.toBeDisabled());
     fireEvent.click(button);
-    expect(mockDownloadQrPassPdf).toHaveBeenCalledWith(
+    await waitFor(() => expect(mockDownloadQrPassPdf).toHaveBeenCalledWith(
       withPhoto,
       expect.stringContaining('data:image/png'),
       'data:image/webp;base64,PHOTO',
-    );
+    ));
+  });
+
+  it('tells the guard to scan while the QR is still live', async () => {
+    render(<PreApprovalPass visit={baseVisit} />);
+    expect(screen.getByText(/scan this at the guard console/i)).toBeInTheDocument();
+  });
+
+  // The pass stays downloadable after check-in so a lost badge can be
+  // reprinted — but the QR itself is spent, and the pass must say so rather
+  // than sending someone back to the gate with a code that will be rejected.
+  it('warns that the code is spent once the visitor is checked in', async () => {
+    render(<PreApprovalPass visit={{ ...baseVisit, status: 'checked_in' }} />);
+    expect(screen.getByText(/already checked in/i)).toBeInTheDocument();
+    expect(screen.queryByText(/scan this at the guard console/i)).not.toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: /download pdf/i })).toBeInTheDocument();
   });
 
   it('shows the visitor photo and their redacted ID alongside the QR', async () => {

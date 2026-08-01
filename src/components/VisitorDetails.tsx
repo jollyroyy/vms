@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { formatDateTime, formatDuration } from '../lib/formatDate';
 import { maskIdProof } from '../lib/pii';
 import { approvalTimestamp } from '../lib/visitApproval';
+import { canShowPass } from '../lib/passVisibility';
 import type { ReportVisit } from '../lib/reportRow';
 import VisitorDetailsActions from './VisitorDetailsActions';
 import PreApprovalPass from './PreApprovalPass';
@@ -157,10 +158,12 @@ export default function VisitorDetails({
             </div>
           ) : null}
 
-          {/* Only true pre-approvals get a reopenable pass — a walk-in is
-              already at the gate by the time the HOD decides, so there is no
-              one left to hand a portable QR to. */}
-          {v.status === 'approved' && (
+          {/* Any visit that has been granted entry and not yet ended keeps its
+              pass reachable — see canShowPass for which statuses and why. The
+              HOD who raised the pre-approval is the one who needs to hand it
+              over, so this must not vanish the moment the guard checks the
+              visitor in. */}
+          {canShowPass(v.status) && (
             <div className="mt-3.5">
               <button
                 type="button"

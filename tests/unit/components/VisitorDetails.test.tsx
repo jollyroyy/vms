@@ -95,13 +95,25 @@ describe('VisitorDetails — reopening the entry pass', () => {
     expect(screen.queryByAltText('Entry pass QR code')).not.toBeInTheDocument();
   });
 
-  it('does not offer a pass for a walk-in approval', () => {
+  it('offers a pass for a walk-in approval so the badge can still be printed', () => {
     render(<VisitorDetails visit={{ ...visit, status: 'walkin_approved' }} onClose={vi.fn()} />);
+    expect(screen.getByRole('button', { name: /view pass/i })).toBeInTheDocument();
+  });
+
+  // Previously the pass disappeared the moment the guard checked the visitor
+  // in, which is precisely when a lost or unprinted badge needs reissuing.
+  it('still offers the pass once the visitor has checked in', () => {
+    render(<VisitorDetails visit={{ ...visit, status: 'checked_in', checked_in_at: '2026-07-30T09:30:00Z' }} onClose={vi.fn()} />);
+    expect(screen.getByRole('button', { name: /view pass/i })).toBeInTheDocument();
+  });
+
+  it('does not offer a pass while the visit is still awaiting approval', () => {
+    render(<VisitorDetails visit={{ ...visit, status: 'pending_approval' }} onClose={vi.fn()} />);
     expect(screen.queryByRole('button', { name: /view pass/i })).not.toBeInTheDocument();
   });
 
-  it('does not offer a pass once the visitor has checked in', () => {
-    render(<VisitorDetails visit={{ ...visit, status: 'checked_in', checked_in_at: '2026-07-30T09:30:00Z' }} onClose={vi.fn()} />);
+  it('does not offer a pass once the visit has ended', () => {
+    render(<VisitorDetails visit={{ ...visit, status: 'checked_out', checked_out_at: '2026-07-30T17:00:00Z' }} onClose={vi.fn()} />);
     expect(screen.queryByRole('button', { name: /view pass/i })).not.toBeInTheDocument();
   });
 });

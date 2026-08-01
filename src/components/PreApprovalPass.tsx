@@ -8,7 +8,7 @@
 import React, { useEffect, useState } from 'react';
 import QRCode from 'qrcode';
 import type { Visit } from '../types/index';
-import { buildQrPayload } from '../lib/qrToken';
+import { buildQrPayload, evaluateQrVisit } from '../lib/qrToken';
 import { downloadQrPassPdf } from '../lib/qrPassPdf';
 import { downloadQrPassPng } from '../lib/qrPassImage';
 import PassIdentity from './PassIdentity';
@@ -17,6 +17,11 @@ type Props = { visit: Visit };
 
 export default function PreApprovalPass({ visit }: Props): React.ReactElement {
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
+  // The PDF has to load and re-encode the photo before it can be written, so
+  // the button would otherwise sit there looking inert on a slow photo fetch.
+  const [buildingPdf, setBuildingPdf] = useState(false);
+  const photo = visit.photo_url ?? visit.photo_data;
+  const gate = evaluateQrVisit(visit);
 
   useEffect(() => {
     setQrDataUrl(null);
@@ -39,7 +44,7 @@ export default function PreApprovalPass({ visit }: Props): React.ReactElement {
           scanning it is what pulls the same details out of the database. */}
       <div className="w-full max-w-xs">
         <PassIdentity
-          photoUrl={visit.photo_url ?? visit.photo_data}
+          photoUrl={photo}
           name={visit.visitor?.full_name ?? ''}
           company={visit.visitor?.company}
           idType={visit.visitor?.id_type}
@@ -52,7 +57,14 @@ export default function PreApprovalPass({ visit }: Props): React.ReactElement {
         <div className="w-32 h-32 rounded-lg bg-surface-50 animate-pulse" />
       )}
       <p className="text-[11px] text-navy-400 font-mono">{visit.ref_number}</p>
-      <p className="text-[10px] text-navy-300">Scan this at the guard console to check in</p>
+      {/* Once the visit is checked in the token no longer opens the gate, but
+          the pass is still the badge being worn — so it stays downloadable and
+          says plainly that the code itself is spent. */}
+      {gate.ok ? (
+        <p className="text-[10px] text-navy-300">Scan this at the guard console to check in</p>
+      ) : (
+        <p className="text-[10px] text-warning-600 text-center max-w-xs">{gate.reason}</p>
+      )}
       <div className="flex gap-2 flex-wrap justify-center">
         <button
           type="button"
@@ -64,11 +76,19 @@ export default function PreApprovalPass({ visit }: Props): React.ReactElement {
         </button>
         <button
           type="button"
-          onClick={() => qrDataUrl && downloadQrPassPdf(visit, qrDataUrl, visit.photo_url ?? visit.photo_data)}
-          disabled={!qrDataUrl}
+          onClick={async () => {
+            if (!qrDataUrl || buildingPdf) return;
+            setBuildingPdf(true);
+            try {
+              await downloadQrPassPdf(visit, qrDataUrl, photo);
+            } finally {
+              setBuildingPdf(false);
+            }
+          }}
+          disabled={!qrDataUrl || buildingPdf}
           className="btn-secondary text-xs px-4 py-2 disabled:opacity-60"
         >
-          Download PDF
+          {buildingPdf ? 'Preparing…' : 'Download PDF'}
         </button>
       </div>
       <p className="text-[10px] text-navy-300 text-center">

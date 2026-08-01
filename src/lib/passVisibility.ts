@@ -1,0 +1,35 @@
+// Which visits still have an entry pass worth showing.
+//
+// Previously the pass was gated on `status === 'approved'` alone, so the whole
+// block — View Pass button and both download actions — vanished the moment a
+// guard checked the visitor in. That is exactly when someone is most likely to
+// need it again: a badge that was lost, smudged or never printed.
+//
+// A direct lookup rather than an includes() chain, so adding a VisitStatus is
+// a compile error here until someone decides what it means for the pass.
+import type { VisitStatus } from '../types/index';
+
+const PASS_AVAILABLE: Record<VisitStatus, boolean> = {
+  // Nothing has been granted yet — there is no pass to hand over.
+  pending_approval: false,
+  approved: true,
+  // A walk-in is already at the gate when the HOD decides, so the QR is of
+  // little use — but the printed badge still is, and reprinting it is the
+  // whole reason this stays visible.
+  walkin_approved: true,
+  // Inside the building: the QR will no longer scan (evaluateQrVisit rejects
+  // it), but the pass is still the badge they are wearing. PreApprovalPass
+  // says so rather than pretending the code is live.
+  checked_in: true,
+  // The visit is over. Reissuing a pass for it would be issuing entry to a
+  // visit that has already ended.
+  checked_out: false,
+  rejected: false,
+  cancelled: false,
+  no_show: false,
+};
+
+/** True when this visit should still offer its entry pass. */
+export function canShowPass(status: VisitStatus): boolean {
+  return PASS_AVAILABLE[status];
+}
