@@ -1,11 +1,18 @@
 // useQrScanner — thin lifecycle wrapper around the `qr-scanner` package for the
 // guard console. Loads the package lazily (worker/WASM payload stays out of the
-// initial bundle) and never throws: camera failures of any kind collapse to
-// `'unavailable'` so the guard always has a manual-search fallback.
+// initial bundle) and never throws, so the guard always has a manual-search
+// fallback.
+//
+// 'unavailable' and 'error' are deliberately separate. This hook used to
+// collapse every failure into 'unavailable' ("Camera unavailable"), which is
+// how a CSP that blocked qr-scanner's blob: worker went unnoticed on the camera
+// path for as long as it did — a broken decoder is indistinguishable from a
+// laptop with no webcam. 'unavailable' now means only "there is no camera";
+// anything else is 'error' and gets logged.
 import { useEffect, useRef, useState } from 'react';
 import type QrScannerType from 'qr-scanner';
 
-export type QrScannerState = 'starting' | 'scanning' | 'unavailable';
+export type QrScannerState = 'starting' | 'scanning' | 'unavailable' | 'error';
 
 type Options = {
   videoRef: React.RefObject<HTMLVideoElement | null>;
@@ -74,13 +81,19 @@ export function useQrScanner(opts: Options): { state: QrScannerState } {
             return;
           }
           if (mountedRef.current) setState('scanning');
-        } catch {
+        } catch (err) {
+          // A camera exists but the stream would not start — permission denied,
+          // device busy, or the decode engine failed to come up. Not the same
+          // as having no camera, so do not say so.
+          console.error('[useQrScanner] scanner failed to start:', err);
           destroy(scanner);
           scannerRef.current = null;
-          if (mountedRef.current) setState('unavailable');
+          if (mountedRef.current) setState('error');
         }
-      } catch {
-        if (mountedRef.current) setState('unavailable');
+      } catch (err) {
+        // Reached when the qr-scanner module itself fails to load.
+        console.error('[useQrScanner] QR engine unavailable:', err);
+        if (mountedRef.current) setState('error');
       }
     })();
 
@@ -102,8 +115,9 @@ export function useQrScanner(opts: Options): { state: QrScannerState } {
     if (paused) {
       scanner.pause();
     } else {
-      scanner.start().catch(() => {
-        if (mountedRef.current) setState('unavailable');
+      scanner.start().catch((err) => {
+        console.error('[useQrScanner] scanner failed to resume:', err);
+        if (mountedRef.current) setState('error');
       });
     }
   }, [paused]);

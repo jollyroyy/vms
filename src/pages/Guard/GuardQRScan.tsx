@@ -112,9 +112,11 @@ export default function GuardQRScan({ onResolved, onCancel }: Props): React.Reac
           </p>
         </div>
 
-        {state === 'unavailable' ? (
+        {state === 'unavailable' || state === 'error' ? (
           <p className="text-sm font-semibold text-navy-600">
-            Camera unavailable — search for the visitor instead.
+            {state === 'error'
+              ? 'The QR scanner failed to start on this device. Upload an image of the pass, or search for the visitor instead.'
+              : 'Camera unavailable — search for the visitor instead.'}
           </p>
         ) : (
           <div className="relative w-full max-w-xs mx-auto">
