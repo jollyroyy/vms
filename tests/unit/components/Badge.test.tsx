@@ -72,13 +72,13 @@ describe('M11-BADGE: Badge component', () => {
   it('handles null visitor gracefully', () => {
     const noVisitor = { ...baseVisit, visitor: undefined };
     render(<Badge visit={noVisitor as any} />);
-    expect(screen.getByText('—')).toBeInTheDocument();
+    expect(screen.getAllByText('—').length).toBeGreaterThan(0);
   });
 
   it('handles null department gracefully', () => {
     const noDept = { ...baseVisit, department: undefined };
     render(<Badge visit={noDept as any} />);
-    expect(screen.getByText('—')).toBeInTheDocument();
+    expect(screen.getAllByText('—').length).toBeGreaterThan(0);
   });
 
   // NEW TESTS - Purpose display
@@ -90,6 +90,26 @@ describe('M11-BADGE: Badge component', () => {
   it('renders vendor purpose correctly', () => {
     render(<Badge visit={{ ...baseVisit, purpose: 'vendor' }} />);
     expect(screen.getByText('Vendor')).toBeInTheDocument();
+  });
+
+  // ID Proof redaction tests
+  it('renders ID Proof label and redacted Aadhaar ID', () => {
+    const visitWithId = { ...baseVisit, visitor: { ...baseVisit.visitor, id_type: 'Aadhaar', id_last4: '9646' } };
+    render(<Badge visit={visitWithId} />);
+    expect(screen.getByText('ID Proof')).toBeInTheDocument();
+    expect(screen.getByText('Aadhaar ••••46')).toBeInTheDocument();
+  });
+
+  it('does not expose the full ID number when displaying redacted ID', () => {
+    const visitWithId = { ...baseVisit, visitor: { ...baseVisit.visitor, id_type: 'Aadhaar', id_last4: '9646' } };
+    render(<Badge visit={visitWithId} />);
+    expect(screen.queryByText(/9646/)).not.toBeInTheDocument();
+  });
+
+  it('renders ID Proof label with em-dash when visitor has no ID on record', () => {
+    render(<Badge visit={baseVisit} />);
+    expect(screen.getByText('ID Proof')).toBeInTheDocument();
+    expect(screen.getByText('—')).toBeInTheDocument();
   });
 
 });

@@ -19,6 +19,11 @@ vi.mock('../../../src/supabaseClient', () => {
       order: vi.fn(() => Promise.resolve({ data: mockVisitData.current, error: null })),
       eq: vi.fn(() => ({
         order: vi.fn(() => Promise.resolve({ data: mockVisitData.current, error: null })),
+        in: vi.fn(() => ({
+          in: vi.fn(() => ({
+            order: vi.fn(() => Promise.resolve({ data: mockVisitData.current, error: null })),
+          })),
+        })),
         gte: vi.fn(() => ({
           lte: vi.fn(() => ({
             order: vi.fn(() => Promise.resolve({ data: mockVisitData.current, error: null })),

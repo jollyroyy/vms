@@ -5,6 +5,7 @@ import React, { useEffect, useState } from 'react';
 import QRCode from 'qrcode';
 import type { Visit } from '../types/index';
 import { buildQrPayload } from '../lib/qrToken';
+import { maskIdProof } from '../lib/pii';
 
 type Props = { visit: Visit };
 
@@ -76,6 +77,10 @@ export default function Badge({ visit }: Props): React.ReactElement {
           <div className="flex justify-between py-2 border-b border-surface-100">
             <span className="text-navy-400 font-medium">Purpose</span>
             <span className="font-semibold text-navy-700">{formatPurpose(visit.purpose)}</span>
+          </div>
+          <div className="flex justify-between py-2 border-b border-surface-100">
+            <span className="text-navy-400 font-medium">ID Proof</span>
+            <span className="font-semibold text-navy-700 font-mono">{maskIdProof(visitor?.id_type, visitor?.id_last4)}</span>
           </div>
           <div className="flex justify-between py-2 border-b border-surface-100">
             <span className="text-navy-400 font-medium">Date</span>
