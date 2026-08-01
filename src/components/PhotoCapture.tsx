@@ -1,8 +1,9 @@
 /**
  * PhotoCapture — FR-CAM-04/05/06/07/08/10
  */
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import { computeCenterCrop, PHOTO_CONSTRAINTS, stripExifViaCanvas } from '../lib/photo';
+import { useCameraStream } from '../lib/useCameraStream';
 
 type Props = { onCapture: (blob: Blob) => void };
 type State = 'idle' | 'streaming' | 'frozen' | 'denied' | 'error';
@@ -10,85 +11,17 @@ type State = 'idle' | 'streaming' | 'frozen' | 'denied' | 'error';
 export default function PhotoCapture({ onCapture }: Props): React.ReactElement {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const streamRef = useRef<MediaStream | null>(null);
-  const mountedRef = useRef(true);
-  const [state, setState] = useState<State>('idle');
   const [preview, setPreview] = useState<string | null>(null);
-  const [errMsg, setErrMsg] = useState('');
   const [fileBlob, setFileBlob] = useState<Blob | null>(null);
+  // 'frozen' is this component's own state, layered on top of the camera's.
+  // The camera doesn't know or care that we're showing a still for review.
+  const [frozen, setFrozen] = useState(false);
 
-  const stopStream = useCallback(() => {
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach((t) => t.stop());
-      streamRef.current = null;
-    }
-  }, []);
+  const { status, errorMessage: errMsg, start: startCamera, stop: stopStream } = useCameraStream(videoRef);
 
-  const startCamera = useCallback(async () => {
-    setState('idle'); setErrMsg('');
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 } },
-      });
-
-      // Bail if component unmounted while awaiting permission
-      if (!mountedRef.current) { stream.getTracks().forEach((t) => t.stop()); return; }
-
-      streamRef.current = stream;
-      const video = videoRef.current;
-      if (!video) { stream.getTracks().forEach((t) => t.stop()); return; }
-
-      video.srcObject = stream;
-
-      // Wait for loadedmetadata before calling play() to avoid interruption
-      await new Promise<void>((resolve, reject) => {
-        video.onloadedmetadata = () => resolve();
-        video.onerror = () => reject(new Error('Video element error'));
-        // Timeout fallback
-        setTimeout(() => resolve(), 3000);
-      });
-
-      // Guard: check video is still in DOM and component is still mounted
-      if (!mountedRef.current || !videoRef.current || !document.contains(video)) {
-        stream.getTracks().forEach((t) => t.stop());
-        return;
-      }
-
-      try {
-        await video.play();
-      } catch (playErr) {
-        // "play() interrupted" is non-fatal — the video may still play after re-render
-        const msg = playErr instanceof Error ? playErr.message : '';
-        if (msg.includes('interrupted') || msg.includes('removed from the document')) {
-          console.warn('[PhotoCapture] play() interrupted, retrying...');
-          // Small delay then retry once
-          await new Promise((r) => setTimeout(r, 100));
-          if (mountedRef.current && videoRef.current && document.contains(videoRef.current)) {
-            videoRef.current.srcObject = stream;
-            try { await videoRef.current.play(); } catch { /* give up silently */ }
-          }
-        } else {
-          throw playErr;
-        }
-      }
-
-      if (mountedRef.current) setState('streaming');
-    } catch (err) {
-      if (!mountedRef.current) return;
-      const msg = err instanceof Error ? err.message : String(err);
-      if (msg.includes('Permission') || msg.includes('NotAllowed')) setState('denied');
-      else { setErrMsg(msg); setState('error'); }
-    }
-  }, []);
-
-  useEffect(() => {
-    mountedRef.current = true;
-    startCamera();
-    return () => {
-      mountedRef.current = false;
-      stopStream();
-    };
-  }, [startCamera, stopStream]);
+  // Frozen wins: once a photo is held for review the camera's own status
+  // (which will read 'idle' after we stopped the stream) is not what to show.
+  const state: State = frozen ? 'frozen' : status;
 
   const capture = useCallback(() => {
     const video = videoRef.current; const canvas = canvasRef.current;
@@ -102,14 +35,14 @@ export default function PhotoCapture({ onCapture }: Props): React.ReactElement {
     ctx.drawImage(video, crop.x, crop.y, crop.width, crop.height, 0, 0, canvas.width, canvas.height);
     canvas.toBlob((blob) => {
       if (!blob) return;
-      setPreview(URL.createObjectURL(blob)); setFileBlob(blob); setState('frozen');
+      setPreview(URL.createObjectURL(blob)); setFileBlob(blob); setFrozen(true);
       stopStream();
     }, 'image/webp', 0.8);
   }, [stopStream]);
 
   const retake = useCallback(() => {
     if (preview) URL.revokeObjectURL(preview);
-    setPreview(null); setFileBlob(null);
+    setPreview(null); setFileBlob(null); setFrozen(false);
     startCamera();
   }, [preview, startCamera]);
 
@@ -123,14 +56,14 @@ export default function PhotoCapture({ onCapture }: Props): React.ReactElement {
       const strippedBlob = await stripExifViaCanvas(file);
       setPreview(URL.createObjectURL(strippedBlob));
       setFileBlob(strippedBlob);
-      setState('frozen');
+      setFrozen(true);
       stopStream();
     } catch {
       // Fallback: use raw blob if canvas fails (e.g., in test environments)
       const blob = new Blob([file], { type: file.type });
       setPreview(URL.createObjectURL(blob));
       setFileBlob(blob);
-      setState('frozen');
+      setFrozen(true);
       stopStream();
     }
   }, [stopStream]);

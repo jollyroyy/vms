@@ -57,7 +57,21 @@ describe('SEC-CSP: index.html Content-Security-Policy', () => {
   it('still refuses blob: for ordinary scripts', () => {
     // worker-src is the narrow fix. Widening script-src would have worked too,
     // and would have handed any injected script a blob: execution channel.
-    expect(directives['script-src']).toEqual(["'self'"]);
+    expect(directives['script-src']).not.toContain('blob:');
+  });
+
+  it('allows WebAssembly compilation, but nothing more', () => {
+    // The on-device OCR and face engines are WASM; without 'wasm-unsafe-eval'
+    // the browser refuses to compile them and every scan fails at load.
+    //
+    // The exact-match assertion is the point of this test. 'wasm-unsafe-eval'
+    // buys WebAssembly compilation only. 'unsafe-eval' would ALSO buy back
+    // eval() and new Function() for the whole app, which is the difference
+    // between "we run a model" and "an injected string can become code". The
+    // two are one word apart and easy to swap while debugging a load failure,
+    // so this test pins the safe one and fails loudly on the other.
+    expect(directives['script-src']).toEqual(["'self'", "'wasm-unsafe-eval'"]);
+    expect(directives['script-src']).not.toContain("'unsafe-eval'");
   });
 
   it('keeps object-src locked down', () => {

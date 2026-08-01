@@ -5,7 +5,7 @@
 // Fail-closed: anything other than the exact string 'true' is off, so a typo
 // in a .env file can never silently enable an unfinished feature in front of
 // a guard.
-export type FeatureFlag = 'qr' | 'ocr' | 'faceVerify' | 'aiRecommendation';
+export type FeatureFlag = 'qr' | 'ocr' | 'faceVerify' | 'aiRecommendation' | 'deviceReg';
 
 // Direct lookup map, not a fuzzy includes() chain — the compiler enforces
 // exhaustiveness whenever a new FeatureFlag is added.
@@ -26,6 +26,7 @@ const FLAG_ENV_VALUE: Record<FeatureFlag, () => unknown> = {
   ocr: () => import.meta.env.VITE_FEATURE_OCR,
   faceVerify: () => import.meta.env.VITE_FEATURE_FACE_VERIFY,
   aiRecommendation: () => import.meta.env.VITE_FEATURE_AI_RECOMMENDATION,
+  deviceReg: () => import.meta.env.VITE_FEATURE_DEVICE_REG,
 };
 
 /** Returns true only when the flag's env var is the exact string 'true' (case-insensitive, trimmed). Defaults to false. */
