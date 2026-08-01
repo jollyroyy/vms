@@ -2,7 +2,7 @@ import React from 'react';
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { render, screen, cleanup } from '@testing-library/react';
 import CheckInMatchList from '../../../src/pages/Guard/CheckInMatchList';
-import { formatDateTime } from '../../../src/lib/formatDate';
+import { formatDateTime, formatTime } from '../../../src/lib/formatDate';
 import type { MatchItem } from '../../../src/pages/Guard/CheckInPanel';
 
 afterEach(() => cleanup());
@@ -49,6 +49,7 @@ function match(overrides: Partial<MatchItem> = {}): MatchItem {
     company: '',
     approvalType: 'pre_approved',
     approvedAt: null,
+    scheduledFor: null,
     visitId: '1',
     ...overrides,
   };
@@ -125,5 +126,22 @@ describe('CheckInMatchList — exact approval date and time', () => {
       allMatches: [match({ id: 'rec:1', source: 'recurring', approvalType: 'recurring', approvedAt: null })],
     })} />);
     expect(screen.queryByText(/on \d/)).not.toBeInTheDocument();
+  });
+});
+
+describe('CheckInMatchList — expected arrival time', () => {
+  it('shows the scheduled arrival time when one was set', () => {
+    const scheduledFor = '2026-07-30T09:30:00Z';
+    render(<CheckInMatchList {...baseProps({
+      allMatches: [match({ scheduledFor })],
+    })} />);
+    expect(screen.getByText(formatTime(scheduledFor))).toBeInTheDocument();
+  });
+
+  it('falls back to "Anytime today" when no arrival time was scheduled', () => {
+    render(<CheckInMatchList {...baseProps({
+      allMatches: [match({ scheduledFor: null })],
+    })} />);
+    expect(screen.getByText('Anytime today')).toBeInTheDocument();
   });
 });

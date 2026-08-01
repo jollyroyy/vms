@@ -13,13 +13,13 @@ type Props = {
   visits: Visit[];
   checkedIn: Visit[];
   checkedOut: Visit[];
-  rejected: Visit[];
+  cancelledOrRejected: Visit[];
   noShows: Visit[];
   onCheckOut: (v: Visit) => void;
 };
 
 export default function GuardConsoleModeContent({
-  mode, today, onCheckInSuccess, loading, visits, checkedIn, checkedOut, rejected, noShows, onCheckOut,
+  mode, today, onCheckInSuccess, loading, visits, checkedIn, checkedOut, cancelledOrRejected, noShows, onCheckOut,
 }: Props): React.ReactElement | null {
   if (mode === 'checkin') {
     return <CheckInPanel today={today} onCheckInSuccess={onCheckInSuccess} />;
@@ -88,15 +88,15 @@ export default function GuardConsoleModeContent({
       <div className="space-y-2">
         <p className="text-sm font-bold text-danger-600 flex items-center gap-1.5">
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
-          Rejected ({rejected.length})
+          Cancelled / Rejected ({cancelledOrRejected.length})
         </p>
-        {rejected.length === 0 ? (
+        {cancelledOrRejected.length === 0 ? (
           <div className="text-center py-12 bg-surface-50 rounded-2xl">
-            <p className="text-navy-400 text-sm font-medium">No rejected visitors.</p>
+            <p className="text-navy-400 text-sm font-medium">No cancelled or rejected visitors.</p>
           </div>
         ) : (
           <div className="bg-white rounded-2xl divide-y divide-surface-100 border border-surface-200">
-            {rejected.map((v) => <GuardConsoleVisitorRow key={v.id} visit={v} />)}
+            {cancelledOrRejected.map((v) => <GuardConsoleVisitorRow key={v.id} visit={v} showStatus />)}
           </div>
         )}
       </div>

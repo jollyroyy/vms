@@ -84,7 +84,7 @@ export default function GuardConsole(): React.ReactElement {
 
   const checkedIn = useMemo(() => visits.filter((v) => v.status === 'checked_in'), [visits]);
   const checkedOut = useMemo(() => visits.filter((v) => v.status === 'checked_out'), [visits]);
-  const rejected = useMemo(() => visits.filter((v) => v.status === 'rejected'), [visits]);
+  const cancelledOrRejected = useMemo(() => visits.filter((v) => v.status === 'rejected' || v.status === 'cancelled'), [visits]);
   const noShows = useMemo(() => visits.filter((v) => v.status === 'no_show'), [visits]);
 
   return (
@@ -127,7 +127,7 @@ export default function GuardConsole(): React.ReactElement {
         visits={visits}
         checkedIn={checkedIn}
         checkedOut={checkedOut}
-        rejected={rejected}
+        cancelledOrRejected={cancelledOrRejected}
         noShows={noShows}
         onCheckOut={logExit}
       />

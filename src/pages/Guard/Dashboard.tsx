@@ -1,6 +1,8 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../../supabaseClient';
+import { useExpectedToday } from '../../lib/useExpectedToday';
+import GuardExpectedToday from './GuardExpectedToday';
 
 interface Stats {
   inside: number;
@@ -22,6 +24,7 @@ export default function GuardDashboard(): React.ReactElement {
   }, []);
 
   const today = new Date().toISOString().slice(0, 10);
+  const { visits: expectedToday, loading: expectedLoading } = useExpectedToday(today);
 
   const load = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
@@ -33,7 +36,7 @@ export default function GuardDashboard(): React.ReactElement {
       checkedOut: v.filter(r => r.status === 'checked_out').length,
       noShow: v.filter(r => r.status === 'no_show').length,
       totalToday: v.length,
-      rejected: v.filter(r => r.status === 'rejected').length,
+      rejected: v.filter(r => r.status === 'rejected' || r.status === 'cancelled').length,
     });
     if (!silent) setLoading(false);
   }, [today]);
@@ -53,7 +56,7 @@ export default function GuardDashboard(): React.ReactElement {
     { label: 'Checked Out', value: stats.checkedOut, color: 'text-navy-600', bg: 'bg-surface-100', ring: 'ring-navy-500/10', icon: 'M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9', link: '/visitors?tab=checked-out' },
     { label: 'No Show', value: stats.noShow, color: 'text-amber-600', bg: 'bg-amber-50', ring: 'ring-amber-500/10', icon: 'M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z', link: '/visitors?tab=no-show' },
     { label: 'Total Visits Today', value: stats.totalToday, color: 'text-brand-700', bg: 'bg-brand-50/60', ring: 'ring-brand-500/10', icon: 'M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z', link: '/visitors?tab=all' },
-    { label: 'Rejected', value: stats.rejected, color: 'text-danger-600', bg: 'bg-danger-50/60', ring: 'ring-danger-500/10', icon: 'M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636', link: '/visitors?tab=rejected' },
+    { label: 'Cancelled / Rejected', value: stats.rejected, color: 'text-danger-600', bg: 'bg-danger-50/60', ring: 'ring-danger-500/10', icon: 'M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636', link: '/visitors?tab=rejected' },
   ];
 
   return (
@@ -123,6 +126,9 @@ export default function GuardDashboard(): React.ReactElement {
           </div>
         </Link>
       </div>
+
+      {/* Expected today, with arrival times */}
+      <GuardExpectedToday loading={expectedLoading} visits={expectedToday} />
     </div>
   );
 }

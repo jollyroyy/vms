@@ -1,12 +1,15 @@
 import React from 'react';
 import type { Visit } from '../../types/index';
+import { STATUS_STYLES } from '../../lib/statusStyles';
 
 type Props = {
   visit: Visit;
   action?: { label: string; onClick: () => void };
+  showStatus?: boolean;
 };
 
-export default function GuardConsoleVisitorRow({ visit: v, action }: Props): React.ReactElement {
+export default function GuardConsoleVisitorRow({ visit: v, action, showStatus }: Props): React.ReactElement {
+  const style = STATUS_STYLES[v.status];
   return (
     <div key={v.id} className="flex items-center gap-3 px-5 py-3.5 hover:bg-surface-50 transition-colors">
       {v.photo_url ? (
@@ -22,6 +25,9 @@ export default function GuardConsoleVisitorRow({ visit: v, action }: Props): Rea
         <p className="text-sm font-bold text-navy-900 truncate">{v.visitor?.full_name ?? '—'}</p>
         <p className="text-xs text-navy-400 truncate">{v.department?.name ?? ''}{v.purpose ? ` · ${v.purpose}` : ''}</p>
       </div>
+      {showStatus && (
+        <span className={`shrink-0 text-[10px] font-bold px-2 py-1 rounded-md ${style.bg} ${style.text}`}>{style.label}</span>
+      )}
       {action && (
         <button onClick={action.onClick}
           className="shrink-0 bg-brand-600 hover:bg-brand-700 text-white font-bold px-4 py-2 rounded-xl text-xs transition-all">

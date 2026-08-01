@@ -1,6 +1,6 @@
 import React from 'react';
 import { getInitials } from '../../components/DailyVisitorTypes';
-import { formatDateTime } from '../../lib/formatDate';
+import { formatDateTime, formatTime } from '../../lib/formatDate';
 import type { MatchItem } from './CheckInPanel';
 
 const APPROVAL_META: Record<MatchItem['approvalType'], { label: string; badge: string }> = {
@@ -33,6 +33,12 @@ export default function CheckInMatchCard({ match: m, disabled, isCheckedIn, expi
         <div className="flex items-center gap-2 flex-wrap">
           <p className="font-bold text-navy-900 truncate">{m.visitorName}</p>
           <span className={`status-badge ${approval.badge}`}>{approval.label}</span>
+          <span className="status-badge bg-navy-50 text-navy-600 border border-navy-500/15 dark:bg-white/[0.06] dark:text-navy-200">
+            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6l4 2m5-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            {m.scheduledFor ? formatTime(m.scheduledFor) : 'Anytime today'}
+          </span>
           {isCheckedIn && <span className="status-badge bg-brand-50 text-brand-700 border border-brand-500/20">Checked In</span>}
           {expired && !isCheckedIn && <span className="status-badge bg-danger-50 text-danger-700 border border-danger-500/20">Expired</span>}
         </div>
