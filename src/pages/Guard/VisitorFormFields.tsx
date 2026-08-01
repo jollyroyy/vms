@@ -36,6 +36,7 @@ type Props = {
   onIdTypeChange: (v: string) => void;
   idLast4: string;
   onIdLast4Change: (v: string) => void;
+  onScanId?: () => void;
   vehicle: string;
   onVehicleChange: (v: string) => void;
   carryingMaterial: boolean;
@@ -51,7 +52,7 @@ type Props = {
 export default function VisitorFormFields({
   phone, onPhoneChange, onPhoneBlur, fullName, onFullNameChange, company, onCompanyChange,
   purpose, onPurposeChange, deptId, onDeptChange, departments, hostId, onHostChange, hosts,
-  hostError, onRetryHosts, idType, onIdTypeChange, idLast4, onIdLast4Change, vehicle, onVehicleChange,
+  hostError, onRetryHosts, idType, onIdTypeChange, idLast4, onIdLast4Change, onScanId, vehicle, onVehicleChange,
   carryingMaterial, onCarryingMaterialChange, photoBlob, onPhotoCapture, onRetakePhoto, submitting,
   blacklistHit, activeVisitChecking,
 }: Props): React.ReactElement {
@@ -101,6 +102,15 @@ export default function VisitorFormFields({
           </select>
         </div>
         <div><label className="label">ID Last 4 Digits</label><input type="text" maxLength={4} value={idLast4} onChange={(e) => onIdLast4Change(e.target.value)} className="input" placeholder="XXXX" /></div>
+        {onScanId && (
+          <div className="sm:col-span-2">
+            <button type="button" onClick={onScanId}
+              className="w-full flex items-center justify-center gap-2 bg-surface-50 hover:bg-surface-100 border border-surface-200 rounded-xl px-4 py-2.5 text-sm font-semibold text-brand-700 transition-all">
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7zm13 5h.01M10 12a2.5 2.5 0 115 0 2.5 2.5 0 01-5 0z" /></svg>
+              Scan ID card
+            </button>
+          </div>
+        )}
         <div className="sm:col-span-2"><label className="label">Vehicle Number (optional)</label><input type="text" maxLength={20} value={vehicle} onChange={(e) => onVehicleChange(e.target.value)} className="input" placeholder="MH 12 AB 1234" /></div>
         <div className="sm:col-span-2">
           <label className="label flex items-center gap-2 cursor-pointer">

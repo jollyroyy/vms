@@ -10,6 +10,8 @@ import type { Profile, Visitor, VisitorPurpose } from '../../types/index';
 import VisitorFormAlerts from './VisitorFormAlerts';
 import VisitorFormPreApproved from './VisitorFormPreApproved';
 import VisitorFormFields from './VisitorFormFields';
+import IdScanOverlay, { type IdScanResult } from './IdScanOverlay';
+import { isFeatureEnabled } from '../../lib/featureFlags';
 
 type Props = { onRegistered: (visitorName: string) => void };
 
@@ -29,6 +31,7 @@ export default function VisitorForm({ onRegistered }: Props): React.ReactElement
   const [vehicle,     setVehicle]     = useState('');
   const [carryingMaterial, setCarryingMaterial] = useState(false);
   const [photoBlob,   setPhotoBlob]   = useState<Blob | null>(null);
+  const [scanOpen,    setScanOpen]    = useState(false);
 
   const [blacklistHit,  setBlacklistHit]  = useState<string | null>(null);
   const [recalledName,  setRecalledName]  = useState<string | null>(null);
@@ -124,6 +127,13 @@ export default function VisitorForm({ onRegistered }: Props): React.ReactElement
     return { photoPath: filePath, photoData: urlData?.signedUrl ?? base64 };
   }, []);
 
+  const applyScanResult = useCallback((r: IdScanResult) => {
+    if (r.idType) setIdType(r.idType);
+    if (r.idLast4) setIdLast4(r.idLast4);
+    if (r.name && !fullName.trim()) setFullName(r.name);
+    setScanOpen(false);
+  }, [fullName]);
+
   const checkInPreApproved = async () => {
     if (!preApprovedVisit) return;
     setCheckingInPreApproved(true);
@@ -183,6 +193,7 @@ export default function VisitorForm({ onRegistered }: Props): React.ReactElement
   };
 
   return (
+    <>
     <form onSubmit={handleSubmit} className="card p-6 sm:p-8 space-y-6 max-w-2xl animate-fade-in">
       <div>
         <h2 className="text-lg font-bold text-navy-950">Register New Visitor</h2>
@@ -232,6 +243,7 @@ export default function VisitorForm({ onRegistered }: Props): React.ReactElement
           onIdTypeChange={setIdType}
           idLast4={idLast4}
           onIdLast4Change={setIdLast4}
+          onScanId={isFeatureEnabled('ocr') ? () => setScanOpen(true) : undefined}
           vehicle={vehicle}
           onVehicleChange={setVehicle}
           carryingMaterial={carryingMaterial}
@@ -245,5 +257,12 @@ export default function VisitorForm({ onRegistered }: Props): React.ReactElement
         />
       )}
     </form>
+    {scanOpen && (
+      <IdScanOverlay
+        onScanned={applyScanResult}
+        onClose={() => setScanOpen(false)}
+      />
+    )}
+    </>
   );
 }
