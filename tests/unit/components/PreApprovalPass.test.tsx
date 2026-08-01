@@ -1,0 +1,96 @@
+import React from 'react';
+import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest';
+import { render, screen, cleanup, fireEvent, waitFor } from '@testing-library/react';
+import PreApprovalPass from '../../../src/components/PreApprovalPass';
+import type { Visit } from '../../../src/types/index';
+
+const mockDownloadQrPassPdf = vi.hoisted(() => vi.fn());
+vi.mock('../../../src/lib/qrPassPdf', () => ({ downloadQrPassPdf: mockDownloadQrPassPdf }));
+
+const mockDownloadQrPassPng = vi.hoisted(() => vi.fn());
+vi.mock('../../../src/lib/qrPassImage', () => ({ downloadQrPassPng: mockDownloadQrPassPng }));
+
+afterEach(cleanup);
+
+const baseVisit: Visit = {
+  id: 'v1',
+  ref_number: 'VIS-20260801-0001',
+  visitor_id: 'vis1',
+  department_id: 'dept1',
+  host_id: 'h1',
+  purpose: 'meeting',
+  photo_path: null,
+  photo_data: null,
+  status: 'approved',
+  checked_in_at: null,
+  checked_out_at: null,
+  exit_verified: null,
+  rejection_reason: null,
+  carrying_material: false,
+  scheduled_for: null,
+  qr_token: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
+  qr_expires_at: '2026-08-02T10:00:00Z',
+  created_at: '2026-08-01T09:00:00Z',
+};
+
+describe('M-QR-PASS: PreApprovalPass', () => {
+  beforeEach(() => {
+    mockDownloadQrPassPdf.mockReset();
+    mockDownloadQrPassPng.mockReset();
+  });
+
+  it('renders the ref number', () => {
+    render(<PreApprovalPass visit={baseVisit} />);
+    expect(screen.getByText(/VIS-20260801-0001/)).toBeInTheDocument();
+  });
+
+  it('renders a QR code image once generated', async () => {
+    render(<PreApprovalPass visit={baseVisit} />);
+    const img = await screen.findByAltText('Entry pass QR code');
+    expect(img).toHaveAttribute('src', expect.stringContaining('data:image/png'));
+  });
+
+  it('shows a loading placeholder before the QR resolves', () => {
+    render(<PreApprovalPass visit={baseVisit} />);
+    expect(screen.queryByAltText('Entry pass QR code')).not.toBeInTheDocument();
+  });
+
+  it('regenerates the QR when the token changes', async () => {
+    const { rerender } = render(<PreApprovalPass visit={baseVisit} />);
+    const firstImg = await screen.findByAltText('Entry pass QR code');
+    const firstSrc = firstImg.getAttribute('src');
+
+    rerender(<PreApprovalPass visit={{ ...baseVisit, qr_token: 'different-token-0123456789' }} />);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    const secondImg = await screen.findByAltText('Entry pass QR code');
+    expect(secondImg.getAttribute('src')).not.toBe(firstSrc);
+  });
+
+  it('disables both download buttons until the QR has resolved', () => {
+    render(<PreApprovalPass visit={baseVisit} />);
+    expect(screen.getByRole('button', { name: /download pdf/i })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /download image/i })).toBeDisabled();
+  });
+
+  it('downloads a PNG of the QR — the format the guard console can decode', async () => {
+    render(<PreApprovalPass visit={baseVisit} />);
+    const button = await screen.findByRole('button', { name: /download image/i });
+    await waitFor(() => expect(button).not.toBeDisabled());
+    fireEvent.click(button);
+    expect(mockDownloadQrPassPng).toHaveBeenCalledWith(
+      baseVisit,
+      expect.stringContaining('data:image/png'),
+    );
+  });
+
+  it('downloads a PDF of the pass once the QR is ready', async () => {
+    render(<PreApprovalPass visit={baseVisit} />);
+    const button = await screen.findByRole('button', { name: /download pdf/i });
+    await waitFor(() => expect(button).not.toBeDisabled());
+    fireEvent.click(button);
+    expect(mockDownloadQrPassPdf).toHaveBeenCalledWith(
+      baseVisit,
+      expect.stringContaining('data:image/png'),
+    );
+  });
+});

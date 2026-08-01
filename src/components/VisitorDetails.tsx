@@ -1,7 +1,8 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import type { Visit } from '../types/index';
 import { formatDateTime, formatDuration } from '../lib/formatDate';
 import VisitorDetailsActions from './VisitorDetailsActions';
+import PreApprovalPass from './PreApprovalPass';
 
 interface Props {
   visit: Visit;
@@ -43,6 +44,7 @@ export default function VisitorDetails({
 }: Props) {
   const dur = v.checked_in_at ? formatDuration(v.checked_in_at) : null;
   const s = STATUS_COLORS[v.status] ?? { bg: 'bg-surface-100', text: 'text-navy-500', dot: 'bg-navy-300' };
+  const [showPass, setShowPass] = useState(false);
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
@@ -139,6 +141,23 @@ export default function VisitorDetails({
             <div className="mt-3.5 flex items-center gap-2 text-warning-700 bg-warning-50 rounded-lg px-3 py-2">
               <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z" /></svg>
               <span className="text-xs font-semibold">Carrying Material</span>
+            </div>
+          )}
+
+          {/* Only true pre-approvals get a reopenable pass — a walk-in is
+              already at the gate by the time the HOD decides, so there is no
+              one left to hand a portable QR to. */}
+          {v.status === 'approved' && (
+            <div className="mt-3.5">
+              <button
+                type="button"
+                onClick={() => setShowPass((prev) => !prev)}
+                className="w-full text-xs font-bold text-brand-600 hover:text-brand-700 flex items-center justify-center gap-1.5 py-2 rounded-lg border border-brand-200 bg-brand-50/60 hover:bg-brand-50 transition-all"
+              >
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 4.5h4.5v4.5h-4.5v-4.5zM15.75 4.5h4.5v4.5h-4.5v-4.5zM3.75 15.75h4.5v4.5h-4.5v-4.5zM15.75 15.75h1.5v1.5h-1.5v-1.5zM19.5 15.75h.75v.75h-.75v-.75zM15.75 19.5h.75v.75h-.75v-.75zM18.75 18.75h1.5v1.5h-1.5v-1.5z" /></svg>
+                {showPass ? 'Hide Pass' : 'View Pass'}
+              </button>
+              {showPass && <PreApprovalPass visit={v} />}
             </div>
           )}
         </div>

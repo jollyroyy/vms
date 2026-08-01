@@ -4,9 +4,10 @@ type Props = {
   title: string;
   message: string;
   onClose: () => void;
+  children?: React.ReactNode;
 };
 
-export default function SuccessPopup({ title, message, onClose }: Props): React.ReactElement {
+export default function SuccessPopup({ title, message, onClose, children }: Props): React.ReactElement {
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-content max-w-sm p-0 relative overflow-hidden" onClick={(e) => e.stopPropagation()}>
@@ -18,6 +19,7 @@ export default function SuccessPopup({ title, message, onClose }: Props): React.
           </div>
           <h3 className="text-lg font-bold text-navy-900 font-display">{title}</h3>
           <p className="text-sm text-navy-500 mt-1.5 leading-relaxed">{message}</p>
+          {children}
         </div>
         <div className="px-8 pb-6 pt-4 flex justify-center">
           <button onClick={onClose}

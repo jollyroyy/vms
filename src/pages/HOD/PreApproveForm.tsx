@@ -3,9 +3,11 @@ import { supabase } from '../../supabaseClient';
 import { normalizePhone, isBlacklisted } from '../../lib/blacklist';
 import { validatePreApproval } from '../../lib/visitLifecycle';
 import { safeErrorMessage } from '../../lib/errors';
+import { attachHostNames } from '../../lib/hostNames';
 import { useDepartments } from '../../lib/useDepartments';
-import type { VisitorPurpose } from '../../types/index';
+import type { Visit, VisitorPurpose } from '../../types/index';
 import SuccessPopup from '../../components/SuccessPopup';
+import PreApprovalPass from '../../components/PreApprovalPass';
 
 const PURPOSES: { value: VisitorPurpose; label: string }[] = [
   { value: 'meeting',     label: 'Meeting' },
@@ -38,6 +40,7 @@ export default function PreApproveForm({ onPreApproved }: Props): React.ReactEle
   const [userDept,        setUserDept]        = useState<string>('');
   const [scheduledFor,    setScheduledFor]    = useState<string>('');
   const [successPopup,    setSuccessPopup]    = useState<{ title: string; message: string; refNumber: string } | null>(null);
+  const [passVisit,       setPassVisit]       = useState<Visit | null>(null);
   const [activeVisitCheck, setActiveVisitCheck] = useState<{ checking: boolean; message: string | null }>({ checking: false, message: null });
 
   useEffect(() => {
@@ -102,6 +105,20 @@ export default function PreApproveForm({ onPreApproved }: Props): React.ReactEle
         .rpc('pre_approve_visitor_v2', params);
       if (rpcErr) throw rpcErr;
       if (!result?.ref_number) throw new Error('Failed to create pre-approved visit.');
+      // The pass preview is a bonus for handoff/testing, not the point of
+      // pre-approval — a failed fetch here must never block or error out a
+      // pre-approval that has already succeeded.
+      try {
+        const { data: visitRow } = await supabase
+          .from('visits')
+          .select(`*, visitor:visitors(*), department:departments(id, name, code, created_at)`)
+          .eq('ref_number', result.ref_number)
+          .single();
+        if (visitRow) {
+          const [withHost] = await attachHostNames([visitRow as unknown as Visit]);
+          setPassVisit(withHost ?? (visitRow as unknown as Visit));
+        }
+      } catch { setPassVisit(null); }
       setSuccessPopup({ title: 'Visitor Pre-Approved', message: `${fullName} has been pre-approved — Ref: ${result.ref_number}`, refNumber: result.ref_number });
     } catch (err) { setError(safeErrorMessage(err, 'Pre-approval failed. Please try again.')); }
     finally { setSubmitting(false); }
@@ -109,6 +126,7 @@ export default function PreApproveForm({ onPreApproved }: Props): React.ReactEle
 
   const handlePopupClose = useCallback(() => {
     setSuccessPopup(null);
+    setPassVisit(null);
     if (successPopup) {
       onPreApproved(fullName, successPopup.refNumber);
     }
@@ -172,7 +190,11 @@ export default function PreApproveForm({ onPreApproved }: Props): React.ReactEle
         </div>
       </div>
 
-      {successPopup && <SuccessPopup title={successPopup.title} message={successPopup.message} onClose={handlePopupClose} />}
+      {successPopup && (
+        <SuccessPopup title={successPopup.title} message={successPopup.message} onClose={handlePopupClose}>
+          {passVisit && <PreApprovalPass visit={passVisit} />}
+        </SuccessPopup>
+      )}
 
       {error && (
         <div className="alert-error">

@@ -2,14 +2,16 @@ import React from 'react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, cleanup, waitFor, fireEvent, act } from '@testing-library/react';
 
-const { mockLookup, mockUseQrScanner, decodeRef } = vi.hoisted(() => ({
+const { mockLookup, mockUseQrScanner, mockDecodeQrImage, decodeRef } = vi.hoisted(() => ({
   mockLookup: vi.fn(),
   mockUseQrScanner: vi.fn(),
+  mockDecodeQrImage: vi.fn(),
   decodeRef: { current: null as null | ((raw: string) => void) },
 }));
 
 vi.mock('../../../src/lib/qrLookup', () => ({ lookupVisitByQr: mockLookup }));
 vi.mock('../../../src/lib/useQrScanner', () => ({ useQrScanner: mockUseQrScanner }));
+vi.mock('../../../src/lib/decodeQrImage', () => ({ decodeQrImage: mockDecodeQrImage }));
 
 import GuardQRScan from '../../../src/pages/Guard/GuardQRScan';
 
@@ -35,6 +37,7 @@ describe('S-QR-SCAN: GuardQRScan', () => {
   beforeEach(() => {
     mockLookup.mockReset();
     mockUseQrScanner.mockReset();
+    mockDecodeQrImage.mockReset();
     decodeRef.current = null;
     mockUseQrScanner.mockImplementation((opts: any) => {
       decodeRef.current = opts.onDecode;
@@ -131,6 +134,55 @@ describe('S-QR-SCAN: GuardQRScan', () => {
     scan();
     scan();
     await waitFor(() => expect(mockLookup).toHaveBeenCalledTimes(1));
+  });
+
+  it('offers an upload option for a photo of the QR code', () => {
+    render(<GuardQRScan onResolved={vi.fn()} onCancel={vi.fn()} />);
+    expect(screen.getByRole('button', { name: /upload qr image/i })).toBeInTheDocument();
+  });
+
+  it('resolves a visit decoded from an uploaded image', async () => {
+    mockDecodeQrImage.mockResolvedValue({ ok: true, payload: PAYLOAD });
+    mockLookup.mockResolvedValue({ status: 'found', visit, gate: { ok: true, reason: null } });
+    const onResolved = vi.fn();
+    const { container } = render(<GuardQRScan onResolved={onResolved} onCancel={vi.fn()} />);
+
+    const input = container.querySelector('input[type="file"]') as HTMLInputElement;
+    const file = new File(['x'], 'pass.png', { type: 'image/png' });
+    fireEvent.change(input, { target: { files: [file] } });
+
+    await waitFor(() => expect(mockDecodeQrImage).toHaveBeenCalledWith(file));
+    await waitFor(() => expect(onResolved).toHaveBeenCalledWith(expect.objectContaining({ id: 'v1' })));
+  });
+
+  it('reports an image with no readable QR code', async () => {
+    mockDecodeQrImage.mockResolvedValue({ ok: false, reason: 'no_code', detail: 'No QR code found' });
+    const { container } = render(<GuardQRScan onResolved={vi.fn()} onCancel={vi.fn()} />);
+
+    const input = container.querySelector('input[type="file"]') as HTMLInputElement;
+    const file = new File(['x'], 'blurry.png', { type: 'image/png' });
+    fireEvent.change(input, { target: { files: [file] } });
+
+    expect(await screen.findByText(/no qr code found in that image/i)).toBeInTheDocument();
+    expect(mockLookup).not.toHaveBeenCalled();
+  });
+
+  // CSP-blocked-worker case that shipped to production once: the decoder engine
+  // itself fails to start, so blaming the guard's photo would send them chasing
+  // a "clearer photo" that could never work.
+  it('tells the guard the reader itself failed, not the photo, on an engine error', async () => {
+    mockDecodeQrImage.mockResolvedValue({ ok: false, reason: 'engine', detail: 'Scanner error: [object Event]' });
+    const { container } = render(<GuardQRScan onResolved={vi.fn()} onCancel={vi.fn()} />);
+
+    const input = container.querySelector('input[type="file"]') as HTMLInputElement;
+    const file = new File(['x'], 'pass.png', { type: 'image/png' });
+    fireEvent.change(input, { target: { files: [file] } });
+
+    expect(await screen.findByText(/qr reader failed to start/i)).toBeInTheDocument();
+    // Not the "try a clearer photo" suggestion — the copy explicitly says a
+    // clearer photo will NOT help, since the failure is in the reader itself.
+    expect(screen.queryByText(/try a clearer photo/i)).not.toBeInTheDocument();
+    expect(mockLookup).not.toHaveBeenCalled();
   });
 
   it('falls back to manual search when no camera is available', () => {

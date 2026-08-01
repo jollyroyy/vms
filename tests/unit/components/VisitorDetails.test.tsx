@@ -1,6 +1,6 @@
 import React from 'react';
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { render, screen, cleanup, fireEvent } from '@testing-library/react';
+import { render, screen, cleanup, fireEvent, waitFor } from '@testing-library/react';
 import VisitorDetails from '../../../src/components/VisitorDetails';
 import type { Visit } from '../../../src/types/index';
 
@@ -13,6 +13,7 @@ const visit = {
   id: 'v1',
   ref_number: 'VIS-20260730-0001',
   status: 'approved',
+  qr_token: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
   created_at: '2026-07-30T09:00:00Z',
   checked_in_at: null,
   checked_out_at: null,
@@ -71,5 +72,36 @@ describe('VisitorDetails — closing the popup', () => {
     expect(onClose).not.toHaveBeenCalled();
     fireEvent.click(container.querySelector('.modal-overlay')!);
     expect(onClose).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('VisitorDetails — reopening the entry pass', () => {
+  afterEach(() => cleanup());
+
+  it('offers a View Pass toggle for a pre-approved visit', () => {
+    render(<VisitorDetails visit={visit} onClose={vi.fn()} />);
+    expect(screen.getByRole('button', { name: /view pass/i })).toBeInTheDocument();
+  });
+
+  it('reveals the QR pass on click and hides it again on a second click', async () => {
+    render(<VisitorDetails visit={visit} onClose={vi.fn()} />);
+    const toggle = screen.getByRole('button', { name: /view pass/i });
+
+    fireEvent.click(toggle);
+    await waitFor(() => expect(screen.getByAltText('Entry pass QR code')).toBeInTheDocument());
+    expect(screen.getByRole('button', { name: /hide pass/i })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /hide pass/i }));
+    expect(screen.queryByAltText('Entry pass QR code')).not.toBeInTheDocument();
+  });
+
+  it('does not offer a pass for a walk-in approval', () => {
+    render(<VisitorDetails visit={{ ...visit, status: 'walkin_approved' }} onClose={vi.fn()} />);
+    expect(screen.queryByRole('button', { name: /view pass/i })).not.toBeInTheDocument();
+  });
+
+  it('does not offer a pass once the visitor has checked in', () => {
+    render(<VisitorDetails visit={{ ...visit, status: 'checked_in', checked_in_at: '2026-07-30T09:30:00Z' }} onClose={vi.fn()} />);
+    expect(screen.queryByRole('button', { name: /view pass/i })).not.toBeInTheDocument();
   });
 });

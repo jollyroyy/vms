@@ -9,17 +9,28 @@ export type FeatureFlag = 'qr' | 'ocr' | 'faceVerify' | 'aiRecommendation';
 
 // Direct lookup map, not a fuzzy includes() chain — the compiler enforces
 // exhaustiveness whenever a new FeatureFlag is added.
-const FLAG_ENV_VAR: Record<FeatureFlag, string> = {
-  qr: 'VITE_FEATURE_QR',
-  ocr: 'VITE_FEATURE_OCR',
-  faceVerify: 'VITE_FEATURE_FACE_VERIFY',
-  aiRecommendation: 'VITE_FEATURE_AI_RECOMMENDATION',
+//
+// Each entry must spell out `import.meta.env.VITE_...` in full, and the reads
+// are thunks rather than values for two separate reasons:
+//
+//  * Vite decides whether a module gets an `import.meta.env` object at all by
+//    scanning its source for that literal text. A computed key lookup — and
+//    especially a defensive-looking one guarded with optional chaining — never
+//    matches the probe, so Vite injects nothing and every flag silently reads
+//    undefined in the browser. Unit tests do not catch it, because Vitest
+//    populates import.meta.env unconditionally.
+//  * Reading inside a thunk keeps the lookup at call time, so tests can stub the
+//    environment after this module has been imported.
+const FLAG_ENV_VALUE: Record<FeatureFlag, () => unknown> = {
+  qr: () => import.meta.env.VITE_FEATURE_QR,
+  ocr: () => import.meta.env.VITE_FEATURE_OCR,
+  faceVerify: () => import.meta.env.VITE_FEATURE_FACE_VERIFY,
+  aiRecommendation: () => import.meta.env.VITE_FEATURE_AI_RECOMMENDATION,
 };
 
 /** Returns true only when the flag's env var is the exact string 'true' (case-insensitive, trimmed). Defaults to false. */
 export function isFeatureEnabled(flag: FeatureFlag): boolean {
-  const envVar = FLAG_ENV_VAR[flag];
-  const raw = import.meta?.env?.[envVar];
+  const raw = FLAG_ENV_VALUE[flag]();
   if (typeof raw !== 'string') return false;
   return raw.trim().toLowerCase() === 'true';
 }

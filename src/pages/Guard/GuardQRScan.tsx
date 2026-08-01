@@ -2,7 +2,11 @@
 // and resolves it to a visit via lookupVisitByQr. Manual search is always one
 // tap away: if the camera is unavailable, a lookup fails, or the guard simply
 // prefers it, `onCancel` hands control back to the phone-number search flow.
+// A photo of a pass held up to the live camera often fails to focus/decode
+// (glare, distance), so "Upload QR Image" runs the same payload through a
+// still-image decode instead of the live video stream.
 import React, { useCallback, useRef, useState } from 'react';
+import { decodeQrImage } from '../../lib/decodeQrImage';
 import { lookupVisitByQr } from '../../lib/qrLookup';
 import { useQrScanner } from '../../lib/useQrScanner';
 import type { Visit } from '../../types/index';
@@ -26,10 +30,18 @@ const STATUS_TEXT: Record<'invalid' | 'not_found', string> = {
   not_found: 'No visit matches this QR code.',
 };
 
+// Split by fault: `no_code` is something the guard can act on, `engine` is ours.
+const UPLOAD_FAIL_TEXT: Record<'no_code' | 'engine', string> = {
+  no_code: 'No QR code found in that image. Ask for the pass image (not the PDF), try a clearer photo, or search manually.',
+  engine: 'The QR reader failed to start on this device. Search manually and report this — a clearer photo will not help.',
+};
+
 export default function GuardQRScan({ onResolved, onCancel }: Props): React.ReactElement {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const inFlightRef = useRef(false);
   const [message, setMessage] = useState<ScanMessage | null>(null);
+  const [uploading, setUploading] = useState(false);
 
   const handleDecode = useCallback((raw: string) => {
     if (inFlightRef.current) return;
@@ -71,12 +83,33 @@ export default function GuardQRScan({ onResolved, onCancel }: Props): React.Reac
 
   const retry = useCallback(() => setMessage(null), []);
 
+  const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file || inFlightRef.current) return;
+
+    setUploading(true);
+    decodeQrImage(file).then((decoded) => {
+      setUploading(false);
+      if (decoded.ok) {
+        handleDecode(decoded.payload);
+      } else {
+        // Two very different failures. Blaming the visitor's image for a broken
+        // decoder sends the guard chasing a better photo that will never work.
+        setMessage({ kind: decoded.reason === 'engine' ? 'error' : 'invalid', text: UPLOAD_FAIL_TEXT[decoded.reason] });
+      }
+    });
+  }, [handleDecode]);
+
   return (
     <div className="space-y-4 animate-fade-in max-w-lg mx-auto">
       <div className="bg-white rounded-2xl p-5 shadow-sm border border-surface-100 space-y-4">
         <div>
           <h2 className="text-xl font-bold text-navy-900">Scan QR</h2>
-          <p className="text-sm text-navy-400">Hold the visitor's QR code up to the camera.</p>
+          <p className="text-sm text-navy-400">
+            Hold the visitor's QR code up to the camera, or upload an image of it
+            (PNG or JPG — a PDF pass must be screenshotted first).
+          </p>
         </div>
 
         {state === 'unavailable' ? (
@@ -110,12 +143,28 @@ export default function GuardQRScan({ onResolved, onCancel }: Props): React.Reac
           </div>
         )}
 
-        <div className="flex gap-3 justify-center">
+        <div className="flex gap-3 justify-center flex-wrap">
           {message && (
             <button onClick={retry} className="btn-secondary text-sm px-5 py-2.5">
               Scan Again
             </button>
           )}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            onChange={handleFileChange}
+            className="hidden"
+            aria-hidden="true"
+            tabIndex={-1}
+          />
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            disabled={uploading}
+            className="btn-secondary text-sm px-5 py-2.5 disabled:opacity-60"
+          >
+            {uploading ? 'Reading Image...' : 'Upload QR Image'}
+          </button>
           <button onClick={onCancel} className="btn-secondary text-sm px-5 py-2.5">
             Search Manually
           </button>

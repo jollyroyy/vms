@@ -1,7 +1,20 @@
-import { describe, it, expect, vi, afterEach } from 'vitest';
+import { readFileSync } from 'fs';
+import { resolve } from 'path';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { isFeatureEnabled } from '../../../src/lib/featureFlags';
 
 describe('M-FEATURE-FLAGS: isFeatureEnabled', () => {
+  // Vitest loads the project's real .env, so "unset" has to be stated rather
+  // than assumed — otherwise these cases only pass while the developer's own
+  // .env happens to leave the flag off, and flip to failing the moment someone
+  // turns a feature on locally.
+  beforeEach(() => {
+    vi.stubEnv('VITE_FEATURE_QR', undefined);
+    vi.stubEnv('VITE_FEATURE_OCR', undefined);
+    vi.stubEnv('VITE_FEATURE_FACE_VERIFY', undefined);
+    vi.stubEnv('VITE_FEATURE_AI_RECOMMENDATION', undefined);
+  });
+
   afterEach(() => {
     vi.unstubAllEnvs();
   });
@@ -60,6 +73,21 @@ describe('M-FEATURE-FLAGS: isFeatureEnabled', () => {
   it('returns false for a garbage value', () => {
     vi.stubEnv('VITE_FEATURE_QR', 'asdf123');
     expect(isFeatureEnabled('qr')).toBe(false);
+  });
+
+  // Vitest populates import.meta.env unconditionally, so no amount of stubbing
+  // above can catch the one failure mode that actually shipped: Vite decides
+  // whether to inject import.meta.env into a module by scanning the source for
+  // the literal text 'import.meta.env'. Written as 'import.meta?.env' the probe
+  // never matches, Vite injects nothing, and every flag reads undefined in a
+  // real browser while all the tests above still pass. Assert on the source.
+  it('reads import.meta.env literally so Vite injects the env object', () => {
+    const src = readFileSync(resolve(process.cwd(), 'src/lib/featureFlags.ts'), 'utf8');
+    expect(src).not.toMatch(/import\.meta\s*\?\./);
+    expect(src).toContain('import.meta.env.VITE_FEATURE_QR');
+    expect(src).toContain('import.meta.env.VITE_FEATURE_OCR');
+    expect(src).toContain('import.meta.env.VITE_FEATURE_FACE_VERIFY');
+    expect(src).toContain('import.meta.env.VITE_FEATURE_AI_RECOMMENDATION');
   });
 
   it('enabling one flag does not enable any other flag', () => {

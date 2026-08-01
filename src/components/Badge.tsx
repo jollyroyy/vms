@@ -25,7 +25,10 @@ export default function Badge({ visit }: Props): React.ReactElement {
       : `vms://visit/${visit?.ref_number}`;
 
     if (visit?.qr_token || visit?.ref_number) {
-      QRCode.toDataURL(payload, { width: 128, margin: 1, color: { dark: '#1e293b', light: '#ffffff' } })
+      // margin left at the qrcode library's spec default (4 modules) — a
+      // printed badge needs the full quiet zone for a guard's scanner to
+      // lock onto the finder patterns reliably.
+      QRCode.toDataURL(payload, { width: 192, color: { dark: '#1e293b', light: '#ffffff' } })
         .then(setQrDataUrl)
         .catch(() => setQrDataUrl(null));
     }
