@@ -8,6 +8,8 @@ import { attachVisitActors } from '../../lib/visitActors';
 import { useDepartments } from '../../lib/useDepartments';
 import CheckInPhotoStep from './CheckInPhotoStep';
 import CheckInMatchList from './CheckInMatchList';
+import CheckInScanGate from './CheckInScanGate';
+import { visitToMatchItem } from './qrMatchItem';
 
 type MatchSource = 'pre_approved' | 'recurring';
 export type ApprovalType = 'pre_approved' | 'walkin_approved' | 'recurring';
@@ -23,6 +25,7 @@ export interface MatchItem {
   company: string;
   approvalType: ApprovalType;
   approvedAt: string | null;
+  scheduledFor: string | null;
   visitId?: string;
 }
 
@@ -186,6 +189,16 @@ export default function CheckInPanel({ today, onCheckInSuccess }: Props): React.
     finally { setCheckingIn(false); }
   };
 
+  // A scanned QR that passed its gate goes straight to the photo step — the
+  // whole point of the scan is to skip the manual search. Host names are not
+  // part of the QR lookup, so attach them here the same way loadData does.
+  const handleQrResolved = useCallback(async (visit: Visit) => {
+    const [withHost] = await attachHostNames([visit]);
+    setSelectedMatch(visitToMatchItem(withHost ?? visit));
+    setPhotoBlob(null);
+    setError('');
+  }, []);
+
   const isExpired = useCallback((v: Visit): boolean => {
     if (!v.scheduled_for) return false;
     const scheduled = new Date(v.scheduled_for).getTime();
@@ -215,6 +228,7 @@ export default function CheckInPanel({ today, onCheckInSuccess }: Props): React.
         company: v.visitor?.company ?? '',
         approvalType: isWalkin ? 'walkin_approved' : 'pre_approved',
         approvedAt: (isWalkin ? v.actorAt : null) ?? v.created_at,
+        scheduledFor: v.scheduled_for,
         visitId: v.id,
       });
     });
@@ -235,6 +249,7 @@ export default function CheckInPanel({ today, onCheckInSuccess }: Props): React.
         company: r.visitor_company ?? '',
         approvalType: 'recurring',
         approvedAt: null,
+        scheduledFor: null,
       });
     });
 
@@ -258,23 +273,26 @@ export default function CheckInPanel({ today, onCheckInSuccess }: Props): React.
   }
 
   return (
-    <CheckInMatchList
-      error={error}
-      search={search}
-      onSearchChange={(value) => { setSearch(value); setShowWalkIn(false); }}
-      deptFilter={deptFilter}
-      onDeptFilterChange={setDeptFilter}
-      departments={departments}
-      loading={loading}
-      allMatches={allMatches}
-      preApproved={preApproved}
-      checkedInIds={checkedInIds}
-      isExpired={isExpired}
-      onSelectMatch={(m) => { setSelectedMatch(m); setPhotoBlob(null); setError(''); }}
-      showWalkIn={showWalkIn}
-      onShowWalkIn={() => setShowWalkIn(true)}
-      onWalkInSubmitted={(name) => { onCheckInSuccess(name); setShowWalkIn(false); setSearch(''); void loadData(); }}
-      onWalkInCancel={() => setShowWalkIn(false)}
-    />
+    <div className="space-y-4">
+      <CheckInScanGate onResolved={handleQrResolved} />
+      <CheckInMatchList
+        error={error}
+        search={search}
+        onSearchChange={(value) => { setSearch(value); setShowWalkIn(false); }}
+        deptFilter={deptFilter}
+        onDeptFilterChange={setDeptFilter}
+        departments={departments}
+        loading={loading}
+        allMatches={allMatches}
+        preApproved={preApproved}
+        checkedInIds={checkedInIds}
+        isExpired={isExpired}
+        onSelectMatch={(m) => { setSelectedMatch(m); setPhotoBlob(null); setError(''); }}
+        showWalkIn={showWalkIn}
+        onShowWalkIn={() => setShowWalkIn(true)}
+        onWalkInSubmitted={(name) => { onCheckInSuccess(name); setShowWalkIn(false); setSearch(''); void loadData(); }}
+        onWalkInCancel={() => setShowWalkIn(false)}
+        />
+    </div>
   );
 }

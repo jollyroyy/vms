@@ -62,6 +62,8 @@ export type Visit = {
   carrying_material: boolean;
   scheduled_for: string | null;
   grace_period_minutes?: number;
+  qr_token: string;
+  qr_expires_at: string | null;
   created_at: string;
   // joined fields (populated by views/RPCs)
   visitor?: Visitor;
@@ -214,7 +216,7 @@ export type Database = {
         Update: Partial<Visitor>;
         Relationships: [];
       };
-      visits:         { Row: Visit;         Insert: Omit<Visit, 'id' | 'ref_number' | 'created_at' | 'visitor' | 'department' | 'host' | 'photo_url'>; Update: Partial<Visit>; Relationships: [] };
+      visits:         { Row: Visit;         Insert: Omit<Visit, 'id' | 'ref_number' | 'created_at' | 'qr_token' | 'qr_expires_at' | 'visitor' | 'department' | 'host' | 'photo_url'>; Update: Partial<Visit>; Relationships: [] };
       gate_passes:    { Row: GatePass;      Insert: Omit<GatePass, 'id' | 'ref_number' | 'created_at' | 'items' | 'department' | 'created_by_profile'>; Update: Partial<GatePass>; Relationships: [] };
       gate_pass_items:{ Row: GatePassItem;  Insert: Omit<GatePassItem, 'id'>;                  Update: Partial<GatePassItem>;  Relationships: [] };
       gate_signoffs:  { Row: GateSignoff;   Insert: Omit<GateSignoff, 'id' | 'created_at'>;    Update: Partial<GateSignoff>;    Relationships: [] };

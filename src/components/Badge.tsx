@@ -4,6 +4,7 @@
 import React, { useEffect, useState } from 'react';
 import QRCode from 'qrcode';
 import type { Visit } from '../types/index';
+import { buildQrPayload } from '../lib/qrToken';
 
 type Props = { visit: Visit };
 
@@ -19,12 +20,16 @@ export default function Badge({ visit }: Props): React.ReactElement {
   const host = visit.host;
 
   useEffect(() => {
-    if (visit?.ref_number) {
-      QRCode.toDataURL(`vms://visit/${visit.ref_number}`, { width: 128, margin: 1, color: { dark: '#1e293b', light: '#ffffff' } })
+    const payload = visit?.qr_token
+      ? buildQrPayload(visit.qr_token)
+      : `vms://visit/${visit?.ref_number}`;
+
+    if (visit?.qr_token || visit?.ref_number) {
+      QRCode.toDataURL(payload, { width: 128, margin: 1, color: { dark: '#1e293b', light: '#ffffff' } })
         .then(setQrDataUrl)
         .catch(() => setQrDataUrl(null));
     }
-  }, [visit?.ref_number]);
+  }, [visit?.qr_token, visit?.ref_number]);
 
   return (
     <div className="print-only mx-auto w-72 rounded-2xl bg-white overflow-hidden" style={{ border: '2px solid transparent', backgroundClip: 'padding-box', boxShadow: '0 4px 24px -4px rgba(0,0,0,0.12), 0 0 0 2px #1e293b' }}>
@@ -88,7 +93,7 @@ export default function Badge({ visit }: Props): React.ReactElement {
           ) : (
             <div className="w-16 h-16 border-2 border-navy-800 rounded-xl flex items-center justify-center text-xs text-navy-400 bg-surface-50 animate-pulse">QR</div>
           )}
-          <p className="text-[10px] text-navy-300 font-medium">Scan at exit</p>
+          <p className="text-[10px] text-navy-300 font-medium">Scan at reception</p>
         </div>
       </div>
 
