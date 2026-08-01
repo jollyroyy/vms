@@ -17,12 +17,16 @@
     "test:security": "vitest run tests/security",
     "test:e2e": "playwright test tests/e2e",
     "test:watch": "vitest",
-    "seed": "tsx scripts/seed.ts"
+    "seed": "tsx scripts/seed.ts",
+    "predev": "node scripts/sync-ort-assets.mjs",
+    "prebuild": "node scripts/sync-ort-assets.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.45.0",
     "date-fns": "^3.6.0",
     "jspdf": "^4.2.1",
+    "onnxruntime-web": "^1.27.0",
+    "ppu-paddle-ocr": "^6.2.0",
     "qr-scanner": "^1.4.2",
     "qrcode": "^1.5.4",
     "react": "^18.3.0",
