@@ -50,6 +50,10 @@ describe('visitToMatchItem', () => {
       approvedAt: '2026-08-01T08:00:00Z',
       scheduledFor: '2026-08-01T10:00:00Z',
       visitId: 'visit-1',
+      photoUrl: null,
+      idType: null,
+      idLast4: null,
+      refNumber: 'VMS-2026-0001',
     });
   });
 
@@ -95,5 +99,36 @@ describe('visitToMatchItem', () => {
     const item = visitToMatchItem(makeVisit({ id: 'v-42' }));
     expect(item.visitId).toBe('v-42');
     expect(item.id).toBe('pre:v-42');
+  });
+
+  it('maps photo_data to photoUrl', () => {
+    const item = visitToMatchItem(makeVisit({ photo_data: 'data:image/png;base64,AAAA' }));
+    expect(item.photoUrl).toBe('data:image/png;base64,AAAA');
+  });
+
+  it('photo_url wins over photo_data when both are set', () => {
+    const item = visitToMatchItem(makeVisit({ photo_url: 'https://example.com/photo.jpg', photo_data: 'data:image/png;base64,AAAA' }));
+    expect(item.photoUrl).toBe('https://example.com/photo.jpg');
+  });
+
+  it('maps visitor id_type and id_last4 directly without redaction', () => {
+    const item = visitToMatchItem(makeVisit({
+      visitor: { ...makeVisit().visitor, id_type: 'Aadhaar', id_last4: '9646' },
+    }));
+    expect(item.idType).toBe('Aadhaar');
+    expect(item.idLast4).toBe('9646');
+  });
+
+  it('pending_approval visit maps to approvedAt null', () => {
+    const item = visitToMatchItem(makeVisit({ status: 'pending_approval' }));
+    expect(item.approvedAt).toBeNull();
+  });
+
+  it('missing visitor join leaves idType and idLast4 as null, never undefined', () => {
+    const item = visitToMatchItem(makeVisit({ visitor: undefined }));
+    expect(item.idType).toBeNull();
+    expect(item.idLast4).toBeNull();
+    expect(item.idType).not.toBe(undefined);
+    expect(item.idLast4).not.toBe(undefined);
   });
 });

@@ -20,11 +20,19 @@ const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const from = join(root, 'node_modules', 'onnxruntime-web', 'dist');
 const to = join(root, 'public', 'ort');
 
-// The single-threaded SIMD build. We deliberately do NOT enable cross-origin
+// The single-threaded SIMD builds. We deliberately do NOT enable cross-origin
 // isolation (COOP/COEP), because `require-corp` would break loading Supabase
 // images, so multi-threading is unavailable and the threaded binaries would be
 // dead weight. ORT falls back to one thread on its own.
-const ASSETS = ['ort-wasm-simd-threaded.wasm', 'ort-wasm-simd-threaded.mjs'];
+// The .jsep variant is required since onnxruntime-web 1.20 — it is the default
+// runtime the library dynamically imports; without it the CPU backend never
+// registers and the scan fails with "no available backend found".
+const ASSETS = [
+  'ort-wasm-simd-threaded.wasm',
+  'ort-wasm-simd-threaded.mjs',
+  'ort-wasm-simd-threaded.jsep.wasm',
+  'ort-wasm-simd-threaded.jsep.mjs',
+];
 
 if (!existsSync(from)) {
   console.error('[sync-ort-assets] onnxruntime-web not installed — run npm install first.');

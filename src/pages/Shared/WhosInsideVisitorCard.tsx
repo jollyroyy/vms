@@ -1,17 +1,57 @@
-import React from 'react';
-import type { Visit } from '../../types/index';
-import { formatTime, formatDuration } from '../../lib/formatDate';
+import React, { useEffect, useState } from 'react';
+import { formatDateTime, formatElapsed } from '../../lib/formatDate';
+import { approvalTimestamp } from '../../lib/visitApproval';
+import type { ReportVisit } from '../../lib/reportRow';
 import { STATUS_STYLES } from '../../lib/statusStyles';
 
 type Props = {
-  visit: Visit;
+  visit: ReportVisit;
   index: number;
   onClick: () => void;
 };
 
+type Tone = 'success' | 'brand' | 'warning' | 'muted' | 'danger';
+
+const TONE_CLASSES: Record<Tone, string> = {
+  success: 'bg-success-50 text-success-600 dark:bg-success-500/10',
+  brand: 'bg-brand-50 text-brand-600 dark:bg-brand-500/10',
+  warning: 'bg-warning-50 text-warning-600 dark:bg-warning-500/10',
+  muted: 'bg-surface-100 text-navy-400',
+  danger: 'bg-danger-50 text-danger-600 dark:bg-danger-500/10',
+};
+
+function TimelineRow({ tone, icon, label, value, live }: { tone: Tone; icon: React.ReactNode; label: string; value: React.ReactNode; live?: boolean }): React.ReactElement {
+  return (
+    <div className="flex items-start gap-2.5">
+      <span className={`mt-0.5 h-7 w-7 rounded-lg flex items-center justify-center shrink-0 ${TONE_CLASSES[tone]}`}>{icon}</span>
+      <div className="min-w-0">
+        <p className="text-[10px] font-bold uppercase tracking-wider text-navy-400">{label}</p>
+        <p className="text-xs font-semibold text-navy-800 truncate">
+          {value}
+          {live && (
+            <span className="ml-1.5 inline-flex items-center gap-1 text-[10px] font-bold text-success-600">
+              <span className="h-1.5 w-1.5 rounded-full bg-success-500 animate-pulse-soft" />Live
+            </span>
+          )}
+        </p>
+      </div>
+    </div>
+  );
+}
+
 export default function WhosInsideVisitorCard({ visit: v, index: idx, onClick }: Props): React.ReactElement {
   const style = STATUS_STYLES[v.status];
-  const dur = v.status === 'checked_in' && v.checked_in_at ? formatDuration(v.checked_in_at) : null;
+  const isInside = v.status === 'checked_in';
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    if (!isInside) return;
+    const id = setInterval(() => setTick((t) => t + 1), 30000);
+    return () => clearInterval(id);
+  }, [isInside]);
+
+  const duration = v.checked_in_at ? formatElapsed(v.checked_in_at, v.checked_out_at ?? undefined) : null;
+  const approvedAt = approvalTimestamp(v);
+
   return (
     <div
       className="card card-hover p-4 cursor-pointer animate-fade-in"
@@ -32,60 +72,55 @@ export default function WhosInsideVisitorCard({ visit: v, index: idx, onClick }:
           <div className="flex items-start justify-between gap-1">
             <p className="font-semibold text-navy-900 truncate text-sm">{v.visitor?.full_name ?? '—'}</p>
             <span className={`shrink-0 status-badge ${style.bg} ${style.text}`}>
-              <span
-                className={`h-1.5 w-1.5 rounded-full ${style.dot} ${v.status === 'checked_in' ? 'animate-pulse-soft' : ''}`}
-              />
+              <span className={`h-1.5 w-1.5 rounded-full ${style.dot} ${isInside ? 'animate-pulse-soft' : ''}`} />
               {style.label}
             </span>
           </div>
           {v.visitor?.company && <p className="text-xs text-navy-400 truncate">{v.visitor.company}</p>}
-          {/* Department + Host */}
           <div className="mt-2 pt-2 border-t border-surface-200/60 dark:border-white/[0.06] space-y-1">
             <p className="text-xs font-semibold text-navy-600 truncate">{v.department?.name ?? '—'}</p>
             {v.host?.full_name && <p className="text-xs text-navy-400 truncate">Host: {v.host.full_name}</p>}
             <p className="text-[10px] text-navy-300 font-mono">{v.ref_number}</p>
-            {/* Live status timeline */}
-            <div className="mt-1.5 space-y-0.5">
-              {v.status === 'approved' && (
-                <p className="text-[11px] text-success-600 font-semibold flex items-center gap-1">
-                  <span className="h-1.5 w-1.5 rounded-full bg-success-500" />
-                  Awaiting Arrival
-                  {v.scheduled_for && <span className="text-navy-300 font-normal ml-1">· ETA {formatTime(v.scheduled_for)}</span>}
-                </p>
-              )}
-              {v.status === 'pending_approval' && (
-                <p className="text-[11px] text-warning-600 font-semibold flex items-center gap-1">
-                  <span className="h-1.5 w-1.5 rounded-full bg-warning-500 animate-pulse" />
-                  Pending HOD Approval
-                </p>
-              )}
-              {v.status === 'walkin_approved' && (
-                <p className="text-[11px] text-brand-600 font-semibold flex items-center gap-1">
-                  <span className="h-1.5 w-1.5 rounded-full bg-brand-500" />
-                  Walk-in Approved — Awaiting Check-in
-                </p>
-              )}
-              {v.checked_in_at && (
-                <p className="text-[11px] text-brand-600 flex items-center gap-1">
-                  <svg className="w-3 h-3 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                  Checked in at {formatTime(v.checked_in_at)}
-                </p>
-              )}
-              {v.checked_out_at && (
-                <p className="text-[11px] text-navy-400 flex items-center gap-1">
-                  <svg className="w-3 h-3 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" /></svg>
-                  Checked out at {formatTime(v.checked_out_at)}
-                </p>
-              )}
-            </div>
-            {dur && (
-              <p className={`text-xs mt-1 flex items-center gap-1 ${dur.isOvertime ? 'text-danger-600 font-bold' : 'text-navy-400'}`}>
-                <svg className="w-3 h-3 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                {dur.text} on-site{dur.isOvertime ? ' — Overtime' : ''}
+            {!isInside && (
+              <p className={`text-[11px] font-semibold flex items-center gap-1 ${v.status === 'pending_approval' ? 'text-warning-600' : 'text-success-600'}`}>
+                <span className={`h-1.5 w-1.5 rounded-full ${v.status === 'pending_approval' ? 'bg-warning-500 animate-pulse' : 'bg-success-500'}`} />
+                {v.status === 'pending_approval' ? 'Pending HOD Approval'
+                  : v.status === 'walkin_approved' ? 'Walk-in Approved — Awaiting Check-in'
+                  : 'Pre-approved — Awaiting Arrival'}
               </p>
             )}
           </div>
         </div>
+      </div>
+
+      <div className="mt-3 rounded-xl bg-gradient-to-b from-surface-50/80 to-surface-100/40 border border-surface-200/60 dark:border-white/[0.06] p-3 space-y-2.5">
+        {/* Approval and check-in are separate events and were previously
+            collapsed into one row that only ever showed the check-in time. */}
+        <TimelineRow
+          tone={approvedAt ? 'success' : 'warning'}
+          icon={<svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>}
+          label="Approved"
+          value={approvedAt ? formatDateTime(approvedAt) : 'Not yet approved'}
+        />
+        <TimelineRow
+          tone={v.checked_in_at ? 'success' : 'warning'}
+          icon={<svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l3 3m0 0l-3 3m3-3H2.25" /></svg>}
+          label="Check-in"
+          value={v.checked_in_at ? formatDateTime(v.checked_in_at) : 'Not yet checked in'}
+        />
+        <TimelineRow
+          tone={v.checked_out_at ? 'brand' : 'muted'}
+          icon={<svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" /></svg>}
+          label="Check-out"
+          value={v.checked_out_at ? formatDateTime(v.checked_out_at) : 'Not yet checked out'}
+        />
+        <TimelineRow
+          tone={duration?.isOvertime ? 'danger' : 'brand'}
+          icon={<svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>}
+          label="Duration Inside"
+          value={duration ? `${duration.text}${duration.isOvertime ? ' — Overtime' : ''}` : '—'}
+          live={isInside}
+        />
       </div>
     </div>
   );

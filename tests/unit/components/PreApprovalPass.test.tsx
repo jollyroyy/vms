@@ -91,6 +91,39 @@ describe('M-QR-PASS: PreApprovalPass', () => {
     expect(mockDownloadQrPassPdf).toHaveBeenCalledWith(
       baseVisit,
       expect.stringContaining('data:image/png'),
+      null,
     );
+  });
+
+  it('hands the visitor photo to the PDF so the pass carries it next to the QR', async () => {
+    const withPhoto = { ...baseVisit, photo_data: 'data:image/webp;base64,PHOTO' };
+    render(<PreApprovalPass visit={withPhoto} />);
+    const button = await screen.findByRole('button', { name: /download pdf/i });
+    await waitFor(() => expect(button).not.toBeDisabled());
+    fireEvent.click(button);
+    expect(mockDownloadQrPassPdf).toHaveBeenCalledWith(
+      withPhoto,
+      expect.stringContaining('data:image/png'),
+      'data:image/webp;base64,PHOTO',
+    );
+  });
+
+  it('shows the visitor photo and their redacted ID alongside the QR', async () => {
+    render(<PreApprovalPass visit={{
+      ...baseVisit,
+      photo_data: 'data:image/webp;base64,PHOTO',
+      visitor: { id: 'vis1', phone: '9876543210', full_name: 'Asha Rao', company: 'Acme', id_type: 'Aadhaar', id_last4: '9646', vehicle_number: null, is_blacklisted: false, blacklist_reason: null, created_at: '' },
+    }} />);
+    expect(screen.getByAltText('Visitor photo')).toHaveAttribute('src', 'data:image/webp;base64,PHOTO');
+    expect(screen.getByText('Asha Rao')).toBeInTheDocument();
+    expect(screen.getByText('Aadhaar ••••46')).toBeInTheDocument();
+    expect(screen.queryByText(/9646/)).not.toBeInTheDocument();
+  });
+
+  it('still renders the pass when the visitor has no photo and no ID on record', async () => {
+    render(<PreApprovalPass visit={baseVisit} />);
+    expect(screen.getByLabelText('No visitor photo on record')).toBeInTheDocument();
+    expect(screen.getByText('ID Proof')).toBeInTheDocument();
+    expect(await screen.findByAltText('Entry pass QR code')).toBeInTheDocument();
   });
 });

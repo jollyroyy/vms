@@ -1,15 +1,18 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { supabase } from '../../supabaseClient';
-import type { Department, Profile, Visit, RecurringVisit, VisitorPurpose } from '../../types/index';
+import type { Visit, VisitorPurpose } from '../../types/index';
 import { normalizePhone } from '../../lib/blacklist';
 import { safeErrorMessage } from '../../lib/errors';
 import { attachHostNames } from '../../lib/hostNames';
 import { attachVisitActors } from '../../lib/visitActors';
+import { buildMatchItems, type PreApprovedVisit, type RecurringWithDept } from './checkInMatches';
 import { useDepartments } from '../../lib/useDepartments';
+import { uploadPhoto } from '../../lib/photoUpload';
 import CheckInPhotoStep from './CheckInPhotoStep';
 import CheckInMatchList from './CheckInMatchList';
 import CheckInScanGate from './CheckInScanGate';
 import { visitToMatchItem } from './qrMatchItem';
+import type { IdScanResult } from './IdScanOverlay';
 
 type MatchSource = 'pre_approved' | 'recurring';
 export type ApprovalType = 'pre_approved' | 'walkin_approved' | 'recurring';
@@ -27,16 +30,13 @@ export interface MatchItem {
   approvedAt: string | null;
   scheduledFor: string | null;
   visitId?: string;
-}
-
-interface RecurringWithDept extends RecurringVisit {
-  department?: Department;
-  host?: Pick<Profile, 'id' | 'full_name'>;
-}
-
-interface PreApprovedVisit extends Visit {
-  actor?: { name: string; role: string } | null;
-  actorAt?: string | null;
+  // Carried on the pass and shown back to the guard once it is scanned, so
+  // they can check the person in front of them against the record. Absent for
+  // recurring visitors, who have no visit row until they are checked in.
+  photoUrl?: string | null;
+  idType?: string | null;
+  idLast4?: string | null;
+  refNumber?: string | null;
 }
 
 type Props = {
@@ -55,6 +55,8 @@ export default function CheckInPanel({ today, onCheckInSuccess }: Props): React.
 
   const [selectedMatch, setSelectedMatch] = useState<MatchItem | null>(null);
   const [photoBlob, setPhotoBlob] = useState<Blob | null>(null);
+  const [idScan, setIdScan] = useState<IdScanResult | null>(null);
+  const [remarks, setRemarks] = useState('');
   const [checkingIn, setCheckingIn] = useState(false);
   const [showWalkIn, setShowWalkIn] = useState(false);
   const [error, setError] = useState('');
@@ -114,30 +116,20 @@ export default function CheckInPanel({ today, onCheckInSuccess }: Props): React.
 
   useEffect(() => { void loadData(); }, [loadData]);
 
-  const uploadPhoto = useCallback(async (blob: Blob): Promise<{ photoPath: string | null; photoData: string | null }> => {
-    const base64 = await new Promise<string>((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(reader.result as string);
-      reader.onerror = () => reject(new Error('Failed to read photo'));
-      reader.readAsDataURL(blob);
-    });
-    const filePath = `visits/${Date.now()}.webp`;
-    const { error: uploadErr } = await supabase.storage
-      .from('visitor-photos')
-      .upload(filePath, blob, { contentType: 'image/webp', upsert: true });
-    if (uploadErr) {
-      return { photoPath: null, photoData: base64 };
-    }
-    const { data: urlData } = await supabase.storage
-      .from('visitor-photos')
-      .createSignedUrl(filePath, 60 * 60 * 24 * 7);
-    return { photoPath: filePath, photoData: urlData?.signedUrl ?? base64 };
-  }, []);
+  const persistIdScan = useCallback(async (visitorId: string) => {
+    if (!idScan?.idType && !idScan?.idLast4) return;
+    await supabase.from('visitors').update({
+      id_type: idScan.idType || null,
+      id_last4: idScan.idLast4 || null,
+    }).eq('id', visitorId);
+  }, [idScan]);
 
   const performCheckIn = async () => {
     if (!selectedMatch || !photoBlob) return;
     setCheckingIn(true); setError('');
     try {
+      const remarksTrimmed = remarks.trim();
+      const hasRemarks = remarksTrimmed.length > 0;
       // Block check-in for expired pre-approved visits
       if (selectedMatch.source === 'pre_approved' && selectedMatch.visitId) {
         const visit = preApproved.find((v) => v.id === selectedMatch.visitId);
@@ -156,6 +148,7 @@ export default function CheckInPanel({ today, onCheckInSuccess }: Props): React.
           { onConflict: 'phone' },
         ).select().single();
         if (visErr || !vis) throw visErr ?? new Error('Failed to create visitor');
+        await persistIdScan(vis.id);
         const deptId = selectedMatch.id.split(':')[0] ?? '';
         const hostParts = selectedMatch.id.split(':')[1];
         const { error: visitErr } = await supabase.from('visits').insert({
@@ -167,22 +160,25 @@ export default function CheckInPanel({ today, onCheckInSuccess }: Props): React.
           status: 'checked_in',
           checked_in_at: new Date().toISOString(),
           checked_out_at: null, exit_verified: null, rejection_reason: null,
-          carrying_material: false,
+          carrying_material: hasRemarks, carrying_remarks: remarksTrimmed || null,
           scheduled_for: null,
         });
         if (visitErr) throw visitErr;
       } else {
         const visitId = selectedMatch.visitId;
         if (!visitId) throw new Error('Missing visit ID for check-in');
+        const { data: visitRec } = await supabase.from('visits').select('visitor_id').eq('id', visitId).maybeSingle();
+        await persistIdScan((visitRec as { visitor_id: string } | null)?.visitor_id ?? '');
         const { error: err } = await supabase.from('visits').update({
           status: 'checked_in',
           checked_in_at: new Date().toISOString(),
+          carrying_material: hasRemarks, carrying_remarks: remarksTrimmed || null,
           ...(photoData ? { photo_data: photoData } : {}),
           ...(photoPath ? { photo_path: photoPath } : {}),
         } as any).eq('id', visitId);
         if (err) throw err;
       }
-      setPhotoBlob(null); setSelectedMatch(null);
+      setPhotoBlob(null); setSelectedMatch(null); setRemarks('');
       onCheckInSuccess(selectedMatch.visitorName);
       void loadData();
     } catch (err) { setError(safeErrorMessage(err, 'Check-in failed.')); }
@@ -196,6 +192,7 @@ export default function CheckInPanel({ today, onCheckInSuccess }: Props): React.
     const [withHost] = await attachHostNames([visit]);
     setSelectedMatch(visitToMatchItem(withHost ?? visit));
     setPhotoBlob(null);
+    setRemarks('');
     setError('');
   }, []);
 
@@ -207,54 +204,10 @@ export default function CheckInPanel({ today, onCheckInSuccess }: Props): React.
     return now - scheduled > 30 * 60 * 1000;
   }, []);
 
-  const allMatches = useMemo(() => {
-    const items: MatchItem[] = [];
-    const q = search.toLowerCase().trim();
-
-    preApproved.forEach((v) => {
-      const name = v.visitor?.full_name ?? '';
-      const phone = v.visitor?.phone ?? '';
-      if (q && !name.toLowerCase().includes(q) && !phone.includes(q)) return;
-      if (deptFilter && v.department_id !== deptFilter) return;
-      const isWalkin = v.status === 'walkin_approved';
-      items.push({
-        id: `pre:${v.id}`,
-        source: 'pre_approved',
-        visitorName: name,
-        visitorPhone: phone,
-        departmentName: v.department?.name ?? '',
-        purpose: v.purpose,
-        hostName: v.host?.full_name ?? '',
-        company: v.visitor?.company ?? '',
-        approvalType: isWalkin ? 'walkin_approved' : 'pre_approved',
-        approvedAt: (isWalkin ? v.actorAt : null) ?? v.created_at,
-        scheduledFor: v.scheduled_for,
-        visitId: v.id,
-      });
-    });
-
-    recurringToday.forEach((r) => {
-      const name = r.visitor_name ?? '';
-      const phone = r.visitor_phone ?? '';
-      if (q && !name.toLowerCase().includes(q) && !phone.includes(q)) return;
-      if (deptFilter && r.department_id !== deptFilter) return;
-      items.push({
-        id: `rec:${r.department_id}:${r.host_id}`,
-        source: 'recurring',
-        visitorName: name,
-        visitorPhone: phone,
-        departmentName: r.department?.name ?? '',
-        purpose: r.purpose,
-        hostName: r.host?.full_name ?? '',
-        company: r.visitor_company ?? '',
-        approvalType: 'recurring',
-        approvedAt: null,
-        scheduledFor: null,
-      });
-    });
-
-    return items;
-  }, [preApproved, recurringToday, search, deptFilter]);
+  const allMatches = useMemo(
+    () => buildMatchItems(preApproved, recurringToday, { search, deptFilter }),
+    [preApproved, recurringToday, search, deptFilter],
+  );
 
   if (selectedMatch) {
     return (
@@ -263,11 +216,14 @@ export default function CheckInPanel({ today, onCheckInSuccess }: Props): React.
         photoBlob={photoBlob}
         error={error}
         checkingIn={checkingIn}
+        remarks={remarks}
+        onRemarksChange={setRemarks}
         onBack={() => { setSelectedMatch(null); setError(''); }}
         onCapture={(blob) => setPhotoBlob(blob)}
         onRetake={() => setPhotoBlob(null)}
-        onCancel={() => { setSelectedMatch(null); setPhotoBlob(null); }}
+        onCancel={() => { setSelectedMatch(null); setPhotoBlob(null); setIdScan(null); setRemarks(''); }}
         onConfirm={performCheckIn}
+        onScanResult={setIdScan}
       />
     );
   }
@@ -287,7 +243,7 @@ export default function CheckInPanel({ today, onCheckInSuccess }: Props): React.
         preApproved={preApproved}
         checkedInIds={checkedInIds}
         isExpired={isExpired}
-        onSelectMatch={(m) => { setSelectedMatch(m); setPhotoBlob(null); setError(''); }}
+        onSelectMatch={(m) => { setSelectedMatch(m); setPhotoBlob(null); setIdScan(null); setRemarks(''); setError(''); }}
         showWalkIn={showWalkIn}
         onShowWalkIn={() => setShowWalkIn(true)}
         onWalkInSubmitted={(name) => { onCheckInSuccess(name); setShowWalkIn(false); setSearch(''); void loadData(); }}

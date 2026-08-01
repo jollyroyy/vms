@@ -2,18 +2,44 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { createClient } from '@supabase/supabase-js';
 import type { IncomingMessage, ServerResponse } from 'http';
+import { existsSync, readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import dotenv from 'dotenv';
 
 const env = { ...process.env };
 try { const r = dotenv.config(); if (r.parsed) Object.assign(env, r.parsed); } catch {}
 const SUPABASE_URL = env.VITE_SUPABASE_URL ?? '';
 const SERVICE_KEY  = env.SUPABASE_SERVICE_ROLE_KEY ?? '';
+const ROOT = fileURLToPath(new URL('.', import.meta.url));
+const ORT_DIR = join(ROOT, 'public', 'ort');
+
+// Dev-only: onnxruntime-web loads its WASM runtime via a runtime dynamic
+// import() of /ort/ort-wasm-*.mjs. Vite's import-analysis rewrites that fetch
+// to a ?import request, and the transform middleware then refuses public-dir
+// files ("should not be imported from source code"), which surfaces as
+// "Failed to fetch dynamically imported module" and "no available backend
+// found". This middleware runs before Vite's transform middleware and serves
+// the files straight off disk with the correct MIME type.
+function ortAssetsMiddleware(req: IncomingMessage, res: ServerResponse, next: () => void) {
+  const url = req.url ?? '';
+  const pathOnly = url.split('?')[0];
+  if (!pathOnly.startsWith('/ort/')) { next(); return; }
+  const fileName = pathOnly.slice('/ort/'.length);
+  if (fileName.includes('/') || fileName.includes('..') || !existsSync(join(ORT_DIR, fileName))) {
+    next();
+    return;
+  }
+  res.setHeader('Content-Type', fileName.endsWith('.wasm') ? 'application/wasm' : 'text/javascript');
+  res.end(readFileSync(join(ORT_DIR, fileName)));
+}
 
 // Dev-only plugin — bypasses RLS recursion via service_role key.
 function apiProxyPlugin(): ReturnType<typeof react> {
   return {
     name: 'api-proxy',
     configureServer(server) {
+      server.middlewares.use(ortAssetsMiddleware);
       server.middlewares.use(async (req: IncomingMessage, res: ServerResponse, next: () => void) => {
         try {
           const url = req.url ?? '';
@@ -22,6 +48,12 @@ function apiProxyPlugin(): ReturnType<typeof react> {
             if (url.startsWith('/api/')) { res.writeHead(500).end('Proxy not configured'); return; }
             next(); return;
           }
+
+          // Only touch /api/* requests. Setting Content-Type here for every
+          // response would make Vite serve static modules (e.g. the ORT wasm
+          // loader in public/ort/) as application/json, and browsers reject
+          // those for ES module imports.
+          if (!url.startsWith('/api/')) { next(); return; }
 
           const admin = createClient(SUPABASE_URL, SERVICE_KEY, {
             auth: { autoRefreshToken: false, persistSession: false },

@@ -11,6 +11,7 @@ import type { Visit } from '../types/index';
 import { buildQrPayload } from '../lib/qrToken';
 import { downloadQrPassPdf } from '../lib/qrPassPdf';
 import { downloadQrPassPng } from '../lib/qrPassImage';
+import PassIdentity from './PassIdentity';
 
 type Props = { visit: Visit };
 
@@ -33,6 +34,18 @@ export default function PreApprovalPass({ visit }: Props): React.ReactElement {
   return (
     <div className="border-t border-surface-200 pt-4 mt-2 flex flex-col items-center gap-2">
       <p className="text-xs font-bold text-navy-400 uppercase tracking-wide">Entry Pass</p>
+      {/* The QR itself carries only an opaque token — never the visitor's name,
+          ID or photo. This block is what a *human* checks the pass against;
+          scanning it is what pulls the same details out of the database. */}
+      <div className="w-full max-w-xs">
+        <PassIdentity
+          photoUrl={visit.photo_url ?? visit.photo_data}
+          name={visit.visitor?.full_name ?? ''}
+          company={visit.visitor?.company}
+          idType={visit.visitor?.id_type}
+          idLast4={visit.visitor?.id_last4}
+        />
+      </div>
       {qrDataUrl ? (
         <img src={qrDataUrl} alt="Entry pass QR code" className="w-32 h-32 rounded-lg ring-1 ring-surface-200" />
       ) : (
@@ -51,7 +64,7 @@ export default function PreApprovalPass({ visit }: Props): React.ReactElement {
         </button>
         <button
           type="button"
-          onClick={() => qrDataUrl && downloadQrPassPdf(visit, qrDataUrl)}
+          onClick={() => qrDataUrl && downloadQrPassPdf(visit, qrDataUrl, visit.photo_url ?? visit.photo_data)}
           disabled={!qrDataUrl}
           className="btn-secondary text-xs px-4 py-2 disabled:opacity-60"
         >

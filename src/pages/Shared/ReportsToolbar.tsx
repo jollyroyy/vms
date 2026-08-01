@@ -1,6 +1,6 @@
 import React from 'react';
-import type { Visit } from '../../types/index';
 import { exportToCsv } from '../../lib/exportUtils';
+import { toReportRows, type ReportVisit } from '../../lib/reportRow';
 import { RANGE_PRESETS, type RangePreset } from '../../lib/reportsDateRange';
 
 type Props = {
@@ -9,7 +9,7 @@ type Props = {
   onDateChange: (date: string) => void;
   preset: RangePreset;
   onPresetChange: (preset: RangePreset) => void;
-  visits: Visit[];
+  visits: ReportVisit[];
   filenameSuffix: string;
 };
 
@@ -34,7 +34,10 @@ export default function ReportsToolbar({ date, today, onDateChange, preset, onPr
         ))}
       </div>
 
-      <button onClick={() => exportToCsv(visits, `register-${filenameSuffix}.csv`)} className="btn-secondary text-sm flex items-center gap-2 ml-auto" title="Export CSV">
+      {/* Raw Visit rows must never reach the CSV: they carry nested join objects,
+          the base64 photo blob and the visitor's unmasked phone. toReportRows is
+          the redaction seam — see src/lib/reportRow.ts. */}
+      <button onClick={() => exportToCsv(toReportRows(visits), `register-${filenameSuffix}.csv`)} className="btn-secondary text-sm flex items-center gap-2 ml-auto" title="Export CSV">
         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" /></svg>
         Export CSV
       </button>

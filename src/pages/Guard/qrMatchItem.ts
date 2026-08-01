@@ -4,9 +4,10 @@
 // manual path can never quietly drift apart on field mapping — CheckInPhotoStep
 // only ever sees one MatchItem shape, regardless of how the guard got there.
 import type { Visit } from '../../types/index';
+import { approvalTimestamp } from '../../lib/visitApproval';
 import type { MatchItem } from './CheckInPanel';
 
-export function visitToMatchItem(visit: Visit): MatchItem {
+export function visitToMatchItem(visit: Visit & { approvedAt?: string | null }): MatchItem {
   const isWalkin = visit.status === 'walkin_approved';
   return {
     id: `pre:${visit.id}`,
@@ -18,8 +19,15 @@ export function visitToMatchItem(visit: Visit): MatchItem {
     hostName: visit.host?.full_name ?? '',
     company: visit.visitor?.company ?? '',
     approvalType: isWalkin ? 'walkin_approved' : 'pre_approved',
-    approvedAt: visit.created_at,
+    approvedAt: approvalTimestamp(visit),
     scheduledFor: visit.scheduled_for,
     visitId: visit.id,
+    // The QR itself encodes nothing but an opaque token. These come from the
+    // visit row the token resolved to, and are what the guard checks the person
+    // at the gate against.
+    photoUrl: visit.photo_url ?? visit.photo_data,
+    idType: visit.visitor?.id_type ?? null,
+    idLast4: visit.visitor?.id_last4 ?? null,
+    refNumber: visit.ref_number,
   };
 }

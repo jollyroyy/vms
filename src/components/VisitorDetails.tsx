@@ -1,11 +1,15 @@
 import React, { useEffect, useState } from 'react';
-import type { Visit } from '../types/index';
 import { formatDateTime, formatDuration } from '../lib/formatDate';
+import { maskIdProof } from '../lib/pii';
+import { approvalTimestamp } from '../lib/visitApproval';
+import type { ReportVisit } from '../lib/reportRow';
 import VisitorDetailsActions from './VisitorDetailsActions';
 import PreApprovalPass from './PreApprovalPass';
 
 interface Props {
-  visit: Visit;
+  // Widened from `Visit` so callers that have already attached the audit-log
+  // approval time can pass it through; plain `Visit` still satisfies this.
+  visit: ReportVisit;
   onClose: () => void;
   acting?: string | null;
   reason?: string;
@@ -43,6 +47,7 @@ export default function VisitorDetails({
   visit: v, onClose, acting, reason, onReasonChange, onApprove, onReject, onCancel,
 }: Props) {
   const dur = v.checked_in_at ? formatDuration(v.checked_in_at) : null;
+  const approvedAt = approvalTimestamp(v);
   const s = STATUS_COLORS[v.status] ?? { bg: 'bg-surface-100', text: 'text-navy-500', dot: 'bg-navy-300' };
   const [showPass, setShowPass] = useState(false);
 
@@ -131,18 +136,26 @@ export default function VisitorDetails({
             <div className="mt-3.5">
               <InfoRow
                 label="ID Document"
-                value={`${v.visitor.id_type}${v.visitor.id_last4 ? ` (xxxx${v.visitor.id_last4})` : ''}`}
+                value={maskIdProof(v.visitor.id_type, v.visitor.id_last4)}
                 icon={<svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15 9h3.75M15 12h3.75M15 15h3.75M4.5 19.5h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5zm6-10.125a1.875 1.875 0 11-3.75 0 1.875 1.875 0 013.75 0zm1.294 6.336a6.721 6.721 0 01-3.17.789 6.721 6.721 0 01-3.168-.789 3.376 3.376 0 016.338 0z" /></svg>}
               />
             </div>
           )}
 
-          {v.carrying_material && (
+          {v.carrying_remarks ? (
+            <div className="mt-3.5 flex items-start gap-2 text-warning-700 bg-warning-50 rounded-lg px-3 py-2">
+              <svg className="w-4 h-4 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z" /></svg>
+              <div className="min-w-0">
+                <p className="text-xs font-semibold">Carrying</p>
+                <p className="text-xs text-warning-800 mt-0.5 break-words">{v.carrying_remarks}</p>
+              </div>
+            </div>
+          ) : v.carrying_material ? (
             <div className="mt-3.5 flex items-center gap-2 text-warning-700 bg-warning-50 rounded-lg px-3 py-2">
               <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z" /></svg>
               <span className="text-xs font-semibold">Carrying Material</span>
             </div>
-          )}
+          ) : null}
 
           {/* Only true pre-approvals get a reopenable pass — a walk-in is
               already at the gate by the time the HOD decides, so there is no
@@ -169,6 +182,7 @@ export default function VisitorDetails({
             <div className="absolute left-[5px] top-2 bottom-2 w-px bg-surface-200 dark:bg-white/10" />
 
             <TimelineEntry color="bg-navy-300" label="Registered" time={formatDateTime(v.created_at)} />
+            {approvedAt && <TimelineEntry color="bg-success-400" label="Approved" time={formatDateTime(approvedAt)} />}
             {v.checked_in_at && <TimelineEntry color="bg-brand-500" label="Checked In" time={formatDateTime(v.checked_in_at)} />}
             {v.checked_out_at && <TimelineEntry color="bg-success-500" label="Checked Out" time={formatDateTime(v.checked_out_at)} />}
             {dur && v.status === 'checked_in' && (

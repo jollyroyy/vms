@@ -3,6 +3,7 @@ import { describe, it, expect, vi, afterEach } from 'vitest';
 import { render, screen, cleanup, waitFor, fireEvent } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import WhosInside from '../../../src/pages/Shared/WhosInside';
+import { formatDateTime } from '../../../src/lib/formatDate';
 
 const mockOrder = vi.hoisted(() => vi.fn());
 const mockRpc = vi.hoisted(() => vi.fn());
@@ -24,6 +25,10 @@ vi.mock('../../../src/supabaseClient', () => ({
 
 vi.mock('../../../src/lib/hostNames', () => ({
   attachHostNames: (rows: any[]) => Promise.resolve(rows),
+}));
+
+vi.mock('../../../src/lib/visitActors', () => ({
+  attachVisitActors: (rows: any[]) => Promise.resolve(rows),
 }));
 
 afterEach(() => {
@@ -182,6 +187,70 @@ describe('M12-GUARD: WhosInside', () => {
 
     await waitFor(() => {
       expect(screen.getByText('No pre-approved visitors')).toBeInTheDocument();
+    });
+  });
+
+  // Approval and check-in used to share one timeline row that only ever showed
+  // the check-in time. The two timestamps are deliberately different here so a
+  // regression back to a single row cannot pass.
+  it('shows the approval time and the check-in time as separate rows on the inside card', async () => {
+    setup();
+    const approvedAt = '2026-07-01T09:00:00Z';
+    const checkedInAt = '2026-07-01T11:30:00Z';
+    mockOrder.mockResolvedValue({
+      data: [{ ...mockCheckedIn, created_at: approvedAt, checked_in_at: checkedInAt }],
+      error: null,
+    });
+    render(<MemoryRouter><WhosInside /></MemoryRouter>);
+    await waitFor(() => {
+      expect(screen.getByText('Check-in')).toBeInTheDocument();
+    });
+    expect(screen.getByText(formatDateTime(approvedAt))).toBeInTheDocument();
+    expect(screen.getByText(formatDateTime(checkedInAt))).toBeInTheDocument();
+    expect(screen.getByText('Not yet checked out')).toBeInTheDocument();
+    expect(screen.getByText('Duration Inside')).toBeInTheDocument();
+    expect(screen.getByText('Live')).toBeInTheDocument();
+  });
+
+
+  it('shows "Not yet checked in" and "Not yet checked out" for pre-approved visitors', async () => {
+    setup();
+    mockOrder.mockResolvedValue({ data: [mockPreApproved], error: null });
+    render(<MemoryRouter><WhosInside /></MemoryRouter>);
+    fireEvent.click(screen.getByRole('button', { name: /pre-approved tab/i }));
+    await waitFor(() => {
+      expect(screen.getByText('Not yet checked in')).toBeInTheDocument();
+    });
+    expect(screen.getByText('Not yet checked out')).toBeInTheDocument();
+  });
+
+  it('shows walk-in approved visitors with check-in state when the Approved stat is clicked', async () => {
+    setup();
+    const mockWalkin = {
+      id: 'v3', ref_number: 'VIS-003', visitor_id: 'vis3', department_id: 'dept1', host_id: 'h1',
+      status: 'walkin_approved' as const, purpose: 'meeting' as const, photo_path: null, photo_data: null,
+      checked_in_at: null, checked_out_at: null, exit_verified: null,
+      rejection_reason: null, carrying_material: false, created_at: new Date().toISOString(),
+      visitor: { id: 'vis3', full_name: 'Carol', phone: '9876543212', company: 'Corp C' },
+      department: { id: 'dept1', name: 'IT', code: 'IT' },
+      host: { id: 'h1', full_name: 'Test Host' },
+    };
+    mockOrder.mockResolvedValue({ data: [mockCheckedIn, mockWalkin], error: null });
+    render(<MemoryRouter><WhosInside /></MemoryRouter>);
+    await waitFor(() => {
+      expect(screen.getByText('Alice')).toBeInTheDocument();
+    });
+    const allButtons = screen.getAllByRole('button');
+    const approvedStatCard = allButtons.find(btn =>
+      btn.classList.contains('stat-card') &&
+      btn.textContent?.includes('Approved') &&
+      !btn.textContent?.includes('Pre-Approved')
+    );
+    if (approvedStatCard) fireEvent.click(approvedStatCard);
+    await waitFor(() => {
+      expect(screen.getByText('Carol')).toBeInTheDocument();
+      expect(screen.getByText('Not yet checked in')).toBeInTheDocument();
+      expect(screen.getAllByText('Not yet checked out').length).toBeGreaterThan(0);
     });
   });
 });

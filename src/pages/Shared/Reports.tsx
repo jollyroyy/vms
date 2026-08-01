@@ -5,13 +5,13 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { supabase } from '../../supabaseClient';
 import type { Visit } from '../../types/index';
 import { attachHostNames } from '../../lib/hostNames';
-import { attachVisitActors, type VisitActor } from '../../lib/visitActors';
+import { attachVisitActors } from '../../lib/visitActors';
 import { visitStatusLabel } from '../../lib/visitStatusLabel';
-import { maskPhone } from '../../lib/pii';
+import { maskPhone, maskIdProof } from '../../lib/pii';
+import { approvalTimestamp } from '../../lib/visitApproval';
 import { computeDateRange, type RangePreset } from '../../lib/reportsDateRange';
+import type { ReportVisit } from '../../lib/reportRow';
 import ReportsToolbar from './ReportsToolbar';
-
-type ReportVisit = Visit & { actor?: VisitActor | null };
 
 const TODAY = new Date().toISOString().slice(0, 10);
 
@@ -48,7 +48,8 @@ export default function ReportsPage(): React.ReactElement {
     if (error) { console.error('[Reports] visits error:', error.message); setVisits([]); }
     else {
       const withHosts = await attachHostNames((data ?? []) as unknown as Visit[]);
-      setVisits(await attachVisitActors(withHosts));
+      const withActors = await attachVisitActors(withHosts);
+      setVisits(withActors.map((v) => ({ ...v, photo_url: v.photo_data ?? undefined })));
     }
     setLoading(false);
   }, [range.from, range.to, userDeptId, userRole]);
@@ -62,6 +63,26 @@ export default function ReportsPage(): React.ReactElement {
   // CSS capitalize would upper-case every word ("By", "Host"), so only plain statuses get it.
   const PLAIN_STATUS: Record<string, boolean> = {
     pending_approval: true, checked_in: true, checked_out: true, cancelled: true, no_show: true,
+  };
+
+  // What the visitor brought in, in the guard's own words. `carrying_material`
+  // predates the free-text column, so rows written before it still only say
+  // *that* something was carried — say so rather than pretending nothing was.
+  const carrying = (v: Visit): string => {
+    const remarks = v.carrying_remarks?.trim();
+    if (remarks) return remarks;
+    return v.carrying_material ? 'Yes (unspecified)' : '—';
+  };
+
+  const dateTime = (iso: string | null | undefined): React.ReactNode => {
+    if (!iso) return '—';
+    const d = new Date(iso);
+    return (
+      <>
+        <span className="block">{d.toLocaleDateString('en-IN')}</span>
+        <span className="block text-navy-400">{d.toLocaleTimeString('en-IN')}</span>
+      </>
+    );
   };
 
   const rangeLabel = preset === 'today' ? range.to : `${range.from} to ${range.to}`;
@@ -107,7 +128,7 @@ export default function ReportsPage(): React.ReactElement {
               <table className="w-full text-sm [font-variant-numeric:tabular-nums]">
                 <thead>
                   <tr className="bg-surface-50/80 border-b border-surface-200/60 dark:border-white/[0.06]">
-                    {['#', 'Ref', 'Name', 'Company', 'Phone', 'Dept', 'Host', 'Purpose', 'In', 'Out', 'Status'].map((h) => (
+                    {['#', 'Ref', 'Photo', 'Name', 'Company', 'Phone', 'Dept', 'Host', 'ID Proof', 'Purpose', 'Carrying', 'Approved', 'Check-in', 'Check-out', 'Status'].map((h) => (
                       <th key={h} className="px-3.5 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-navy-400 whitespace-nowrap">{h}</th>
                     ))}
                   </tr>
@@ -117,18 +138,32 @@ export default function ReportsPage(): React.ReactElement {
                     <tr key={v.id} className="hover:bg-surface-100/60 dark:hover:bg-white/[0.03] transition-colors">
                       <td className="px-3.5 py-3 text-navy-300">{i + 1}</td>
                       <td className="px-3.5 py-3 text-[11px] font-mono text-navy-400">{v.ref_number}</td>
+                      <td className="px-3.5 py-3">
+                        {v.photo_url ? (
+                          <img src={v.photo_url} alt="Visitor photo" className="w-10 h-10 rounded-lg object-cover ring-1 ring-black/5" />
+                        ) : (
+                          <div className="w-10 h-10 rounded-lg bg-surface-100 flex items-center justify-center text-navy-300 ring-1 ring-black/5">
+                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0" /></svg>
+                          </div>
+                        )}
+                      </td>
                       <td className="px-3.5 py-3 font-medium text-navy-800">{v.visitor?.full_name}</td>
                       <td className="px-3.5 py-3 text-navy-500">{v.visitor?.company}</td>
                       <td className="px-3.5 py-3 text-navy-500 font-mono text-xs">{maskPhone(v.visitor?.phone)}</td>
                       <td className="px-3.5 py-3 text-navy-500">{v.department?.name}</td>
                       <td className="px-3.5 py-3 text-navy-500">{v.host?.full_name}</td>
+                      <td className="px-3.5 py-3 text-navy-500 font-mono text-xs whitespace-nowrap">{maskIdProof(v.visitor?.id_type, v.visitor?.id_last4)}</td>
                       <td className="px-3.5 py-3 text-navy-500 capitalize">{v.purpose}</td>
-                      <td className="px-3.5 py-3 text-xs text-navy-400 whitespace-nowrap">{v.checked_in_at ? new Date(v.checked_in_at).toLocaleTimeString('en-IN') : '—'}</td>
-                      <td className="px-3.5 py-3 text-xs text-navy-400 whitespace-nowrap">{v.checked_out_at ? new Date(v.checked_out_at).toLocaleTimeString('en-IN') : v.exit_verified === false ? 'Auto-closed' : '—'}</td>
+                      <td className="px-3.5 py-3 text-xs text-navy-600 max-w-[14rem]">
+                        <span className="block truncate" title={v.carrying_remarks ?? undefined}>{carrying(v)}</span>
+                      </td>
+                      <td className="px-3.5 py-3 text-xs text-navy-700 whitespace-nowrap">{dateTime(approvalTimestamp(v))}</td>
+                      <td className="px-3.5 py-3 text-xs text-navy-700 whitespace-nowrap">{dateTime(v.checked_in_at)}</td>
+                      <td className="px-3.5 py-3 text-xs text-navy-700 whitespace-nowrap">{v.checked_out_at ? dateTime(v.checked_out_at) : v.exit_verified === false ? 'Auto-closed' : '—'}</td>
                       <td className={`px-3.5 py-3 font-medium ${PLAIN_STATUS[v.status] ? 'capitalize' : ''} ${STATUS_COLORS[v.status] ?? 'text-navy-500'}`}>{visitStatusLabel(v)}</td>
                     </tr>
                   ))}
-                  {visits.length === 0 && (<tr><td colSpan={11} className="px-4 py-12 text-center text-navy-300">No visits between {range.from} and {range.to}</td></tr>)}
+                  {visits.length === 0 && (<tr><td colSpan={15} className="px-4 py-12 text-center text-navy-300">No visits between {range.from} and {range.to}</td></tr>)}
                 </tbody>
               </table>
             </div>
