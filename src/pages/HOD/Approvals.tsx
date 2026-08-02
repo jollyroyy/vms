@@ -94,6 +94,9 @@ export default function HODApprovals(): React.ReactElement {
       {detailVisit && (
         <VisitorDetails
           visit={detailVisit}
+          // /approvals is HOD-only in ROLE_ROUTES, so no guard can reach this
+          // render. The pass gate fails closed, so the role has to be stated.
+          viewerRole="hod"
           onClose={() => setDetailVisit(null)}
           acting={acting}
           reason={reasons[detailVisit.id] ?? ''}

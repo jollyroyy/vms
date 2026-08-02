@@ -7,7 +7,7 @@
 //
 // A direct lookup rather than an includes() chain, so adding a VisitStatus is
 // a compile error here until someone decides what it means for the pass.
-import type { VisitStatus } from '../types/index';
+import type { UserRole, VisitStatus } from '../types/index';
 
 const PASS_AVAILABLE: Record<VisitStatus, boolean> = {
   // Nothing has been granted yet — there is no pass to hand over.
@@ -32,4 +32,18 @@ const PASS_AVAILABLE: Record<VisitStatus, boolean> = {
 /** True when this visit should still offer its entry pass. */
 export function canShowPass(status: VisitStatus): boolean {
   return PASS_AVAILABLE[status];
+}
+
+/** True when this role may be shown an entry pass at all.
+ *
+ *  Guards never may. A pass a guard can open, print or download is a pass that
+ *  can be issued without the visitor ever being at the gate, which is the one
+ *  thing the pass is supposed to prove. Reprinting a lost badge is deliberately
+ *  given up for that: it goes back to whoever raised the pre-approval.
+ *
+ *  Fails closed — an unknown or not-yet-loaded role is treated as a guard, so a
+ *  caller that forgets to pass a role hides the pass rather than leaking it.
+ */
+export function canRoleShowPass(role: UserRole | null | undefined): boolean {
+  return role != null && role !== 'guard';
 }

@@ -37,6 +37,8 @@ export default function OverviewFilteredView({
       {detailVisit && (
         <VisitorDetails
           visit={detailVisit}
+          // /overview is HOD-only in ROLE_ROUTES — see the note in Approvals.tsx.
+          viewerRole="hod"
           onClose={() => setDetailVisit(null)}
           acting={acting}
           reason={reasons?.[detailVisit.id] ?? ''}

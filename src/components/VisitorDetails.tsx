@@ -3,8 +3,9 @@ import { formatDateTime } from '../lib/formatDate';
 import { useLiveElapsed } from '../lib/useLiveElapsed';
 import { maskIdProof } from '../lib/pii';
 import { approvalTimestamp } from '../lib/visitApproval';
-import { canShowPass } from '../lib/passVisibility';
+import { canRoleShowPass, canShowPass } from '../lib/passVisibility';
 import type { ReportVisit } from '../lib/reportRow';
+import type { UserRole } from '../types/index';
 import VisitorDetailsActions from './VisitorDetailsActions';
 import PreApprovalPass from './PreApprovalPass';
 
@@ -13,6 +14,10 @@ interface Props {
   // approval time can pass it through; plain `Visit` still satisfies this.
   visit: ReportVisit;
   onClose: () => void;
+  // Who is looking. Gates the entry pass only — every other detail on this
+  // popup is visible to whoever can reach the visit. Omitted means "unknown",
+  // which canRoleShowPass treats as a guard and hides the pass.
+  viewerRole?: UserRole | null;
   acting?: string | null;
   reason?: string;
   onReasonChange?: (value: string) => void;
@@ -46,7 +51,7 @@ function InfoRow({ icon, label, value }: { icon: React.ReactNode; label: string;
 }
 
 export default function VisitorDetails({
-  visit: v, onClose, acting, reason, onReasonChange, onApprove, onReject, onCancel,
+  visit: v, onClose, viewerRole, acting, reason, onReasonChange, onApprove, onReject, onCancel,
 }: Props) {
   // The popup renders once when it opens, so a snapshot duration sat frozen on
   // screen for as long as the guard kept it open. This one ticks.
@@ -161,12 +166,13 @@ export default function VisitorDetails({
             </div>
           ) : null}
 
-          {/* Any visit that has been granted entry and not yet ended keeps its
-              pass reachable — see canShowPass for which statuses and why. The
-              HOD who raised the pre-approval is the one who needs to hand it
-              over, so this must not vanish the moment the guard checks the
-              visitor in. */}
-          {canShowPass(v.status) && (
+          {/* Two independent gates, both must pass. canShowPass says the visit
+              is at a stage where a pass still means something; canRoleShowPass
+              says this viewer may be shown one at all — guards never may, so
+              the toggle, the QR and both downloads disappear together for them.
+              Everything else on this popup stays visible to a guard: confirming
+              a visitor's identity against their record is the whole job. */}
+          {canShowPass(v.status) && canRoleShowPass(viewerRole) && (
             <div className="mt-3.5">
               <button
                 type="button"

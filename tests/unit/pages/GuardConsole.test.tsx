@@ -221,4 +221,25 @@ describe('M12-GUARD: GuardConsole', () => {
       });
     });
   });
+
+  // The console used to carry a badge modal wired to <Badge>, which draws a
+  // live QR straight from visit.qr_token and has no role gate of its own. It
+  // was unreachable — setBadgeVisit was only ever called with null — but any
+  // future "reprint badge" button wired to it would have silently handed a
+  // guard a working entry pass. A guard must never be able to mint one.
+  describe('never offers an entry pass', () => {
+    it('renders no badge, QR or print-badge control', async () => {
+      mockChannel.mockReturnValue({ on: () => ({ subscribe: mockSubscribe }) });
+      mockSubscribe.mockReturnValue('sub-1');
+      mockVisitData.current = [];
+      const { container } = render(<MemoryRouter><GuardConsole /></MemoryRouter>);
+      await waitFor(() => {
+        expect(screen.getByText('People Inside')).toBeInTheDocument();
+      });
+
+      expect(screen.queryByText(/print badge/i)).not.toBeInTheDocument();
+      expect(screen.queryByText(/visitor pass/i)).not.toBeInTheDocument();
+      expect(container.querySelector('img[alt*="QR" i]')).toBeNull();
+    });
+  });
 });

@@ -7,7 +7,10 @@ import { safeErrorMessage } from '../../lib/errors';
 import GuardConsoleInsideCard from './GuardConsoleInsideCard';
 import GuardConsoleModeTabs from './GuardConsoleModeTabs';
 import GuardConsoleModeContent from './GuardConsoleModeContent';
-import Badge from '../../components/Badge';
+// No Badge import: the guard console must never render an entry pass. See
+// canRoleShowPass in lib/passVisibility.ts for why. Badge draws a live QR
+// straight from visit.qr_token and has no role gate of its own, so wiring it
+// back in here would reintroduce the leak that gate exists to close.
 
 type Mode = 'checkin' | 'exit' | 'checked-out' | 'no-show' | 'rejected' | 'all';
 
@@ -29,7 +32,6 @@ export default function GuardConsole(): React.ReactElement {
   const [visits, setVisits] = useState<Visit[]>([]);
   const [preApproved, setPreApproved] = useState<Visit[]>([]);
   const [loading, setLoading] = useState(true);
-  const [badgeVisit, setBadgeVisit] = useState<Visit | null>(null);
   const [today] = useState(() => new Date().toISOString().slice(0, 10));
   const [successMsg, setSuccessMsg] = useState('');
   const [actionErr, setActionErr] = useState('');
@@ -132,17 +134,6 @@ export default function GuardConsole(): React.ReactElement {
         onCheckOut={logExit}
       />
 
-      {badgeVisit && (
-        <div className="modal-overlay">
-          <div className="modal-content p-6 space-y-5">
-            <Badge visit={badgeVisit} />
-            <div className="flex gap-3 justify-end no-print">
-              <button onClick={() => setBadgeVisit(null)} className="btn-secondary">Close</button>
-              <button onClick={() => window.print()} className="btn-primary">Print Badge</button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { supabase } from '../../supabaseClient';
-import type { Visit } from '../../types/index';
+import type { UserRole, Visit } from '../../types/index';
 import { attachHostNames } from '../../lib/hostNames';
 import { attachVisitActors } from '../../lib/visitActors';
 import { safeErrorMessage } from '../../lib/errors';
@@ -96,7 +96,9 @@ export default function WhosInside(): React.ReactElement {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      {detailVisit && <VisitorDetails visit={detailVisit} onClose={() => setDetailVisit(null)} />}
+      {/* This is the one place a guard can open a visit record, so the real
+          role goes through rather than a literal — guards get no entry pass. */}
+      {detailVisit && <VisitorDetails visit={detailVisit} viewerRole={userRole as UserRole | null} onClose={() => setDetailVisit(null)} />}
 
       {/* Header */}
       <div className="flex items-start justify-between flex-wrap gap-4">

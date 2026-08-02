@@ -99,12 +99,12 @@ describe('VisitorDetails — reopening the entry pass', () => {
   afterEach(() => cleanup());
 
   it('offers a View Pass toggle for a pre-approved visit', () => {
-    render(<VisitorDetails visit={visit} onClose={vi.fn()} />);
+    render(<VisitorDetails visit={visit} onClose={vi.fn()} viewerRole="hod" />);
     expect(screen.getByRole('button', { name: /view pass/i })).toBeInTheDocument();
   });
 
   it('reveals the QR pass on click and hides it again on a second click', async () => {
-    render(<VisitorDetails visit={visit} onClose={vi.fn()} />);
+    render(<VisitorDetails visit={visit} onClose={vi.fn()} viewerRole="hod" />);
     const toggle = screen.getByRole('button', { name: /view pass/i });
 
     fireEvent.click(toggle);
@@ -116,24 +116,65 @@ describe('VisitorDetails — reopening the entry pass', () => {
   });
 
   it('offers a pass for a walk-in approval so the badge can still be printed', () => {
-    render(<VisitorDetails visit={{ ...visit, status: 'walkin_approved' }} onClose={vi.fn()} />);
+    render(<VisitorDetails visit={{ ...visit, status: 'walkin_approved' }} onClose={vi.fn()} viewerRole="hod" />);
     expect(screen.getByRole('button', { name: /view pass/i })).toBeInTheDocument();
   });
 
   // Previously the pass disappeared the moment the guard checked the visitor
   // in, which is precisely when a lost or unprinted badge needs reissuing.
   it('still offers the pass once the visitor has checked in', () => {
-    render(<VisitorDetails visit={{ ...visit, status: 'checked_in', checked_in_at: '2026-07-30T09:30:00Z' }} onClose={vi.fn()} />);
+    render(<VisitorDetails visit={{ ...visit, status: 'checked_in', checked_in_at: '2026-07-30T09:30:00Z' }} onClose={vi.fn()} viewerRole="hod" />);
     expect(screen.getByRole('button', { name: /view pass/i })).toBeInTheDocument();
   });
 
+  // viewerRole is stated on both of these so they keep testing the *status*
+  // gate. Left off, they would pass because of the role gate instead and stop
+  // covering what they were written for.
   it('does not offer a pass while the visit is still awaiting approval', () => {
-    render(<VisitorDetails visit={{ ...visit, status: 'pending_approval' }} onClose={vi.fn()} />);
+    render(<VisitorDetails visit={{ ...visit, status: 'pending_approval' }} onClose={vi.fn()} viewerRole="hod" />);
     expect(screen.queryByRole('button', { name: /view pass/i })).not.toBeInTheDocument();
   });
 
   it('does not offer a pass once the visit has ended', () => {
-    render(<VisitorDetails visit={{ ...visit, status: 'checked_out', checked_out_at: '2026-07-30T17:00:00Z' }} onClose={vi.fn()} />);
+    render(<VisitorDetails visit={{ ...visit, status: 'checked_out', checked_out_at: '2026-07-30T17:00:00Z' }} onClose={vi.fn()} viewerRole="hod" />);
+    expect(screen.queryByRole('button', { name: /view pass/i })).not.toBeInTheDocument();
+  });
+});
+
+// A guard must never be able to open, print or download an entry pass: that
+// would let one be issued without the visitor ever being at the gate. The rest
+// of the record stays readable — checking the person against it is the job.
+describe('VisitorDetails — the pass is never shown to a guard', () => {
+  afterEach(() => cleanup());
+
+  it.each(['approved', 'walkin_approved', 'checked_in'])(
+    'hides the View Pass toggle from a guard for a %s visit',
+    (status) => {
+      render(<VisitorDetails visit={{ ...visit, status } as unknown as Visit} onClose={vi.fn()} viewerRole="guard" />);
+      expect(screen.queryByRole('button', { name: /view pass/i })).not.toBeInTheDocument();
+    },
+  );
+
+  it('hides the QR and both downloads from a guard, not just the toggle', () => {
+    render(<VisitorDetails visit={visit} onClose={vi.fn()} viewerRole="guard" />);
+    expect(screen.queryByAltText('Entry pass QR code')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /download pdf/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /download png/i })).not.toBeInTheDocument();
+  });
+
+  // The point of the popup for a guard is confirming the person in front of
+  // them against the record. Removing the pass must not remove that.
+  it('still shows a guard the visitor details behind the pass', () => {
+    render(<VisitorDetails visit={visit} onClose={vi.fn()} viewerRole="guard" />);
+    expect(screen.getByText('John Doe')).toBeInTheDocument();
+    expect(screen.getByText('9999999999')).toBeInTheDocument();
+    expect(screen.getByText('Engineering')).toBeInTheDocument();
+    expect(screen.getByText('Jane Smith')).toBeInTheDocument();
+  });
+
+  // Fails closed: a caller that forgets viewerRole hides the pass.
+  it('hides the pass when no viewer role is supplied at all', () => {
+    render(<VisitorDetails visit={visit} onClose={vi.fn()} />);
     expect(screen.queryByRole('button', { name: /view pass/i })).not.toBeInTheDocument();
   });
 });
