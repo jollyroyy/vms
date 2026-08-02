@@ -47,3 +47,18 @@ export function canShowPass(status: VisitStatus): boolean {
 export function canRoleShowPass(role: UserRole | null | undefined): boolean {
   return role != null && role !== 'guard';
 }
+
+// DELIBERATE GAP — do not "fix" without asking.
+//
+// The kiosk is exempt. /kiosk is in ROLE_ROUTES.guard, and its badge screen
+// (Kiosk.tsx -> KioskBadgeScreen -> components/Badge) renders a live QR from
+// visit.qr_token without consulting this module. So a signed-in guard standing
+// at the kiosk can key in a pre-approved visitor's phone number and print that
+// visitor's pass.
+//
+// That is known and accepted: the kiosk is a visitor-operated terminal and the
+// badge screen is how a walk-in receives their own pass after self-check-in.
+// Gating it on role would break self-service check-in, which is the entire
+// point of the screen. Closing it properly needs the kiosk to stop being a
+// guard route — its own role or an unauthenticated mode — not a role check
+// bolted onto Badge.
