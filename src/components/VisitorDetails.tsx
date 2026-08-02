@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { formatDateTime, formatDuration } from '../lib/formatDate';
+import { formatDateTime } from '../lib/formatDate';
+import { useLiveElapsed } from '../lib/useLiveElapsed';
 import { maskIdProof } from '../lib/pii';
 import { approvalTimestamp } from '../lib/visitApproval';
 import { canShowPass } from '../lib/passVisibility';
@@ -47,7 +48,9 @@ function InfoRow({ icon, label, value }: { icon: React.ReactNode; label: string;
 export default function VisitorDetails({
   visit: v, onClose, acting, reason, onReasonChange, onApprove, onReject, onCancel,
 }: Props) {
-  const dur = v.checked_in_at ? formatDuration(v.checked_in_at) : null;
+  // The popup renders once when it opens, so a snapshot duration sat frozen on
+  // screen for as long as the guard kept it open. This one ticks.
+  const dur = useLiveElapsed(v.checked_in_at, v.checked_out_at);
   const approvedAt = approvalTimestamp(v);
   const s = STATUS_COLORS[v.status] ?? { bg: 'bg-surface-100', text: 'text-navy-500', dot: 'bg-navy-300' };
   const [showPass, setShowPass] = useState(false);
@@ -184,16 +187,16 @@ export default function VisitorDetails({
           <div className="space-y-3 relative">
             <div className="absolute left-[5px] top-2 bottom-2 w-px bg-surface-200 dark:bg-white/10" />
 
-            <TimelineEntry color="bg-navy-300" label="Registered" time={formatDateTime(v.created_at)} />
             {approvedAt && <TimelineEntry color="bg-success-400" label="Approved" time={formatDateTime(approvedAt)} />}
             {v.checked_in_at && <TimelineEntry color="bg-brand-500" label="Checked In" time={formatDateTime(v.checked_in_at)} />}
             {v.checked_out_at && <TimelineEntry color="bg-success-500" label="Checked Out" time={formatDateTime(v.checked_out_at)} />}
-            {dur && v.status === 'checked_in' && (
+            {v.checked_in_at && v.status === 'checked_in' && (
               <TimelineEntry
                 color={dur.isOvertime ? 'bg-danger-500' : 'bg-brand-400'}
                 label="Duration"
                 time={`${dur.text}${dur.isOvertime ? ' — Overtime' : ''}`}
                 highlight={dur.isOvertime}
+                strong
               />
             )}
             {v.rejection_reason && (
@@ -222,13 +225,13 @@ export default function VisitorDetails({
   );
 }
 
-function TimelineEntry({ color, label, time, highlight }: { color: string; label: string; time: string; highlight?: boolean }) {
+function TimelineEntry({ color, label, time, highlight, strong }: { color: string; label: string; time: string; highlight?: boolean; strong?: boolean }) {
   return (
     <div className="flex items-start gap-3 relative">
       <div className={`w-[11px] h-[11px] rounded-full ${color} border-2 border-white shrink-0 mt-0.5 z-10`} />
       <div className={`flex-1 flex justify-between items-baseline gap-2 min-w-0 ${highlight ? 'text-danger-600 font-bold' : ''}`}>
-        <span className="text-[11px] text-navy-400 font-medium shrink-0">{label}</span>
-        <span className={`text-[11px] font-medium truncate ${highlight ? 'text-danger-600' : 'text-navy-700'}`}>{time}</span>
+        <span className="text-[11px] uppercase tracking-wider text-navy-500 font-bold shrink-0">{label}</span>
+        <span className={`truncate tabular-nums ${strong ? 'text-[14px] font-bold' : 'text-[13px] font-semibold'} ${highlight ? 'text-danger-600' : 'text-navy-800'}`}>{time}</span>
       </div>
     </div>
   );

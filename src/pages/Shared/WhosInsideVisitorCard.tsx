@@ -1,5 +1,6 @@
-import React, { useEffect, useState } from 'react';
-import { formatDateTime, formatElapsed } from '../../lib/formatDate';
+import React from 'react';
+import { formatDateTime } from '../../lib/formatDate';
+import { useLiveElapsed } from '../../lib/useLiveElapsed';
 import { approvalTimestamp } from '../../lib/visitApproval';
 import type { ReportVisit } from '../../lib/reportRow';
 import { STATUS_STYLES } from '../../lib/statusStyles';
@@ -20,16 +21,19 @@ const TONE_CLASSES: Record<Tone, string> = {
   danger: 'bg-danger-50 text-danger-600 dark:bg-danger-500/10',
 };
 
-function TimelineRow({ tone, icon, label, value, live }: { tone: Tone; icon: React.ReactNode; label: string; value: React.ReactNode; live?: boolean }): React.ReactElement {
+// `strong` promotes a row to the one the guard is meant to read first — larger,
+// darker and in tabular figures so a ticking duration does not jitter sideways
+// as the digits change width.
+function TimelineRow({ tone, icon, label, value, live, strong }: { tone: Tone; icon: React.ReactNode; label: string; value: React.ReactNode; live?: boolean; strong?: boolean }): React.ReactElement {
   return (
     <div className="flex items-start gap-2.5">
       <span className={`mt-0.5 h-7 w-7 rounded-lg flex items-center justify-center shrink-0 ${TONE_CLASSES[tone]}`}>{icon}</span>
       <div className="min-w-0">
-        <p className="text-[10px] font-bold uppercase tracking-wider text-navy-400">{label}</p>
-        <p className="text-xs font-semibold text-navy-800 truncate">
+        <p className="text-[10px] font-bold uppercase tracking-widest text-navy-500">{label}</p>
+        <p className={`truncate tabular-nums ${strong ? 'text-[15px] font-bold leading-snug text-navy-950' : 'text-[13px] font-semibold leading-snug text-navy-800'}`}>
           {value}
           {live && (
-            <span className="ml-1.5 inline-flex items-center gap-1 text-[10px] font-bold text-success-600">
+            <span className="ml-1.5 inline-flex items-center gap-1 align-middle text-[10px] font-bold uppercase tracking-wide text-success-600">
               <span className="h-1.5 w-1.5 rounded-full bg-success-500 animate-pulse-soft" />Live
             </span>
           )}
@@ -42,14 +46,8 @@ function TimelineRow({ tone, icon, label, value, live }: { tone: Tone; icon: Rea
 export default function WhosInsideVisitorCard({ visit: v, index: idx, onClick }: Props): React.ReactElement {
   const style = STATUS_STYLES[v.status];
   const isInside = v.status === 'checked_in';
-  const [, setTick] = useState(0);
-  useEffect(() => {
-    if (!isInside) return;
-    const id = setInterval(() => setTick((t) => t + 1), 30000);
-    return () => clearInterval(id);
-  }, [isInside]);
-
-  const duration = v.checked_in_at ? formatElapsed(v.checked_in_at, v.checked_out_at ?? undefined) : null;
+  const elapsed = useLiveElapsed(v.checked_in_at, v.checked_out_at);
+  const duration = v.checked_in_at ? elapsed : null;
   const approvedAt = approvalTimestamp(v);
 
   return (
@@ -70,19 +68,19 @@ export default function WhosInsideVisitorCard({ visit: v, index: idx, onClick }:
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between gap-1">
-            <p className="font-semibold text-navy-900 truncate text-sm">{v.visitor?.full_name ?? '—'}</p>
+            <p className="font-bold text-navy-950 truncate text-[15px] leading-tight tracking-tight">{v.visitor?.full_name ?? '—'}</p>
             <span className={`shrink-0 status-badge ${style.bg} ${style.text}`}>
               <span className={`h-1.5 w-1.5 rounded-full ${style.dot} ${isInside ? 'animate-pulse-soft' : ''}`} />
               {style.label}
             </span>
           </div>
-          {v.visitor?.company && <p className="text-xs text-navy-400 truncate">{v.visitor.company}</p>}
+          {v.visitor?.company && <p className="text-[13px] text-navy-500 truncate mt-0.5">{v.visitor.company}</p>}
           <div className="mt-2 pt-2 border-t border-surface-200/60 dark:border-white/[0.06] space-y-1">
-            <p className="text-xs font-semibold text-navy-600 truncate">{v.department?.name ?? '—'}</p>
-            {v.host?.full_name && <p className="text-xs text-navy-400 truncate">Host: {v.host.full_name}</p>}
-            <p className="text-[10px] text-navy-300 font-mono">{v.ref_number}</p>
+            <p className="text-[13px] font-bold text-navy-800 truncate">{v.department?.name ?? '—'}</p>
+            {v.host?.full_name && <p className="text-[13px] text-navy-500 truncate">Host: {v.host.full_name}</p>}
+            <p className="text-[11px] text-navy-400 font-mono tracking-wide">{v.ref_number}</p>
             {!isInside && (
-              <p className={`text-[11px] font-semibold flex items-center gap-1 ${v.status === 'pending_approval' ? 'text-warning-600' : 'text-success-600'}`}>
+              <p className={`text-[12px] font-bold flex items-center gap-1.5 ${v.status === 'pending_approval' ? 'text-warning-700' : 'text-success-700'}`}>
                 <span className={`h-1.5 w-1.5 rounded-full ${v.status === 'pending_approval' ? 'bg-warning-500 animate-pulse' : 'bg-success-500'}`} />
                 {v.status === 'pending_approval' ? 'Pending HOD Approval'
                   : v.status === 'walkin_approved' ? 'Walk-in Approved — Awaiting Check-in'
@@ -120,6 +118,7 @@ export default function WhosInsideVisitorCard({ visit: v, index: idx, onClick }:
           label="Duration Inside"
           value={duration ? `${duration.text}${duration.isOvertime ? ' — Overtime' : ''}` : '—'}
           live={isInside}
+          strong
         />
       </div>
     </div>

@@ -29,7 +29,11 @@ const baseVisit: Visit = {
   carrying_material: false,
   scheduled_for: null,
   qr_token: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
-  qr_expires_at: '2026-08-02T10:00:00Z',
+  // Relative, not a hardcoded date. This was pinned to a fixed "later today"
+  // timestamp, so the whole suite silently went red the day the wall clock
+  // caught up to it: evaluateQrVisit checks expiry *before* status, so every
+  // gate assertion in this file started reporting "This QR code has expired."
+  qr_expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
   created_at: '2026-08-01T09:00:00Z',
 };
 

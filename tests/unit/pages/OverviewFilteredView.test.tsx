@@ -19,6 +19,7 @@ vi.mock('../../../src/components/VisitorDetails', () => ({
 vi.mock('../../../src/lib/formatDate', () => ({
   formatTime: () => '10:00 AM',
   formatDuration: () => ({ text: '30m', isOvertime: false }),
+  formatElapsed: () => ({ text: '30m', isOvertime: false }),
 }));
 
 vi.mock('../../../src/lib/statusStyles', () => ({

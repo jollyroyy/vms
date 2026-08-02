@@ -7,6 +7,7 @@ import type { Visit } from '../../../src/types/index';
 vi.mock('../../../src/lib/formatDate', () => ({
   formatDateTime: () => '30 Jul 2026, 10:00 AM',
   formatDuration: () => ({ text: '30m', isOvertime: false }),
+  formatElapsed: () => ({ text: '30m', isOvertime: false }),
 }));
 
 const visit = {
@@ -72,6 +73,25 @@ describe('VisitorDetails — closing the popup', () => {
     expect(onClose).not.toHaveBeenCalled();
     fireEvent.click(container.querySelector('.modal-overlay')!);
     expect(onClose).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('VisitorDetails — timeline', () => {
+  afterEach(() => cleanup());
+
+  // The registration timestamp is a record-keeping detail, not something a
+  // guard acts on at the gate. Approved / Checked In / Duration are.
+  it('does not show a Registered row', () => {
+    render(<VisitorDetails visit={visit} onClose={vi.fn()} />);
+    expect(screen.queryByText('Registered')).not.toBeInTheDocument();
+  });
+
+  it('still shows the arrival timeline for a checked-in visit', () => {
+    const inside = { ...visit, status: 'checked_in', checked_in_at: '2026-07-30T10:00:00Z' } as unknown as Visit;
+    render(<VisitorDetails visit={inside} onClose={vi.fn()} />);
+    expect(screen.getByText('Checked In')).toBeInTheDocument();
+    expect(screen.getByText('Duration')).toBeInTheDocument();
+    expect(screen.queryByText('Registered')).not.toBeInTheDocument();
   });
 });
 

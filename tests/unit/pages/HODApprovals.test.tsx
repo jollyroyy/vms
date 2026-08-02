@@ -18,6 +18,7 @@ vi.mock('../../../src/lib/formatDate', () => ({
   formatDateTime: () => '',
   formatTime: () => '',
   formatDuration: () => null,
+  formatElapsed: () => ({ text: '30m', isOvertime: false }),
 }));
 
 let mockData: any;

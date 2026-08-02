@@ -7,3 +7,8 @@
 
 alter table public.visits
   add column if not exists carrying_remarks text;
+
+-- PostgREST caches the table schema. Without this the API keeps rejecting writes
+-- with "Could not find the 'carrying_remarks' column of 'visits' in the schema
+-- cache" until the connection pooler is restarted.
+notify pgrst, 'reload schema';
