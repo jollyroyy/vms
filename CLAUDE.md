@@ -21,6 +21,23 @@
   `ALL_LINKS`.
 - The Admin Panel (`/admin`) manages **departments and their heads of department** only.
   It has no Users tab and no Blacklist tab.
+- **No gate-pass anything in the admin surface.** `gate_passes` / `gate_pass_items` are a
+  material-movement module (RGP/NRGP) whose pages and routes were deleted from the app
+  long ago; the only things still reading the table were an Analytics "Gate Pass Summary"
+  card, a "Gate Passes" tile in the admin `SidebarAnalytics` widget and an unrouted
+  `pages/Dashboard.tsx`. All three are gone, along with the `gate_passes` realtime
+  subscriptions that fed them. The **types and the DB table stay** (`types/index.ts` still
+  mirrors the live schema, and the RLS/realtime security tests still assert on it) — do
+  not "finish the job" by deleting those, and do not re-add a pass widget to any admin
+  screen.
+- **Reports (`/reports`) is the admin's visitor record.** It already carries `Approved`,
+  `Check-in` and `Check-out` columns with the exact date *and* time, on screen and in the
+  CSV. Approval time is resolved through `lib/visitApproval.ts` → `approvalTimestamp()`,
+  not read off the row: there is no `visits.approved_at` column, so it comes from the
+  `visit_approved` audit-log row (`lib/visitActors.ts`) and falls back to the visit's own
+  `created_at` only for statuses that prove a prior approval. Admin is exempt from the
+  department filter in `Reports.tsx` and can read `audit_logs` (migration 041), so admins
+  see every visit's real approval instant.
 - HODs are added by **name + email**. `addHod()` promotes an existing profile if that
   email is already known, otherwise it invites a new account via `supabase.auth.signUp`
   and upserts the profile. Writing `profiles.role` is enough — the
@@ -127,9 +144,9 @@ src/
                      # VisitorFormPreApproved; DailyStaff, WalkInRequest
   pages/HOD/         # Approvals, ApprovalsPendingList, ApprovalsVisitList, HODOverview,
                      # OverviewStatCards, OverviewUpcoming, OverviewNotifications, PreApproveForm
-  pages/Shared/      # Analytics (shell) + AnalyticsKPICards, AnalyticsCharts,
-                     # AnalyticsGatePassSummary; WhosInside + WhosInsideVisitorCard;
-                     # Reports, VisitorsDashboard
+  pages/Shared/      # Analytics (shell) + AnalyticsKPICards, AnalyticsCharts;
+                     # WhosInside + WhosInsideVisitorCard;
+                     # Reports + ReportsToolbar, VisitorsDashboard
   pages/Admin/       # AdminPanel (shell), DepartmentsManager (state), DepartmentCard,
                      # DepartmentForm, HodList, HodForm, AdminStats, AdminAlerts,
                      # ConfirmDialog, AdminConfirmDialogs, Activity;

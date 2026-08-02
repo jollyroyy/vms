@@ -2,22 +2,18 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { supabase } from '../../supabaseClient';
 
 export default function SidebarAnalytics({ deptId, isCollapsed }: { deptId: string; isCollapsed: boolean }): React.ReactElement {
-  const [counts, setCounts] = useState({ inside: 0, pending: 0, approved: 0, gatePasses: 0 });
+  const [counts, setCounts] = useState({ inside: 0, pending: 0, approved: 0 });
 
   const today = new Date().toISOString().slice(0, 10);
 
   const refresh = useCallback(async () => {
-    const [{ data: visits }, { data: gp }] = await Promise.all([
-      supabase.from('visits').select('id, status').eq('department_id', deptId).gte('created_at', `${today}T00:00:00Z`),
-      supabase.from('gate_passes').select('id, status').eq('department_id', deptId).gte('created_at', `${today}T00:00:00Z`),
-    ]);
+    const { data: visits } = await supabase.from('visits')
+      .select('id, status').eq('department_id', deptId).gte('created_at', `${today}T00:00:00Z`);
     const v = (visits ?? []) as Array<{ id: string; status: string }>;
-    const g = (gp ?? []) as Array<{ id: string; status: string }>;
     setCounts({
       inside: v.filter(r => r.status === 'checked_in').length,
       pending: v.filter(r => r.status === 'pending_approval').length,
       approved: v.filter(r => ['approved', 'walkin_approved'].includes(r.status)).length,
-      gatePasses: g.length,
     });
   }, [deptId, today]);
 
@@ -26,7 +22,6 @@ export default function SidebarAnalytics({ deptId, isCollapsed }: { deptId: stri
   useEffect(() => {
     const ch = supabase.channel('sidebar-analytics')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'visits', filter: `department_id=eq.${deptId}` }, () => { void refresh(); })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'gate_passes', filter: `department_id=eq.${deptId}` }, () => { void refresh(); })
       .subscribe();
     return () => { void supabase.removeChannel(ch); };
   }, [deptId, refresh]);
@@ -50,7 +45,6 @@ export default function SidebarAnalytics({ deptId, isCollapsed }: { deptId: stri
     { label: 'Inside Now', value: counts.inside, color: 'text-brand-600', dot: 'bg-success-500 animate-pulse-soft' },
     { label: 'Pending', value: counts.pending, color: 'text-amber-600', dot: 'bg-amber-500' },
     { label: 'Approved', value: counts.approved, color: 'text-success-600', dot: 'bg-success-500' },
-    { label: 'Gate Passes', value: counts.gatePasses, color: 'text-accent-600', dot: 'bg-accent-500' },
   ];
 
   return (

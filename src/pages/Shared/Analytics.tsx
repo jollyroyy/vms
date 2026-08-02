@@ -4,15 +4,16 @@
  */
 import React, { useCallback, useEffect, useState } from 'react';
 import { supabase } from '../../supabaseClient';
-import type { Visit, GatePass } from '../../types/index';
+import type { Visit } from '../../types/index';
 import AnalyticsKPICards from './AnalyticsKPICards';
 import AnalyticsCharts, { type TimeSlot, type DeptStat } from './AnalyticsCharts';
-import AnalyticsGatePassSummary from './AnalyticsGatePassSummary';
 
+// Visitor analytics only. `gate_passes` is a material-movement table (RGP/NRGP)
+// left over from a module that no longer exists in the app — nothing reads it
+// here any more, so don't reintroduce a query or a summary tile for it.
 export default function AnalyticsPage(): React.ReactElement {
   const [loading, setLoading] = useState(true);
   const [visits, setVisits] = useState<Visit[]>([]);
-  const [gatePasses, setGatePasses] = useState<GatePass[]>([]);
   const [userRole, setUserRole] = useState<string>('');
   const [userDept, setUserDept] = useState<string>('');
   const [period, setPeriod] = useState<'7d' | '30d' | '90d'>('30d');
@@ -35,19 +36,13 @@ export default function AnalyticsPage(): React.ReactElement {
       .gte('created_at', since)
       .order('created_at', { ascending: true });
 
-    let gpQuery = supabase.from('gate_passes')
-      .select(`*, department:departments(id, name, code, created_at)`)
-      .gte('created_at', since);
-
     // HOD: filter by their department
     if (userRole === 'hod' && userDept) {
       visitQuery = visitQuery.eq('department_id', userDept);
-      gpQuery = gpQuery.eq('department_id', userDept);
     }
 
-    const [{ data: v }, { data: g }] = await Promise.all([visitQuery, gpQuery]);
+    const { data: v } = await visitQuery;
     setVisits((v as unknown as Visit[]) ?? []);
-    setGatePasses((g as unknown as GatePass[]) ?? []);
     setLoading(false);
   }, [period, userRole, userDept]);
 
@@ -59,7 +54,6 @@ export default function AnalyticsPage(): React.ReactElement {
     const filters: any = userDept ? { filter: `department_id=eq.${userDept}` } : {};
     const ch = supabase.channel('analytics-live')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'visits', ...filters }, () => { void load(); })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'gate_passes', ...filters }, () => { void load(); })
       .subscribe();
     return () => { void supabase.removeChannel(ch); };
   }, [userRole, userDept, load]);
@@ -167,9 +161,6 @@ export default function AnalyticsPage(): React.ReactElement {
             userRole={userRole}
             deptStats={deptStats}
           />
-
-          {/* Gate pass summary */}
-          <AnalyticsGatePassSummary gatePasses={gatePasses} />
         </>
       )}
     </div>
