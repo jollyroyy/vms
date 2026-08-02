@@ -57,6 +57,18 @@ describe('SEC-7: frontend route protection', () => {
       expect(isForbidden('/reports', role)).toBe(true);
     });
 
+    // Sidebar restructure (visitor-only deployment): three new guard-only
+    // routes replaced/expanded the guard console. These must be reachable...
+    it('guard is allowed on /guard/pre-approvals', () => {
+      expect(isForbidden('/guard/pre-approvals', role)).toBe(false);
+    });
+    it('guard is allowed on /guard/search', () => {
+      expect(isForbidden('/guard/search', role)).toBe(false);
+    });
+    it('guard is allowed on /guard/watchlist', () => {
+      expect(isForbidden('/guard/watchlist', role)).toBe(false);
+    });
+
     it('guard is FORBIDDEN on /admin', () => {
       expect(isForbidden('/admin', role)).toBe(true);
     });
@@ -212,6 +224,18 @@ describe('SEC-7: frontend route protection', () => {
     const nonAdminRoles = ['guard', 'hod', 'staff'] as const;
     for (const role of nonAdminRoles) {
       expect(isForbidden('/admin', role), `${role} must be forbidden on /admin`).toBe(true);
+    }
+  });
+
+  // ── New guard-only routes (sidebar restructure) ─────────────
+  it('only guard may reach /guard/pre-approvals, /guard/search and /guard/watchlist', () => {
+    const newGuardRoutes = ['/guard/pre-approvals', '/guard/search', '/guard/watchlist'];
+    const nonGuardRoles = ['hod', 'staff', 'admin'] as const;
+    for (const route of newGuardRoutes) {
+      expect(isForbidden(route, 'guard'), `guard must be allowed on ${route}`).toBe(false);
+      for (const role of nonGuardRoles) {
+        expect(isForbidden(route, role), `${role} must be forbidden on ${route}`).toBe(true);
+      }
     }
   });
 

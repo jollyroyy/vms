@@ -107,10 +107,23 @@ describe('Sidebar: navigation links', () => {
 
   it('renders correct nav links for guard role', () => {
     renderWithRouter(<Sidebar session={guardSession} role="guard" />);
+    // The four-item visitor console. See components/layout/navLinks.tsx.
     expect(screen.getByText('Dashboard')).toBeInTheDocument();
     expect(screen.getByText('Visitors')).toBeInTheDocument();
-    expect(screen.getByText('Self-Service Kiosk')).toBeInTheDocument();
-    expect(screen.getByText('Daily Staff')).toBeInTheDocument();
+    expect(screen.getByText('Pre-Approvals')).toBeInTheDocument();
+    expect(screen.getByText('Watchlist & Alerts')).toBeInTheDocument();
+
+    // Search left the nav but stays routable at /guard/search (see
+    // ROLE_ROUTES.guard in roleRoutes.ts) — same reasoning as Daily Staff/Kiosk.
+    expect(screen.queryByText('Search')).not.toBeInTheDocument();
+
+    // Dropped from the NAV, but deliberately still ROUTABLE — the kiosk runs on
+    // its own device and both remain in ROLE_ROUTES.guard. They left the
+    // sidebar because neither is visitor check-in, not because a guard lost
+    // access. tests/security/routeProtection.test.tsx asserts the access half.
+    expect(screen.queryByText('Self-Service Kiosk')).not.toBeInTheDocument();
+    expect(screen.queryByText('Daily Staff')).not.toBeInTheDocument();
+
     expect(screen.queryByText('On-site')).not.toBeInTheDocument();
     expect(screen.queryByText('Material Passes')).not.toBeInTheDocument();
     expect(screen.queryByText('Reports')).not.toBeInTheDocument();

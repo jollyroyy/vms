@@ -59,7 +59,10 @@ describe('GuardExpectedToday', () => {
   it('lists an expected visitor with their scheduled arrival time and status', () => {
     renderList({ visits: [visit({ scheduled_for: '2026-07-30T09:30:00Z', status: 'approved' })] });
     expect(screen.getByText('Jane Doe')).toBeInTheDocument();
-    expect(screen.getByText(/Host: Alex Host/)).toBeInTheDocument();
+    // VisitorCard renders the host as its own labelled column now, not an
+    // inline "Host: Name" string.
+    expect(screen.getByText('Host')).toBeInTheDocument();
+    expect(screen.getByText('Alex Host')).toBeInTheDocument();
     expect(screen.getByText('Pre-approved')).toBeInTheDocument();
   });
 

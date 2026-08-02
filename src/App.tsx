@@ -15,6 +15,9 @@ import VisitorsDashboard  from './pages/Shared/VisitorsDashboard';
 import GuardConsole       from './pages/Guard/Console';
 import GuardDashboard     from './pages/Guard/Dashboard';
 import DailyStaff         from './pages/Guard/DailyStaff';
+import GuardPreApprovals  from './pages/Guard/PreApprovals';
+import GuardSearch        from './pages/Guard/Search';
+import GuardWatchlist     from './pages/Guard/Watchlist';
 import HODApprovals       from './pages/HOD/Approvals';
 import HODOverview        from './pages/HOD/HODOverview';
 import WhosInside         from './pages/Shared/WhosInside';
@@ -154,6 +157,9 @@ export default function App(): React.ReactElement {
             <Route path="/guard"           element={<ProtectedRoute role={role}><GuardConsole /></ProtectedRoute>} />
             <Route path="/guard/dashboard" element={<ProtectedRoute role={role}><GuardDashboard /></ProtectedRoute>} />
             <Route path="/guard/daily-staff" element={<ProtectedRoute role={role}><DailyStaff /></ProtectedRoute>} />
+            <Route path="/guard/pre-approvals" element={<ProtectedRoute role={role}><GuardPreApprovals /></ProtectedRoute>} />
+            <Route path="/guard/search"    element={<ProtectedRoute role={role}><GuardSearch /></ProtectedRoute>} />
+            <Route path="/guard/watchlist" element={<ProtectedRoute role={role}><GuardWatchlist /></ProtectedRoute>} />
             <Route path="/kiosk"          element={<ProtectedRoute role={role}><KioskPage /></ProtectedRoute>} />
             <Route path="/approvals"       element={<ProtectedRoute role={role}><HODApprovals /></ProtectedRoute>} />
             <Route path="/overview"        element={<ProtectedRoute role={role}><HODOverview /></ProtectedRoute>} />

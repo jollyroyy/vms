@@ -26,6 +26,49 @@
   and upserts the profile. Writing `profiles.role` is enough — the
   `sync_profile_role_to_auth` trigger (migration 010) mirrors it into JWT `app_metadata`.
 
+### Guard console (visitor-only deployment)
+- The guard **sidebar is four items** — Dashboard, Visitors, Pre-Approvals, Watchlist &
+  Alerts. Defined in `src/components/layout/navLinks.tsx` (extracted out of
+  `Sidebar.tsx`). `Visitors` carries **no sub-nav children** — Expected / Walk-ins /
+  Inside live only as the `GuardConsoleModeTabs` in the main content area now.
+- **Daily Staff, the Kiosk and Search were removed from the NAV but are still ROUTABLE.**
+  `/guard/daily-staff`, `/kiosk` and `/guard/search` remain in `ROLE_ROUTES.guard` on
+  purpose — the kiosk runs on its own device. They left the sidebar because neither is
+  visitor check-in (Search duplicated lookups the Visitors tabs already cover), not
+  because access was revoked. Do not "tidy up" `ROLE_ROUTES` by deleting them.
+- **Dashboard reads, Console acts.** `/guard/dashboard` is situational awareness only;
+  everything that changes a visit's state lives in `/visitors`. These two used to
+  duplicate each other (both rendered an inside-list, both held their own realtime
+  subscription) and a guard could not tell which was authoritative. Keep the split.
+- **`entered` is NOT `inside`.** `visits.status` holds one value, so a visitor who came
+  and left is `checked_out`, not `checked_in`. Counting `status === 'checked_in'` answers
+  "who is still here", never "how many came through today". `useGateStats` derives
+  `entered` from `checked_in_at IS NOT NULL` and holds the invariant
+  `entered === inside + checkedOut`. `tests/unit/lib/useGateStats.test.ts` guards this —
+  it is the bug the dashboard rebuild fixed and it must not silently return.
+- The `Declined` tile is `status === 'rejected'`, which means **an HOD declined the
+  request**, usually before the visitor ever reached the gate. It is not the guard turning
+  someone away — do not relabel it "Denied Entry".
+- **Watchlist is blacklist-only, on purpose.** `visitors.is_blacklisted` +
+  `blacklist_reason` are the only columns backing it. There is no VIP flag, no ID-expiry
+  column and no duplicate-identity detection in the schema. Do not add placeholder
+  sections for them; add the columns first or leave it alone.
+- **No badge/QR anywhere in the guard surface.** A guard must never be able to mint an
+  entry pass (see `lib/passVisibility.ts` and the comment at the top of `Console.tsx`).
+  This is why there is no "Badge Printing" queue on the dashboard despite the wireframe
+  asking for one. `VisitorCard` and `GuardConsole` both have tests asserting the absence.
+- `Console.tsx`'s `TAB_MODE_MAP` only maps to the three live modes (expected / walkins /
+  inside) — the audit views (`checked-out` / `rejected` / `all`) were removed from the
+  guard surface entirely (they remain available in Reports). Old `?tab=` deep links —
+  legacy aliases (`checkin` → expected, `exit` → inside, `no-show` → expected) and the
+  former audit-view values themselves (`checked-out` → inside, `rejected` → expected,
+  `all` → expected) — degrade gracefully onto the nearest live tab instead of 404-ing
+  into a blank one. Tested in `GuardConsole.test.tsx`.
+- Guard styling lives in `src/styles/components-guard.css` (`.gate-tile`, `.visitor-card`,
+  `.rail-*`, `.gate-action`, `.gate-tab`, `.queue-row`). Every colour resolves to an
+  existing token, so both themes and any rebrand follow automatically. Status is always
+  carried by a colour rail **and** a text badge — never colour alone.
+
 ### Live shared data
 - `src/lib/useDepartments.ts` and `src/lib/useHods.ts` fetch **and** subscribe to
   `postgres_changes`. Every screen with a department picker uses `useDepartments()` —
@@ -74,10 +117,14 @@
 ```
 src/
   pages/Guard/       # Console (shell) + GuardConsoleModeTabs, GuardConsoleModeContent,
-                     # GuardConsoleInsideCard, GuardConsoleVisitorRow;
+                     # GuardWalkIns;
+                     # VisitorCard (the ONE shared visitor row — superseded the
+                     #   deleted GuardConsoleVisitorRow / GuardConsoleInsideCard);
+                     # Dashboard (composition) + DashboardSummary, DashboardActivity;
+                     # PreApprovals + PreApprovalRow; Search; Watchlist;
                      # CheckInPanel + CheckInMatchList, CheckInPhotoStep;
                      # VisitorForm + VisitorFormFields, VisitorFormAlerts,
-                     # VisitorFormPreApproved; Dashboard, DailyStaff, WalkInRequest
+                     # VisitorFormPreApproved; DailyStaff, WalkInRequest
   pages/HOD/         # Approvals, ApprovalsPendingList, ApprovalsVisitList, HODOverview,
                      # OverviewStatCards, OverviewUpcoming, OverviewNotifications, PreApproveForm
   pages/Shared/      # Analytics (shell) + AnalyticsKPICards, AnalyticsCharts,
@@ -93,10 +140,13 @@ src/
                      # KioskFormScreen, KioskBadgeScreen, KioskAuroraBackdrop
   components/layout/ # AppShell, Sidebar, SidebarAnalytics, SidebarProfile
   lib/               # roleRoutes, theme, errors, mfa,
+                     # useGateStats (guard KPIs — read the entered/inside note above),
+                     # useRecentActivity, usePreApprovals, useWatchlist,
+                     # visitorSearch (pure query parsing), statusRail,
                      # adminDepartments, adminHods (admin CRUD + validation),
                      # useDepartments, useHods (live, realtime-subscribed)
   styles/            # tokens, base, components-forms, components-surfaces,
-                     # components-feedback, aurora, animations
+                     # components-feedback, components-guard, aurora, animations
                      # — all @imported by index.css (see CSS note below)
   types/             # index.ts (all DB types)
 supabase/migrations/ # Numbered SQL migrations (001-031+)

@@ -4,80 +4,30 @@ import { render, screen, cleanup, waitFor, fireEvent } from '@testing-library/re
 import { MemoryRouter } from 'react-router-dom';
 import GuardConsole from '../../../src/pages/Guard/Console';
 
-const mockExportCsv = vi.hoisted(() => vi.fn());
-const mockChannel = vi.hoisted(() => vi.fn());
-const mockSubscribe = vi.hoisted(() => vi.fn());
 const mockVisitData = vi.hoisted(() => ({ current: [] as any[] }));
 
-vi.mock('../../../src/lib/exportUtils', () => ({
-  exportToCsv: mockExportCsv,
+vi.mock('../../../src/pages/Guard/CheckInPanel', () => ({
+  default: () => <div>CheckInPanel</div>,
 }));
 
 vi.mock('../../../src/supabaseClient', () => {
-  const fromMock = vi.fn(() => ({
-    select: vi.fn(() => ({
-      order: vi.fn(() => Promise.resolve({ data: mockVisitData.current, error: null })),
-      eq: vi.fn(() => ({
-        order: vi.fn(() => Promise.resolve({ data: mockVisitData.current, error: null })),
-        in: vi.fn(() => ({
-          in: vi.fn(() => ({
-            order: vi.fn(() => Promise.resolve({ data: mockVisitData.current, error: null })),
-          })),
-        })),
-        gte: vi.fn(() => ({
-          lte: vi.fn(() => ({
-            order: vi.fn(() => Promise.resolve({ data: mockVisitData.current, error: null })),
-          })),
-          order: vi.fn(() => Promise.resolve({ data: mockVisitData.current, error: null })),
-        })),
-        maybeSingle: vi.fn(() => Promise.resolve({ data: null, error: null })),
-      })),
-      in: vi.fn(() => ({
-        order: vi.fn(() => Promise.resolve({ data: mockVisitData.current, error: null })),
-        gte: vi.fn(() => ({
-          order: vi.fn(() => Promise.resolve({ data: mockVisitData.current, error: null })),
-          lte: vi.fn(() => ({
-            order: vi.fn(() => Promise.resolve({ data: mockVisitData.current, error: null })),
-          })),
-        })),
-      })),
-      gte: vi.fn(() => ({
-        order: vi.fn(() => Promise.resolve({ data: mockVisitData.current, error: null })),
-        lte: vi.fn(() => ({
-          order: vi.fn(() => Promise.resolve({ data: mockVisitData.current, error: null })),
-        })),
-      })),
-    })),
-    update: vi.fn(() => ({
-      eq: vi.fn(() => Promise.resolve({ error: null })),
-    })),
-    insert: vi.fn(() => ({
-      select: vi.fn(() => ({
-        single: vi.fn(() => Promise.resolve({ data: { id: 'new-id' }, error: null })),
-      })),
-    })),
-    upsert: vi.fn(() => ({
-      select: vi.fn(() => ({
-        single: vi.fn(() => Promise.resolve({ data: { id: 'new-id' }, error: null })),
-      })),
-    })),
-  }));
+  const ch: any = {};
+  ch.on = () => ch;
+  ch.subscribe = () => ch;
   return {
     supabase: {
-      from: fromMock,
-      channel: mockChannel,
-      removeChannel: vi.fn(),
-      rpc: vi.fn(() => Promise.resolve({ data: null, error: null })),
-      storage: {
-        from: vi.fn(() => ({
-          upload: vi.fn(() => Promise.resolve({ error: null })),
-          createSignedUrl: vi.fn(() => Promise.resolve({ data: { signedUrl: 'http://example.com/photo.webp' }, error: null })),
+      from: vi.fn(() => ({
+        select: vi.fn(() => ({
+          gte: vi.fn(() => ({
+            order: vi.fn(() => Promise.resolve({ data: mockVisitData.current, error: null })),
+          })),
         })),
-      },
-      auth: {
-        getUser: vi.fn(() => Promise.resolve({ data: { user: { id: 'test-user', app_metadata: { role: 'guard', department_id: 'dept1' } } }, error: null })),
-        getSession: vi.fn(() => Promise.resolve({ data: { session: null }, error: null })),
-      },
+        update: vi.fn(() => ({
+          eq: vi.fn(() => Promise.resolve({ error: null })),
+        })),
+      })),
+      channel: vi.fn(() => ch),
+      removeChannel: vi.fn(),
     },
   };
 });
@@ -92,149 +42,139 @@ afterEach(() => {
   mockVisitData.current = [];
 });
 
-describe('M12-GUARD: GuardConsole', () => {
-  it('renders header', async () => {
-    mockChannel.mockReturnValue({ on: () => ({ subscribe: mockSubscribe }) });
-    mockSubscribe.mockReturnValue('sub-1');
-    render(<MemoryRouter><GuardConsole /></MemoryRouter>);
+function visit(overrides: Record<string, any> = {}) {
+  return {
+    id: 'v1',
+    status: 'checked_in',
+    created_at: '2026-08-02T04:00:00Z',
+    checked_in_at: '2026-08-02T04:05:00Z',
+    checked_out_at: null,
+    photo_data: null,
+    visitor: { full_name: 'Alice Johnson' },
+    department: { name: 'Engineering' },
+    ...overrides,
+  };
+}
+
+function renderConsole(initialEntry = '/visitors') {
+  return render(
+    <MemoryRouter initialEntries={[initialEntry]}>
+      <GuardConsole />
+    </MemoryRouter>,
+  );
+}
+
+describe('GuardConsole', () => {
+  it('renders the "Visitors" heading', async () => {
+    renderConsole();
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Visitors');
+  });
+
+  it('renders the three primary tabs with count badges', async () => {
+    renderConsole();
     await waitFor(() => {
-      expect(screen.getByText('Guard Console')).toBeInTheDocument();
+      expect(screen.getByRole('tab', { name: /Expected/i })).toBeInTheDocument();
+      expect(screen.getByRole('tab', { name: /Walk-ins/i })).toBeInTheDocument();
+      expect(screen.getByRole('tab', { name: /Inside/i })).toBeInTheDocument();
     });
   });
 
-  it('shows check-in and log-out buttons', async () => {
-    mockChannel.mockReturnValue({ on: () => ({ subscribe: mockSubscribe }) });
-    mockSubscribe.mockReturnValue('sub-1');
-    render(<MemoryRouter><GuardConsole /></MemoryRouter>);
+  it('defaults to the "expected" mode, rendering CheckInPanel', async () => {
+    renderConsole();
     await waitFor(() => {
-      expect(screen.getByText('Check In')).toBeInTheDocument();
+      expect(screen.getByRole('tab', { name: /Expected/i })).toHaveAttribute('aria-selected', 'true');
+      expect(screen.getByText('CheckInPanel')).toBeInTheDocument();
+    });
+  });
+
+  it('clicking Inside switches content and shows a Check Out action', async () => {
+    mockVisitData.current = [visit()];
+    renderConsole();
+    await waitFor(() => expect(screen.getByRole('tab', { name: /Inside/i })).toBeInTheDocument());
+    fireEvent.click(screen.getByRole('tab', { name: /Inside/i }));
+    await waitFor(() => {
+      expect(screen.getByText('Alice Johnson')).toBeInTheDocument();
       expect(screen.getByText('Check Out')).toBeInTheDocument();
     });
   });
 
-  it('shows search input by default', async () => {
-    mockChannel.mockReturnValue({ on: () => ({ subscribe: mockSubscribe }) });
-    mockSubscribe.mockReturnValue('sub-1');
-    render(<MemoryRouter><GuardConsole /></MemoryRouter>);
+  it('clicking Walk-ins shows the walk-in lane', async () => {
+    renderConsole();
+    await waitFor(() => expect(screen.getByRole('tab', { name: /Walk-ins/i })).toBeInTheDocument());
+    fireEvent.click(screen.getByRole('tab', { name: /Walk-ins/i }));
     await waitFor(() => {
-      expect(screen.getByPlaceholderText('Search by phone or name...')).toBeInTheDocument();
+      expect(screen.getByText('Register a walk-in')).toBeInTheDocument();
+      expect(screen.getByText('Awaiting host approval')).toBeInTheDocument();
     });
   });
 
-  it('shows empty state when no one inside', async () => {
-    mockChannel.mockReturnValue({ on: () => ({ subscribe: mockSubscribe }) });
-    mockSubscribe.mockReturnValue('sub-1');
-    render(<MemoryRouter><GuardConsole /></MemoryRouter>);
-    fireEvent.click(screen.getByText('Check Out'));
-    await waitFor(() => {
-      expect(screen.getByText('No one inside right now.')).toBeInTheDocument();
-    });
-  });
-
-  it('switches between check-in and log-out modes', async () => {
-    mockChannel.mockReturnValue({ on: () => ({ subscribe: mockSubscribe }) });
-    mockSubscribe.mockReturnValue('sub-1');
-    render(<MemoryRouter><GuardConsole /></MemoryRouter>);
-    await waitFor(() => {
-      expect(screen.getByPlaceholderText('Search by phone or name...')).toBeInTheDocument();
-    });
-    fireEvent.click(screen.getByText('Check Out'));
-    await waitFor(() => {
-      expect(screen.getByText('No one inside right now.')).toBeInTheDocument();
-    });
-    fireEvent.click(screen.getByText('Check In'));
-    await waitFor(() => {
-      expect(screen.getByPlaceholderText('Search by phone or name...')).toBeInTheDocument();
-    });
-  });
-
-  describe('Inside card', () => {
-    it('shows the count of people inside', async () => {
-      mockChannel.mockReturnValue({ on: () => ({ subscribe: mockSubscribe }) });
-      mockSubscribe.mockReturnValue('sub-1');
-      render(<MemoryRouter><GuardConsole /></MemoryRouter>);
+  describe('legacy tab aliases', () => {
+    it('?tab=checkin lands on the "expected" mode', async () => {
+      renderConsole('/visitors?tab=checkin');
       await waitFor(() => {
-        expect(screen.getByText('People Inside')).toBeInTheDocument();
-        expect(screen.getByText('0')).toBeInTheDocument();
+        expect(screen.getByRole('tab', { name: /Expected/i })).toHaveAttribute('aria-selected', 'true');
+        expect(screen.getByText('CheckInPanel')).toBeInTheDocument();
       });
     });
 
-    it('shows empty state when expanded with no visitors', async () => {
-      mockChannel.mockReturnValue({ on: () => ({ subscribe: mockSubscribe }) });
-      mockSubscribe.mockReturnValue('sub-1');
-      render(<MemoryRouter><GuardConsole /></MemoryRouter>);
+    it('?tab=exit lands on the "inside" mode', async () => {
+      renderConsole('/visitors?tab=exit');
       await waitFor(() => {
-        expect(screen.getByText('People Inside')).toBeInTheDocument();
-      });
-      fireEvent.click(screen.getByText('People Inside').closest('button')!);
-      await waitFor(() => {
-        expect(screen.getByText('No visitors inside right now.')).toBeInTheDocument();
+        expect(screen.getByRole('tab', { name: /Inside/i })).toHaveAttribute('aria-selected', 'true');
+        expect(screen.getByText('On the premises')).toBeInTheDocument();
       });
     });
 
-    it('shows visitor details when expanded with data', async () => {
-      mockVisitData.current = [
-        {
-          id: 'v1', status: 'checked_in', checked_in_at: new Date(Date.now() - 3600000).toISOString(),
-          visitor: { full_name: 'Alice Johnson' },
-          department: { name: 'Engineering' },
-          photo_url: null,
-        },
-        {
-          id: 'v2', status: 'checked_in', checked_in_at: new Date(Date.now() - 36000000).toISOString(),
-          visitor: { full_name: 'Bob Smith' },
-          department: { name: 'Marketing' },
-          photo_url: null,
-        },
-      ];
-      mockChannel.mockReturnValue({ on: () => ({ subscribe: mockSubscribe }) });
-      mockSubscribe.mockReturnValue('sub-1');
-      render(<MemoryRouter><GuardConsole /></MemoryRouter>);
+    it('?tab=no-show lands on the "expected" mode (nearest live tab; "all" was removed)', async () => {
+      renderConsole('/visitors?tab=no-show');
       await waitFor(() => {
-        const twos = screen.getAllByText('2');
-        expect(twos.length).toBeGreaterThanOrEqual(1);
-      });
-      const btn = screen.getByText('People Inside').closest('button')!;
-      fireEvent.click(btn);
-      await waitFor(() => {
-        expect(screen.getAllByText('Alice Johnson').length).toBeGreaterThanOrEqual(1);
-        expect(screen.getAllByText('Bob Smith').length).toBeGreaterThanOrEqual(1);
-        expect(screen.getAllByText('Check Out').length).toBeGreaterThanOrEqual(2);
+        expect(screen.getByRole('tab', { name: /Expected/i })).toHaveAttribute('aria-selected', 'true');
+        expect(screen.getByText('CheckInPanel')).toBeInTheDocument();
       });
     });
 
-    it('toggles the list on repeated clicks', async () => {
-      mockChannel.mockReturnValue({ on: () => ({ subscribe: mockSubscribe }) });
-      mockSubscribe.mockReturnValue('sub-1');
-      render(<MemoryRouter><GuardConsole /></MemoryRouter>);
+    it('?tab=checked-out lands on the "inside" mode (nearest live tab)', async () => {
+      renderConsole('/visitors?tab=checked-out');
       await waitFor(() => {
-        expect(screen.getByText('People Inside')).toBeInTheDocument();
+        expect(screen.getByRole('tab', { name: /Inside/i })).toHaveAttribute('aria-selected', 'true');
       });
-      const btn = screen.getByText('People Inside').closest('button')!;
-      fireEvent.click(btn);
+    });
+
+    it('?tab=rejected lands on the "expected" mode (nearest live tab)', async () => {
+      renderConsole('/visitors?tab=rejected');
       await waitFor(() => {
-        expect(screen.getByText('No visitors inside right now.')).toBeInTheDocument();
-      });
-      fireEvent.click(btn);
-      await waitFor(() => {
-        expect(screen.queryByText('No visitors inside right now.')).not.toBeInTheDocument();
+        expect(screen.getByRole('tab', { name: /Expected/i })).toHaveAttribute('aria-selected', 'true');
       });
     });
   });
 
-  // The console used to carry a badge modal wired to <Badge>, which draws a
-  // live QR straight from visit.qr_token and has no role gate of its own. It
-  // was unreachable — setBadgeVisit was only ever called with null — but any
-  // future "reprint badge" button wired to it would have silently handed a
-  // guard a working entry pass. A guard must never be able to mint one.
+  it('renders no "Also view" secondary filter row (checked-out/declined/all audit views were removed)', async () => {
+    renderConsole();
+    await waitFor(() => expect(screen.getByRole('tab', { name: /Expected/i })).toBeInTheDocument());
+    expect(screen.queryByText('Also view')).not.toBeInTheDocument();
+    expect(screen.queryByText('Checked out')).not.toBeInTheDocument();
+    expect(screen.queryByText('Declined')).not.toBeInTheDocument();
+    expect(screen.queryByText('All today')).not.toBeInTheDocument();
+  });
+
+  it('shows an empty state when nobody is inside', async () => {
+    mockVisitData.current = [];
+    renderConsole();
+    fireEvent.click(screen.getByRole('tab', { name: /Inside/i }));
+    await waitFor(() => {
+      expect(screen.getByText('No one is inside right now.')).toBeInTheDocument();
+    });
+  });
+
+  // The console must never let a guard mint an entry pass. See the comment
+  // block at the top of Console.tsx and canRoleShowPass in lib/passVisibility.ts.
   describe('never offers an entry pass', () => {
     it('renders no badge, QR or print-badge control', async () => {
-      mockChannel.mockReturnValue({ on: () => ({ subscribe: mockSubscribe }) });
-      mockSubscribe.mockReturnValue('sub-1');
-      mockVisitData.current = [];
-      const { container } = render(<MemoryRouter><GuardConsole /></MemoryRouter>);
+      mockVisitData.current = [visit()];
+      const { container } = renderConsole();
+      fireEvent.click(screen.getByRole('tab', { name: /Inside/i }));
       await waitFor(() => {
-        expect(screen.getByText('People Inside')).toBeInTheDocument();
+        expect(screen.getByText('Alice Johnson')).toBeInTheDocument();
       });
 
       expect(screen.queryByText(/print badge/i)).not.toBeInTheDocument();
