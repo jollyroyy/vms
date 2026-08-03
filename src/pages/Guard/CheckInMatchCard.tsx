@@ -54,12 +54,12 @@ export default function CheckInMatchCard({ match: m, disabled, isCheckedIn, expi
               <span className="truncate">Host: <span className="font-semibold text-navy-700">{m.hostName}</span></span>
             </span>
           )}
-          {m.company && (
+          {m.vendorName && (
             <span className="flex items-center gap-1.5">
               <svg className="w-3.5 h-3.5 shrink-0 text-navy-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 21h16.5M4.5 3.75h15v16.5h-15V3.75zM9 6.75h1.5m-1.5 3h1.5m-1.5 3h1.5M13.5 6.75H15m-1.5 3H15m-1.5 3H15M9 21v-3.375c0-.621.504-1.125 1.125-1.125h3.75c.621 0 1.125.504 1.125 1.125V21" />
               </svg>
-              <span className="truncate">{m.company}</span>
+              <span className="truncate">{m.vendorName}</span>
             </span>
           )}
           {m.approvedAt && (

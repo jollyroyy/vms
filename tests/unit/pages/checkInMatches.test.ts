@@ -30,7 +30,7 @@ function makeVisit(overrides: Partial<PreApprovedVisit> = {}): PreApprovedVisit 
       id: 'visitor-1',
       phone: '9876543210',
       full_name: 'Asha Rao',
-      company: 'Acme Co',
+      vendor_name: 'Acme Co',
       id_type: null,
       id_last4: null,
       vehicle_number: null,
@@ -52,7 +52,7 @@ function makeRecurring(overrides: Partial<RecurringWithDept> = {}): RecurringWit
     created_by: 'user-1',
     visitor_name: 'Priya Singh',
     visitor_phone: '8765432109',
-    visitor_company: 'Beta Ltd',
+    visitor_vendor_name: 'Beta Ltd',
     purpose: 'vendor',
     recurrence_type: 'weekly',
     recurrence_day: 3,
@@ -127,7 +127,7 @@ describe('buildMatchItems', () => {
       const items = buildMatchItems([makeVisit({ visitor: undefined })], [], { search: '', deptFilter: '' });
       expect(items[0].visitorName).toBe('');
       expect(items[0].visitorPhone).toBe('');
-      expect(items[0].company).toBe('');
+      expect(items[0].vendorName).toBe('');
       expect(items[0].visitorName).not.toMatch(/undefined/);
     });
 

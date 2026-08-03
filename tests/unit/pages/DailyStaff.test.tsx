@@ -59,8 +59,8 @@ describe('DailyStaff page', () => {
 
   it('renders visitor cards when data exists', async () => {
     mockVisits = [
-      { id: '1', visitor_name: 'Sunita Devi', visitor_phone: '9876543210', visitor_company: null, purpose: 'maintenance', status: 'checked_in', check_in_time: '2025-01-01T09:00:00Z', check_out_time: null, departments: { name: 'Admin' } },
-      { id: '2', visitor_name: 'Ramu Vendor', visitor_phone: '9123456789', visitor_company: 'SupplyCo', purpose: 'vendor', status: 'approved', check_in_time: null, check_out_time: null, departments: { name: 'IT' } },
+      { id: '1', visitor_name: 'Sunita Devi', visitor_phone: '9876543210', visitor_vendor_name: null, purpose: 'maintenance', status: 'checked_in', check_in_time: '2025-01-01T09:00:00Z', check_out_time: null, departments: { name: 'Admin' } },
+      { id: '2', visitor_name: 'Ramu Vendor', visitor_phone: '9123456789', visitor_vendor_name: 'SupplyCo', purpose: 'vendor', status: 'approved', check_in_time: null, check_out_time: null, departments: { name: 'IT' } },
     ];
     renderPage();
     await waitFor(() => {
@@ -71,9 +71,9 @@ describe('DailyStaff page', () => {
 
   it('maps purpose to correct type badge', async () => {
     mockVisits = [
-      { id: '1', visitor_name: 'Worker One', visitor_phone: '111', visitor_company: null, purpose: 'maintenance', status: 'checked_in', check_in_time: null, check_out_time: null, departments: { name: 'HR' } },
-      { id: '2', visitor_name: 'Vendor Two', visitor_phone: '222', visitor_company: null, purpose: 'vendor', status: 'approved', check_in_time: null, check_out_time: null, departments: { name: 'IT' } },
-      { id: '3', visitor_name: 'Delivery Three', visitor_phone: '333', visitor_company: null, purpose: 'delivery', status: 'checked_out', check_in_time: null, check_out_time: null, departments: { name: 'Ops' } },
+      { id: '1', visitor_name: 'Worker One', visitor_phone: '111', visitor_vendor_name: null, purpose: 'maintenance', status: 'checked_in', check_in_time: null, check_out_time: null, departments: { name: 'HR' } },
+      { id: '2', visitor_name: 'Vendor Two', visitor_phone: '222', visitor_vendor_name: null, purpose: 'vendor', status: 'approved', check_in_time: null, check_out_time: null, departments: { name: 'IT' } },
+      { id: '3', visitor_name: 'Delivery Three', visitor_phone: '333', visitor_vendor_name: null, purpose: 'delivery', status: 'checked_out', check_in_time: null, check_out_time: null, departments: { name: 'Ops' } },
     ];
     renderPage();
     await waitFor(() => {
@@ -86,9 +86,9 @@ describe('DailyStaff page', () => {
 
   it('shows status badges correctly', async () => {
     mockVisits = [
-      { id: '1', visitor_name: 'Inside Person', visitor_phone: '111', visitor_company: null, purpose: 'maintenance', status: 'checked_in', check_in_time: '2025-01-01T09:00:00Z', check_out_time: null, departments: { name: 'HR' } },
-      { id: '2', visitor_name: 'Left Person', visitor_phone: '222', visitor_company: null, purpose: 'vendor', status: 'checked_out', check_in_time: null, check_out_time: null, departments: { name: 'IT' } },
-      { id: '3', visitor_name: 'Expected Person', visitor_phone: '333', visitor_company: null, purpose: 'delivery', status: 'approved', check_in_time: null, check_out_time: null, departments: { name: 'Ops' } },
+      { id: '1', visitor_name: 'Inside Person', visitor_phone: '111', visitor_vendor_name: null, purpose: 'maintenance', status: 'checked_in', check_in_time: '2025-01-01T09:00:00Z', check_out_time: null, departments: { name: 'HR' } },
+      { id: '2', visitor_name: 'Left Person', visitor_phone: '222', visitor_vendor_name: null, purpose: 'vendor', status: 'checked_out', check_in_time: null, check_out_time: null, departments: { name: 'IT' } },
+      { id: '3', visitor_name: 'Expected Person', visitor_phone: '333', visitor_vendor_name: null, purpose: 'delivery', status: 'approved', check_in_time: null, check_out_time: null, departments: { name: 'Ops' } },
     ];
     renderPage();
     await waitFor(() => {
@@ -101,9 +101,9 @@ describe('DailyStaff page', () => {
     });
   });
 
-  it('shows company name when present', async () => {
+  it('shows vendor name when present', async () => {
     mockVisits = [
-      { id: '1', visitor_name: 'Vendor X', visitor_phone: '111', visitor_company: 'Acme Corp', purpose: 'vendor', status: 'approved', check_in_time: null, check_out_time: null, departments: { name: 'IT' } },
+      { id: '1', visitor_name: 'Vendor X', visitor_phone: '111', visitor_vendor_name: 'Acme Corp', purpose: 'vendor', status: 'approved', check_in_time: null, check_out_time: null, departments: { name: 'IT' } },
     ];
     renderPage();
     await waitFor(() => {
@@ -113,9 +113,9 @@ describe('DailyStaff page', () => {
 
   it('renders stat cards with correct counts', async () => {
     mockVisits = [
-      { id: '1', visitor_name: 'A', visitor_phone: '', visitor_company: null, purpose: 'maintenance', status: 'checked_in', check_in_time: null, check_out_time: null, departments: null },
-      { id: '2', visitor_name: 'B', visitor_phone: '', visitor_company: null, purpose: 'vendor', status: 'checked_out', check_in_time: null, check_out_time: null, departments: null },
-      { id: '3', visitor_name: 'C', visitor_phone: '', visitor_company: null, purpose: 'delivery', status: 'approved', check_in_time: null, check_out_time: null, departments: null },
+      { id: '1', visitor_name: 'A', visitor_phone: '', visitor_vendor_name: null, purpose: 'maintenance', status: 'checked_in', check_in_time: null, check_out_time: null, departments: null },
+      { id: '2', visitor_name: 'B', visitor_phone: '', visitor_vendor_name: null, purpose: 'vendor', status: 'checked_out', check_in_time: null, check_out_time: null, departments: null },
+      { id: '3', visitor_name: 'C', visitor_phone: '', visitor_vendor_name: null, purpose: 'delivery', status: 'approved', check_in_time: null, check_out_time: null, departments: null },
     ];
     renderPage();
     await waitFor(() => {
@@ -140,7 +140,7 @@ describe('DailyStaff page', () => {
 
   it('falls back to General when department is null', async () => {
     mockVisits = [
-      { id: '1', visitor_name: 'No Dept', visitor_phone: '', visitor_company: null, purpose: 'maintenance', status: 'checked_in', check_in_time: null, check_out_time: null, departments: null },
+      { id: '1', visitor_name: 'No Dept', visitor_phone: '', visitor_vendor_name: null, purpose: 'maintenance', status: 'checked_in', check_in_time: null, check_out_time: null, departments: null },
     ];
     renderPage();
     await waitFor(() => {

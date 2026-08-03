@@ -56,7 +56,7 @@ let freshVisitorSeq = 0;
 async function freshVisitor(): Promise<string> {
   const phone = `99988870${String(freshVisitorSeq++).padStart(2, '0')}`;
   const { data, error } = await svc.from('visitors')
-    .upsert({ phone, full_name: `RLS Fresh Visitor ${phone}`, company: 'TestCo' }, { onConflict: 'phone' })
+    .upsert({ phone, full_name: `RLS Fresh Visitor ${phone}`, vendor_name: 'TestCo' }, { onConflict: 'phone' })
     .select('id').single();
   if (error) throw error;
   // Clear any active visit left behind by an earlier aborted run.
@@ -76,7 +76,7 @@ beforeAll(async () => {
   hodItId = profs!.find((p) => p.email === 'hod.it@demo.vms')!.id;
 
   const { data: vis, error: visErr } = await svc.from('visitors')
-    .upsert({ phone: '9998887778', full_name: 'RLS Integrity Test Visitor', company: 'TestCo' }, { onConflict: 'phone' })
+    .upsert({ phone: '9998887778', full_name: 'RLS Integrity Test Visitor', vendor_name: 'TestCo' }, { onConflict: 'phone' })
     .select().single();
   if (visErr) throw visErr;
   visitorId = vis!.id;

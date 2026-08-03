@@ -40,7 +40,7 @@ const onSiteVisitor = (overrides: Record<string, unknown> = {}): Visit => ({
   carrying_material: false,
   scheduled_for: null,
   created_at: new Date().toISOString(),
-  visitor: { id: 'vis1', phone: '9876543210', full_name: 'Onsite Visitor', company: 'Acme Co', id_type: null, id_last4: null, vehicle_number: null, is_blacklisted: false, blacklist_reason: null, created_at: new Date().toISOString() },
+  visitor: { id: 'vis1', phone: '9876543210', full_name: 'Onsite Visitor', vendor_name: 'Acme Co', id_type: null, id_last4: null, vehicle_number: null, is_blacklisted: false, blacklist_reason: null, created_at: new Date().toISOString() },
   host: { id: 'h1', full_name: 'Dr. Sharma' },
   ...overrides,
 }) as Visit;
@@ -75,7 +75,7 @@ describe('OverviewOnSite', () => {
     const onSite = [
       onSiteVisitor({
         id: 'os2',
-        visitor: { id: 'vis2', phone: '9123456780', full_name: 'No Company Visitor', company: null, id_type: null, id_last4: null, vehicle_number: null, is_blacklisted: false, blacklist_reason: null, created_at: new Date().toISOString() },
+        visitor: { id: 'vis2', phone: '9123456780', full_name: 'No Company Visitor', vendor_name: null, id_type: null, id_last4: null, vehicle_number: null, is_blacklisted: false, blacklist_reason: null, created_at: new Date().toISOString() },
         host: undefined,
       }),
     ];
@@ -86,8 +86,8 @@ describe('OverviewOnSite', () => {
 
   it('renders multiple on-site visitors as separate rows', () => {
     const onSite = [
-      onSiteVisitor({ id: 'os1', visitor: { id: 'vis1', phone: '9876543210', full_name: 'First Visitor', company: null, id_type: null, id_last4: null, vehicle_number: null, is_blacklisted: false, blacklist_reason: null, created_at: new Date().toISOString() } }),
-      onSiteVisitor({ id: 'os3', visitor: { id: 'vis3', phone: '9000000000', full_name: 'Second Visitor', company: null, id_type: null, id_last4: null, vehicle_number: null, is_blacklisted: false, blacklist_reason: null, created_at: new Date().toISOString() } }),
+      onSiteVisitor({ id: 'os1', visitor: { id: 'vis1', phone: '9876543210', full_name: 'First Visitor', vendor_name: null, id_type: null, id_last4: null, vehicle_number: null, is_blacklisted: false, blacklist_reason: null, created_at: new Date().toISOString() } }),
+      onSiteVisitor({ id: 'os3', visitor: { id: 'vis3', phone: '9000000000', full_name: 'Second Visitor', vendor_name: null, id_type: null, id_last4: null, vehicle_number: null, is_blacklisted: false, blacklist_reason: null, created_at: new Date().toISOString() } }),
     ];
     render(<OverviewOnSite loading={false} onSite={onSite} />);
     expect(screen.getByText(/First Visitor/)).toBeInTheDocument();

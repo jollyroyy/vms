@@ -33,7 +33,7 @@ function makeVisit(overrides: Partial<ReportVisit> = {}): ReportVisit {
     qr_expires_at: null,
     created_at: '2026-07-01T09:00:00Z',
     visitor: {
-      id: 'vis1', phone: '9876543210', full_name: 'Asha Rao', company: 'Acme',
+      id: 'vis1', phone: '9876543210', full_name: 'Asha Rao', vendor_name: 'Acme',
       id_type: 'Aadhaar', id_last4: '9646', vehicle_number: null,
       is_blacklisted: false, blacklist_reason: null, created_at: '2026-01-01T00:00:00Z',
     },

@@ -65,7 +65,7 @@ const mockPending = {
   status: 'pending_approval' as const, purpose: 'meeting' as const, photo_path: null, photo_data: null,
   checked_in_at: null, checked_out_at: null, exit_verified: null, rejection_reason: null,
   carrying_material: false, created_at: new Date().toISOString(),
-  visitor: { id: 'vis1', full_name: 'Test Visitor', phone: '9876543210', company: 'Test Corp' },
+  visitor: { id: 'vis1', full_name: 'Test Visitor', phone: '9876543210', vendor_name: 'Test Corp' },
   department: { id: 'dept1', name: 'IT', code: 'IT' },
   host: { id: 'h1', full_name: 'Test Host' },
 };

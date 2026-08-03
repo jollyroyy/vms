@@ -242,7 +242,7 @@ describe('M12-HOD: HODOverview', () => {
       purpose: 'meeting', photo_path: null, photo_data: null, status: 'approved',
       checked_in_at: null, checked_out_at: null, exit_verified: null, rejection_reason: null,
       carrying_material: false, scheduled_for: when, created_at: when,
-      visitor: { id: `${id}-vis`, full_name: name, phone: '9000000000', company: null },
+      visitor: { id: `${id}-vis`, full_name: name, phone: '9000000000', vendor_name: null },
       department: { id: 'dept1', name: 'IT' },
       host: { id: 'h1', full_name: 'Host' },
     });
@@ -261,7 +261,7 @@ describe('M12-HOD: HODOverview', () => {
       purpose: 'meeting', photo_path: null, photo_data: null, status: 'pending_approval',
       checked_in_at: null, checked_out_at: null, exit_verified: null, rejection_reason: null,
       carrying_material: false, scheduled_for: null, created_at: new Date().toISOString(),
-      visitor: { id: 'v1', full_name: 'Pending Visitor', phone: '9000000000', company: null },
+      visitor: { id: 'v1', full_name: 'Pending Visitor', phone: '9000000000', vendor_name: null },
       department: { id: 'dept1', name: 'IT' },
       host: { id: 'h1', full_name: 'Host' },
     }];

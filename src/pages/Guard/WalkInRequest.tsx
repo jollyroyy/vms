@@ -28,7 +28,7 @@ export default function WalkInRequest({ onSubmitted, onCancel }: Props): React.R
   const [blacklist, setBlacklist] = useState<{ phone: string; reason: string }[]>([]);
   const [phone, setPhone] = useState('');
   const [fullName, setFullName] = useState('');
-  const [company, setCompany] = useState('');
+  const [vendorName, setVendorName] = useState('');
   const [idType, setIdType] = useState('');
   const [idLast4, setIdLast4] = useState('');
   const [scanOpen, setScanOpen] = useState(false);
@@ -78,7 +78,7 @@ export default function WalkInRequest({ onSubmitted, onCancel }: Props): React.R
       if (hit) { setBlacklistHit(hit.reason); return; }
       setBlacklistHit(null);
       const { data } = await supabase.from('visitors').select('*').eq('phone', normalized).maybeSingle();
-      if (data) { setFullName(data.full_name); setCompany(data.company ?? ''); }
+      if (data) { setFullName(data.full_name); setVendorName(data.vendor_name ?? ''); }
     } catch { /* ignore */ }
   }, [phone, blacklist]);
 
@@ -93,7 +93,7 @@ export default function WalkInRequest({ onSubmitted, onCancel }: Props): React.R
       const { data: existingVisit } = await (supabase as any).rpc('get_active_visit_for_phone', { p_phone: normalized });
       if (existingVisit) { throw new Error(`This phone has an active visit (Ref: ${existingVisit.ref_number}). Complete it first.`); }
       const { data: vis, error: visErr } = await supabase.from('visitors').upsert(
-        { phone: normalized, full_name: fullName, company: company || null, id_type: idType || null, id_last4: idLast4 || null },
+        { phone: normalized, full_name: fullName, vendor_name: vendorName || null, id_type: idType || null, id_last4: idLast4 || null },
         { onConflict: 'phone' },
       ).select().single();
       if (visErr) throw visErr;
@@ -155,8 +155,8 @@ export default function WalkInRequest({ onSubmitted, onCancel }: Props): React.R
             )}
           </div>
           <div>
-            <label className="text-xs font-semibold text-navy-600 mb-1 block">Company</label>
-            <input type="text" value={company} onChange={(e) => setCompany(e.target.value)} placeholder="Optional" className="w-full px-4 py-2.5 bg-surface-50 border border-surface-200 rounded-xl text-sm text-navy-900 placeholder-navy-300 focus:outline-none focus:ring-2 focus:ring-brand-500 transition-all" />
+            <label className="text-xs font-semibold text-navy-600 mb-1 block">Vendor Name</label>
+            <input type="text" value={vendorName} onChange={(e) => setVendorName(e.target.value)} placeholder="Optional" className="w-full px-4 py-2.5 bg-surface-50 border border-surface-200 rounded-xl text-sm text-navy-900 placeholder-navy-300 focus:outline-none focus:ring-2 focus:ring-brand-500 transition-all" />
           </div>
           <div>
             <label className="text-xs font-semibold text-navy-600 mb-1 block">Purpose *</label>

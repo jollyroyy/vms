@@ -26,7 +26,7 @@ function visitRow(over: Record<string, unknown> = {}) {
     status: 'approved',
     qr_token: TOKEN,
     qr_expires_at: '2026-08-01T18:00:00Z',
-    visitor: { full_name: 'Asha Rao', phone: '9876543210', company: 'Acme' },
+    visitor: { full_name: 'Asha Rao', phone: '9876543210', vendor_name: 'Acme' },
     department: { id: 'd1', name: 'Finance' },
     ...over,
   };

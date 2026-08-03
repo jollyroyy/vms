@@ -106,7 +106,7 @@ describe('M12-HOD: HODOverview — upcoming excludes past visits', () => {
         id: 'p1', status: 'approved', purpose: 'meeting', host_id: 'h1',
         scheduled_for: new Date(now - DAY).toISOString(),
         created_at: new Date(now - DAY).toISOString(),
-        visitor: { full_name: 'Past Visitor', company: null },
+        visitor: { full_name: 'Past Visitor', vendor_name: null },
       },
     ];
     render(<MemoryRouter><HODOverview /></MemoryRouter>);
@@ -125,7 +125,7 @@ describe('M12-HOD: HODOverview — upcoming excludes past visits', () => {
         id: 'f1', status: 'approved', purpose: 'meeting', host_id: 'h1',
         scheduled_for: new Date(now + DAY).toISOString(),
         created_at: new Date(now).toISOString(),
-        visitor: { full_name: 'Future Visitor', company: null },
+        visitor: { full_name: 'Future Visitor', vendor_name: null },
       },
     ];
     render(<MemoryRouter><HODOverview /></MemoryRouter>);
@@ -143,7 +143,7 @@ describe('M12-HOD: HODOverview — upcoming excludes past visits', () => {
         id: 'n1', status: 'pending_approval', purpose: 'meeting', host_id: 'h1',
         scheduled_for: null,
         created_at: new Date(now).toISOString(),
-        visitor: { full_name: 'Null Today Visitor', company: null },
+        visitor: { full_name: 'Null Today Visitor', vendor_name: null },
       },
     ];
     render(<MemoryRouter><HODOverview /></MemoryRouter>);
@@ -161,7 +161,7 @@ describe('M12-HOD: HODOverview — upcoming excludes past visits', () => {
         id: 'n2', status: 'pending_approval', purpose: 'meeting', host_id: 'h1',
         scheduled_for: null,
         created_at: new Date(now - 5 * DAY).toISOString(),
-        visitor: { full_name: 'Null Old Visitor', company: null },
+        visitor: { full_name: 'Null Old Visitor', vendor_name: null },
       },
     ];
     render(<MemoryRouter><HODOverview /></MemoryRouter>);
@@ -179,13 +179,13 @@ describe('M12-HOD: HODOverview — upcoming excludes past visits', () => {
         id: 'later', status: 'approved', purpose: 'meeting', host_id: 'h1',
         scheduled_for: new Date(now + 3 * DAY).toISOString(),
         created_at: new Date(now).toISOString(),
-        visitor: { full_name: 'Later Visitor', company: null },
+        visitor: { full_name: 'Later Visitor', vendor_name: null },
       },
       {
         id: 'sooner', status: 'approved', purpose: 'meeting', host_id: 'h1',
         scheduled_for: new Date(now + HOUR).toISOString(),
         created_at: new Date(now).toISOString(),
-        visitor: { full_name: 'Sooner Visitor', company: null },
+        visitor: { full_name: 'Sooner Visitor', vendor_name: null },
       },
     ];
     render(<MemoryRouter><HODOverview /></MemoryRouter>);

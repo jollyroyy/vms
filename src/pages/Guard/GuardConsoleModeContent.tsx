@@ -1,14 +1,12 @@
 import React from 'react';
 import type { Visit } from '../../types/index';
 import type { Mode } from './GuardConsoleModeTabs';
-import CheckInPanel from './CheckInPanel';
 import GuardWalkIns from './GuardWalkIns';
 import VisitorCard from './VisitorCard';
 import { formatTime } from '../../lib/formatDate';
 
 type Props = {
   mode: Mode;
-  today: string;
   onCheckInSuccess: (name: string) => void;
   loading: boolean;
   checkedIn: Visit[];
@@ -41,11 +39,7 @@ const LIST_VIEWS: Record<string, ListView> = {
 };
 
 export default function GuardConsoleModeContent(props: Props): React.ReactElement | null {
-  const { mode, today, onCheckInSuccess, loading, pendingWalkIns } = props;
-
-  if (mode === 'expected') {
-    return <CheckInPanel today={today} onCheckInSuccess={onCheckInSuccess} />;
-  }
+  const { mode, onCheckInSuccess, loading, pendingWalkIns } = props;
 
   if (mode === 'walkins') {
     return <GuardWalkIns loading={loading} pending={pendingWalkIns} onSubmitted={onCheckInSuccess} />;

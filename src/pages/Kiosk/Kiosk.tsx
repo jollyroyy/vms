@@ -1,13 +1,15 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { supabase } from '../../supabaseClient';
 import { normalizePhone, isBlacklisted } from '../../lib/blacklist';
 import { safeErrorMessage } from '../../lib/errors';
+import { findActiveVisitByPhone, activeVisitMessage, isAlreadyInsideError, ALREADY_INSIDE_FALLBACK } from '../../lib/activeVisit';
 import { useDepartments } from '../../lib/useDepartments';
 import type { Profile, Visit, VisitorPurpose } from '../../types/index';
 import KioskIdleScreen from './KioskIdleScreen';
 import KioskPhoneScreen from './KioskPhoneScreen';
 import KioskFormScreen from './KioskFormScreen';
 import KioskBadgeScreen from './KioskBadgeScreen';
+import { useKioskAutoReset } from './useKioskAutoReset';
 
 type Step = 'idle' | 'phone' | 'form' | 'badge';
 
@@ -16,7 +18,7 @@ export default function Kiosk(): React.ReactElement {
 
   const [phone, setPhone] = useState('');
   const [fullName, setFullName] = useState('');
-  const [company, setCompany] = useState('');
+  const [vendorName, setVendorName] = useState('');
   const [purpose, setPurpose] = useState<VisitorPurpose>('meeting');
   const [deptId, setDeptId] = useState('');
   const [hostId, setHostId] = useState('');
@@ -32,11 +34,7 @@ export default function Kiosk(): React.ReactElement {
   const [preApprovedVisit, setPreApprovedVisit] = useState<{ id: string; ref_number: string; visitor_name: string; dept_name: string; purpose: string; photo_data: string | null } | null>(null);
   const [checkingInPreApproved, setCheckingInPreApproved] = useState(false);
   const [badgeVisit, setBadgeVisit] = useState<Visit | null>(null);
-  const [resetCountdown, setResetCountdown] = useState(0);
   const [hostError, setHostError] = useState<string | null>(null);
-
-  const idleTimerRef = useRef<ReturnType<typeof setTimeout>>();
-  const countdownRef = useRef<ReturnType<typeof setInterval>>();
 
   useEffect(() => {
     supabase.from('visitors').select('phone, blacklist_reason').eq('is_blacklisted', true).then(({ data }) => {
@@ -67,7 +65,7 @@ export default function Kiosk(): React.ReactElement {
     setStep('idle');
     setPhone('');
     setFullName('');
-    setCompany('');
+    setVendorName('');
     setPurpose('meeting');
     setDeptId('');
     setHostId('');
@@ -78,43 +76,20 @@ export default function Kiosk(): React.ReactElement {
     setBlacklistHit(null);
     setPreApprovedVisit(null);
     setBadgeVisit(null);
-    setResetCountdown(0);
     setHostError(null);
     setSubmitting(false);
     setCheckingInPreApproved(false);
   }, []);
 
-  const startIdleTimer = useCallback(() => {
-    if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
-    idleTimerRef.current = setTimeout(() => { resetAll(); }, 60000);
-  }, [resetAll]);
-
-  const clearIdleTimer = useCallback(() => {
-    if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
-  }, []);
-
-  useEffect(() => {
-    return () => {
-      if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
-      if (countdownRef.current) clearInterval(countdownRef.current);
-    };
-  }, []);
+  const {
+    resetCountdown, startIdleTimer, clearIdleTimer, startBadgeCountdown,
+  } = useKioskAutoReset(resetAll);
 
   const showBadgeWithCountdown = useCallback((visit: Visit) => {
     setBadgeVisit(visit);
     setStep('badge');
-    setResetCountdown(15);
-    countdownRef.current = setInterval(() => {
-      setResetCountdown((prev) => {
-        if (prev <= 1) {
-          if (countdownRef.current) clearInterval(countdownRef.current);
-          resetAll();
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-  }, [resetAll]);
+    startBadgeCountdown();
+  }, [startBadgeCountdown]);
 
   const recallByPhone = useCallback(async (): Promise<'blacklisted' | 'pre-approved' | 'found' | 'not-found'> => {
     if (!phone) return 'not-found';
@@ -125,9 +100,9 @@ export default function Kiosk(): React.ReactElement {
     setBlacklistHit(null);
     setPreApprovedVisit(null);
     const { data } = await supabase.from('visitors').select('*').eq('phone', normalized).maybeSingle();
-    if (!data) { setFullName(''); setCompany(''); setRecalledName(null); return 'not-found'; }
+    if (!data) { setFullName(''); setVendorName(''); setRecalledName(null); return 'not-found'; }
     const v = data as any;
-    setFullName(v.full_name); setCompany(v.company ?? ''); setRecalledName(v.full_name);
+    setFullName(v.full_name); setVendorName(v.vendor_name ?? ''); setRecalledName(v.full_name);
     const { data: pre } = await (supabase as any)
       .from('visits')
       .select('id, ref_number, purpose, photo_data, department:departments(name)')
@@ -156,6 +131,12 @@ export default function Kiosk(): React.ReactElement {
     setCheckingInPreApproved(true);
     setError('');
     try {
+      // The kiosk is unattended, so it is the easiest place for someone already
+      // inside to walk up and check in a second time. Migration 060 is the
+      // backstop; this is the message the visitor actually reads.
+      const clash = await findActiveVisitByPhone(phone);
+      if (clash) { setError(activeVisitMessage(clash)); setCheckingInPreApproved(false); return; }
+
       const { error: err } = await supabase.from('visits').update({
         status: 'checked_in', checked_in_at: new Date().toISOString(),
       }).eq('id', preApprovedVisit.id);
@@ -169,7 +150,11 @@ export default function Kiosk(): React.ReactElement {
         const v = { ...fullVisit, photo_url: fullVisit.photo_data ?? undefined } as Visit;
         showBadgeWithCountdown(v);
       }
-    } catch (err) { setError(safeErrorMessage(err, 'Failed to check in pre-approved visitor.')); }
+    } catch (err) {
+      setError(isAlreadyInsideError(err)
+        ? ALREADY_INSIDE_FALLBACK
+        : safeErrorMessage(err, 'Failed to check in pre-approved visitor.'));
+    }
     finally { setCheckingInPreApproved(false); }
   };
 
@@ -209,7 +194,7 @@ export default function Kiosk(): React.ReactElement {
         setSubmitting(false); return;
       }
       const { data: vis, error: visErr } = await supabase.from('visitors').upsert(
-        { phone: normalized, full_name: fullName, company: company || null },
+        { phone: normalized, full_name: fullName, vendor_name: vendorName || null },
         { onConflict: 'phone' },
       ).select().single();
       if (visErr) throw visErr;
@@ -225,13 +210,9 @@ export default function Kiosk(): React.ReactElement {
       if (visitErr) throw visitErr;
       setSuccessMsg(`Registration submitted — awaiting HOD approval.`);
       setStep('badge');
-      setResetCountdown(12);
-      countdownRef.current = setInterval(() => {
-        setResetCountdown((prev) => {
-          if (prev <= 1) { if (countdownRef.current) clearInterval(countdownRef.current); resetAll(); return 0; }
-          return prev - 1;
-        });
-      }, 1000);
+      // Shorter than the badge screen's 15s: there is no pass to read here,
+      // only a "submitted, awaiting approval" acknowledgement.
+      startBadgeCountdown(12);
     } catch (err) { setError(safeErrorMessage(err, 'Registration failed.')); }
     finally { setSubmitting(false); }
   };
@@ -265,8 +246,8 @@ export default function Kiosk(): React.ReactElement {
             phone={phone}
             fullName={fullName}
             onFullNameChange={setFullName}
-            company={company}
-            onCompanyChange={setCompany}
+            vendorName={vendorName}
+            onVendorNameChange={setVendorName}
             purpose={purpose}
             onPurposeChange={setPurpose}
             deptId={deptId}

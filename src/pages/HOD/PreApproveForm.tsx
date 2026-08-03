@@ -27,7 +27,7 @@ export default function PreApproveForm({ onPreApproved }: Props): React.ReactEle
 
   const [phone,       setPhone]       = useState('');
   const [fullName,    setFullName]    = useState('');
-  const [company,     setCompany]     = useState('');
+  const [vendorName,     setVendorName]     = useState('');
   const [purpose,     setPurpose]     = useState<VisitorPurpose>('meeting');
   const [deptId,      setDeptId]      = useState('');
   const [hostId,      setHostId]      = useState('');
@@ -66,7 +66,7 @@ export default function PreApproveForm({ onPreApproved }: Props): React.ReactEle
     if (hit) { setBlacklistHit(hit.reason); return; }
     setBlacklistHit(null);
     const { data } = await supabase.from('visitors').select('*').eq('phone', normalized).maybeSingle();
-    if (data) { setFullName(data.full_name); setCompany(data.company ?? ''); }
+    if (data) { setFullName(data.full_name); setVendorName(data.vendor_name ?? ''); }
   }, [phone, blacklist]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -95,7 +95,7 @@ export default function PreApproveForm({ onPreApproved }: Props): React.ReactEle
       const params: Record<string, any> = {
         p_phone: normalized,
         p_full_name: fullName,
-        p_company: company || null,
+        p_vendor_name: vendorName || null,
         p_department_id: deptId,
         p_host_id: hostId,
         p_purpose: purpose,
@@ -166,7 +166,7 @@ export default function PreApproveForm({ onPreApproved }: Props): React.ReactEle
             onBlur={recallByPhone} placeholder="+91 98765 43210" className="input" />
         </div>
         <div><label className="label">Full Name *</label><input type="text" required value={fullName} onChange={(e) => setFullName(e.target.value)} className="input" /></div>
-        <div><label className="label">Company / Coming from *</label><input type="text" required value={company} onChange={(e) => setCompany(e.target.value)} className="input" /></div>
+        <div><label className="label">Vendor Name / Coming from *</label><input type="text" required value={vendorName} onChange={(e) => setVendorName(e.target.value)} className="input" /></div>
         <div>
           <label className="label">Purpose *</label>
           <select required value={purpose} onChange={(e) => setPurpose(e.target.value as VisitorPurpose)} className="input">

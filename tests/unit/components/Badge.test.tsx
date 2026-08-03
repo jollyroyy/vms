@@ -29,7 +29,7 @@ const baseVisit: Visit = {
   privacy_signature: null,
   site_rules_signature: null,
   created_at: '2026-07-20T09:00:00Z',
-  visitor: { id: 'vis1', phone: '9876543210', full_name: 'Rohan Desai', company: 'TechSoft Pvt Ltd', id_type: null, id_last4: null, vehicle_number: null, is_blacklisted: false, blacklist_reason: null, created_at: '2026-01-01T00:00:00Z' },
+  visitor: { id: 'vis1', phone: '9876543210', full_name: 'Rohan Desai', vendor_name: 'TechSoft Pvt Ltd', id_type: null, id_last4: null, vehicle_number: null, is_blacklisted: false, blacklist_reason: null, created_at: '2026-01-01T00:00:00Z' },
   department: { id: 'dept1', name: 'Information Technology', code: 'IT', created_at: '2026-01-01T00:00:00Z' },
   host: { id: 'h1', full_name: 'Priya Sharma' },
   photo_url: null,

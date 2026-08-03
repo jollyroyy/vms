@@ -17,7 +17,7 @@ export function visitToMatchItem(visit: Visit & { approvedAt?: string | null }):
     departmentName: visit.department?.name ?? '',
     purpose: visit.purpose,
     hostName: visit.host?.full_name ?? '',
-    company: visit.visitor?.company ?? '',
+    vendorName: visit.visitor?.vendor_name ?? '',
     approvalType: isWalkin ? 'walkin_approved' : 'pre_approved',
     approvedAt: approvalTimestamp(visit),
     scheduledFor: visit.scheduled_for,

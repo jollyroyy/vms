@@ -27,7 +27,7 @@ function makeVisit(overrides: Partial<Visit> = {}): Visit {
       id: 'visitor-1',
       phone: '9876543210',
       full_name: 'Asha Rao',
-      company: 'Acme Co',
+      vendor_name: 'Acme Co',
       id_type: 'Aadhaar',
       id_last4: '9646',
       vehicle_number: null,
@@ -43,12 +43,13 @@ function makeVisit(overrides: Partial<Visit> = {}): Visit {
 
 describe('reportRow', () => {
   describe('toReportRow', () => {
-    it('includes exactly 14 keys in the correct order', () => {
+    it('includes exactly 15 keys in the correct order', () => {
       const row = toReportRow(makeVisit(), 0);
       const keys = Object.keys(row);
       expect(keys).toEqual([
-        '#', 'Ref', 'Name', 'Company', 'Phone', 'Department', 'Host', 'ID Proof',
-        'Purpose', 'Approved At', 'Checked In At', 'Checked Out At', 'Carrying', 'Status',
+        '#', 'Ref', 'Name', 'Vendor', 'Phone', 'Department', 'Host', 'ID Proof',
+        'Purpose', 'Approved At', 'Checked In At', 'Checked Out At',
+        'Carrying', 'Carrying Remarks', 'Status',
       ]);
     });
 
@@ -111,7 +112,10 @@ describe('reportRow', () => {
       expect(row['Checked In At']).toMatch(/\d+\/\d+\/\d+ \d+:\d+/);
     });
 
-    it('Carrying shows remarks text when carrying_remarks is set', () => {
+    // Two columns, not one. The flag is the fact; the remarks describe it.
+    // Crushed together, "carried something, nothing written down" was
+    // indistinguishable from "carried nothing" and the flag could not be counted.
+    it('Carrying is the flag, Carrying Remarks is the guard\'s text', () => {
       const row = toReportRow(
         makeVisit({
           carrying_material: true,
@@ -119,40 +123,26 @@ describe('reportRow', () => {
         }),
         0,
       );
-      expect(row['Carrying']).toBe('Laptop and documents');
+      expect(row['Carrying']).toBe('Yes');
+      expect(row['Carrying Remarks']).toBe('Laptop and documents');
     });
 
-    it('Carrying shows "Yes (unspecified)" when carrying_material is true but remarks are null', () => {
-      const row = toReportRow(
-        makeVisit({
-          carrying_material: true,
-          carrying_remarks: null,
-        }),
-        0,
-      );
-      expect(row['Carrying']).toBe('Yes (unspecified)');
+    it('Carrying stays "Yes" with empty remarks when nothing was written down', () => {
+      const row = toReportRow(makeVisit({ carrying_material: true, carrying_remarks: null }), 0);
+      expect(row['Carrying']).toBe('Yes');
+      expect(row['Carrying Remarks']).toBe('');
     });
 
-    it('Carrying shows "Yes (unspecified)" when carrying_material is true but remarks are blank', () => {
-      const row = toReportRow(
-        makeVisit({
-          carrying_material: true,
-          carrying_remarks: '   ',
-        }),
-        0,
-      );
-      expect(row['Carrying']).toBe('Yes (unspecified)');
+    it('treats whitespace-only remarks as nothing written down', () => {
+      const row = toReportRow(makeVisit({ carrying_material: true, carrying_remarks: '   ' }), 0);
+      expect(row['Carrying']).toBe('Yes');
+      expect(row['Carrying Remarks']).toBe('');
     });
 
-    it('Carrying is empty string when carrying_material is false and no remarks', () => {
-      const row = toReportRow(
-        makeVisit({
-          carrying_material: false,
-          carrying_remarks: null,
-        }),
-        0,
-      );
-      expect(row['Carrying']).toBe('');
+    it('Carrying is "No" — never blank — when nothing was carried', () => {
+      const row = toReportRow(makeVisit({ carrying_material: false, carrying_remarks: null }), 0);
+      expect(row['Carrying']).toBe('No');
+      expect(row['Carrying Remarks']).toBe('');
     });
 
     it('missing visitor join degrades Name to empty string', () => {
@@ -161,9 +151,9 @@ describe('reportRow', () => {
       expect(row['Name']).not.toMatch(/undefined/);
     });
 
-    it('missing visitor join degrades Company to empty string', () => {
+    it('missing visitor join degrades Vendor to empty string', () => {
       const row = toReportRow(makeVisit({ visitor: undefined }), 0);
-      expect(row['Company']).toBe('');
+      expect(row['Vendor']).toBe('');
     });
 
     it('missing visitor join degrades Phone to redaction dash', () => {

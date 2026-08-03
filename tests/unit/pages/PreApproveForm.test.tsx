@@ -48,7 +48,7 @@ const mockFullVisit = {
   qr_token: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
   qr_expires_at: '2026-08-02T00:00:00Z',
   created_at: '2026-08-01T00:00:00Z',
-  visitor: { id: 'vis-new-1', phone: '9876543210', full_name: 'Test Visitor', company: 'Test Corp', id_type: null, id_last4: null, vehicle_number: null, is_blacklisted: false, blacklist_reason: null, created_at: '2026-08-01T00:00:00Z' },
+  visitor: { id: 'vis-new-1', phone: '9876543210', full_name: 'Test Visitor', vendor_name: 'Test Corp', id_type: null, id_last4: null, vehicle_number: null, is_blacklisted: false, blacklist_reason: null, created_at: '2026-08-01T00:00:00Z' },
   department: { id: 'dept1', name: 'IT', code: 'IT', created_at: '2026-01-01T00:00:00Z' },
 };
 
@@ -136,7 +136,7 @@ describe('PreApproveForm submission', () => {
       expect(mockRpc).toHaveBeenCalledWith('pre_approve_visitor_v2', {
         p_phone: '9876543210',
         p_full_name: 'Test Visitor',
-        p_company: 'Test Corp',
+        p_vendor_name: 'Test Corp',
         p_department_id: 'dept1',
         p_host_id: 'u1',
         p_purpose: 'meeting',
@@ -247,7 +247,7 @@ describe('PreApproveForm submission', () => {
             eq: vi.fn(() => {
               recallCallCount++;
               if (recallCallCount === 2) {
-                return createEqReturn({ full_name: 'Existing User', company: 'Existing Corp', phone: '9876543210' });
+                return createEqReturn({ full_name: 'Existing User', vendor_name: 'Existing Corp', phone: '9876543210' });
               }
               return createEqReturn(recallCallCount === 1 ? [] : null);
             }),

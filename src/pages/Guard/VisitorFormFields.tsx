@@ -20,8 +20,8 @@ type Props = {
   onPhoneBlur: () => void;
   fullName: string;
   onFullNameChange: (v: string) => void;
-  company: string;
-  onCompanyChange: (v: string) => void;
+  vendorName: string;
+  onVendorNameChange: (v: string) => void;
   purpose: VisitorPurpose;
   onPurposeChange: (v: VisitorPurpose) => void;
   deptId: string;
@@ -50,7 +50,7 @@ type Props = {
 };
 
 export default function VisitorFormFields({
-  phone, onPhoneChange, onPhoneBlur, fullName, onFullNameChange, company, onCompanyChange,
+  phone, onPhoneChange, onPhoneBlur, fullName, onFullNameChange, vendorName, onVendorNameChange,
   purpose, onPurposeChange, deptId, onDeptChange, departments, hostId, onHostChange, hosts,
   hostError, onRetryHosts, idType, onIdTypeChange, idLast4, onIdLast4Change, onScanId, vehicle, onVehicleChange,
   carryingMaterial, onCarryingMaterialChange, photoBlob, onPhotoCapture, onRetakePhoto, submitting,
@@ -66,7 +66,7 @@ export default function VisitorFormFields({
             onBlur={onPhoneBlur} placeholder="+91 98765 43210" className="input" />
         </div>
         <div><label className="label">Full Name *</label><input type="text" required maxLength={100} value={fullName} onChange={(e) => onFullNameChange(e.target.value)} className="input" /></div>
-        <div><label className="label">Company / Coming from *</label><input type="text" required maxLength={200} value={company} onChange={(e) => onCompanyChange(e.target.value)} className="input" /></div>
+        <div><label className="label">Vendor Name *</label><input type="text" required maxLength={200} value={vendorName} onChange={(e) => onVendorNameChange(e.target.value)} className="input" /></div>
         <div>
           <label className="label">Purpose *</label>
           <select required value={purpose} onChange={(e) => onPurposeChange(e.target.value as VisitorPurpose)} className="input">

@@ -8,7 +8,7 @@ export type WatchlistEntry = {
   id: string;
   full_name: string;
   phone: string;
-  company: string | null;
+  vendor_name: string | null;
   blacklist_reason: string | null;
   created_at: string;
 };
@@ -45,7 +45,7 @@ export function useWatchlist(): UseWatchlist {
 
     const { data: flagged } = await supabase
       .from('visitors')
-      .select('id, full_name, phone, company, blacklist_reason, created_at')
+      .select('id, full_name, phone, vendor_name, blacklist_reason, created_at')
       .eq('is_blacklisted', true)
       .order('created_at', { ascending: false });
     const flaggedRows = (flagged as unknown as WatchlistEntry[]) ?? [];

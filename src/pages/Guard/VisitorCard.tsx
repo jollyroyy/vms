@@ -46,7 +46,7 @@ export default function VisitorCard({ visit: v, action, onSelect, timeLabel }: P
       <div className="min-w-0 flex-1">
         <p className="visitor-card-name">{v.visitor?.full_name ?? 'Unknown visitor'}</p>
         <p className="visitor-card-meta">
-          {v.visitor?.company ? `${v.visitor.company} · ` : ''}
+          {v.visitor?.vendor_name ? `${v.visitor.vendor_name} · ` : ''}
           {v.department?.name ?? '—'}
           {v.purpose ? ` · ${v.purpose}` : ''}
         </p>

@@ -104,7 +104,7 @@ export default function VisitorDetails({
             )}
             <div className="min-w-0 flex-1">
               <p className="font-bold text-navy-950 text-base truncate leading-tight">{v.visitor?.full_name ?? '—'}</p>
-              {v.visitor?.company && <p className="text-xs text-navy-400 truncate mt-0.5">{v.visitor.company}</p>}
+              {v.visitor?.vendor_name && <p className="text-xs text-navy-400 truncate mt-0.5">{v.visitor.vendor_name}</p>}
               <div className="mt-1.5">
                 <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold capitalize ${s.bg} ${s.text}`}>
                   <span className={`h-1.5 w-1.5 rounded-full ${s.dot} ${v.status === 'checked_in' ? 'animate-pulse' : ''}`} />

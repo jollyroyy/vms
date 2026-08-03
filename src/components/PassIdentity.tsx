@@ -1,4 +1,4 @@
-// Visitor identity block for entry pass — photo, name, company, and redacted ID
+// Visitor identity block for entry pass — photo, name, vendor, and redacted ID
 // proof. Purely presentational: rendered by PreApprovalPass (on-screen pass preview)
 // and by the guard's post-scan summary. No data fetching, no supabase, no hooks.
 import React from 'react';
@@ -7,7 +7,7 @@ import { maskIdProof } from '../lib/pii';
 export type PassIdentityProps = {
   photoUrl?: string | null;
   name: string;
-  company?: string | null;
+  vendorName?: string | null;
   idType?: string | null;
   idLast4?: string | null;
   /** 'lg' for the pass preview, 'sm' for the compact guard summary. Default 'lg'. */
@@ -17,7 +17,7 @@ export type PassIdentityProps = {
 export default function PassIdentity({
   photoUrl,
   name,
-  company,
+  vendorName,
   idType,
   idLast4,
   size = 'lg',
@@ -62,9 +62,9 @@ export default function PassIdentity({
         {/* Name */}
         <p className="font-bold text-navy-900">{name || '—'}</p>
 
-        {/* Company */}
-        {company && (
-          <p className="text-sm text-navy-400">{company}</p>
+        {/* Vendor Name */}
+        {vendorName && (
+          <p className="text-sm text-navy-400">{vendorName}</p>
         )}
 
         {/* ID Proof */}

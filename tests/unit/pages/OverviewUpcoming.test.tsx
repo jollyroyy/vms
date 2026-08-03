@@ -24,7 +24,7 @@ const upcomingVisit = (overrides: Record<string, unknown> = {}): Visit => ({
   carrying_material: false,
   scheduled_for: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
   created_at: new Date().toISOString(),
-  visitor: { id: 'vis1', phone: '9876543210', full_name: 'Upcoming Visitor', company: 'Acme Co', id_type: null, id_last4: null, vehicle_number: null, is_blacklisted: false, blacklist_reason: null, created_at: new Date().toISOString() },
+  visitor: { id: 'vis1', phone: '9876543210', full_name: 'Upcoming Visitor', vendor_name: 'Acme Co', id_type: null, id_last4: null, vehicle_number: null, is_blacklisted: false, blacklist_reason: null, created_at: new Date().toISOString() },
   host: { id: 'h1', full_name: 'Dr. Sharma' },
   ...overrides,
 }) as Visit;
@@ -71,8 +71,8 @@ describe('OverviewUpcoming', () => {
   it('shows "Pre-approved" for approved status, "Walk-in approved" for walkin_approved, "Pending" for pending_approval', () => {
     const upcoming = [
       upcomingVisit({ id: 'approved-1', status: 'approved' }),
-      upcomingVisit({ id: 'walkin-1', status: 'walkin_approved', visitor: { id: 'vis2', phone: '9000000001', full_name: 'Walk-in Visitor', company: null, id_type: null, id_last4: null, vehicle_number: null, is_blacklisted: false, blacklist_reason: null, created_at: new Date().toISOString() } }),
-      upcomingVisit({ id: 'pending-1', status: 'pending_approval', visitor: { id: 'vis3', phone: '9000000002', full_name: 'Pending Visitor', company: null, id_type: null, id_last4: null, vehicle_number: null, is_blacklisted: false, blacklist_reason: null, created_at: new Date().toISOString() } }),
+      upcomingVisit({ id: 'walkin-1', status: 'walkin_approved', visitor: { id: 'vis2', phone: '9000000001', full_name: 'Walk-in Visitor', vendor_name: null, id_type: null, id_last4: null, vehicle_number: null, is_blacklisted: false, blacklist_reason: null, created_at: new Date().toISOString() } }),
+      upcomingVisit({ id: 'pending-1', status: 'pending_approval', visitor: { id: 'vis3', phone: '9000000002', full_name: 'Pending Visitor', vendor_name: null, id_type: null, id_last4: null, vehicle_number: null, is_blacklisted: false, blacklist_reason: null, created_at: new Date().toISOString() } }),
     ];
     renderWithRouter(<OverviewUpcoming loading={false} upcoming={upcoming} />);
     expect(screen.getByText('Pre-approved')).toBeInTheDocument();
@@ -83,7 +83,7 @@ describe('OverviewUpcoming', () => {
   it('shows "Awaiting gate check" for both approved and walkin_approved statuses', () => {
     const upcoming = [
       upcomingVisit({ id: 'approved-1', status: 'approved' }),
-      upcomingVisit({ id: 'walkin-1', status: 'walkin_approved', visitor: { id: 'vis2', phone: '9000000001', full_name: 'Walk-in Visitor', company: null, id_type: null, id_last4: null, vehicle_number: null, is_blacklisted: false, blacklist_reason: null, created_at: new Date().toISOString() } }),
+      upcomingVisit({ id: 'walkin-1', status: 'walkin_approved', visitor: { id: 'vis2', phone: '9000000001', full_name: 'Walk-in Visitor', vendor_name: null, id_type: null, id_last4: null, vehicle_number: null, is_blacklisted: false, blacklist_reason: null, created_at: new Date().toISOString() } }),
     ];
     renderWithRouter(<OverviewUpcoming loading={false} upcoming={upcoming} />);
     const awaitingGateTexts = screen.getAllByText('Awaiting gate check');
@@ -92,7 +92,7 @@ describe('OverviewUpcoming', () => {
 
   it('does not show "Awaiting gate check" for pending_approval status', () => {
     const upcoming = [
-      upcomingVisit({ id: 'pending-1', status: 'pending_approval', visitor: { id: 'vis3', phone: '9000000002', full_name: 'Pending Visitor', company: null, id_type: null, id_last4: null, vehicle_number: null, is_blacklisted: false, blacklist_reason: null, created_at: new Date().toISOString() } }),
+      upcomingVisit({ id: 'pending-1', status: 'pending_approval', visitor: { id: 'vis3', phone: '9000000002', full_name: 'Pending Visitor', vendor_name: null, id_type: null, id_last4: null, vehicle_number: null, is_blacklisted: false, blacklist_reason: null, created_at: new Date().toISOString() } }),
     ];
     renderWithRouter(<OverviewUpcoming loading={false} upcoming={upcoming} />);
     expect(screen.queryByText('Awaiting gate check')).not.toBeInTheDocument();
@@ -101,7 +101,7 @@ describe('OverviewUpcoming', () => {
   it('renders a plural count and an "Open details" link per row', () => {
     const upcoming = [
       upcomingVisit({ id: 'a' }),
-      upcomingVisit({ id: 'b', visitor: { id: 'vis3', phone: '9111111111', full_name: 'Second Visitor', company: null, id_type: null, id_last4: null, vehicle_number: null, is_blacklisted: false, blacklist_reason: null, created_at: new Date().toISOString() } }),
+      upcomingVisit({ id: 'b', visitor: { id: 'vis3', phone: '9111111111', full_name: 'Second Visitor', vendor_name: null, id_type: null, id_last4: null, vehicle_number: null, is_blacklisted: false, blacklist_reason: null, created_at: new Date().toISOString() } }),
     ];
     renderWithRouter(<OverviewUpcoming loading={false} upcoming={upcoming} />);
     expect(screen.getByText('2 visits')).toBeInTheDocument();

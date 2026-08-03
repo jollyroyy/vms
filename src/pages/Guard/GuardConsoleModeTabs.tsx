@@ -2,45 +2,44 @@ import React from 'react';
 
 // The guard console's tabs used to mirror DB status: checkin | exit |
 // checked-out | no-show | rejected | all. Six tabs, of which three were audit
-// views a guard never acts on. These three mirror guard INTENT instead — the
-// only three questions asked at a gate:
+// views a guard never acts on. Those audit views (checked-out / declined /
+// all-today) were removed from the guard surface entirely, not demoted to a
+// secondary row — they remain available in Reports.
 //
-//   Expected  — someone is booked, let them in
+// "Expected" is no longer a tab either. It never was a list: it rendered the
+// whole CheckInPanel (QR gate, pre-approved match search, ID scan, photo,
+// Check In). Checking a visitor in is not one of several things a guard might
+// be doing at the gate, it is *the* thing they are doing, so CheckInPanel now
+// sits permanently above the tab bar in Console.tsx. What is left here are the
+// two genuine lists, each answering a question the panel above cannot:
+//
 //   Walk-ins  — someone turned up unannounced, get them approved
 //   Inside    — someone is leaving, let them out
-//
-// The audit views (checked-out / declined / all-today) were removed from the
-// guard surface entirely, not demoted to a secondary row — they remain
-// available in Reports for anyone who needs the audit trail.
-export type Mode = 'expected' | 'walkins' | 'inside';
+export type Mode = 'walkins' | 'inside';
 
-export const PRIMARY_MODES: Mode[] = ['expected', 'walkins', 'inside'];
+export const PRIMARY_MODES: Mode[] = ['walkins', 'inside'];
 
 type Props = {
   mode: Mode;
   onModeChange: (mode: Mode) => void;
-  expectedCount: number;
   walkInCount: number;
   insideCount: number;
 };
 
 const ICONS: Record<string, string> = {
-  expected: 'M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z',
   walkins: 'M18 7.5v3m0 0v3m0-3h3m-3 0h-3m-2.25-4.125a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zM3 19.235v-.11a6.375 6.375 0 0112.75 0v.109A12.318 12.318 0 019.374 21c-2.331 0-4.512-.645-6.374-1.766z',
   inside: 'M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9',
 };
 
 const LABELS: Record<string, string> = {
-  expected: 'Expected',
   walkins: 'Walk-ins',
   inside: 'Inside',
 };
 
 export default function GuardConsoleModeTabs({
-  mode, onModeChange, expectedCount, walkInCount, insideCount,
+  mode, onModeChange, walkInCount, insideCount,
 }: Props): React.ReactElement {
   const counts: Record<string, number> = {
-    expected: expectedCount,
     walkins: walkInCount,
     inside: insideCount,
   };

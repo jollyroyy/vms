@@ -8,6 +8,10 @@ import { attachVisitActors } from '../../lib/visitActors';
 import { buildMatchItems, type PreApprovedVisit, type RecurringWithDept } from './checkInMatches';
 import { useDepartments } from '../../lib/useDepartments';
 import { uploadPhoto } from '../../lib/photoUpload';
+import {
+  findActiveVisitByPhone, findActiveVisitByIdProof, activeVisitMessage,
+  isAlreadyInsideError, ALREADY_INSIDE_FALLBACK,
+} from '../../lib/activeVisit';
 import CheckInPhotoStep from './CheckInPhotoStep';
 import CheckInMatchList from './CheckInMatchList';
 import CheckInScanGate from './CheckInScanGate';
@@ -25,7 +29,7 @@ export interface MatchItem {
   departmentName: string;
   purpose: string;
   hostName: string;
-  company: string;
+  vendorName: string;
   approvalType: ApprovalType;
   approvedAt: string | null;
   scheduledFor: string | null;
@@ -56,6 +60,7 @@ export default function CheckInPanel({ today, onCheckInSuccess }: Props): React.
   const [selectedMatch, setSelectedMatch] = useState<MatchItem | null>(null);
   const [photoBlob, setPhotoBlob] = useState<Blob | null>(null);
   const [idScan, setIdScan] = useState<IdScanResult | null>(null);
+  const [carrying, setCarrying] = useState(false);
   const [remarks, setRemarks] = useState('');
   const [checkingIn, setCheckingIn] = useState(false);
   const [showWalkIn, setShowWalkIn] = useState(false);
@@ -128,8 +133,28 @@ export default function CheckInPanel({ today, onCheckInSuccess }: Props): React.
     if (!selectedMatch || !photoBlob) return;
     setCheckingIn(true); setError('');
     try {
-      const remarksTrimmed = remarks.trim();
-      const hasRemarks = remarksTrimmed.length > 0;
+      // The tick box is the record. Remarks only survive if the box is ticked,
+      // so a guard who types a list and then unticks cannot leave orphaned text
+      // describing material the visit says was never carried.
+      const remarksTrimmed = carrying ? remarks.trim() : '';
+
+      // Nobody who is already inside may check in again — they have to check
+      // out first. Migration 060 enforces this on visits(visitor_id) where
+      // status = 'checked_in'; this pre-check exists to name the person instead
+      // of showing the guard a raw constraint violation. The ID check is the
+      // weaker of the two (only the last four digits are stored) so it runs
+      // second and only when the phone came back clean.
+      const clash = await findActiveVisitByPhone(selectedMatch.visitorPhone)
+        ?? await findActiveVisitByIdProof(
+          idScan?.idType ?? selectedMatch.idType,
+          idScan?.idLast4 ?? selectedMatch.idLast4,
+        );
+      if (clash) {
+        setError(activeVisitMessage(clash));
+        setCheckingIn(false);
+        return;
+      }
+
       // Block check-in for expired pre-approved visits
       if (selectedMatch.source === 'pre_approved' && selectedMatch.visitId) {
         const visit = preApproved.find((v) => v.id === selectedMatch.visitId);
@@ -144,7 +169,7 @@ export default function CheckInPanel({ today, onCheckInSuccess }: Props): React.
         let normalized: string;
         try { normalized = normalizePhone(selectedMatch.visitorPhone); } catch { throw new Error('Invalid phone'); }
         const { data: vis, error: visErr } = await supabase.from('visitors').upsert(
-          { phone: normalized, full_name: selectedMatch.visitorName, company: null },
+          { phone: normalized, full_name: selectedMatch.visitorName, vendor_name: null },
           { onConflict: 'phone' },
         ).select().single();
         if (visErr || !vis) throw visErr ?? new Error('Failed to create visitor');
@@ -160,7 +185,7 @@ export default function CheckInPanel({ today, onCheckInSuccess }: Props): React.
           status: 'checked_in',
           checked_in_at: new Date().toISOString(),
           checked_out_at: null, exit_verified: null, rejection_reason: null,
-          carrying_material: hasRemarks, carrying_remarks: remarksTrimmed || null,
+          carrying_material: carrying, carrying_remarks: remarksTrimmed || null,
           scheduled_for: null,
         });
         if (visitErr) throw visitErr;
@@ -172,16 +197,22 @@ export default function CheckInPanel({ today, onCheckInSuccess }: Props): React.
         const { error: err } = await supabase.from('visits').update({
           status: 'checked_in',
           checked_in_at: new Date().toISOString(),
-          carrying_material: hasRemarks, carrying_remarks: remarksTrimmed || null,
+          carrying_material: carrying, carrying_remarks: remarksTrimmed || null,
           ...(photoData ? { photo_data: photoData } : {}),
           ...(photoPath ? { photo_path: photoPath } : {}),
         } as any).eq('id', visitId);
         if (err) throw err;
       }
-      setPhotoBlob(null); setSelectedMatch(null); setRemarks('');
+      setPhotoBlob(null); setSelectedMatch(null); setCarrying(false); setRemarks('');
       onCheckInSuccess(selectedMatch.visitorName);
       void loadData();
-    } catch (err) { setError(safeErrorMessage(err, 'Check-in failed.')); }
+    } catch (err) {
+      // The race the pre-check cannot close: a second device checked the same
+      // visitor in between our lookup and our write.
+      setError(isAlreadyInsideError(err)
+        ? ALREADY_INSIDE_FALLBACK
+        : safeErrorMessage(err, 'Check-in failed.'));
+    }
     finally { setCheckingIn(false); }
   };
 
@@ -192,6 +223,7 @@ export default function CheckInPanel({ today, onCheckInSuccess }: Props): React.
     const [withHost] = await attachHostNames([visit]);
     setSelectedMatch(visitToMatchItem(withHost ?? visit));
     setPhotoBlob(null);
+    setCarrying(false);
     setRemarks('');
     setError('');
   }, []);
@@ -216,12 +248,14 @@ export default function CheckInPanel({ today, onCheckInSuccess }: Props): React.
         photoBlob={photoBlob}
         error={error}
         checkingIn={checkingIn}
+        carrying={carrying}
+        onCarryingChange={setCarrying}
         remarks={remarks}
         onRemarksChange={setRemarks}
         onBack={() => { setSelectedMatch(null); setError(''); }}
         onCapture={(blob) => setPhotoBlob(blob)}
         onRetake={() => setPhotoBlob(null)}
-        onCancel={() => { setSelectedMatch(null); setPhotoBlob(null); setIdScan(null); setRemarks(''); }}
+        onCancel={() => { setSelectedMatch(null); setPhotoBlob(null); setIdScan(null); setCarrying(false); setRemarks(''); }}
         onConfirm={performCheckIn}
         onScanResult={setIdScan}
       />
@@ -243,7 +277,7 @@ export default function CheckInPanel({ today, onCheckInSuccess }: Props): React.
         preApproved={preApproved}
         checkedInIds={checkedInIds}
         isExpired={isExpired}
-        onSelectMatch={(m) => { setSelectedMatch(m); setPhotoBlob(null); setIdScan(null); setRemarks(''); setError(''); }}
+        onSelectMatch={(m) => { setSelectedMatch(m); setPhotoBlob(null); setIdScan(null); setCarrying(false); setRemarks(''); setError(''); }}
         showWalkIn={showWalkIn}
         onShowWalkIn={() => setShowWalkIn(true)}
         onWalkInSubmitted={(name) => { onCheckInSuccess(name); setShowWalkIn(false); setSearch(''); void loadData(); }}

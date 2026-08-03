@@ -1,0 +1,88 @@
+/* ============================================================
+   PRINT STYLESHEET
+   The only place print output is defined. Screen uses the glass
+   design system; print is always plain-light, near-black text on
+   white, no shadows/gradients/rounded corners — paper doesn't
+   render translucency and dark backgrounds waste toner.
+   ============================================================ */
+@media print {
+  .no-print { display: none !important; }
+  .print-only { display: block !important; }
+
+  @page { size: landscape; margin: 12mm; }
+
+  html, body { background: #fff !important; color: #111 !important; }
+
+  .app-shell-content { padding-left: 0 !important; }
+  .app-shell-main { max-width: none !important; width: 100% !important; margin: 0 !important; padding: 0 !important; }
+
+  /* Flatten every glass surface: no blur, no gradient, no shadow, no radius. */
+  .card, .card-hover, .card-glass, .card-premium {
+    background: #fff !important;
+    border: none !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    border-radius: 0 !important;
+  }
+  .card-premium::before { display: none !important; }
+
+  /* --- Letterhead --- */
+  .print-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 16pt;
+    padding-bottom: 10pt;
+    margin-bottom: 10pt;
+    border-bottom: 1pt solid #ddd;
+  }
+  .print-header-left { display: flex; align-items: flex-start; gap: 10pt; }
+  .print-logo { width: 42pt; height: 35pt; object-fit: contain; }
+  .print-header-text { display: flex; flex-direction: column; gap: 2pt; }
+  .print-header-right { display: flex; flex-direction: column; gap: 2pt; text-align: right; }
+
+  /* Level 1 — report title: largest, boldest, near-black. */
+  .print-title { font-size: 20pt; font-weight: 800; letter-spacing: -0.02em; color: #111; margin: 0; }
+  /* Level 2 — sub-heading: noticeably smaller, mid weight, mid-grey. */
+  .print-subtitle { font-size: 11pt; font-weight: 500; color: #666; margin: 0; }
+  /* Level 3 — sub-text: small, uppercase, wide tracking, light grey. */
+  .print-meta { font-size: 7.5pt; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: #999; margin: 0; }
+
+  /* --- Table --- */
+  table { width: 100% !important; font-size: 8.5pt; border-collapse: collapse; color: #111; }
+  thead { display: table-header-group; }
+  thead th {
+    background: #f5f5f5 !important;
+    color: #666 !important;
+    font-size: 7pt;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    border-bottom: 1pt solid #ddd;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+  tbody tr { break-inside: avoid; border-bottom: 0.5pt solid #ddd; }
+  tbody tr:nth-child(even) {
+    background: #fafafa !important;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+  td, th { padding: 4pt 6pt !important; }
+  td { color: #111; }
+  table .whitespace-nowrap { white-space: nowrap; }
+
+  /* Neutralise the theme's CSS-variable-driven neutrals so a dark-mode
+     session still prints near-black/grey instead of near-white. */
+  table .text-navy-300, table .text-navy-400 { color: #999 !important; }
+  table .text-navy-500, table .text-navy-600 { color: #666 !important; }
+  table .text-navy-700, table .text-navy-800, table .text-navy-950 { color: #111 !important; }
+
+  /* Status colours stay meaningful but print-safe (fixed hex, not the
+     theme variable, so dark mode can't invert them to something illegible). */
+  table .text-danger-600 { color: #dc2626 !important; }
+  table .text-brand-600 { color: #9c7a3c !important; }
+  table .text-warning-600 { color: #d97706 !important; }
+  table .text-accent-700 { color: #6b3a22 !important; }
+}

@@ -25,7 +25,7 @@ function visit(overrides: Partial<Visit> = {}): Visit {
     carrying_material: false,
     scheduled_for: null,
     created_at: '2026-07-30T04:00:00Z',
-    visitor: { id: 'vis1', phone: '9999999999', full_name: 'Jane Doe', company: null, id_type: null, id_last4: null, vehicle_number: null, is_blacklisted: false, blacklist_reason: null, created_at: '2026-07-30T00:00:00Z' },
+    visitor: { id: 'vis1', phone: '9999999999', full_name: 'Jane Doe', vendor_name: null, id_type: null, id_last4: null, vehicle_number: null, is_blacklisted: false, blacklist_reason: null, created_at: '2026-07-30T00:00:00Z' },
     department: { id: 'd1', name: 'Engineering', code: 'ENG', created_at: '2026-01-01T00:00:00Z' },
     host: { id: 'h1', full_name: 'Alex Host' },
     ...overrides,

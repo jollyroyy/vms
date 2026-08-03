@@ -32,7 +32,7 @@ test.describe('S6: who\'s-inside board (realtime)', () => {
 
 test.describe('S7: blacklist + repeat recall', () => {
   test.fixme('blacklisted phone number triggers red alert on registration', async () => {});
-  test.fixme('returning visitor phone number auto-fills name, company, photo', async () => {});
+  test.fixme('returning visitor phone number auto-fills name, vendor name, photo', async () => {});
 });
 
 test.describe('S12a: daily visitor register', () => {

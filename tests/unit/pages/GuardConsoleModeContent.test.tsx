@@ -68,10 +68,14 @@ describe('GuardConsoleModeContent', () => {
     expect(screen.getByText('No one is inside right now.')).toBeInTheDocument();
   });
 
-  it('mode="expected" renders CheckInPanel', () => {
-    const props = baseProps({ mode: 'expected' });
-    render(<GuardConsoleModeContent {...props} />);
-    expect(screen.getByText('CheckInPanel')).toBeInTheDocument();
+  // CheckInPanel moved out of here and up into Console.tsx, where it renders
+  // unconditionally above the tab bar. This component now only serves lists.
+  it('never renders CheckInPanel, whichever mode it is given', () => {
+    (['inside', 'walkins', 'expected'] as any[]).forEach((mode) => {
+      const { unmount } = render(<GuardConsoleModeContent {...baseProps({ mode })} />);
+      expect(screen.queryByText('CheckInPanel')).not.toBeInTheDocument();
+      unmount();
+    });
   });
 
   it('mode="walkins" renders GuardWalkIns', () => {

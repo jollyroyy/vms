@@ -24,12 +24,12 @@ interface WebhookPayload {
 function buildCheckInEmail(params: {
   hostName: string;
   visitorName: string;
-  visitorCompany: string | null;
+  visitorVendorName: string | null;
   refNumber: string;
   purpose: string;
   checkedInAt: string;
 }) {
-  const { hostName, visitorName, visitorCompany, refNumber, purpose, checkedInAt } = params;
+  const { hostName, visitorName, visitorVendorName, refNumber, purpose, checkedInAt } = params;
   const purposeLabel = purpose.charAt(0).toUpperCase() + purpose.slice(1);
   const timeStr = new Date(checkedInAt).toLocaleTimeString('en-IN', {
     hour: '2-digit',
@@ -41,7 +41,7 @@ function buildCheckInEmail(params: {
   const bodyText = [
     `Hi ${hostName},`,
     '',
-    `Your visitor ${visitorName}${visitorCompany ? ` from ${visitorCompany}` : ''} has arrived at the gate and checked in.`,
+    `Your visitor ${visitorName}${visitorVendorName ? ` from ${visitorVendorName}` : ''} has arrived at the gate and checked in.`,
     '',
     `Reference: ${refNumber}`,
     `Purpose: ${purposeLabel}`,
@@ -60,7 +60,7 @@ function buildCheckInEmail(params: {
       </div>
       <div style="background: #faf8f4; padding: 24px; border-radius: 0 0 12px 12px; border: 1px solid #e8e2d3; border-top: none;">
         <p style="color: #33302a; margin-top: 0;">Hi <strong>${hostName}</strong>,</p>
-        <p style="color: #57524a;">Your visitor <strong>${visitorName}</strong>${visitorCompany ? ` from <em>${visitorCompany}</em>` : ''} has arrived at the gate and checked in.</p>
+        <p style="color: #57524a;">Your visitor <strong>${visitorName}</strong>${visitorVendorName ? ` from <em>${visitorVendorName}</em>` : ''} has arrived at the gate and checked in.</p>
         <table style="width: 100%; border-collapse: collapse; margin: 16px 0;">
           <tr><td style="padding: 8px 0; color: #80786a; font-size: 13px;">Reference</td><td style="padding: 8px 0; font-weight: 600; font-family: monospace;">${refNumber}</td></tr>
           <tr><td style="padding: 8px 0; color: #80786a; font-size: 13px;">Purpose</td><td style="padding: 8px 0;">${purposeLabel}</td></tr>
@@ -116,7 +116,7 @@ Deno.serve(async (req) => {
     .from('visits')
     .select(`
       ref_number, purpose, checked_in_at,
-      visitor:visitors(full_name, company),
+      visitor:visitors(full_name, vendor_name),
       host:profiles!visits_host_id_fkey(full_name, email)
     `)
     .eq('id', record['id'])
@@ -127,7 +127,7 @@ Deno.serve(async (req) => {
     return new Response('Visit not found', { status: 200 });
   }
 
-  const visitor = visit.visitor as { full_name: string; company: string | null } | null;
+  const visitor = visit.visitor as { full_name: string; vendor_name: string | null } | null;
   const host = visit.host as { full_name: string; email: string } | null;
 
   if (!host?.email) {
@@ -138,7 +138,7 @@ Deno.serve(async (req) => {
   const { subject, bodyText, bodyHtml } = buildCheckInEmail({
     hostName: host.full_name,
     visitorName: visitor?.full_name ?? 'Unknown visitor',
-    visitorCompany: visitor?.company ?? null,
+    visitorVendorName: visitor?.vendor_name ?? null,
     refNumber: visit.ref_number,
     purpose: visit.purpose,
     checkedInAt: visit.checked_in_at ?? new Date().toISOString(),

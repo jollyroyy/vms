@@ -10,6 +10,9 @@ const mockGetEngine = vi.hoisted(() => vi.fn());
 const mockRecognise = vi.hoisted(() => vi.fn());
 const visitorsUpdate = vi.hoisted(() => vi.fn(() => ({ eq: vi.fn().mockResolvedValue({ data: null, error: null }) })));
 const visitsUpdate = vi.hoisted(() => vi.fn(() => ({ eq: vi.fn().mockResolvedValue({ data: null, error: null }) })));
+// Rows lib/activeVisit should find when it asks "is this person already
+// inside?". Empty by default — these tests are about the happy path.
+const alreadyInside = vi.hoisted(() => ({ current: [] as any[] }));
 
 vi.mock('../../../src/supabaseClient', () => ({
   supabase: {
@@ -41,7 +44,7 @@ const visit = {
   scheduled_for: null,
   host_id: 'h1',
   photo_data: null,
-  visitor: { id: 'vis1', full_name: 'Rahul Verma', phone: '9876543210', company: null },
+  visitor: { id: 'vis1', full_name: 'Rahul Verma', phone: '9876543210', vendor_name: null },
   department: { id: 'dept-it', name: 'Information Technology', code: 'IT', created_at: '2026-01-01' },
 };
 
@@ -89,6 +92,13 @@ beforeEach(() => {
           if (cols === 'visitor_id') {
             return { eq: () => ({ maybeSingle: vi.fn().mockResolvedValue({ data: { visitor_id: 'vis1' }, error: null }) }) };
           }
+          // lib/activeVisit's "is this person already inside?" lookup —
+          // chainable .eq() ending in .limit(). Returns whatever
+          // alreadyInside.current holds; empty means nobody is inside.
+          if (cols.includes('visitor:visitors!inner')) {
+            const chain: any = { eq: () => chain, limit: () => Promise.resolve({ data: alreadyInside.current, error: null }) };
+            return chain;
+          }
           return {
             in: () => ({ gte: () => ({ lte: () => ({ order: () => Promise.resolve({ data: [visit], error: null }) }) }) }),
           };
@@ -128,6 +138,7 @@ afterEach(() => {
   vi.restoreAllMocks();
   vi.unstubAllEnvs();
   vi.unstubAllGlobals();
+  alreadyInside.current = [];
 });
 
 describe('M-AI-OCR-UI: CheckInPanel — ID scan at pre-approved check-in', () => {
@@ -154,7 +165,7 @@ describe('M-AI-OCR-UI: CheckInPanel — ID scan at pre-approved check-in', () =>
     });
   });
 
-  it('persists guard remarks about carried items when checking in', async () => {
+  it('persists the carrying flag and the guard\'s remarks when the box is ticked', async () => {
     render(<CheckInPanel today="2026-08-01" onCheckInSuccess={vi.fn()} />);
 
     fireEvent.click(await screen.findByText('Rahul Verma'));
@@ -162,8 +173,12 @@ describe('M-AI-OCR-UI: CheckInPanel — ID scan at pre-approved check-in', () =>
     fireEvent.click(await screen.findByText('Capture Photo'));
     fireEvent.click(await screen.findByText('Use Photo'));
 
-    const remarksInput = screen.getByPlaceholderText(/laptop/i);
-    fireEvent.change(remarksInput, { target: { value: 'Dell XPS laptop, black briefcase' } });
+    // The remarks field is gated behind the tick box — the flag is an explicit
+    // answer now, not an inference from whether the guard typed anything.
+    fireEvent.click(await screen.findByLabelText(/Carrying material/i));
+    fireEvent.change(screen.getByPlaceholderText(/laptop/i), {
+      target: { value: 'Dell XPS laptop, black briefcase' },
+    });
 
     fireEvent.click(await screen.findByText('Check In'));
 
@@ -172,6 +187,47 @@ describe('M-AI-OCR-UI: CheckInPanel — ID scan at pre-approved check-in', () =>
         status: 'checked_in',
         carrying_material: true,
         carrying_remarks: 'Dell XPS laptop, black briefcase',
+      }));
+    });
+  });
+
+  it('records carrying_material false when the box is left unticked', async () => {
+    render(<CheckInPanel today="2026-08-01" onCheckInSuccess={vi.fn()} />);
+
+    fireEvent.click(await screen.findByText('Rahul Verma'));
+    fireEvent.click(await screen.findByText('Capture Photo'));
+    fireEvent.click(await screen.findByText('Use Photo'));
+    fireEvent.click(await screen.findByText('Check In'));
+
+    await waitFor(() => {
+      expect(visitsUpdate).toHaveBeenCalledWith(expect.objectContaining({
+        status: 'checked_in',
+        carrying_material: false,
+        carrying_remarks: null,
+      }));
+    });
+  });
+
+  // A guard who types a list and then unticks the box must not leave orphaned
+  // text describing material the visit record says was never carried.
+  it('discards remarks if the guard unticks the box before confirming', async () => {
+    render(<CheckInPanel today="2026-08-01" onCheckInSuccess={vi.fn()} />);
+
+    fireEvent.click(await screen.findByText('Rahul Verma'));
+    fireEvent.click(await screen.findByText('Capture Photo'));
+    fireEvent.click(await screen.findByText('Use Photo'));
+
+    const box = await screen.findByLabelText(/Carrying material/i);
+    fireEvent.click(box);
+    fireEvent.change(screen.getByPlaceholderText(/laptop/i), { target: { value: 'Toolbox' } });
+    fireEvent.click(box);
+
+    fireEvent.click(await screen.findByText('Check In'));
+
+    await waitFor(() => {
+      expect(visitsUpdate).toHaveBeenCalledWith(expect.objectContaining({
+        carrying_material: false,
+        carrying_remarks: null,
       }));
     });
   });

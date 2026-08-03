@@ -89,7 +89,7 @@ export default function GuardWatchlist(): React.ReactElement {
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-bold text-navy-900 dark:text-white truncate">{e.full_name}</p>
                   <p className="text-xs text-navy-400 truncate">
-                    {e.phone}{e.company ? ` · ${e.company}` : ''}
+                    {e.phone}{e.vendor_name ? ` · ${e.vendor_name}` : ''}
                   </p>
                 </div>
                 <span className="shrink-0 text-xs font-semibold text-danger-700 bg-danger-50 px-2.5 py-1 rounded-md max-w-[45%] truncate">

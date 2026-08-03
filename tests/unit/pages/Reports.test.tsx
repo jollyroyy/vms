@@ -95,7 +95,7 @@ describe('M12-REPORTS: Reports', () => {
         status: 'approved' as const, purpose: 'meeting' as const, photo_path: null, photo_data: null,
         checked_in_at: new Date().toISOString(), checked_out_at: null, exit_verified: null,
         rejection_reason: null, carrying_material: false, created_at: new Date().toISOString(),
-        visitor: { id: 'vis1', full_name: 'Test Visitor', phone: '9876543210', company: 'Test Corp' },
+        visitor: { id: 'vis1', full_name: 'Test Visitor', phone: '9876543210', vendor_name: 'Test Corp' },
         department: { id: 'dept1', name: 'IT', code: 'IT' },
         host: { id: 'h1', full_name: 'Test Host' },
       },
@@ -115,7 +115,7 @@ describe('M12-REPORTS: Reports', () => {
         status: 'rejected' as const, purpose: 'meeting' as const, photo_path: null, photo_data: null,
         checked_in_at: null, checked_out_at: null, exit_verified: null,
         rejection_reason: 'Not expected', carrying_material: false, created_at: new Date().toISOString(),
-        visitor: { id: 'vis2', full_name: 'Rejected Visitor', phone: '9876500000', company: 'Test Corp' },
+        visitor: { id: 'vis2', full_name: 'Rejected Visitor', phone: '9876500000', vendor_name: 'Test Corp' },
         department: { id: 'dept1', name: 'IT', code: 'IT' },
         host: { id: 'h1', full_name: 'Test Host' },
       },
@@ -138,7 +138,7 @@ describe('M12-REPORTS: Reports', () => {
         status: 'walkin_approved' as const, purpose: 'meeting' as const, photo_path: null, photo_data: null,
         checked_in_at: null, checked_out_at: null, exit_verified: null,
         rejection_reason: null, carrying_material: false, created_at: new Date().toISOString(),
-        visitor: { id: 'vis3', full_name: 'Walkin Visitor', phone: '9876511111', company: 'Test Corp' },
+        visitor: { id: 'vis3', full_name: 'Walkin Visitor', phone: '9876511111', vendor_name: 'Test Corp' },
         department: { id: 'dept1', name: 'IT', code: 'IT' },
         host: { id: 'h1', full_name: 'Test Host' },
       },
@@ -158,7 +158,7 @@ describe('M12-REPORTS: Reports', () => {
         status: 'checked_in' as const, purpose: 'meeting' as const, photo_path: null, photo_data: 'data:image/png;base64,AAAA',
         checked_in_at: '2026-07-01T09:42:00Z', checked_out_at: '2026-07-02T17:30:00Z', exit_verified: true,
         rejection_reason: null, carrying_material: false, created_at: '2026-07-01T08:00:00Z',
-        visitor: { id: 'vis4', full_name: 'Photo Visitor', phone: '9876543212', company: 'Test Corp' },
+        visitor: { id: 'vis4', full_name: 'Photo Visitor', phone: '9876543212', vendor_name: 'Test Corp' },
         department: { id: 'dept1', name: 'IT', code: 'IT' },
         host: { id: 'h1', full_name: 'Test Host' },
       },
@@ -178,7 +178,7 @@ describe('M12-REPORTS: Reports', () => {
         status: 'approved' as const, purpose: 'meeting' as const, photo_path: null, photo_data: null,
         checked_in_at: null, checked_out_at: null, exit_verified: null,
         rejection_reason: null, carrying_material: false, created_at: new Date().toISOString(),
-        visitor: { id: 'vis5', full_name: 'Id Visitor', phone: '9876543213', company: 'Test Corp', id_type: 'Aadhaar', id_last4: '9646' },
+        visitor: { id: 'vis5', full_name: 'Id Visitor', phone: '9876543213', vendor_name: 'Test Corp', id_type: 'Aadhaar', id_last4: '9646' },
         department: { id: 'dept1', name: 'IT', code: 'IT' },
         host: { id: 'h1', full_name: 'Test Host' },
       },
@@ -199,7 +199,7 @@ describe('M12-REPORTS: Reports', () => {
     status: 'checked_out' as const, purpose: 'meeting' as const, photo_path: null, photo_data: null,
     checked_in_at: '2026-07-02T09:42:00Z', checked_out_at: '2026-07-03T17:30:00Z', exit_verified: true,
     rejection_reason: null, carrying_material: false, created_at: '2026-07-01T08:15:00Z',
-    visitor: { id: 'vis6', full_name: 'Timed Visitor', phone: '9876543214', company: 'Test Corp' },
+    visitor: { id: 'vis6', full_name: 'Timed Visitor', phone: '9876543214', vendor_name: 'Test Corp' },
     department: { id: 'dept1', name: 'IT', code: 'IT' },
     host: { id: 'h1', full_name: 'Test Host' },
   };
@@ -255,29 +255,5 @@ describe('M12-REPORTS: Reports', () => {
       expect(screen.getByText('Timed Visitor')).toBeInTheDocument();
     });
     expect(screen.queryByText(asDate('2026-07-01T08:15:00Z'))).not.toBeInTheDocument();
-  });
-
-  it('shows what the visitor is carrying, in the guard\'s words', async () => {
-    mockOrder.mockResolvedValue({
-      data: [{ ...timedVisit, carrying_material: true, carrying_remarks: '1 Dell Latitude laptop, 2 Samsung phones' }],
-      error: null,
-    });
-    mockIn.mockResolvedValue({ data: [], error: null });
-    render(<MemoryRouter><ReportsPage /></MemoryRouter>);
-    await waitFor(() => {
-      expect(screen.getByText('1 Dell Latitude laptop, 2 Samsung phones')).toBeInTheDocument();
-    });
-  });
-
-  it('says material was carried but unspecified for rows written before remarks existed', async () => {
-    mockOrder.mockResolvedValue({
-      data: [{ ...timedVisit, carrying_material: true, carrying_remarks: null }],
-      error: null,
-    });
-    mockIn.mockResolvedValue({ data: [], error: null });
-    render(<MemoryRouter><ReportsPage /></MemoryRouter>);
-    await waitFor(() => {
-      expect(screen.getByText('Yes (unspecified)')).toBeInTheDocument();
-    });
   });
 });

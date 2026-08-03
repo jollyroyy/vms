@@ -34,7 +34,7 @@ export type Visitor = {
   id: string;
   phone: string; // normalized (see src/lib/blacklist.ts)
   full_name: string;
-  company: string | null;
+  vendor_name: string | null;
   id_type: string | null;
   id_last4: string | null;
   vehicle_number: string | null;
@@ -182,7 +182,7 @@ export type RecurringVisit = {
   created_by: string;
   visitor_name: string;
   visitor_phone: string;
-  visitor_company: string | null;
+  visitor_vendor_name: string | null;
   purpose: string;
   recurrence_type: 'daily' | 'weekly' | 'monthly';
   recurrence_day: number | null;
@@ -207,7 +207,7 @@ export type Database = {
         Insert: {
           phone: string;
           full_name: string;
-          company?: string | null;
+          vendor_name?: string | null;
           id_type?: string | null;
           id_last4?: string | null;
           vehicle_number?: string | null;

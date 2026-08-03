@@ -5,6 +5,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { supabase } from '../../supabaseClient';
 import { normalizePhone, isBlacklisted } from '../../lib/blacklist';
 import { safeErrorMessage } from '../../lib/errors';
+import { findActiveVisitByPhone, activeVisitMessage, isAlreadyInsideError, ALREADY_INSIDE_FALLBACK } from '../../lib/activeVisit';
 import { useDepartments } from '../../lib/useDepartments';
 import type { Profile, Visitor, VisitorPurpose } from '../../types/index';
 import VisitorFormAlerts from './VisitorFormAlerts';
@@ -22,7 +23,7 @@ export default function VisitorForm({ onRegistered }: Props): React.ReactElement
 
   const [phone,       setPhone]       = useState('');
   const [fullName,    setFullName]    = useState('');
-  const [company,     setCompany]     = useState('');
+  const [vendorName,  setVendorName]  = useState('');
   const [purpose,     setPurpose]     = useState<VisitorPurpose>('meeting');
   const [deptId,      setDeptId]      = useState('');
   const [hostId,      setHostId]      = useState('');
@@ -78,7 +79,7 @@ export default function VisitorForm({ onRegistered }: Props): React.ReactElement
     const { data } = await supabase.from('visitors').select('*').eq('phone', normalized).maybeSingle();
     if (data) {
       const v = data as Visitor;
-      setFullName(v.full_name); setCompany(v.company ?? ''); setRecalledName(v.full_name);
+      setFullName(v.full_name); setVendorName(v.vendor_name ?? ''); setRecalledName(v.full_name);
       const pre = await (async () => {
         try {
           const { data: d } = await (supabase as any)
@@ -139,15 +140,26 @@ export default function VisitorForm({ onRegistered }: Props): React.ReactElement
     setCheckingInPreApproved(true);
     setError('');
     try {
+      // Holding a pre-approval is not a licence to be inside twice. The
+      // registration path below already blocks this via SEC-17; this path skips
+      // that form entirely, so it needs its own check. Migration 060 is the
+      // backstop if two devices race.
+      const clash = await findActiveVisitByPhone(phone);
+      if (clash) { setError(activeVisitMessage(clash)); setCheckingInPreApproved(false); return; }
+
       const { error: err } = await supabase.from('visits').update({
         status: 'checked_in',
         checked_in_at: new Date().toISOString(),
       }).eq('id', preApprovedVisit.id);
       if (err) throw err;
       setPreApprovedVisit(null);
-      setPhone(''); setFullName(''); setCompany(''); setRecalledName(null);
+      setPhone(''); setFullName(''); setVendorName(''); setRecalledName(null);
       onRegistered(preApprovedVisit.visitor_name);
-    } catch (err) { setError(safeErrorMessage(err, 'Failed to check in pre-approved visitor.')); }
+    } catch (err) {
+      setError(isAlreadyInsideError(err)
+        ? ALREADY_INSIDE_FALLBACK
+        : safeErrorMessage(err, 'Failed to check in pre-approved visitor.'));
+    }
     finally { setCheckingInPreApproved(false); }
   };
 
@@ -170,7 +182,7 @@ export default function VisitorForm({ onRegistered }: Props): React.ReactElement
       }
       setActiveVisitCheck({ checking: false, message: null });
       const { data: vis, error: visErr } = await supabase.from('visitors').upsert(
-        { phone: normalized, full_name: fullName, company: company || null, id_type: idType || null, id_last4: idLast4 || null },
+        { phone: normalized, full_name: fullName, vendor_name: vendorName || null, id_type: idType || null, id_last4: idLast4 || null },
         { onConflict: 'phone' },
       ).select().single();
       if (visErr) throw visErr;
@@ -227,8 +239,8 @@ export default function VisitorForm({ onRegistered }: Props): React.ReactElement
           onPhoneBlur={recallByPhone}
           fullName={fullName}
           onFullNameChange={setFullName}
-          company={company}
-          onCompanyChange={setCompany}
+          vendorName={vendorName}
+          onVendorNameChange={setVendorName}
           purpose={purpose}
           onPurposeChange={setPurpose}
           deptId={deptId}

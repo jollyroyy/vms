@@ -129,7 +129,7 @@ Visitor arrives at gate
 | Date & time in | **System (auto)** | — | Server timestamp, not editable |
 | Full name | Guard (asks visitor) | ✔ | |
 | Mobile number | Guard | ✔ | OTP verification in Phase 2 |
-| Company / coming from | Guard | ✔ | |
+| Vendor name / coming from | Guard | ✔ | Renamed from "Company" (migration 059): `visitors.company` → `visitors.vendor_name`, `recurring_visits.visitor_company` → `visitor_vendor_name`. UI labels and CSV headers read "Vendor Name"/"Vendor". `gate_passes.company_name` is untouched — different module. |
 | Purpose of visit | Guard | ✔ | Dropdown: Meeting / Vendor / Interview / Delivery / Maintenance / Audit / Other |
 | Department | Guard | ✔ | Dropdown of departments |
 | Person to meet | Guard | ✔ | Auto-populated staff list of chosen department |
@@ -137,7 +137,7 @@ Visitor arrives at gate
 | Govt ID type + last 4 digits | Guard | Configurable | **Never store full ID numbers or ID photocopies** (privacy) |
 | Vehicle number | Guard | Optional | |
 | Accompanying persons count | Guard | Optional | Group visits: 1 record, N badges |
-| Carrying material? | Guard | ✔ (Y/N) | Yes → opens Gate Pass form pre-linked to this visit |
+| Carrying material? | Guard | ✔ (Y/N) | Explicit tick box (`CheckInPhotoStep`) gates a remarks textarea — unticking discards the text. No longer inferred from "did the guard type anything". Reports carries both `Carrying` (Yes/No) and `Carrying Remarks` columns, on screen and in the CSV. |
 | Expected duration | Guard | Optional | Drives overstay alert |
 | Time out | **System (auto on checkout)** | — | Logged by guard at exit |
 
@@ -151,6 +151,7 @@ Visitor arrives at gate
 - `FR-VIS-07` **Approval escalation chain** — HOD → delegate → Admin on configurable timeout (see `SLA-W1`).
 - `FR-VIS-08` **Auto-checkout at day close** with "not verified" flag + Admin alert.
 - `FR-VIS-09` **Group visits** — one record, N accompanying persons, N badges.
+- `FR-VIS-10` **Duplicate check-in blocked** (migration 060) — a visitor (unique by `visitors.phone`) may hold only one `checked_in` visit at a time, enforced by a partial unique index on `visits(visitor_id) where status = 'checked_in'`. `lib/activeVisit.ts` gives the guard a named pre-check ("Priya Nair is already inside") plus a weaker ID-proof warning (only `id_type`+`id_last4` are stored, so two different people can collide — it warns, it does not block), and translates the resulting Postgres `23505` into the same message if the pre-check is raced. Wired into the guard console, `VisitorForm.checkInPreApproved`, and `Kiosk.checkInPreApproved`.
 
 ### 3.6 Webcam photo capture — production specification (`FR-CAM`)
 

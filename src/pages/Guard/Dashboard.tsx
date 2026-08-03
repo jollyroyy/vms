@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { useGateStats } from '../../lib/useGateStats';
-import { useInsideNow } from '../../lib/useInsideNow';
+import { useTodayVisits } from '../../lib/useTodayVisits';
 import { useRecentActivity } from '../../lib/useRecentActivity';
 import type { ReportVisit } from '../../lib/reportRow';
+import type { DrillKey } from '../../lib/dashboardDrill';
 import DashboardSummary from './DashboardSummary';
 import DashboardActivity from './DashboardActivity';
-import GuardInsideNow from './GuardInsideNow';
+import DashboardDrilldown from './DashboardDrilldown';
 import VisitorDetails from '../../components/VisitorDetails';
 
 // The guard's home screen: situational awareness, not a workspace.
@@ -17,17 +18,23 @@ import VisitorDetails from '../../components/VisitorDetails';
 // tell which was authoritative. The split is now: read here, act there.
 //
 // Layout order is deliberate and matches how a shift actually starts:
-// summary (where do we stand) → optional inside-now drill-down → activity
+// summary (where do we stand) → the drill-down the guard just opened → activity
 // (what just happened). Search and Quick Actions were removed from the
 // dashboard — starting a task lives in the console at /visitors, not here.
+//
+// Every KPI tile drills down IN PLACE. Clicking a count expands the visits
+// behind it right below the summary; clicking the same tile again collapses it.
+// None of them navigate away — reading the board should never cost you the
+// board. (Acting on a visit still happens in /visitors; opening a card here
+// gives a read-only VisitorDetails.)
 export default function GuardDashboard(): React.ReactElement {
   const [clock, setClock] = useState(() => new Date());
-  const [insideOpen, setInsideOpen] = useState(false);
+  const [drillKey, setDrillKey] = useState<DrillKey | null>(null);
   const [detailVisit, setDetailVisit] = useState<ReportVisit | null>(null);
 
   const today = new Date().toISOString().slice(0, 10);
   const { stats, loading } = useGateStats(today);
-  const { visits: insideVisits, loading: insideLoading } = useInsideNow(today);
+  const { visits: todayVisits, loading: visitsLoading } = useTodayVisits(today);
   const { visits: recent, loading: recentLoading } = useRecentActivity(today);
 
   useEffect(() => {
@@ -59,14 +66,20 @@ export default function GuardDashboard(): React.ReactElement {
       <DashboardSummary
         stats={stats}
         loading={loading}
-        insideOpen={insideOpen}
-        onToggleInside={() => setInsideOpen((prev) => !prev)}
+        activeKey={drillKey}
+        onDrill={(key) => setDrillKey((prev) => (prev === key ? null : key))}
       />
 
-      {/* On-site detail, expanded from the Inside Now tile. Collapsed by
-          default — the count is the headline, the roster is the drill-down. */}
-      {insideOpen && (
-        <GuardInsideNow loading={insideLoading} visits={insideVisits} onSelect={setDetailVisit} />
+      {/* Collapsed by default — the count is the headline, the cards are the
+          drill-down. Re-clicking the open tile closes it. */}
+      {drillKey && (
+        <DashboardDrilldown
+          drillKey={drillKey}
+          loading={visitsLoading}
+          visits={todayVisits}
+          onSelect={setDetailVisit}
+          onClose={() => setDrillKey(null)}
+        />
       )}
 
       <DashboardActivity

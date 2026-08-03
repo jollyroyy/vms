@@ -23,7 +23,7 @@ const pendingVisit = (overrides: Record<string, unknown> = {}): Visit => ({
   carrying_material: false,
   scheduled_for: null,
   created_at: new Date().toISOString(),
-  visitor: { id: 'vis1', phone: '9876543210', full_name: 'Pending Visitor', company: 'Acme Co', id_type: null, id_last4: null, vehicle_number: null, is_blacklisted: false, blacklist_reason: null, created_at: new Date().toISOString() },
+  visitor: { id: 'vis1', phone: '9876543210', full_name: 'Pending Visitor', vendor_name: 'Acme Co', id_type: null, id_last4: null, vehicle_number: null, is_blacklisted: false, blacklist_reason: null, created_at: new Date().toISOString() },
   host: { id: 'h1', full_name: 'Dr. Sharma' },
   ...overrides,
 }) as Visit;
@@ -145,7 +145,7 @@ describe('ApprovalsPendingList', () => {
     const v1 = pendingVisit({ id: 'first', ref_number: 'VIS-1' });
     const v2 = pendingVisit({
       id: 'second', ref_number: 'VIS-2',
-      visitor: { id: 'vis2', phone: '9000000000', full_name: 'Second Visitor', company: null, id_type: null, id_last4: null, vehicle_number: null, is_blacklisted: false, blacklist_reason: null, created_at: new Date().toISOString() },
+      visitor: { id: 'vis2', phone: '9000000000', full_name: 'Second Visitor', vendor_name: null, id_type: null, id_last4: null, vehicle_number: null, is_blacklisted: false, blacklist_reason: null, created_at: new Date().toISOString() },
     });
     render(<ApprovalsPendingList {...baseProps} visits={[v1, v2]} onDecide={onDecide} />);
     const approveButtons = screen.getAllByText('Approve');

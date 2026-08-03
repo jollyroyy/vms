@@ -70,20 +70,35 @@ describe('GuardConsole', () => {
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Visitors');
   });
 
-  it('renders the three primary tabs with count badges', async () => {
+  it('renders the two primary tabs with count badges', async () => {
     renderConsole();
     await waitFor(() => {
-      expect(screen.getByRole('tab', { name: /Expected/i })).toBeInTheDocument();
       expect(screen.getByRole('tab', { name: /Walk-ins/i })).toBeInTheDocument();
       expect(screen.getByRole('tab', { name: /Inside/i })).toBeInTheDocument();
     });
   });
 
-  it('defaults to the "expected" mode, rendering CheckInPanel', async () => {
+  // "Expected" stopped being a tab: check-in is not one of several things a
+  // guard might be doing, it is the thing they are doing. CheckInPanel now sits
+  // permanently above the tab bar instead.
+  it('renders no "Expected" tab', async () => {
+    renderConsole();
+    await waitFor(() => expect(screen.getByRole('tab', { name: /Inside/i })).toBeInTheDocument());
+    expect(screen.queryByRole('tab', { name: /Expected/i })).not.toBeInTheDocument();
+  });
+
+  it('renders CheckInPanel above the tabs regardless of the selected mode', async () => {
+    renderConsole();
+    await waitFor(() => expect(screen.getByText('CheckInPanel')).toBeInTheDocument());
+    fireEvent.click(screen.getByRole('tab', { name: /Walk-ins/i }));
+    await waitFor(() => expect(screen.getByText('Register a walk-in')).toBeInTheDocument());
+    expect(screen.getByText('CheckInPanel')).toBeInTheDocument();
+  });
+
+  it('defaults to the "inside" mode', async () => {
     renderConsole();
     await waitFor(() => {
-      expect(screen.getByRole('tab', { name: /Expected/i })).toHaveAttribute('aria-selected', 'true');
-      expect(screen.getByText('CheckInPanel')).toBeInTheDocument();
+      expect(screen.getByRole('tab', { name: /Inside/i })).toHaveAttribute('aria-selected', 'true');
     });
   });
 
@@ -108,49 +123,31 @@ describe('GuardConsole', () => {
     });
   });
 
+  // Old deep links must degrade onto a live tab rather than 404 into a blank
+  // one. Everything that used to mean "expected" now lands on Inside — the
+  // check-in flow those links were reaching for is on screen unconditionally.
   describe('legacy tab aliases', () => {
-    it('?tab=checkin lands on the "expected" mode', async () => {
-      renderConsole('/visitors?tab=checkin');
+    it.each([
+      ['checkin', /Inside/i],
+      ['expected', /Inside/i],
+      ['no-show', /Inside/i],
+      ['rejected', /Inside/i],
+      ['all', /Inside/i],
+      ['exit', /Inside/i],
+      ['checked-out', /Inside/i],
+      ['walkins', /Walk-ins/i],
+    ])('?tab=%s selects a live tab and still shows the check-in panel', async (tab, label) => {
+      renderConsole(`/visitors?tab=${tab}`);
       await waitFor(() => {
-        expect(screen.getByRole('tab', { name: /Expected/i })).toHaveAttribute('aria-selected', 'true');
+        expect(screen.getByRole('tab', { name: label })).toHaveAttribute('aria-selected', 'true');
         expect(screen.getByText('CheckInPanel')).toBeInTheDocument();
-      });
-    });
-
-    it('?tab=exit lands on the "inside" mode', async () => {
-      renderConsole('/visitors?tab=exit');
-      await waitFor(() => {
-        expect(screen.getByRole('tab', { name: /Inside/i })).toHaveAttribute('aria-selected', 'true');
-        expect(screen.getByText('On the premises')).toBeInTheDocument();
-      });
-    });
-
-    it('?tab=no-show lands on the "expected" mode (nearest live tab; "all" was removed)', async () => {
-      renderConsole('/visitors?tab=no-show');
-      await waitFor(() => {
-        expect(screen.getByRole('tab', { name: /Expected/i })).toHaveAttribute('aria-selected', 'true');
-        expect(screen.getByText('CheckInPanel')).toBeInTheDocument();
-      });
-    });
-
-    it('?tab=checked-out lands on the "inside" mode (nearest live tab)', async () => {
-      renderConsole('/visitors?tab=checked-out');
-      await waitFor(() => {
-        expect(screen.getByRole('tab', { name: /Inside/i })).toHaveAttribute('aria-selected', 'true');
-      });
-    });
-
-    it('?tab=rejected lands on the "expected" mode (nearest live tab)', async () => {
-      renderConsole('/visitors?tab=rejected');
-      await waitFor(() => {
-        expect(screen.getByRole('tab', { name: /Expected/i })).toHaveAttribute('aria-selected', 'true');
       });
     });
   });
 
   it('renders no "Also view" secondary filter row (checked-out/declined/all audit views were removed)', async () => {
     renderConsole();
-    await waitFor(() => expect(screen.getByRole('tab', { name: /Expected/i })).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByRole('tab', { name: /Inside/i })).toBeInTheDocument());
     expect(screen.queryByText('Also view')).not.toBeInTheDocument();
     expect(screen.queryByText('Checked out')).not.toBeInTheDocument();
     expect(screen.queryByText('Declined')).not.toBeInTheDocument();

@@ -174,7 +174,7 @@ function VisitorCard({ visit: v, index: idx, onClick }: { visit: Visit; index: n
         </div>
         <div className="flex-1 min-w-0">
           <p className="font-display font-bold text-navy-950 dark:text-white truncate text-[15px] leading-tight">{v.visitor?.full_name ?? '—'}</p>
-          {v.visitor?.company && <p className="text-[12px] text-navy-400 dark:text-navy-400 truncate mt-0.5">{v.visitor.company}</p>}
+          {v.visitor?.vendor_name && <p className="text-[12px] text-navy-400 dark:text-navy-400 truncate mt-0.5">{v.visitor.vendor_name}</p>}
         </div>
         <span className={`shrink-0 status-badge ${style.bg} ${style.text}`}>
           <span className={`h-1.5 w-1.5 rounded-full ${style.dot} ${v.status === 'checked_in' ? 'animate-pulse-soft' : ''}`} />

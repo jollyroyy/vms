@@ -95,7 +95,9 @@ describe('Activity — data render', () => {
   it('shows the events count chip when logs are present', async () => {
     state.rows = [log({ id: 'l1' }), log({ id: 'l2' })];
     render(<ActivityPage />);
-    expect(await screen.findByText('2 events')).toBeInTheDocument();
+    expect(await screen.findByText(
+      (_, node) => node?.textContent?.replace(/\s+/g, ' ').trim() === '2 events',
+    )).toBeInTheDocument();
   });
 });
 

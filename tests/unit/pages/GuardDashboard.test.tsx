@@ -20,7 +20,7 @@ const mockStats = vi.hoisted(() => ({
   },
 }));
 const mockActivity = vi.hoisted(() => ({ current: { visits: [] as any[], loading: false } }));
-const mockInside = vi.hoisted(() => ({ current: { visits: [] as any[], loading: false } }));
+const mockToday = vi.hoisted(() => ({ current: { visits: [] as any[], loading: false } }));
 
 vi.mock('../../../src/lib/useGateStats', () => ({
   useGateStats: () => mockStats.current,
@@ -30,16 +30,17 @@ vi.mock('../../../src/lib/useRecentActivity', () => ({
   useRecentActivity: () => mockActivity.current,
 }));
 
-vi.mock('../../../src/lib/useInsideNow', () => ({
-  useInsideNow: () => mockInside.current,
+vi.mock('../../../src/lib/useTodayVisits', () => ({
+  useTodayVisits: () => mockToday.current,
 }));
 
-// Heavy children irrelevant to these tests — stubbed to keep this file
-// focused on the composition Dashboard.tsx owns. GuardInsideNow keeps a
-// minimal stand-in so the expand/collapse behaviour can still be observed.
-vi.mock('../../../src/pages/Guard/GuardInsideNow', () => ({
-  default: ({ visits }: { visits: any[] }) => (
-    <div data-testid="inside-now-panel">
+// Heavy children irrelevant to these tests — stubbed to keep this file focused
+// on the composition Dashboard.tsx owns. The drill-down keeps a minimal
+// stand-in that echoes which key it was opened with, so the expand/collapse
+// behaviour and the tile→panel wiring can still be observed.
+vi.mock('../../../src/pages/Guard/DashboardDrilldown', () => ({
+  default: ({ drillKey, visits }: { drillKey: string; visits: any[] }) => (
+    <div data-testid="drilldown-panel" data-key={drillKey}>
       {visits.map((v) => <span key={v.id}>{v.visitor?.full_name}</span>)}
     </div>
   ),
@@ -62,7 +63,7 @@ describe('GuardDashboard', () => {
     cleanup();
     mockStats.current = { stats: { ...EMPTY_STATS }, loading: false };
     mockActivity.current = { visits: [], loading: false };
-    mockInside.current = { visits: [], loading: false };
+    mockToday.current = { visits: [], loading: false };
   });
 
   it('renders the page heading', () => {
@@ -119,23 +120,51 @@ describe('GuardDashboard', () => {
     expect(insideTile.textContent).not.toBe(enteredTile.textContent);
   });
 
-  it('renders Inside Now as a toggle button that expands and collapses the on-site roster', () => {
-    mockInside.current = {
+  // Every tile drills down IN PLACE. None of them may be a link — navigating
+  // away to answer "which ones?" is the behaviour this replaced.
+  it.each([
+    ['Expected', 'expected'],
+    ['Inside Now', 'inside'],
+    ['Entered Today', 'entered'],
+    ['Checked Out', 'checkedOut'],
+    ['Declined', 'declined'],
+  ])('%s is a button that expands its own drill-down on the same page', (label, key) => {
+    mockToday.current = {
       visits: [{ id: 'v1', visitor: { full_name: 'Alice Johnson' } }],
       loading: false,
     };
     renderDashboard();
-    const tile = tileFor('Inside Now');
+    const tile = tileFor(label);
     expect(tile.tagName).toBe('BUTTON');
-    expect(screen.getByText('Inside Now').closest('a')).toBeNull();
+    expect(screen.getByText(label).closest('a')).toBeNull();
 
-    expect(screen.queryByTestId('inside-now-panel')).toBeNull();
+    expect(screen.queryByTestId('drilldown-panel')).toBeNull();
     fireEvent.click(tile);
-    expect(screen.getByTestId('inside-now-panel')).toBeInTheDocument();
+    const panel = screen.getByTestId('drilldown-panel');
+    expect(panel).toHaveAttribute('data-key', key);
+    expect(tile).toHaveAttribute('aria-expanded', 'true');
     expect(screen.getByText('Alice Johnson')).toBeInTheDocument();
+  });
 
+  it('re-clicking the open tile collapses its drill-down', () => {
+    renderDashboard();
+    const tile = tileFor('Inside Now');
     fireEvent.click(tile);
-    expect(screen.queryByTestId('inside-now-panel')).toBeNull();
+    expect(screen.getByTestId('drilldown-panel')).toBeInTheDocument();
+    fireEvent.click(tile);
+    expect(screen.queryByTestId('drilldown-panel')).toBeNull();
+    expect(tile).toHaveAttribute('aria-expanded', 'false');
+  });
+
+  it('clicking a different tile swaps the drill-down instead of stacking a second one', () => {
+    renderDashboard();
+    fireEvent.click(tileFor('Inside Now'));
+    expect(screen.getByTestId('drilldown-panel')).toHaveAttribute('data-key', 'inside');
+
+    fireEvent.click(tileFor('Declined'));
+    expect(screen.getAllByTestId('drilldown-panel')).toHaveLength(1);
+    expect(screen.getByTestId('drilldown-panel')).toHaveAttribute('data-key', 'declined');
+    expect(tileFor('Inside Now')).toHaveAttribute('aria-expanded', 'false');
   });
 
   // Regression guard: Search and Quick Actions were deliberately removed from

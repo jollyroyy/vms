@@ -7,6 +7,7 @@
 @import './styles/components-guard.css';
 @import './styles/aurora.css';
 @import './styles/animations.css';
+@import './styles/print.css';
 
 @tailwind base;
 @tailwind components;

@@ -19,33 +19,30 @@
      Bigger and calmer than .stat-card: this is the first thing read at the
      start of a shift, so the number dominates and the label recedes. */
   .gate-tile {
-    @apply relative overflow-hidden rounded-2xl p-4 text-left transition-all duration-200;
+    @apply relative overflow-hidden rounded-2xl p-4 text-left;
     background: linear-gradient(140deg, rgb(var(--glass-bg) / 0.80), rgb(var(--glass-bg) / 0.58));
     backdrop-filter: blur(22px) saturate(175%);
     -webkit-backdrop-filter: blur(22px) saturate(175%);
-    border: 1px solid rgb(var(--glass-border) / var(--glass-border-opacity));
-    box-shadow: 0 8px 30px -8px rgb(15 12 40 / 0.12), inset 0 1px 0 0 rgb(255 255 255 / 0.35);
-  }
-  .dark .gate-tile {
-    box-shadow: 0 8px 30px -8px rgb(0 0 0 / 0.45), inset 0 1px 0 0 rgb(255 255 255 / 0.06);
+    border: 1px solid rgb(var(--glass-border) / var(--hairline-opacity));
+    box-shadow: var(--shadow-contact), var(--shadow-ambient), var(--shadow-wide), var(--edge-highlight);
+    transition: transform var(--dur-premium) var(--ease-premium), box-shadow var(--dur-premium) var(--ease-premium);
   }
   .gate-tile::after {
     content: '';
     position: absolute;
     top: 0; left: 0; right: 0;
     height: 3px;
-    background: linear-gradient(90deg, rgb(201 165 88 / 0.65), rgb(168 98 58 / 0.30), transparent);
+    /* Seasoning, not sauce: fainter than the old bright gold cap. */
+    background: linear-gradient(90deg, rgb(201 165 88 / 0.45), rgb(168 98 58 / 0.20), transparent);
   }
   a.gate-tile:hover, button.gate-tile:hover {
     @apply -translate-y-0.5;
-    box-shadow: 0 18px 44px -10px rgb(15 12 40 / 0.20),
-                0 0 0 1px rgb(184 147 74 / 0.16),
-                inset 0 1px 0 0 rgb(255 255 255 / 0.42);
+    box-shadow: var(--shadow-contact-hover), var(--shadow-ambient-hover), var(--shadow-wide-hover),
+                var(--ring-gold), var(--edge-highlight-hover);
   }
   .dark a.gate-tile:hover, .dark button.gate-tile:hover {
-    box-shadow: 0 18px 44px -10px rgb(0 0 0 / 0.55),
-                0 0 26px -8px rgb(184 147 74 / 0.30),
-                inset 0 1px 0 0 rgb(255 255 255 / 0.08);
+    box-shadow: var(--shadow-contact-hover), var(--shadow-ambient-hover), var(--shadow-wide-hover),
+                var(--ring-gold-hover), var(--edge-highlight-hover);
   }
   .gate-tile-value {
     @apply text-[2rem] leading-none font-extrabold tabular-nums tracking-tight font-display;
@@ -63,33 +60,41 @@
     background: linear-gradient(90deg, rgb(201 165 88 / 0.95), rgb(168 98 58 / 0.55), transparent);
     height: 4px;
   }
+  /* The tile whose drill-down is currently expanded below. It has to read as
+     pressed even while another tile is hovered, so it sits on a ring rather
+     than a lift — and it is never the only cue: the panel underneath carries
+     the tile's title, and the tile itself carries aria-expanded. */
+  .gate-tile-active {
+    border-color: rgb(184 147 74 / 0.45);
+    box-shadow: var(--shadow-contact), var(--shadow-ambient), var(--ring-gold-hover), var(--edge-highlight);
+  }
+  .gate-tile-active::after {
+    background: linear-gradient(90deg, rgb(201 165 88 / 0.95), rgb(168 98 58 / 0.55), transparent);
+    height: 4px;
+  }
 
   /* --- Visitor card -----------------------------------------------------
      The workhorse row. A 4px status rail runs down the leading edge so a
      guard can scan a column of these and pick out the one they need without
      reading a word. */
   .visitor-card {
-    @apply relative flex items-center gap-4 rounded-2xl px-4 py-3.5 transition-all duration-200;
+    @apply relative flex items-center gap-4 rounded-2xl px-4 py-3.5;
     background: rgb(var(--glass-bg) / 0.62);
     backdrop-filter: blur(18px) saturate(165%);
     -webkit-backdrop-filter: blur(18px) saturate(165%);
-    border: 1px solid rgb(var(--glass-border) / var(--glass-border-opacity));
-    box-shadow: 0 4px 20px -6px rgb(15 12 40 / 0.10), inset 0 1px 0 0 rgb(255 255 255 / 0.28);
+    border: 1px solid rgb(var(--glass-border) / var(--hairline-opacity));
+    box-shadow: var(--shadow-contact), var(--shadow-ambient), var(--edge-highlight);
     padding-left: 1.125rem;
-  }
-  .dark .visitor-card {
-    box-shadow: 0 4px 20px -6px rgb(0 0 0 / 0.40), inset 0 1px 0 0 rgb(255 255 255 / 0.05);
+    transition: transform var(--dur-premium) var(--ease-premium), box-shadow var(--dur-premium) var(--ease-premium);
   }
   .visitor-card:hover {
     @apply -translate-y-px;
-    box-shadow: 0 12px 34px -10px rgb(15 12 40 / 0.18),
-                0 0 0 1px rgb(184 147 74 / 0.12),
-                inset 0 1px 0 0 rgb(255 255 255 / 0.36);
+    box-shadow: var(--shadow-contact-hover), var(--shadow-ambient-hover),
+                var(--ring-gold), var(--edge-highlight-hover);
   }
   .dark .visitor-card:hover {
-    box-shadow: 0 12px 34px -10px rgb(0 0 0 / 0.52),
-                0 0 22px -8px rgb(184 147 74 / 0.22),
-                inset 0 1px 0 0 rgb(255 255 255 / 0.07);
+    box-shadow: var(--shadow-contact-hover), var(--shadow-ambient-hover),
+                var(--ring-gold-hover), var(--edge-highlight-hover);
   }
   /* Status rail — the leading edge. Paired ALWAYS with a text badge; this is
      a scanning aid, never the sole carrier of meaning. */

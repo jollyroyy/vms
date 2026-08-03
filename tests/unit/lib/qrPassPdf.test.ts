@@ -45,7 +45,7 @@ const baseVisit: Visit = {
   qr_token: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
   qr_expires_at: null,
   created_at: '2026-08-01T09:00:00Z',
-  visitor: { id: 'vis1', phone: '9876543210', full_name: 'Asha Rao', company: 'Acme', id_type: null, id_last4: null, is_blacklisted: false, blacklist_reason: null, created_at: '' } as any,
+  visitor: { id: 'vis1', phone: '9876543210', full_name: 'Asha Rao', vendor_name: 'Acme', id_type: null, id_last4: null, is_blacklisted: false, blacklist_reason: null, created_at: '' } as any,
   department: { id: 'dept1', name: 'Finance', code: 'FIN', created_at: '' },
 };
 

@@ -57,7 +57,7 @@ const baseVisit: Visit = {
     id: 'vis1',
     phone: '9999999999',
     full_name: 'John Doe',
-    company: 'Acme Corp',
+    vendor_name: 'Acme Corp',
     id_type: null,
     id_last4: null,
     vehicle_number: null,
@@ -144,7 +144,7 @@ describe('OverviewFilteredView', () => {
         ref_number: 'VIS-20260729-0002',
         status: 'approved',
         checked_in_at: null,
-        visitor: { ...baseVisit.visitor!, id: 'vis2', full_name: 'Alice Wonder', company: 'Beta Inc' },
+        visitor: { ...baseVisit.visitor!, id: 'vis2', full_name: 'Alice Wonder', vendor_name: 'Beta Inc' },
       },
     ];
     render(<OverviewFilteredView mode="inside" visits={visits} loading={false} onClearFilter={vi.fn()} />);

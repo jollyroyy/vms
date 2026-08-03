@@ -62,7 +62,7 @@ beforeAll(async () => {
   staffId = profs!.find((p) => p.email === 'staff@demo.vms')!.id;
 
   const { data: vis, error: visErr } = await svc.from('visitors')
-    .upsert({ phone: '9998887771', full_name: 'RLS Test Visitor', company: 'TestCo' }, { onConflict: 'phone' })
+    .upsert({ phone: '9998887771', full_name: 'RLS Test Visitor', vendor_name: 'TestCo' }, { onConflict: 'phone' })
     .select().single();
   if (visErr) throw visErr;
   visitorId = vis!.id;

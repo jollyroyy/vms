@@ -91,7 +91,7 @@ export default function OverviewUpcoming({ loading, upcoming }: Props): React.Re
                     <div className="min-w-0 flex-1">
                       <p className="font-semibold text-sm text-navy-900 dark:text-white leading-snug">
                         {PURPOSE_LABELS[v.purpose] ?? v.purpose}
-                        {v.visitor?.company && <span className="text-navy-400 font-normal"> — {v.visitor.company}</span>}
+                        {v.visitor?.vendor_name && <span className="text-navy-400 font-normal"> — {v.visitor.vendor_name}</span>}
                       </p>
                       <p className="text-xs text-navy-400 mt-0.5">
                         {v.host?.full_name ? `Host: ${v.host.full_name}` : 'Host: —'}
@@ -116,9 +116,9 @@ export default function OverviewUpcoming({ loading, upcoming }: Props): React.Re
                       <span className="inline-flex items-center text-[11px] font-medium bg-surface-100 dark:bg-white/[0.06] text-navy-600 dark:text-navy-300 px-2.5 py-0.5 rounded-full border border-surface-200/70 dark:border-white/[0.08]">
                         {v.visitor.full_name}
                       </span>
-                      {v.visitor.company && (
+                      {v.visitor.vendor_name && (
                         <span className="inline-flex items-center text-[11px] font-medium bg-surface-100 dark:bg-white/[0.06] text-navy-500 dark:text-navy-400 px-2.5 py-0.5 rounded-full border border-surface-200/70 dark:border-white/[0.08]">
-                          {v.visitor.company}
+                          {v.visitor.vendor_name}
                         </span>
                       )}
                     </div>

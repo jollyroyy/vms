@@ -8,12 +8,12 @@ import { describe, it, expect } from 'vitest';
 function buildCheckInEmail(params: {
   hostName: string;
   visitorName: string;
-  visitorCompany: string | null;
+  visitorVendorName: string | null;
   refNumber: string;
   purpose: string;
   checkedInAt: string;
 }) {
-  const { hostName, visitorName, visitorCompany, refNumber, purpose, checkedInAt } = params;
+  const { hostName, visitorName, visitorVendorName, refNumber, purpose, checkedInAt } = params;
   const purposeLabel = purpose.charAt(0).toUpperCase() + purpose.slice(1);
   const timeStr = new Date(checkedInAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
 
@@ -21,7 +21,7 @@ function buildCheckInEmail(params: {
   const bodyText = [
     `Hi ${hostName},`,
     '',
-    `Your visitor ${visitorName}${visitorCompany ? ` from ${visitorCompany}` : ''} has arrived at the gate and checked in.`,
+    `Your visitor ${visitorName}${visitorVendorName ? ` from ${visitorVendorName}` : ''} has arrived at the gate and checked in.`,
     '',
     `Reference: ${refNumber}`,
     `Purpose: ${purposeLabel}`,
@@ -40,7 +40,7 @@ describe('M22-EMAIL: Check-in email builder', () => {
     const { subject } = buildCheckInEmail({
       hostName: 'Priya Sharma',
       visitorName: 'Rohan Desai',
-      visitorCompany: 'TechSoft Pvt Ltd',
+      visitorVendorName: 'TechSoft Pvt Ltd',
       refNumber: 'VIS-20260721-0001',
       purpose: 'meeting',
       checkedInAt: '2026-07-21T10:30:00Z',
@@ -52,7 +52,7 @@ describe('M22-EMAIL: Check-in email builder', () => {
     const { bodyText } = buildCheckInEmail({
       hostName: 'Priya Sharma',
       visitorName: 'Rohan Desai',
-      visitorCompany: 'TechSoft Pvt Ltd',
+      visitorVendorName: 'TechSoft Pvt Ltd',
       refNumber: 'VIS-20260721-0001',
       purpose: 'meeting',
       checkedInAt: '2026-07-21T10:30:00Z',
@@ -64,7 +64,7 @@ describe('M22-EMAIL: Check-in email builder', () => {
     const { bodyText } = buildCheckInEmail({
       hostName: 'Priya Sharma',
       visitorName: 'Courier Guy',
-      visitorCompany: null,
+      visitorVendorName: null,
       refNumber: 'VIS-20260721-0002',
       purpose: 'delivery',
       checkedInAt: '2026-07-21T11:00:00Z',
@@ -78,7 +78,7 @@ describe('M22-EMAIL: Check-in email builder', () => {
     const { bodyText } = buildCheckInEmail({
       hostName: 'Ravi Kumar',
       visitorName: 'Test User',
-      visitorCompany: null,
+      visitorVendorName: null,
       refNumber: 'VIS-20260721-0003',
       purpose: 'vendor',
       checkedInAt: '2026-07-21T09:00:00Z',
@@ -90,7 +90,7 @@ describe('M22-EMAIL: Check-in email builder', () => {
     const { bodyText } = buildCheckInEmail({
       hostName: 'Anita Singh',
       visitorName: 'Bob Smith',
-      visitorCompany: 'Acme Corp',
+      visitorVendorName: 'Acme Corp',
       refNumber: 'VIS-20260721-0042',
       purpose: 'audit',
       checkedInAt: '2026-07-21T14:00:00Z',
@@ -102,7 +102,7 @@ describe('M22-EMAIL: Check-in email builder', () => {
     const { bodyText } = buildCheckInEmail({
       hostName: 'Meera Nair',
       visitorName: 'John Doe',
-      visitorCompany: null,
+      visitorVendorName: null,
       refNumber: 'VIS-20260721-0005',
       purpose: 'maintenance',
       checkedInAt: '2026-07-21T08:00:00Z',

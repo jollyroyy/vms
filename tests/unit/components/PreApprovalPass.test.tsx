@@ -131,7 +131,7 @@ describe('M-QR-PASS: PreApprovalPass', () => {
     render(<PreApprovalPass visit={{
       ...baseVisit,
       photo_data: 'data:image/webp;base64,PHOTO',
-      visitor: { id: 'vis1', phone: '9876543210', full_name: 'Asha Rao', company: 'Acme', id_type: 'Aadhaar', id_last4: '9646', vehicle_number: null, is_blacklisted: false, blacklist_reason: null, created_at: '' },
+      visitor: { id: 'vis1', phone: '9876543210', full_name: 'Asha Rao', vendor_name: 'Acme', id_type: 'Aadhaar', id_last4: '9646', vehicle_number: null, is_blacklisted: false, blacklist_reason: null, created_at: '' },
     }} />);
     expect(screen.getByAltText('Visitor photo')).toHaveAttribute('src', 'data:image/webp;base64,PHOTO');
     expect(screen.getByText('Asha Rao')).toBeInTheDocument();

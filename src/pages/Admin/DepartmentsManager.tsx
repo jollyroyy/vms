@@ -69,12 +69,13 @@ export default function DepartmentsManager(): React.ReactElement {
   const selectView = (next: AdminOverviewView) =>
     setView((current) => (current === next ? null : next));
 
-  // "Assign HOD" from the gap list hands off to the Departments view with that
-  // department's add-HOD form already open, so the admin lands where they can act.
+  // "Assign HOD" from the gap list opens the form ON the card. It used to also
+  // flip to the Departments view, which replaced the filtered gap list with
+  // every department in the org — the opposite of what the admin asked for by
+  // clicking "Awaiting an HOD". The view stays put now.
   const startAssignFromGap = (departmentId: string) => {
     setEditingId(null);
     setHodSlot({ kind: 'add', departmentId });
-    setView('departments');
   };
 
   /* ── departments ───────────────────────────────────── */
@@ -263,7 +264,11 @@ export default function DepartmentsManager(): React.ReactElement {
         <UnassignedDepartments
           id={PANEL_ID}
           departments={unassignedDepartments}
+          hodSlot={hodSlot}
+          hodBusy={hodBusy}
           onAssign={(d) => startAssignFromGap(d.id)}
+          onCancelHod={() => setHodSlot(null)}
+          onSubmitHod={handleHodSubmit}
         />
       )}
 

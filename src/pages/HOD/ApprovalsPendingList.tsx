@@ -79,7 +79,7 @@ export default function ApprovalsPendingList({ visits, loading, error, acting, r
                     <span className="ml-auto text-[10px] text-navy-300 font-mono">{v.ref_number}</span>
                   </div>
                   <p className="text-xs text-navy-400 truncate mt-0.5">
-                    {v.visitor?.company ? `${v.visitor.company} · ` : ''}{v.host?.full_name ?? ''}
+                    {v.visitor?.vendor_name ? `${v.visitor.vendor_name} · ` : ''}{v.host?.full_name ?? ''}
                   </p>
                   {v.visitor?.phone && (
                     <p className="text-xs text-navy-400 truncate mt-0.5 flex items-center gap-1">

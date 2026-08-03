@@ -53,7 +53,7 @@ describe('GuardWatchlist', () => {
 
   it('renders flagged visitors', () => {
     mockData.entries = [
-      { id: 'v1', full_name: 'John Doe', phone: '9800000001', company: 'Acme', blacklist_reason: 'Trespassing', created_at: '2026-08-01T00:00:00Z' },
+      { id: 'v1', full_name: 'John Doe', phone: '9800000001', vendor_name: 'Acme', blacklist_reason: 'Trespassing', created_at: '2026-08-01T00:00:00Z' },
     ];
     renderPage();
     expect(screen.getByText('John Doe')).toBeTruthy();
@@ -79,7 +79,7 @@ describe('GuardWatchlist', () => {
 
   it('falls back to "Flagged" when blacklist_reason is null', () => {
     mockData.entries = [
-      { id: 'v2', full_name: 'No Reason', phone: '9800000003', company: null, blacklist_reason: null, created_at: '2026-08-01T00:00:00Z' },
+      { id: 'v2', full_name: 'No Reason', phone: '9800000003', vendor_name: null, blacklist_reason: null, created_at: '2026-08-01T00:00:00Z' },
     ];
     renderPage();
     expect(screen.getByText('Flagged')).toBeTruthy();
@@ -88,7 +88,7 @@ describe('GuardWatchlist', () => {
 
   it('never renders a QR code, badge, or entry pass', () => {
     mockData.entries = [
-      { id: 'v1', full_name: 'John Doe', phone: '9800000001', company: 'Acme', blacklist_reason: 'Trespassing', created_at: '2026-08-01T00:00:00Z' },
+      { id: 'v1', full_name: 'John Doe', phone: '9800000001', vendor_name: 'Acme', blacklist_reason: 'Trespassing', created_at: '2026-08-01T00:00:00Z' },
     ];
     mockData.alerts = [
       {

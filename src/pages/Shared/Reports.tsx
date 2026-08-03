@@ -12,6 +12,7 @@ import { approvalTimestamp } from '../../lib/visitApproval';
 import { computeDateRange, type RangePreset } from '../../lib/reportsDateRange';
 import type { ReportVisit } from '../../lib/reportRow';
 import ReportsToolbar from './ReportsToolbar';
+import ReportsPrintHeader from './ReportsPrintHeader';
 
 const TODAY = new Date().toISOString().slice(0, 10);
 
@@ -65,13 +66,19 @@ export default function ReportsPage(): React.ReactElement {
     pending_approval: true, checked_in: true, checked_out: true, cancelled: true, no_show: true,
   };
 
-  // What the visitor brought in, in the guard's own words. `carrying_material`
-  // predates the free-text column, so rows written before it still only say
-  // *that* something was carried — say so rather than pretending nothing was.
-  const carrying = (v: Visit): string => {
+  // Carrying is two columns, not one — the flag is a yes/no fact the admin can
+  // scan down, the remarks are what the guard typed at the gate. Crushing them
+  // into one cell made "carried something, nothing written down" look identical
+  // to "carried nothing", and made the flag impossible to count.
+  const carryingFlag = (v: Visit): string => (v.carrying_material ? 'Yes' : 'No');
+
+  // `carrying_material` predates the free-text column, so rows written before it
+  // still only say *that* something was carried. Say so rather than showing a
+  // blank that reads as "nothing was carried".
+  const carryingRemarks = (v: Visit): string => {
     const remarks = v.carrying_remarks?.trim();
     if (remarks) return remarks;
-    return v.carrying_material ? 'Yes (unspecified)' : '—';
+    return v.carrying_material ? 'Not recorded' : '—';
   };
 
   const dateTime = (iso: string | null | undefined): React.ReactNode => {
@@ -111,24 +118,23 @@ export default function ReportsPage(): React.ReactElement {
       />
 
       <div className="print-only">
-        <h2 className="text-xl font-bold">Visitor Register — {rangeLabel}</h2>
-        <p className="text-sm text-navy-400">Secure Gate — Visitor Management System · {visits.length} entries</p>
+        <ReportsPrintHeader rangeLabel={`Register — ${rangeLabel}`} entryCount={visits.length} />
       </div>
 
       <section>
         <div className="flex items-center gap-3 mb-4 no-print">
           <h2 className="section-title">Register — {rangeLabel}</h2>
-          <span className="glass-chip text-navy-400">({visits.length} entries)</span>
+          <span className="glass-chip text-navy-400 tabular-nums">({visits.length} entries)</span>
         </div>
         {loading ? (
           <div className="card p-6 space-y-3 no-print">{[1, 2, 3].map((i) => <div key={i} className="h-8 skeleton" />)}</div>
         ) : (
-          <div className="card overflow-hidden print:border-0 print:shadow-none print:rounded-none">
+          <div className="card-premium overflow-hidden">
             <div className="overflow-x-auto print:overflow-visible">
-              <table className="w-full text-sm [font-variant-numeric:tabular-nums]">
+              <table className="w-full text-sm tabular-nums">
                 <thead>
                   <tr className="bg-surface-50/80 border-b border-surface-200/60 dark:border-white/[0.06]">
-                    {['#', 'Ref', 'Photo', 'Name', 'Company', 'Phone', 'Dept', 'Host', 'ID Proof', 'Purpose', 'Carrying', 'Approved', 'Check-in', 'Check-out', 'Status'].map((h) => (
+                    {['#', 'Ref', 'Photo', 'Name', 'Vendor', 'Phone', 'Dept', 'Host', 'ID Proof', 'Purpose', 'Carrying', 'Carrying Remarks', 'Approved', 'Check-in', 'Check-out', 'Status'].map((h) => (
                       <th key={h} className="px-3.5 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-navy-400 whitespace-nowrap">{h}</th>
                     ))}
                   </tr>
@@ -136,7 +142,7 @@ export default function ReportsPage(): React.ReactElement {
                 <tbody className="divide-y divide-surface-200/50 dark:divide-white/[0.05]">
                   {visits.map((v, i) => (
                     <tr key={v.id} className="hover:bg-surface-100/60 dark:hover:bg-white/[0.03] transition-colors">
-                      <td className="px-3.5 py-3 text-navy-300">{i + 1}</td>
+                      <td className="px-3.5 py-3 text-navy-300 tabular-nums">{i + 1}</td>
                       <td className="px-3.5 py-3 text-[11px] font-mono text-navy-400">{v.ref_number}</td>
                       <td className="px-3.5 py-3">
                         {v.photo_url ? (
@@ -147,15 +153,20 @@ export default function ReportsPage(): React.ReactElement {
                           </div>
                         )}
                       </td>
-                      <td className="px-3.5 py-3 font-medium text-navy-800">{v.visitor?.full_name}</td>
-                      <td className="px-3.5 py-3 text-navy-500">{v.visitor?.company}</td>
+                      <td className="px-3.5 py-3 font-semibold text-navy-900">{v.visitor?.full_name}</td>
+                      <td className="px-3.5 py-3 text-navy-500">{v.visitor?.vendor_name}</td>
                       <td className="px-3.5 py-3 text-navy-500 font-mono text-xs">{maskPhone(v.visitor?.phone)}</td>
                       <td className="px-3.5 py-3 text-navy-500">{v.department?.name}</td>
                       <td className="px-3.5 py-3 text-navy-500">{v.host?.full_name}</td>
                       <td className="px-3.5 py-3 text-navy-500 font-mono text-xs whitespace-nowrap">{maskIdProof(v.visitor?.id_type, v.visitor?.id_last4)}</td>
                       <td className="px-3.5 py-3 text-navy-500 capitalize">{v.purpose}</td>
+                      <td className="px-3.5 py-3 text-xs whitespace-nowrap">
+                        <span className={v.carrying_material ? 'font-bold text-accent-700' : 'text-navy-400'}>
+                          {carryingFlag(v)}
+                        </span>
+                      </td>
                       <td className="px-3.5 py-3 text-xs text-navy-600 max-w-[14rem]">
-                        <span className="block truncate" title={v.carrying_remarks ?? undefined}>{carrying(v)}</span>
+                        <span className="block truncate" title={v.carrying_remarks ?? undefined}>{carryingRemarks(v)}</span>
                       </td>
                       <td className="px-3.5 py-3 text-xs text-navy-700 whitespace-nowrap">{dateTime(approvalTimestamp(v))}</td>
                       <td className="px-3.5 py-3 text-xs text-navy-700 whitespace-nowrap">{dateTime(v.checked_in_at)}</td>

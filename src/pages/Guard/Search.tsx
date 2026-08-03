@@ -130,7 +130,7 @@ export default function GuardSearch(): React.ReactElement {
                     <p className="text-sm font-bold text-navy-900 dark:text-white truncate">{v.visitor?.full_name ?? '—'}</p>
                     <p className="text-xs text-navy-400 truncate">
                       {v.visitor?.phone ?? '—'}
-                      {v.visitor?.company ? ` · ${v.visitor.company}` : ''}
+                      {v.visitor?.vendor_name ? ` · ${v.visitor.vendor_name}` : ''}
                       {v.department?.name ? ` · ${v.department.name}` : ''}
                       {v.host?.full_name ? ` · Host: ${v.host.full_name}` : ''}
                     </p>

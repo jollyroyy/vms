@@ -83,7 +83,7 @@ describe('GuardSearch', () => {
         ref_number: 'VIS-20260720-0001',
         status: 'checked_in',
         created_at: '2026-08-02T09:00:00Z',
-        visitor: { full_name: 'Alice Johnson', phone: '9876543210', company: 'Acme Corp' },
+        visitor: { full_name: 'Alice Johnson', phone: '9876543210', vendor_name: 'Acme Corp' },
         department: { name: 'Engineering' },
         host: { full_name: 'Bob Smith' },
       },

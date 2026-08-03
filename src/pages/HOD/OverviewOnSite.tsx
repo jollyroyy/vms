@@ -35,7 +35,7 @@ export default function OverviewOnSite({ loading, onSite }: Props): React.ReactE
                 <div className="min-w-0">
                   <p className="font-semibold text-sm text-navy-900 dark:text-white truncate">
                     {v.visitor?.full_name ?? '—'}
-                    {v.visitor?.company && <span className="text-navy-400 font-normal"> — {v.visitor.company}</span>}
+                    {v.visitor?.vendor_name && <span className="text-navy-400 font-normal"> — {v.visitor.vendor_name}</span>}
                   </p>
                   <p className="text-xs text-navy-400 mt-0.5 truncate">
                     {v.host?.full_name ? `Host: ${v.host.full_name}` : 'Host: —'}

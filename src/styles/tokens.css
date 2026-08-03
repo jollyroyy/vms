@@ -41,6 +41,33 @@
     --glass-bg-opacity: 0.62;
     --glass-border-opacity: 0.55;
     --glass-border: 255 255 255;
+    /* Hairline border — a touch fainter than the standard glass border,
+       used on the premium card family so edges read as etched, not drawn. */
+    --hairline-opacity: 0.40;
+
+    /* Radius scale — keep every rounded surface on the same steps. */
+    --radius-sm: 0.75rem;
+    --radius-md: 1rem;
+    --radius-lg: 1.25rem;
+    --radius-xl: 1.75rem;
+
+    /* Motion — the one easing/duration pair every card hover should share. */
+    --ease-premium: cubic-bezier(0.2, 0, 0, 1);
+    --dur-premium: 180ms;
+
+    /* Layered shadows (quiet-luxury 3-part stack): a tight contact shadow,
+       a mid ambient shadow, a wide soft shadow, plus the inset top highlight
+       that reads as a lit edge. Hover variants deepen without growing loud. */
+    --shadow-contact: 0 1px 2px 0 rgb(15 12 40 / 0.05);
+    --shadow-ambient: 0 3px 10px -2px rgb(15 12 40 / 0.06);
+    --shadow-wide: 0 18px 44px -16px rgb(15 12 40 / 0.12);
+    --shadow-contact-hover: 0 1px 3px 0 rgb(15 12 40 / 0.07);
+    --shadow-ambient-hover: 0 6px 16px -4px rgb(15 12 40 / 0.09);
+    --shadow-wide-hover: 0 26px 56px -18px rgb(15 12 40 / 0.16);
+    --edge-highlight: inset 0 1px 0 0 rgb(255 255 255 / 0.38);
+    --edge-highlight-hover: inset 0 1px 0 0 rgb(255 255 255 / 0.44);
+    --ring-gold: 0 0 0 1px rgb(184 147 74 / 0.08);
+    --ring-gold-hover: 0 0 0 1px rgb(184 147 74 / 0.14);
 
     color-scheme: light;
   }
@@ -82,6 +109,20 @@
     --glass-bg-opacity: 0.55;
     --glass-border-opacity: 0.09;
     --glass-border: 255 255 255;
+    --hairline-opacity: 0.07;
+
+    /* Dark shadows: higher alpha, tighter spread — light bleeds less on a
+       dark surface, so the stack needs contrast instead of size. */
+    --shadow-contact: 0 1px 2px 0 rgb(0 0 0 / 0.45);
+    --shadow-ambient: 0 4px 12px -2px rgb(0 0 0 / 0.38);
+    --shadow-wide: 0 20px 46px -16px rgb(0 0 0 / 0.50);
+    --shadow-contact-hover: 0 1px 3px 0 rgb(0 0 0 / 0.55);
+    --shadow-ambient-hover: 0 8px 18px -4px rgb(0 0 0 / 0.45);
+    --shadow-wide-hover: 0 28px 60px -16px rgb(0 0 0 / 0.60);
+    --edge-highlight: inset 0 1px 0 0 rgb(255 255 255 / 0.06);
+    --edge-highlight-hover: inset 0 1px 0 0 rgb(255 255 255 / 0.09);
+    --ring-gold: 0 0 0 1px rgb(184 147 74 / 0.14);
+    --ring-gold-hover: 0 0 14px -4px rgb(184 147 74 / 0.22);
 
     color-scheme: dark;
   }

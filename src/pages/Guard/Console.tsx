@@ -6,34 +6,38 @@ import { attachHostNames } from '../../lib/hostNames';
 import { safeErrorMessage } from '../../lib/errors';
 import GuardConsoleModeTabs, { type Mode } from './GuardConsoleModeTabs';
 import GuardConsoleModeContent from './GuardConsoleModeContent';
+import CheckInPanel from './CheckInPanel';
 // No Badge import: the guard console must never render an entry pass. See
 // canRoleShowPass in lib/passVisibility.ts for why. Badge draws a live QR
 // straight from visit.qr_token and has no role gate of its own, so wiring it
 // back in here would reintroduce the leak that gate exists to close.
 
 // URL tab → mode. Kept as a lookup map (CLAUDE.md forbids includes() chains for
-// known enums). Only three modes are live now — the audit views (checked-out /
-// rejected / all) were removed from the guard surface entirely — but old
-// deep-links (dashboard tiles, bookmarks, the former sidebar sub-nav, and the
-// former audit tabs themselves) must not 404 into a blank tab, so every
-// legacy value degrades gracefully onto the nearest live tab instead.
+// known enums). Only two modes are live now: the audit views (checked-out /
+// rejected / all) were removed from the guard surface entirely, and "expected"
+// stopped being a tab when CheckInPanel was promoted to sit above the tab bar.
+// Old deep-links (dashboard tiles, bookmarks, the former sidebar sub-nav, the
+// former audit tabs) must not 404 into a blank tab, so every legacy value
+// degrades onto a live one. Everything that used to mean "expected" now lands
+// on Inside — the check-in flow those links were reaching for is on screen
+// unconditionally, so the tab choice underneath it is free.
 const TAB_MODE_MAP: Record<string, Mode> = {
-  expected: 'expected',
   walkins: 'walkins',
   inside: 'inside',
   // Legacy aliases — old links must not 404 into a blank tab.
-  checkin: 'expected',
+  expected: 'inside',
+  checkin: 'inside',
   exit: 'inside',
   'checked-out': 'inside',
-  rejected: 'expected',
-  all: 'expected',
-  'no-show': 'expected',
+  rejected: 'inside',
+  all: 'inside',
+  'no-show': 'inside',
 };
 
 export default function GuardConsole(): React.ReactElement {
   const [searchParams, setSearchParams] = useSearchParams();
   const tabParam = searchParams.get('tab');
-  const initialMode: Mode = (tabParam && TAB_MODE_MAP[tabParam]) ? TAB_MODE_MAP[tabParam]! : 'expected';
+  const initialMode: Mode = (tabParam && TAB_MODE_MAP[tabParam]) ? TAB_MODE_MAP[tabParam]! : 'inside';
 
   const [mode, setMode] = useState<Mode>(initialMode);
   const [visits, setVisits] = useState<Visit[]>([]);
@@ -94,10 +98,12 @@ export default function GuardConsole(): React.ReactElement {
 
   const checkedIn = useMemo(() => visits.filter((v) => v.status === 'checked_in'), [visits]);
   const pendingWalkIns = useMemo(() => visits.filter((v) => v.status === 'pending_approval'), [visits]);
-  const expected = useMemo(
-    () => visits.filter((v) => v.status === 'approved' || v.status === 'walkin_approved'),
-    [visits],
-  );
+
+  const onCheckInSuccess = useCallback((name: string) => {
+    setSuccessMsg(`"${name}" checked in successfully.`);
+    void loadVisits(true);
+    setTimeout(() => setSuccessMsg(''), 6000);
+  }, [loadVisits]);
 
   return (
     <div className="max-w-4xl mx-auto space-y-5 animate-fade-in pb-4">
@@ -105,14 +111,6 @@ export default function GuardConsole(): React.ReactElement {
         <h1 className="page-title">Visitors</h1>
         <p className="page-subtitle">Check visitors in and out, and register walk-ins</p>
       </header>
-
-      <GuardConsoleModeTabs
-        mode={mode}
-        onModeChange={changeMode}
-        expectedCount={expected.length}
-        walkInCount={pendingWalkIns.length}
-        insideCount={checkedIn.length}
-      />
 
       {successMsg && (
         <div className="alert-success">
@@ -129,14 +127,19 @@ export default function GuardConsole(): React.ReactElement {
         </div>
       )}
 
+      {/* Check-in is unconditional, not a tab. See GuardConsoleModeTabs. */}
+      <CheckInPanel today={today} onCheckInSuccess={onCheckInSuccess} />
+
+      <GuardConsoleModeTabs
+        mode={mode}
+        onModeChange={changeMode}
+        walkInCount={pendingWalkIns.length}
+        insideCount={checkedIn.length}
+      />
+
       <GuardConsoleModeContent
         mode={mode}
-        today={today}
-        onCheckInSuccess={(name) => {
-          setSuccessMsg(`"${name}" checked in successfully.`);
-          void loadVisits(true);
-          setTimeout(() => setSuccessMsg(''), 6000);
-        }}
+        onCheckInSuccess={onCheckInSuccess}
         loading={loading}
         checkedIn={checkedIn}
         pendingWalkIns={pendingWalkIns}

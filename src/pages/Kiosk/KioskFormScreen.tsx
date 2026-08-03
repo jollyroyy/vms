@@ -20,8 +20,8 @@ type Props = {
   phone: string;
   fullName: string;
   onFullNameChange: (v: string) => void;
-  company: string;
-  onCompanyChange: (v: string) => void;
+  vendorName: string;
+  onVendorNameChange: (v: string) => void;
   purpose: VisitorPurpose;
   onPurposeChange: (v: VisitorPurpose) => void;
   deptId: string;
@@ -39,7 +39,7 @@ type Props = {
 };
 
 export default function KioskFormScreen({
-  error, onSubmit, onBack, phone, fullName, onFullNameChange, company, onCompanyChange,
+  error, onSubmit, onBack, phone, fullName, onFullNameChange, vendorName, onVendorNameChange,
   purpose, onPurposeChange, deptId, onDeptChange, departments, hostId, onHostChange, hosts,
   hostError, onRetryHosts, photoBlob, onPhotoCapture, onRetakePhoto, submitting,
 }: Props): React.ReactElement {
@@ -75,8 +75,8 @@ export default function KioskFormScreen({
               <input type="text" required maxLength={100} value={fullName} onChange={(e) => onFullNameChange(e.target.value)} className="input" placeholder="e.g. John Doe" autoFocus />
             </div>
             <div>
-              <label className="label">Company / Coming from *</label>
-              <input type="text" required maxLength={200} value={company} onChange={(e) => onCompanyChange(e.target.value)} className="input" placeholder="e.g. ABC Corp" />
+              <label className="label">Vendor Name / Coming from *</label>
+              <input type="text" required maxLength={200} value={vendorName} onChange={(e) => onVendorNameChange(e.target.value)} className="input" placeholder="e.g. ABC Corp" />
             </div>
             <div>
               <label className="label">Purpose *</label>

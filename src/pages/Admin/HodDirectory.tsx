@@ -55,15 +55,15 @@ export default function HodDirectory({ id, departments, hodsByDept }: Props): Re
         >
           <div className="flex items-center justify-between mb-3">
             <p className="section-title">{g.dept.name}</p>
-            <span className="glass-chip !px-2 !py-0.5 !text-[10px] text-navy-400">
+            <span className="glass-chip !px-2 !py-0.5 !text-[10px] tabular-nums text-navy-400">
               {g.hods.length}
             </span>
           </div>
-          <div className="space-y-1">
+          <div className="space-y-0.5">
             {g.hods.map((hod) => (
               <div
                 key={hod.id}
-                className="flex items-center gap-3 py-2 px-2.5 rounded-xl min-w-0"
+                className="flex items-center gap-3 py-2 px-2.5 rounded-xl min-w-0 hover:bg-surface-50 dark:hover:bg-white/[0.04] transition-colors"
               >
                 <div className="h-9 w-9 rounded-full avatar-gradient flex items-center justify-center shrink-0 ring-1 ring-white/20">
                   <span className="text-[11px] font-bold">

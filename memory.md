@@ -25,7 +25,7 @@
 | `#build` | [TS-02](#ts-02), [TS-03](#ts-03), [TS-04](#ts-04) |
 | `#loop` | [VT-01](#vt-01), [VT-02](#vt-02) |
 | `#security` | [SEC-01](#sec-01), [SEC-02](#sec-02), [SEC-03](#sec-03), [SEC-04](#sec-04), [SEC-05](#sec-05), [SEC-06](#sec-06), [SEC-07](#sec-07), [SEC-08](#sec-08), [SEC-09](#sec-09) |
-| `#migration` | [SB-14](#sb-14) |
+| `#migration` | [SB-14](#sb-14), [SB-18](#sb-18) |
 | `#ui` | [RE-03](#re-03), [UI-01](#ui-01) |
 | `#ux` | [RE-03](#re-03) |
 | `#routing` | [SEC-01](#sec-01) |
@@ -33,6 +33,8 @@
 | `#auth` | [SB-12](#sb-12) |
 | `#privelege-escalation` | [SEC-02](#sec-02) |
 | `#data-isolation` | [SEC-03](#sec-03) |
+| `#concurrency` | [SB-18](#sb-18) |
+| `#dashboard` | [RE-04](#re-04) |
 | `#credentials` | [SEC-04](#sec-04) |
 | `#secrets` | [SEC-04](#sec-04) |
 | `#information-disclosure` | [SEC-05](#sec-05) |
@@ -566,6 +568,28 @@ CREATE POLICY policy_name ON table_name FOR ... USING (...);
 **Prevention:** Every list/table page that shows multi-department data must scope queries by the user's department. Admin/super_admin are the only roles that see all departments.
 **Tags:** `#security` `#data-isolation` `#supabase`
 **First seen:** 2026-07-21 (audit H-07)
+
+---
+
+### SB-18
+
+**Pattern:** `CREATE OR REPLACE FUNCTION` fails (or silently keeps the old signature) when only a parameter name changes (e.g. `p_company` → `p_vendor_name`); the client passes the new named arg and gets "function does not exist".
+**Cause:** Postgres treats a function's parameter names as part of a fixed signature that `CREATE OR REPLACE` cannot rewrite — only the body may change in place. Renaming a param requires a full drop.
+**Fix:** `DROP FUNCTION public.fn(exact, positional, arg, types);` then `CREATE FUNCTION` with the new parameter name and the unchanged body. Immediately re-`GRANT EXECUTE` on the new function to every role the dropped one had — a `DROP` wipes existing grants, so a security-definer RPC that `anon`/`authenticated` could call goes uncallable until the grants are restated in the same migration.
+**Prevention:** Before writing a rename migration for a function argument, grep the live grants (`\df+` or `information_schema.routine_privileges`) for the function being dropped, and reproduce every one after the `CREATE`. Treat "rename a param" and "drop+recreate+re-grant" as the same migration step, never two.
+**Tags:** `#supabase` `#migration` `#postgres`
+**First seen:** 2026-08-03 (migration 059)
+
+---
+
+### RE-04
+
+**Pattern:** A dashboard KPI-tile drill-down that expands a filtered list in place resets/collapses when a realtime `postgres_changes` event refreshes the underlying data, even though the guard didn't click anything.
+**Cause:** The expanded-tile state (`DrillKey | null`) was being derived from the same `load()` call that realtime triggers, instead of being independent local state that only re-filters against fresh data.
+**Fix:** Keep "which tile is open" as its own piece of state, separate from the visits array. On a realtime refresh, re-run the same `DRILL_FILTER[key]` against the new array without touching which key is open — see `lib/dashboardDrill.ts` + `lib/useTodayVisits.ts` pattern (silent `load(silent=true)` reloads data, open-tile state is untouched).
+**Prevention:** Any "expand in place" UI driven by realtime-refreshed data must separate "what's open" state from "what data is shown" state. Never let a data reload implicitly close a UI panel.
+**Tags:** `#react` `#supabase` `#dashboard`
+**First seen:** 2026-08-03
 
 ---
 

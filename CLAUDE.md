@@ -21,6 +21,12 @@
   `ALL_LINKS`.
 - The Admin Panel (`/admin`) manages **departments and their heads of department** only.
   It has no Users tab and no Blacklist tab.
+- **"Awaiting an HOD" stays filtered while you act on it.** The tile drills into
+  `UnassignedDepartments`, which lists only departments with no HOD, and each card's
+  "Assign HOD" opens `HodForm` **inline on that card**. It used to also
+  `setView('departments')`, which replaced the filtered gap list with every department
+  in the org — the exact opposite of what clicking the tile asked for. Do not reintroduce
+  a view switch in `startAssignFromGap`.
 - **No gate-pass anything in the admin surface.** `gate_passes` / `gate_pass_items` are a
   material-movement module (RGP/NRGP) whose pages and routes were deleted from the app
   long ago; the only things still reading the table were an Analytics "Gate Pass Summary"
@@ -46,8 +52,15 @@
 ### Guard console (visitor-only deployment)
 - The guard **sidebar is four items** — Dashboard, Visitors, Pre-Approvals, Watchlist &
   Alerts. Defined in `src/components/layout/navLinks.tsx` (extracted out of
-  `Sidebar.tsx`). `Visitors` carries **no sub-nav children** — Expected / Walk-ins /
-  Inside live only as the `GuardConsoleModeTabs` in the main content area now.
+  `Sidebar.tsx`). `Visitors` carries **no sub-nav children**.
+- **`/visitors` has TWO tabs — Walk-ins and Inside — and check-in above them.**
+  "Expected" was never a list: it rendered the whole `CheckInPanel` (QR gate,
+  pre-approved match search, ID scan, photo, Check In). Checking someone in is not one
+  of several things a guard might be doing at a gate, it is *the* thing, so
+  `CheckInPanel` now renders unconditionally in `Console.tsx` above
+  `GuardConsoleModeTabs`, and `Mode` is `'walkins' | 'inside'`. Do not re-add an
+  Expected tab and do not move `CheckInPanel` back into `GuardConsoleModeContent` —
+  that component serves lists only now, and a test asserts it never renders the panel.
 - **Daily Staff, the Kiosk and Search were removed from the NAV but are still ROUTABLE.**
   `/guard/daily-staff`, `/kiosk` and `/guard/search` remain in `ROLE_ROUTES.guard` on
   purpose — the kiosk runs on its own device. They left the sidebar because neither is
@@ -57,6 +70,17 @@
   everything that changes a visit's state lives in `/visitors`. These two used to
   duplicate each other (both rendered an inside-list, both held their own realtime
   subscription) and a guard could not tell which was authoritative. Keep the split.
+- **Every dashboard KPI tile drills down IN PLACE.** Clicking a count expands the
+  matching cards directly below the summary; clicking it again collapses it; clicking a
+  different tile swaps the panel. **No tile is a `<Link>`** — they used to navigate to
+  `/visitors?tab=…` (including at audit tabs the console no longer has), which cost the
+  guard the board they were reading. The pieces: `lib/dashboardDrill.ts` (the `DrillKey`
+  union, `DRILL_FILTER` predicates and `DRILL_COPY`), `lib/useTodayVisits.ts` (fetches
+  the whole day once, so five tiles share one subscription and the count can never
+  disagree with the list) and `pages/Guard/DashboardDrilldown.tsx`. `DRILL_FILTER` keys
+  must stay in lockstep with `GateStats` fields — the tile shows `stats[key]`, the panel
+  shows `visits.filter(DRILL_FILTER[key])`. This superseded `lib/useInsideNow.ts` and
+  `pages/Guard/GuardInsideNow.tsx`, both deleted.
 - **`entered` is NOT `inside`.** `visits.status` holds one value, so a visitor who came
   and left is `checked_out`, not `checked_in`. Counting `status === 'checked_in'` answers
   "who is still here", never "how many came through today". `useGateStats` derives
@@ -74,17 +98,48 @@
   entry pass (see `lib/passVisibility.ts` and the comment at the top of `Console.tsx`).
   This is why there is no "Badge Printing" queue on the dashboard despite the wireframe
   asking for one. `VisitorCard` and `GuardConsole` both have tests asserting the absence.
-- `Console.tsx`'s `TAB_MODE_MAP` only maps to the three live modes (expected / walkins /
-  inside) — the audit views (`checked-out` / `rejected` / `all`) were removed from the
-  guard surface entirely (they remain available in Reports). Old `?tab=` deep links —
-  legacy aliases (`checkin` → expected, `exit` → inside, `no-show` → expected) and the
-  former audit-view values themselves (`checked-out` → inside, `rejected` → expected,
-  `all` → expected) — degrade gracefully onto the nearest live tab instead of 404-ing
-  into a blank one. Tested in `GuardConsole.test.tsx`.
+- `Console.tsx`'s `TAB_MODE_MAP` only maps to the two live modes (walkins / inside) —
+  the audit views (`checked-out` / `rejected` / `all`) were removed from the guard
+  surface entirely (they remain available in Reports), and `expected` stopped being a
+  tab. Every legacy `?tab=` value (`expected`, `checkin`, `exit`, `checked-out`,
+  `rejected`, `all`, `no-show`) degrades onto `inside` rather than 404-ing into a blank
+  tab; the check-in flow those links were reaching for is on screen unconditionally, so
+  the tab underneath is free. Default mode is `inside`. Tested in `GuardConsole.test.tsx`.
 - Guard styling lives in `src/styles/components-guard.css` (`.gate-tile`, `.visitor-card`,
   `.rail-*`, `.gate-action`, `.gate-tab`, `.queue-row`). Every colour resolves to an
   existing token, so both themes and any rebrand follow automatically. Status is always
   carried by a colour rail **and** a text badge — never colour alone.
+
+### Visitor identity and check-in constraints
+- **The visitor's organisation is `visitors.vendor_name`, never "company".** Renamed
+  from `visitors.company` by migration **059** (which also renamed
+  `recurring_visits.visitor_company` → `visitor_vendor_name` and the
+  `pre_approve_visitor` / `pre_approve_visitor_v2` RPC argument `p_company` →
+  `p_vendor_name`). Every label, table header and CSV key reads "Vendor Name" / "Vendor".
+  **`gate_passes.company_name` was deliberately NOT renamed** — it belongs to the
+  material-movement module and describes a carrier, not a visitor. The
+  `notify-host` edge function reads `vendor_name`; keep it in sync, it is outside `src/`
+  and no test covers it.
+- **A visitor who is inside cannot check in again.** Migration **060** puts a partial
+  unique index on `visits (visitor_id) where status = 'checked_in'`. Because
+  `visitors.phone` is unique, one visitor row *is* one mobile number, so this single
+  index is the whole "same number cannot check in twice" rule — enforced in the DB
+  because the console, the walk-in lane and the kiosk are three write paths on three
+  devices and a component-level check can always be raced.
+  `src/lib/activeVisit.ts` owns the human-facing half: `findActiveVisitByPhone`
+  (strong), `findActiveVisitByIdProof` (weak — only `id_type` + `id_last4` are stored,
+  so it can collide; warning only, never a DB constraint), `activeVisitMessage` (names
+  the person) and `isAlreadyInsideError` (matches 23505 **by constraint name**, so an
+  unrelated unique violation is not mislabelled). Wired into `CheckInPanel`,
+  `VisitorForm.checkInPreApproved` and `Kiosk.checkInPreApproved`. `VisitorForm`'s
+  registration path was already covered by the SEC-17 `get_active_visit_for_phone` RPC.
+- **`carrying_material` is a tick box, not an inference.** It used to be derived from
+  "did the guard type anything into remarks?", which made an empty box mean "carrying
+  nothing" — indistinguishable from a guard who was interrupted mid-list. `CheckInPhotoStep`
+  now has an explicit checkbox that *gates* the remarks textarea, and unticking discards
+  the text so no orphaned description survives on a visit flagged as carrying nothing.
+  Reports carries **two** columns — `Carrying` (Yes/No, scannable) and
+  `Carrying Remarks` (the guard's words) — on screen and in the CSV. Never merge them back.
 
 ### Live shared data
 - `src/lib/useDepartments.ts` and `src/lib/useHods.ts` fetch **and** subscribe to
@@ -105,6 +160,11 @@
   had never been applied and two only partially. `055_drift_policy_convergence.sql`
   holds the full audit ledger, including the files that are deliberately **not**
   replayed and the bugs that were fixed while reconciling.
+- Migrations `059` (vendor_name rename) and `060` (one open visit per visitor) were
+  written **and applied to the live project** in the same session (2026-08-03), verified
+  against live before and after. 059 had to DROP and CREATE both pre-approval RPCs —
+  Postgres refuses to rename an input parameter via CREATE OR REPLACE — and re-grants
+  their original ACLs explicitly, so check grants if you touch them again.
 - Before trusting a migration file as a description of live state, verify against the
   live project. Two things the files got wrong on purpose-of-record: 021's
   `pre_approve_visitor` is superseded by 026/029, and 022's
@@ -137,7 +197,9 @@ src/
                      # GuardWalkIns;
                      # VisitorCard (the ONE shared visitor row — superseded the
                      #   deleted GuardConsoleVisitorRow / GuardConsoleInsideCard);
-                     # Dashboard (composition) + DashboardSummary, DashboardActivity;
+                     # Dashboard (composition) + DashboardSummary, DashboardActivity,
+                     #   DashboardDrilldown (the in-page KPI expansion — superseded the
+                     #   deleted GuardInsideNow);
                      # PreApprovals + PreApprovalRow; Search; Watchlist;
                      # CheckInPanel + CheckInMatchList, CheckInPhotoStep;
                      # VisitorForm + VisitorFormFields, VisitorFormAlerts,
@@ -154,10 +216,14 @@ src/
                      # AdminOverviewPrompt (collapsed), DepartmentList,
                      # HodDirectory, UnassignedDepartments
   pages/Kiosk/       # Kiosk (state machine) + KioskIdleScreen, KioskPhoneScreen,
-                     # KioskFormScreen, KioskBadgeScreen, KioskAuroraBackdrop
+                     # KioskFormScreen, KioskBadgeScreen, KioskAuroraBackdrop,
+                     # useKioskAutoReset (idle timeout + badge countdown)
   components/layout/ # AppShell, Sidebar, SidebarAnalytics, SidebarProfile
   lib/               # roleRoutes, theme, errors, mfa,
                      # useGateStats (guard KPIs — read the entered/inside note above),
+                     # dashboardDrill (KPI → predicate + copy), useTodayVisits
+                     #   (the whole day, one fetch, feeds every drill-down),
+                     # activeVisit (already-inside checks + guard-readable message),
                      # useRecentActivity, usePreApprovals, useWatchlist,
                      # visitorSearch (pure query parsing), statusRail,
                      # adminDepartments, adminHods (admin CRUD + validation),
@@ -166,7 +232,7 @@ src/
                      # components-feedback, components-guard, aurora, animations
                      # — all @imported by index.css (see CSS note below)
   types/             # index.ts (all DB types)
-supabase/migrations/ # Numbered SQL migrations (001-031+)
+supabase/migrations/ # Numbered SQL migrations (001-060). Hand-applied — see Migration drift.
 tests/
   unit/              # Component + logic tests
   security/          # RLS + route protection tests

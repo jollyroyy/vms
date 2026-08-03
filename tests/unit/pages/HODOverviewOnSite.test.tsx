@@ -126,7 +126,7 @@ describe('M12-HOD: HODOverview — on-site section', () => {
         scheduled_for: null,
         created_at: new Date().toISOString(),
         checked_in_at: new Date().toISOString(),
-        visitor: { full_name: 'Onsite Visitor', company: 'Acme Co' },
+        visitor: { full_name: 'Onsite Visitor', vendor_name: 'Acme Co' },
         host: { id: 'h1', full_name: 'Dr. Sharma' },
       },
     ];
@@ -146,7 +146,7 @@ describe('M12-HOD: HODOverview — on-site section', () => {
         scheduled_for: null,
         created_at: new Date().toISOString(),
         checked_in_at: new Date().toISOString(),
-        visitor: { full_name: 'Onsite Visitor', company: null },
+        visitor: { full_name: 'Onsite Visitor', vendor_name: null },
         host: { id: 'h1', full_name: 'Dr. Sharma' },
       },
     ];
@@ -173,13 +173,13 @@ describe('M12-HOD: HODOverview — on-site section', () => {
       {
         id: 'stale', status: 'checked_in', purpose: 'meeting', host_id: 'h1',
         scheduled_for: null, created_at: staleIso, checked_in_at: staleIso,
-        visitor: { full_name: 'Stale Visitor', company: 'Old Co' },
+        visitor: { full_name: 'Stale Visitor', vendor_name: 'Old Co' },
         host: { id: 'h1', full_name: 'Dr. Sharma' },
       },
       {
         id: 'fresh', status: 'checked_in', purpose: 'meeting', host_id: 'h1',
         scheduled_for: null, created_at: todayIso, checked_in_at: todayIso,
-        visitor: { full_name: 'Fresh Visitor', company: 'Acme Co' },
+        visitor: { full_name: 'Fresh Visitor', vendor_name: 'Acme Co' },
         host: { id: 'h1', full_name: 'Dr. Sharma' },
       },
     ];

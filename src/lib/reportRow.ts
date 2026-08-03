@@ -23,13 +23,13 @@ function formatStamp(iso: string | null | undefined): string {
   return `${d.toLocaleDateString('en-IN')} ${d.toLocaleTimeString('en-IN')}`;
 }
 
-/** Convert a single Visit to a flat ReportRow with exactly 14 string keys, in order. */
+/** Convert a single Visit to a flat ReportRow with exactly 15 string keys, in order. */
 export function toReportRow(visit: ReportVisit, index: number): ReportRow {
   return {
     '#': String(index + 1),
     'Ref': visit.ref_number ?? '',
     'Name': visit.visitor?.full_name ?? '',
-    'Company': visit.visitor?.company ?? '',
+    'Vendor': visit.visitor?.vendor_name ?? '',
     'Phone': maskPhone(visit.visitor?.phone),
     'Department': visit.department?.name ?? '',
     'Host': visit.host?.full_name ?? '',
@@ -40,7 +40,14 @@ export function toReportRow(visit: ReportVisit, index: number): ReportRow {
     'Approved At': formatStamp(approvalTimestamp(visit)),
     'Checked In At': formatStamp(visit.checked_in_at),
     'Checked Out At': formatStamp(visit.checked_out_at),
-    'Carrying': visit.carrying_remarks?.trim() || (visit.carrying_material ? 'Yes (unspecified)' : ''),
+    // Two columns, not one. The flag and the description answer different
+    // questions — "did this visitor bring anything in?" is filterable and
+    // sortable; "what exactly?" is free text a guard typed at the gate. They
+    // used to be crushed into a single cell, which meant a carried-material
+    // visit with no description was indistinguishable from a blank one, and no
+    // one could count how many visits carried material at all.
+    'Carrying': visit.carrying_material ? 'Yes' : 'No',
+    'Carrying Remarks': visit.carrying_remarks?.trim() ?? '',
     'Status': visitStatusLabel(visit),
   };
 }

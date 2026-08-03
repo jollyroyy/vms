@@ -8,7 +8,7 @@ afterEach(cleanup);
 
 const baseProps: PassIdentityProps = {
   name: 'John Doe',
-  company: 'Acme Corp',
+  vendorName: 'Acme Corp',
   idType: 'Aadhaar',
   idLast4: '9646',
   photoUrl: 'https://example.com/photo.jpg',
@@ -50,11 +50,11 @@ describe('PassIdentity', () => {
     expect(idProofRow).toHaveTextContent('—');
   });
 
-  it('renders the company when given, and does not render an empty company element when it is null', () => {
+  it('renders the vendor name when given, and does not render an empty vendor name element when it is null', () => {
     const { rerender } = render(<PassIdentity {...baseProps} />);
     expect(screen.getByText('Acme Corp')).toBeInTheDocument();
 
-    rerender(<PassIdentity {...baseProps} company={null} />);
+    rerender(<PassIdentity {...baseProps} vendorName={null} />);
     expect(screen.queryByText('Acme Corp')).not.toBeInTheDocument();
   });
 

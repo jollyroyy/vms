@@ -21,7 +21,7 @@ const visit = {
   rejection_reason: null,
   carrying_material: false,
   purpose: 'meeting',
-  visitor: { full_name: 'John Doe', phone: '9999999999', company: 'Acme Corp', id_type: null, id_last4: null },
+  visitor: { full_name: 'John Doe', phone: '9999999999', vendor_name: 'Acme Corp', id_type: null, id_last4: null },
   department: { name: 'Engineering' },
   host: { full_name: 'Jane Smith' },
 } as unknown as Visit;

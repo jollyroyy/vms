@@ -1,55 +1,53 @@
 @layer components {
   /* --- Cards (glassmorphic) --- */
   .card {
-    @apply rounded-2xl transition-all duration-200;
+    @apply rounded-2xl;
     background: rgb(var(--glass-bg) / var(--glass-bg-opacity));
     backdrop-filter: blur(20px) saturate(160%);
     -webkit-backdrop-filter: blur(20px) saturate(160%);
-    border: 1px solid rgb(var(--glass-border) / var(--glass-border-opacity));
-    box-shadow: 0 8px 32px 0 rgb(15 12 40 / 0.08), inset 0 1px 0 0 rgb(255 255 255 / 0.35);
-  }
-  .dark .card {
-    box-shadow: 0 8px 32px 0 rgb(0 0 0 / 0.35), inset 0 1px 0 0 rgb(255 255 255 / 0.06);
+    border: 1px solid rgb(var(--glass-border) / var(--hairline-opacity));
+    box-shadow: var(--shadow-contact), var(--shadow-ambient), var(--shadow-wide), var(--edge-highlight);
+    transition: transform var(--dur-premium) var(--ease-premium),
+                box-shadow var(--dur-premium) var(--ease-premium),
+                background-color var(--dur-premium) var(--ease-premium);
   }
   .card-hover {
     @apply card hover:-translate-y-0.5;
   }
   .card-hover:hover {
-    box-shadow: 0 16px 44px -8px rgb(15 12 40 / 0.16), 0 0 0 1px rgb(184 147 74 / 0.10), inset 0 1px 0 0 rgb(255 255 255 / 0.40);
+    box-shadow: var(--shadow-contact-hover), var(--shadow-ambient-hover), var(--shadow-wide-hover),
+                var(--ring-gold), var(--edge-highlight-hover);
   }
   .dark .card-hover:hover {
-    box-shadow: 0 16px 44px -8px rgb(0 0 0 / 0.5), 0 0 24px -6px rgb(184 147 74 / 0.25), inset 0 1px 0 0 rgb(255 255 255 / 0.08);
+    box-shadow: var(--shadow-contact-hover), var(--shadow-ambient-hover), var(--shadow-wide-hover),
+                var(--ring-gold-hover), var(--edge-highlight-hover);
   }
   .card-glass {
     @apply rounded-2xl;
     background: rgb(var(--glass-bg) / 0.45);
     backdrop-filter: blur(24px) saturate(180%);
     -webkit-backdrop-filter: blur(24px) saturate(180%);
-    border: 1px solid rgb(var(--glass-border) / var(--glass-border-opacity));
-    box-shadow: 0 4px 24px -4px rgb(15 12 40 / 0.10), inset 0 1px 0 0 rgb(255 255 255 / 0.30);
-  }
-  .dark .card-glass {
-    box-shadow: 0 4px 24px -4px rgb(0 0 0 / 0.4), inset 0 1px 0 0 rgb(255 255 255 / 0.05);
+    border: 1px solid rgb(var(--glass-border) / var(--hairline-opacity));
+    box-shadow: var(--shadow-contact), var(--shadow-ambient), var(--shadow-wide), var(--edge-highlight);
   }
   .card-premium {
     @apply rounded-2xl;
+    border-radius: var(--radius-lg);
     background: linear-gradient(135deg, rgb(var(--glass-bg) / 0.85), rgb(var(--glass-bg) / 0.65));
     backdrop-filter: blur(24px) saturate(180%);
     -webkit-backdrop-filter: blur(24px) saturate(180%);
-    border: 1px solid rgb(var(--glass-border) / var(--glass-border-opacity));
-    box-shadow: 0 20px 50px -12px rgb(15 12 40 / 0.18), inset 0 1px 0 0 rgb(255 255 255 / 0.40);
+    border: 1px solid rgb(var(--glass-border) / var(--hairline-opacity));
+    box-shadow: var(--shadow-contact), var(--shadow-ambient-hover), var(--shadow-wide-hover), var(--edge-highlight-hover);
     position: relative;
-  }
-  .dark .card-premium {
-    box-shadow: 0 20px 50px -12px rgb(0 0 0 / 0.55), inset 0 1px 0 0 rgb(255 255 255 / 0.07);
   }
   .card-premium::before {
     content: '';
     position: absolute;
     inset: 0;
-    border-radius: 1rem;
+    border-radius: var(--radius-md);
     padding: 1px;
-    background: linear-gradient(135deg, rgb(201 165 88 / 0.35), rgb(168 98 58 / 0.18), rgb(201 165 88 / 0.10));
+    /* Seasoning, not sauce: a faint gold trace on the border, not a glow. */
+    background: linear-gradient(135deg, rgb(201 165 88 / 0.22), rgb(168 98 58 / 0.10), rgb(201 165 88 / 0.05));
     mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
     mask-composite: exclude;
     -webkit-mask-composite: xor;
@@ -71,10 +69,11 @@
     @apply mb-8;
   }
   .page-title {
-    @apply text-2xl font-bold text-navy-950 tracking-tight font-display;
+    @apply text-2xl font-extrabold text-navy-950 tracking-tight font-display;
+    letter-spacing: -0.01em;
   }
   .page-subtitle {
-    @apply text-sm text-navy-400 mt-1;
+    @apply text-sm font-medium text-navy-400 mt-1;
   }
   .section-title {
     @apply text-xs font-bold text-navy-500 uppercase tracking-wider;
@@ -85,7 +84,10 @@
     @apply inline-flex gap-1 bg-surface-100 rounded-xl p-1;
   }
   .tab-item {
-    @apply px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200;
+    @apply px-4 py-2 rounded-lg text-sm font-medium;
+    transition: background-color var(--dur-premium) var(--ease-premium),
+                color var(--dur-premium) var(--ease-premium),
+                box-shadow var(--dur-premium) var(--ease-premium);
   }
   .tab-active {
     @apply bg-white shadow-soft text-navy-900 font-semibold tab-item;
@@ -124,21 +126,24 @@
     top: 0;
     left: 0;
     right: 0;
-    height: 3px;
-    background: linear-gradient(90deg, rgb(201 165 88 / 0.55), rgb(168 98 58 / 0.25), transparent);
+    height: 2px;
+    /* Seasoning, not sauce: a thin, faded gold cap rather than a bright bar. */
+    background: linear-gradient(90deg, rgb(201 165 88 / 0.35), rgb(168 98 58 / 0.14), transparent);
     border-radius: 2px 2px 0 0;
   }
   .stat-value {
-    @apply text-3xl font-extrabold text-navy-950 tracking-tight font-display;
+    @apply text-3xl font-extrabold text-navy-950 tracking-tight font-display tabular-nums;
+    letter-spacing: -0.02em;
   }
   .stat-label {
-    @apply text-xs font-medium text-navy-400 uppercase tracking-wide;
+    @apply text-xs font-semibold text-navy-400 uppercase tracking-wide;
   }
 
   /* --- List item --- */
   .list-item {
-    @apply flex items-center gap-4 px-4 py-3.5 transition-all duration-150 cursor-pointer;
+    @apply flex items-center gap-4 px-4 py-3.5 cursor-pointer;
     border-bottom: 1px solid rgb(var(--c-surface-200) / 0.5);
+    transition: background-color var(--dur-premium) var(--ease-premium);
   }
   .list-item:hover {
     @apply bg-surface-50;
@@ -159,14 +164,18 @@
   }
   .modal-content {
     @apply rounded-3xl max-w-md w-full overflow-hidden max-h-[90vh] overflow-y-auto;
+    /* Big surface: one notch larger than the card radius scale. */
+    border-radius: var(--radius-xl);
     background: rgb(var(--glass-bg) / 0.95);
     backdrop-filter: blur(28px) saturate(180%);
     -webkit-backdrop-filter: blur(28px) saturate(180%);
-    border: 1px solid rgb(var(--glass-border) / var(--glass-border-opacity));
-    box-shadow: 0 25px 80px -12px rgb(0 0 0 / 0.35), 0 10px 30px -8px rgb(0 0 0 / 0.15), inset 0 1px 0 0 rgb(255 255 255 / 0.25);
+    border: 1px solid rgb(var(--glass-border) / var(--hairline-opacity));
+    box-shadow: var(--shadow-contact), 0 10px 30px -8px rgb(15 12 40 / 0.10), 0 30px 80px -16px rgb(15 12 40 / 0.20),
+                var(--edge-highlight);
     animation: modalScaleIn 0.25s ease-out;
   }
   .dark .modal-content {
-    box-shadow: 0 25px 80px -12px rgb(0 0 0 / 0.7), 0 0 0 1px rgb(255 255 255 / 0.06), inset 0 1px 0 0 rgb(255 255 255 / 0.07);
+    box-shadow: var(--shadow-contact), 0 0 0 1px rgb(255 255 255 / 0.05), 0 32px 84px -16px rgb(0 0 0 / 0.65),
+                var(--edge-highlight);
   }
 }

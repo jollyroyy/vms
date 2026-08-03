@@ -42,18 +42,4 @@
   .dark .bg-white\/95 { background-color: rgb(var(--glass-bg) / 0.88); }
 }
 
-@media print {
-  .no-print { display: none !important; }
-  .print-only { display: block !important; }
-
-  @page { size: landscape; margin: 12mm; }
-
-  html, body { background: #fff !important; }
-
-  .app-shell-content { padding-left: 0 !important; }
-  .app-shell-main { max-width: none !important; width: 100% !important; margin: 0 !important; padding: 0 !important; }
-
-  .card { box-shadow: none !important; }
-  table { width: 100% !important; font-size: 10px; }
-}
 .print-only { display: none; }

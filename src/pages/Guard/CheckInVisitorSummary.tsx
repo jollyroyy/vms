@@ -30,7 +30,7 @@ export default function CheckInVisitorSummary({ match }: Props): React.ReactElem
       <PassIdentity
         photoUrl={match.photoUrl}
         name={match.visitorName}
-        company={match.company}
+        vendorName={match.vendorName}
         idType={match.idType}
         idLast4={match.idLast4}
       />

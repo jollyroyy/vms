@@ -74,7 +74,7 @@ export default function WhosInsideVisitorCard({ visit: v, index: idx, onClick }:
               {style.label}
             </span>
           </div>
-          {v.visitor?.company && <p className="text-[13px] text-navy-500 truncate mt-0.5">{v.visitor.company}</p>}
+          {v.visitor?.vendor_name && <p className="text-[13px] text-navy-500 truncate mt-0.5">{v.visitor.vendor_name}</p>}
           <div className="mt-2 pt-2 border-t border-surface-200/60 dark:border-white/[0.06] space-y-1">
             <p className="text-[13px] font-bold text-navy-800 truncate">{v.department?.name ?? '—'}</p>
             {v.host?.full_name && <p className="text-[13px] text-navy-500 truncate">Host: {v.host.full_name}</p>}

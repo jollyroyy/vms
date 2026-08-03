@@ -43,7 +43,9 @@ export default function ActivityPage(): React.ReactElement {
           </div>
         </div>
         {!loading && logs.length > 0 && (
-          <span className="glass-chip text-navy-500 mt-1">{logs.length} events</span>
+          <span className="glass-chip text-navy-500 mt-1">
+            <span className="tabular-nums font-semibold text-navy-700">{logs.length}</span> events
+          </span>
         )}
       </div>
 

@@ -41,7 +41,7 @@ const mockCheckedIn = {
   status: 'checked_in' as const, purpose: 'meeting' as const, photo_path: null, photo_data: null,
   checked_in_at: new Date().toISOString(), checked_out_at: null, exit_verified: null,
   rejection_reason: null, carrying_material: false, created_at: new Date().toISOString(),
-  visitor: { id: 'vis1', full_name: 'Alice', phone: '9876543210', company: 'Corp A' },
+  visitor: { id: 'vis1', full_name: 'Alice', phone: '9876543210', vendor_name: 'Corp A' },
   department: { id: 'dept1', name: 'IT', code: 'IT' },
   host: { id: 'h1', full_name: 'Test Host' },
 };
@@ -51,7 +51,7 @@ const mockPreApproved = {
   status: 'approved' as const, purpose: 'meeting' as const, photo_path: null, photo_data: null,
   checked_in_at: null, checked_out_at: null, exit_verified: null,
   rejection_reason: null, carrying_material: false, created_at: new Date().toISOString(),
-  visitor: { id: 'vis2', full_name: 'Bob', phone: '9876543211', company: 'Corp B' },
+  visitor: { id: 'vis2', full_name: 'Bob', phone: '9876543211', vendor_name: 'Corp B' },
   department: { id: 'dept1', name: 'IT', code: 'IT' },
   host: { id: 'h1', full_name: 'Test Host' },
 };
@@ -231,7 +231,7 @@ describe('M12-GUARD: WhosInside', () => {
       status: 'walkin_approved' as const, purpose: 'meeting' as const, photo_path: null, photo_data: null,
       checked_in_at: null, checked_out_at: null, exit_verified: null,
       rejection_reason: null, carrying_material: false, created_at: new Date().toISOString(),
-      visitor: { id: 'vis3', full_name: 'Carol', phone: '9876543212', company: 'Corp C' },
+      visitor: { id: 'vis3', full_name: 'Carol', phone: '9876543212', vendor_name: 'Corp C' },
       department: { id: 'dept1', name: 'IT', code: 'IT' },
       host: { id: 'h1', full_name: 'Test Host' },
     };

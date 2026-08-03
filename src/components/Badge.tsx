@@ -61,7 +61,7 @@ export default function Badge({ visit }: Props): React.ReactElement {
         {/* Typography hierarchy */}
         <div className="text-center space-y-1">
           <p className="font-extrabold text-navy-950 text-xl tracking-tight">{visitor?.full_name ?? '—'}</p>
-          <p className="text-sm text-navy-400 font-medium">{visitor?.company ?? ''}</p>
+          <p className="text-sm text-navy-400 font-medium">{visitor?.vendor_name ?? ''}</p>
         </div>
 
         {/* Info rows with clean separators */}

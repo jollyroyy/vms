@@ -46,7 +46,7 @@ function match(overrides: Partial<MatchItem> = {}): MatchItem {
     departmentName: 'Engineering',
     purpose: 'meeting',
     hostName: '',
-    company: '',
+    vendorName: '',
     approvalType: 'pre_approved',
     approvedAt: null,
     scheduledFor: null,
@@ -55,25 +55,25 @@ function match(overrides: Partial<MatchItem> = {}): MatchItem {
   };
 }
 
-describe('CheckInMatchList — host name and company', () => {
-  it('shows the host name and company on a pre-approved visitor card', () => {
+describe('CheckInMatchList — host name and vendor name', () => {
+  it('shows the host name and vendor name on a pre-approved visitor card', () => {
     render(<CheckInMatchList {...baseProps({
-      allMatches: [match({ hostName: 'Alex Host', company: 'Acme Corp' })],
+      allMatches: [match({ hostName: 'Alex Host', vendorName: 'Acme Corp' })],
     })} />);
     expect(screen.getAllByText(fullText('Host: Alex Host')).length).toBeGreaterThan(0);
     expect(screen.getByText('Acme Corp')).toBeInTheDocument();
   });
 
-  it('shows only the host name when no company is present', () => {
+  it('shows only the host name when no vendor name is present', () => {
     render(<CheckInMatchList {...baseProps({
-      allMatches: [match({ hostName: 'Alex Host', company: '' })],
+      allMatches: [match({ hostName: 'Alex Host', vendorName: '' })],
     })} />);
     expect(screen.getAllByText(fullText('Host: Alex Host')).length).toBeGreaterThan(0);
   });
 
-  it('renders no host/company line when both are absent', () => {
+  it('renders no host/vendor name line when both are absent', () => {
     render(<CheckInMatchList {...baseProps({
-      allMatches: [match({ hostName: '', company: '' })],
+      allMatches: [match({ hostName: '', vendorName: '' })],
     })} />);
     expect(screen.queryByText(/Host:/)).not.toBeInTheDocument();
   });

@@ -19,7 +19,7 @@ const match: MatchItem = {
   departmentName: 'Information Technology',
   purpose: 'meeting',
   hostName: 'Priya Sharma',
-  company: 'Acme',
+  vendorName: 'Acme',
   approvalType: 'pre_approved',
   approvedAt: '2026-08-01T08:00:00Z',
   scheduledFor: null,

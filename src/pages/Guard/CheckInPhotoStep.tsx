@@ -11,6 +11,8 @@ type Props = {
   photoBlob: Blob | null;
   error: string;
   checkingIn: boolean;
+  carrying: boolean;
+  onCarryingChange: (value: boolean) => void;
   remarks: string;
   onRemarksChange: (value: string) => void;
   onBack: () => void;
@@ -22,7 +24,8 @@ type Props = {
 };
 
 export default function CheckInPhotoStep({
-  selectedMatch, photoBlob, error, checkingIn, remarks, onRemarksChange, onBack, onCapture, onRetake, onCancel, onConfirm, onScanResult,
+  selectedMatch, photoBlob, error, checkingIn, carrying, onCarryingChange,
+  remarks, onRemarksChange, onBack, onCapture, onRetake, onCancel, onConfirm, onScanResult,
 }: Props): React.ReactElement {
   const [scanOpen, setScanOpen] = useState(false);
   const [scanResult, setScanResult] = useState<IdScanResult | null>(null);
@@ -107,24 +110,51 @@ export default function CheckInPhotoStep({
           <button onClick={onRetake} className="text-danger-600 hover:text-danger-700 text-sm font-semibold shrink-0">Retake</button>
         </div>
         {scanSection}
-        <div>
-          <label className="label" htmlFor="carrying-remarks">Carrying items / remarks</label>
-          <textarea
-            id="carrying-remarks"
-            value={remarks}
-            onChange={(e) => onRemarksChange(e.target.value)}
-            placeholder="e.g. 1 Dell Latitude laptop, 2 Samsung phones, 1 toolbox"
-            rows={3}
-            maxLength={500}
-            className="input w-full resize-none"
-            aria-describedby="carrying-remarks-hint"
-          />
-          {/* Free text on purpose: a fixed device list would be wrong within a
-              week, and what matters on the way out is that the guard wrote down
-              enough to match the item back to the visitor. */}
-          <p id="carrying-remarks-hint" className="text-[10px] text-navy-300 mt-1">
-            List each device or item with quantity and brand, so it can be checked back out. Optional.
-          </p>
+        {/* The tick box is the record, the textarea only describes it.
+            `carrying_material` used to be inferred from "did the guard type
+            anything?", which silently made an empty box mean "carrying
+            nothing" — indistinguishable from a guard who ticked the box and
+            got interrupted before writing the list. The flag is now an
+            explicit answer, and the remarks are gated behind it so the field
+            only appears once there is something to describe. */}
+        <div className="rounded-xl border border-surface-200 dark:border-white/[0.07] p-3.5 space-y-3">
+          <label htmlFor="carrying-material" className="flex items-start gap-3 cursor-pointer">
+            <input
+              id="carrying-material"
+              type="checkbox"
+              checked={carrying}
+              onChange={(e) => onCarryingChange(e.target.checked)}
+              className="mt-0.5 h-4 w-4 shrink-0 rounded border-surface-300 text-brand-600 focus:ring-2 focus:ring-brand-500 cursor-pointer"
+            />
+            <span className="min-w-0">
+              <span className="block text-sm font-bold text-navy-800 dark:text-white">Carrying material</span>
+              <span className="block text-[11px] text-navy-400 mt-0.5">
+                Tick if the visitor is bringing anything in that has to be checked back out.
+              </span>
+            </span>
+          </label>
+
+          {carrying && (
+            <div className="animate-fade-in">
+              <label className="label" htmlFor="carrying-remarks">What are they carrying?</label>
+              <textarea
+                id="carrying-remarks"
+                value={remarks}
+                onChange={(e) => onRemarksChange(e.target.value)}
+                placeholder="e.g. 1 Dell Latitude laptop, 2 Samsung phones, 1 toolbox"
+                rows={3}
+                maxLength={500}
+                className="input w-full resize-none"
+                aria-describedby="carrying-remarks-hint"
+              />
+              {/* Free text on purpose: a fixed device list would be wrong within
+                  a week, and what matters on the way out is that the guard wrote
+                  down enough to match the item back to the visitor. */}
+              <p id="carrying-remarks-hint" className="text-[10px] text-navy-300 mt-1">
+                List each device or item with quantity and brand, so it can be checked back out.
+              </p>
+            </div>
+          )}
         </div>
         <div className="flex gap-3">
           <button onClick={onCancel} className="flex-1 bg-surface-50 hover:bg-surface-100 text-navy-700 font-bold rounded-xl py-3 text-sm transition-all">Cancel</button>

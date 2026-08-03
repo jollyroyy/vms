@@ -46,7 +46,7 @@ export default function PreApprovalPass({ visit }: Props): React.ReactElement {
         <PassIdentity
           photoUrl={photo}
           name={visit.visitor?.full_name ?? ''}
-          company={visit.visitor?.company}
+          vendorName={visit.visitor?.vendor_name}
           idType={visit.visitor?.id_type}
           idLast4={visit.visitor?.id_last4}
         />

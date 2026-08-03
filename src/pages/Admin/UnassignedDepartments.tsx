@@ -1,14 +1,27 @@
-// Lists departments with no head of department assigned, allowing the admin to quickly spot gaps.
+// Departments with no head of department, and the one action that closes the
+// gap. "Assign HOD" used to hand off to the Departments view with the form
+// open, which dumped the admin into a list of EVERY department — the exact
+// thing this screen exists to filter out. The form now opens inline, on the
+// card, so assigning never costs the filtered list.
 import React from 'react';
 import type { Department } from '../../types/index';
+import type { HodInput } from '../../lib/adminHods';
+import type { HodFormSlot } from './HodList';
+import HodForm from './HodForm';
 
 type Props = {
   id: string;
   departments: Department[];
+  hodSlot: HodFormSlot | null;
+  hodBusy: boolean;
   onAssign: (department: Department) => void;
+  onCancelHod: () => void;
+  onSubmitHod: (input: HodInput) => void;
 };
 
-export default function UnassignedDepartments({ id, departments, onAssign }: Props): React.ReactElement {
+export default function UnassignedDepartments({
+  id, departments, hodSlot, hodBusy, onAssign, onCancelHod, onSubmitHod,
+}: Props): React.ReactElement {
   if (departments.length === 0) {
     return (
       <div id={id} className="space-y-3 animate-fade-in">
@@ -34,30 +47,40 @@ export default function UnassignedDepartments({ id, departments, onAssign }: Pro
 
   return (
     <div id={id} className="space-y-3 animate-fade-in">
-      {departments.map((d, i) => (
-        <div
-          key={d.id}
-          className={`card card-hover p-4 flex items-center justify-between gap-3 animate-slide-up stagger-${Math.min(i + 1, 5)}`}
-        >
-          <div className="min-w-0">
-            <p className="text-sm font-semibold text-navy-800 truncate">{d.name}</p>
-            {d.code && <p className="text-xs text-navy-400 truncate">{d.code}</p>}
+      {departments.map((d, i) => {
+        const open = hodSlot?.kind === 'add' && hodSlot.departmentId === d.id;
+        return (
+          <div
+            key={d.id}
+            className={`card card-hover p-4 animate-slide-up stagger-${Math.min(i + 1, 5)}`}
+          >
+            <div className="flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-[15px] font-bold text-navy-900 tracking-tight truncate">{d.name}</p>
+                {d.code && <p className="text-xs font-mono tracking-wider text-navy-400 truncate mt-0.5">{d.code}</p>}
+              </div>
+              <div className="shrink-0 flex items-center gap-2">
+                <span className="status-badge bg-warning-500/12 text-warning-600 border border-warning-500/25">
+                  No HOD
+                </span>
+                <button
+                  type="button"
+                  onClick={() => (open ? onCancelHod() : onAssign(d))}
+                  aria-expanded={open}
+                  aria-label={`Assign a head of department to ${d.name}`}
+                  className="btn-primary !px-3.5 !py-1.5 !text-xs"
+                >
+                  {open ? 'Close' : 'Assign HOD'}
+                </button>
+              </div>
+            </div>
+
+            {open && (
+              <HodForm busy={hodBusy} onSubmit={onSubmitHod} onCancel={onCancelHod} />
+            )}
           </div>
-          <div className="shrink-0 flex items-center gap-2">
-            <span className="status-badge bg-warning-500/12 text-warning-600 border border-warning-500/25">
-              No HOD
-            </span>
-            <button
-              type="button"
-              onClick={() => onAssign(d)}
-              aria-label={`Assign a head of department to ${d.name}`}
-              className="text-xs font-semibold px-3 py-1.5 rounded-xl inline-flex items-center gap-1.5 bg-gradient-to-r from-brand-500/12 to-accent-500/12 text-brand-600 dark:text-brand-300 border border-brand-500/25 hover:border-brand-500/50 active:scale-[0.97] transition-all"
-            >
-              Assign HOD
-            </button>
-          </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }

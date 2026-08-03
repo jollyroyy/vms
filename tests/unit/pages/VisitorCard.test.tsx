@@ -25,7 +25,7 @@ function visit(over: Partial<Visit> = {}): Visit {
     qr_token: 'tok',
     qr_expires_at: null,
     created_at: '2026-08-02T08:00:00Z',
-    visitor: { full_name: 'Alice Johnson', company: 'Acme Corp' } as any,
+    visitor: { full_name: 'Alice Johnson', vendor_name: 'Acme Corp' } as any,
     department: { name: 'Engineering' } as any,
     host: { id: 'h1', full_name: 'Bob Smith' },
     ...over,
@@ -35,7 +35,7 @@ function visit(over: Partial<Visit> = {}): Visit {
 afterEach(cleanup);
 
 describe('VisitorCard', () => {
-  it('renders the visitor name, company, department and host', () => {
+  it('renders the visitor name, vendor name, department and host', () => {
     render(<VisitorCard visit={visit()} />);
     expect(screen.getByText('Alice Johnson')).toBeInTheDocument();
     expect(screen.getByText(/Acme Corp/)).toBeInTheDocument();

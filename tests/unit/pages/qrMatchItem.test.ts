@@ -26,7 +26,7 @@ function makeVisit(overrides: Partial<Visit> = {}): Visit {
     qr_token: 'tok-1',
     qr_expires_at: null,
     created_at: '2026-08-01T08:00:00Z',
-    visitor: { id: 'visitor-1', phone: '9876543210', full_name: 'Asha Rao', company: 'Acme Co', id_type: null, id_last4: null, vehicle_number: null, is_blacklisted: false, blacklist_reason: null, created_at: '2026-01-01T00:00:00Z' },
+    visitor: { id: 'visitor-1', phone: '9876543210', full_name: 'Asha Rao', vendor_name: 'Acme Co', id_type: null, id_last4: null, vehicle_number: null, is_blacklisted: false, blacklist_reason: null, created_at: '2026-01-01T00:00:00Z' },
     department: { id: 'dept-1', name: 'Finance', code: 'FIN', created_at: '2026-01-01T00:00:00Z' } as Visit['department'],
     host: { id: 'host-1', full_name: 'Ravi Kumar' },
     ...overrides,
@@ -45,7 +45,7 @@ describe('visitToMatchItem', () => {
       departmentName: 'Finance',
       purpose: 'meeting',
       hostName: 'Ravi Kumar',
-      company: 'Acme Co',
+      vendorName: 'Acme Co',
       approvalType: 'pre_approved',
       approvedAt: '2026-08-01T08:00:00Z',
       scheduledFor: '2026-08-01T10:00:00Z',
@@ -71,7 +71,7 @@ describe('visitToMatchItem', () => {
     const item = visitToMatchItem(makeVisit({ visitor: undefined }));
     expect(item.visitorName).toBe('');
     expect(item.visitorPhone).toBe('');
-    expect(item.company).toBe('');
+    expect(item.vendorName).toBe('');
     expect(item.visitorName).not.toMatch(/undefined/);
   });
 
@@ -91,7 +91,7 @@ describe('visitToMatchItem', () => {
     expect(item.visitorName).toBe('');
     expect(item.departmentName).toBe('');
     expect(item.hostName).toBe('');
-    expect(item.company).toBe('');
+    expect(item.vendorName).toBe('');
     expect(item.visitorPhone).toBe('');
   });
 

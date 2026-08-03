@@ -7,7 +7,7 @@ interface DailyEntry {
   id: string;
   visitor_name: string;
   visitor_phone: string;
-  visitor_company: string | null;
+  visitor_vendor_name: string | null;
   purpose: string;
   status: string;
   type: StaffType;
@@ -51,7 +51,7 @@ export default function DailyStaff(): React.ReactElement {
     // Fetch today's visits that are vendor/maintenance/delivery/maid type
     const { data: visits } = await supabase
       .from('visits')
-      .select('id, visitor_name, visitor_phone, visitor_company, purpose, status, check_in_time, check_out_time, departments(name)')
+      .select('id, visitor_name, visitor_phone, visitor_vendor_name, purpose, status, check_in_time, check_out_time, departments(name)')
       .gte('created_at', `${today}T00:00:00Z`)
       .in('purpose', ['vendor', 'delivery', 'maintenance']);
 
@@ -59,7 +59,7 @@ export default function DailyStaff(): React.ReactElement {
       id: v.id,
       visitor_name: v.visitor_name,
       visitor_phone: v.visitor_phone ?? '',
-      visitor_company: v.visitor_company ?? null,
+      visitor_vendor_name: v.visitor_vendor_name ?? null,
       purpose: v.purpose,
       status: v.status,
       type: purposeToType(v.purpose),
@@ -96,7 +96,7 @@ export default function DailyStaff(): React.ReactElement {
     if (typeFilter !== 'all') list = list.filter(e => e.type === typeFilter);
     if (search) {
       const q = search.toLowerCase();
-      list = list.filter(e => e.visitor_name.toLowerCase().includes(q) || e.visitor_phone.includes(q) || (e.visitor_company ?? '').toLowerCase().includes(q));
+      list = list.filter(e => e.visitor_name.toLowerCase().includes(q) || e.visitor_phone.includes(q) || (e.visitor_vendor_name ?? '').toLowerCase().includes(q));
     }
     return list;
   }, [entries, tab, typeFilter, search]);
@@ -210,12 +210,12 @@ export default function DailyStaff(): React.ReactElement {
                           {entry.visitor_phone}
                         </span>
                       )}
-                      {entry.visitor_company && (
+                      {entry.visitor_vendor_name && (
                         <span className="flex items-center gap-1">
                           <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 21h19.5m-18-18v18m10.5-18v18m6-13.5V21M6.75 6.75h.75m-.75 3h.75m-.75 3h.75m3-6h.75m-.75 3h.75m-.75 3h.75M6.75 21v-3.375c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21M3 3h12m-.75 4.5H21m-3.75 3H21m-3.75 3H21" />
                           </svg>
-                          {entry.visitor_company}
+                          {entry.visitor_vendor_name}
                         </span>
                       )}
                       {entry.check_in_time && (
