@@ -59,7 +59,7 @@ export default function VisitorsDashboard(): React.ReactElement {
     <div className="space-y-6">
       {/* Page heading */}
       <div>
-        <h1 className="text-xl font-bold text-navy-900">Visitors</h1>
+        <h1 className="text-xl font-bold text-navy-900 dark:text-white">Visitors</h1>
         <p className="text-sm text-navy-400 mt-0.5">Today's activity overview</p>
       </div>
 
@@ -67,15 +67,15 @@ export default function VisitorsDashboard(): React.ReactElement {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <div className="stat-card">
           <p className="stat-label">New Today</p>
-          <p className="stat-value text-brand-600">{loading ? '—' : stats.approved + stats.inside}</p>
+          <p className="stat-value text-brand-600 dark:text-brand-300">{loading ? '—' : stats.approved + stats.inside}</p>
         </div>
         <div className="stat-card">
           <p className="stat-label">On-site</p>
-          <p className="stat-value text-success-600">{loading ? '—' : stats.inside}</p>
+          <p className="stat-value text-success-600 dark:text-success-700">{loading ? '—' : stats.inside}</p>
         </div>
         <div className="stat-card">
           <p className="stat-label">Pending</p>
-          <p className="stat-value text-amber-600">{loading ? '—' : stats.pending}</p>
+          <p className="stat-value text-amber-600 dark:text-amber-300">{loading ? '—' : stats.pending}</p>
         </div>
       </div>
 
@@ -113,7 +113,7 @@ export default function VisitorsDashboard(): React.ReactElement {
 
                   {/* Visitor info */}
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-navy-900 truncate">
+                    <p className="text-sm font-semibold text-navy-900 dark:text-white truncate">
                       {v.visitor?.full_name ?? 'Unknown'}
                     </p>
                     <p className="text-xs text-navy-400 truncate">

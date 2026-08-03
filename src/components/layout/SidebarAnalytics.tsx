@@ -30,11 +30,11 @@ export default function SidebarAnalytics({ deptId, isCollapsed }: { deptId: stri
     return (
       <div className="mx-auto flex flex-col items-center gap-1.5 py-2">
         <div title="Inside now" className="flex flex-col items-center">
-          <span className="text-sm font-bold text-brand-600 tabular-nums">{counts.inside}</span>
+          <span className="text-sm font-bold text-brand-600 dark:text-brand-300 tabular-nums">{counts.inside}</span>
           <span className="w-1.5 h-1.5 rounded-full bg-success-500" />
         </div>
         <div title="Pending" className="flex flex-col items-center">
-          <span className="text-sm font-bold text-amber-600 tabular-nums">{counts.pending}</span>
+          <span className="text-sm font-bold text-amber-600 dark:text-amber-300 tabular-nums">{counts.pending}</span>
           <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
         </div>
       </div>
@@ -42,9 +42,9 @@ export default function SidebarAnalytics({ deptId, isCollapsed }: { deptId: stri
   }
 
   const items = [
-    { label: 'Inside Now', value: counts.inside, color: 'text-brand-600', dot: 'bg-success-500 animate-pulse-soft' },
-    { label: 'Pending', value: counts.pending, color: 'text-amber-600', dot: 'bg-amber-500' },
-    { label: 'Approved', value: counts.approved, color: 'text-success-600', dot: 'bg-success-500' },
+    { label: 'Inside Now', value: counts.inside, color: 'text-brand-600 dark:text-brand-300', dot: 'bg-success-500 animate-pulse-soft' },
+    { label: 'Pending', value: counts.pending, color: 'text-amber-600 dark:text-amber-300', dot: 'bg-amber-500' },
+    { label: 'Approved', value: counts.approved, color: 'text-success-600 dark:text-success-700', dot: 'bg-success-500' },
   ];
 
   return (

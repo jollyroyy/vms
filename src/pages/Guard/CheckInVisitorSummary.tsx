@@ -16,8 +16,8 @@ const APPROVAL_LABEL: Record<MatchItem['approvalType'], string> = {
 
 const APPROVAL_BADGE: Record<MatchItem['approvalType'], string> = {
   pre_approved: 'bg-success-50 text-success-700',
-  walkin_approved: 'bg-amber-50 text-amber-700',
-  recurring: 'bg-accent-50 text-accent-700',
+  walkin_approved: 'bg-amber-50 text-amber-700 dark:bg-amber-500/12 dark:text-amber-300',
+  recurring: 'bg-accent-50 text-accent-700 dark:bg-accent-500/10 dark:text-accent-300',
 };
 
 type Props = { match: MatchItem };

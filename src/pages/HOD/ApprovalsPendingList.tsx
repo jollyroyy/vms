@@ -74,7 +74,7 @@ export default function ApprovalsPendingList({ visits, loading, error, acting, r
                 )}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <p className="font-semibold text-navy-950">{v.visitor?.full_name ?? '--'}</p>
+                    <p className="font-semibold text-navy-950 dark:text-white">{v.visitor?.full_name ?? '--'}</p>
                     <span className="status-badge bg-warning-50 text-warning-700">Pending</span>
                     <span className="ml-auto text-[10px] text-navy-300 font-mono">{v.ref_number}</span>
                   </div>

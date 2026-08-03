@@ -184,7 +184,7 @@ describe('OverviewFilteredView', () => {
     expect(screen.getByText('9999999999')).toBeInTheDocument();
   });
 
-  it('passes approve/reject/cancel handlers into the detail modal and closes it after use', () => {
+  it('passes approve/reject handlers into the detail modal and closes it after use', () => {
     const onApprove = vi.fn();
     const onReject = vi.fn();
     render(

@@ -19,7 +19,7 @@ interface DailyEntry {
 const TYPE_META: Record<StaffType, { label: string; color: string; bg: string }> = {
   maid:   { label: 'Maid',   color: 'text-accent-600',  bg: 'bg-accent-50 border-accent-200/60' },
   worker: { label: 'Worker', color: 'text-brand-600',    bg: 'bg-brand-50 border-brand-200/60' },
-  vendor: { label: 'Vendor', color: 'text-amber-600',    bg: 'bg-amber-50 border-amber-200/60' },
+  vendor: { label: 'Vendor', color: 'text-amber-600 dark:text-amber-300', bg: 'bg-amber-50 border-amber-200/60 dark:bg-amber-500/12 dark:border-amber-500/25' },
 };
 
 const PURPOSE_TO_TYPE: Record<string, StaffType> = {
@@ -122,7 +122,7 @@ export default function DailyStaff(): React.ReactElement {
           { label: 'Total Today', value: stats.total, color: 'text-brand-600', bg: 'bg-brand-50', ring: 'ring-brand-500/10' },
           { label: 'Checked In', value: stats.checkedIn, color: 'text-success-600', bg: 'bg-success-50', ring: 'ring-success-500/10' },
           { label: 'Checked Out', value: stats.checkedOut, color: 'text-navy-600', bg: 'bg-surface-100', ring: 'ring-navy-500/10' },
-          { label: 'Expected', value: stats.expected, color: 'text-amber-600', bg: 'bg-amber-50', ring: 'ring-amber-500/10' },
+          { label: 'Expected', value: stats.expected, color: 'text-amber-600 dark:text-amber-300', bg: 'bg-amber-50 dark:bg-amber-500/12', ring: 'ring-amber-500/10' },
         ].map(card => (
           <div key={card.label} className="bg-white dark:bg-white/[0.04] rounded-xl border border-surface-200 dark:border-white/[0.06] p-4">
             <p className={`text-2xl font-bold tabular-nums ${card.color}`}>{loading ? '—' : card.value}</p>
@@ -194,7 +194,7 @@ export default function DailyStaff(): React.ReactElement {
                         <span className="status-badge bg-surface-100 text-navy-500 border border-surface-200">Left</span>
                       )}
                       {!isInside && !isOut && (
-                        <span className="status-badge bg-amber-50 text-amber-600 border border-amber-200/60">Expected</span>
+                        <span className="status-badge bg-amber-50 text-amber-600 border border-amber-200/60 dark:bg-amber-500/12 dark:text-amber-300 dark:border-amber-500/25">Expected</span>
                       )}
                     </div>
                     <div className="flex items-center gap-2 mt-1.5">

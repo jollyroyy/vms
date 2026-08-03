@@ -161,7 +161,7 @@ export default function ReportsPage(): React.ReactElement {
                       <td className="px-3.5 py-3 text-navy-500 font-mono text-xs whitespace-nowrap">{maskIdProof(v.visitor?.id_type, v.visitor?.id_last4)}</td>
                       <td className="px-3.5 py-3 text-navy-500 capitalize">{v.purpose}</td>
                       <td className="px-3.5 py-3 text-xs whitespace-nowrap">
-                        <span className={v.carrying_material ? 'font-bold text-accent-700' : 'text-navy-400'}>
+                        <span className={v.carrying_material ? 'font-bold text-accent-700 dark:text-accent-300' : 'text-navy-400'}>
                           {carryingFlag(v)}
                         </span>
                       </td>

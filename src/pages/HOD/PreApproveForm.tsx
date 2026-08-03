@@ -141,7 +141,7 @@ export default function PreApproveForm({ onPreApproved }: Props): React.ReactEle
           </svg>
         </div>
         <div>
-          <h2 className="text-lg font-bold text-navy-950 font-display tracking-tight">Pre-Approve Visitor</h2>
+          <h2 className="text-lg font-bold text-navy-950 dark:text-white font-display tracking-tight">Pre-Approve Visitor</h2>
           <p className="text-sm text-navy-400 mt-1">Pre-register a visitor — they will be pre-approved and can be checked in at the gate without waiting</p>
         </div>
       </div>

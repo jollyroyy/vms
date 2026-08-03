@@ -5,8 +5,8 @@ import type { MatchItem } from './CheckInPanel';
 
 const APPROVAL_META: Record<MatchItem['approvalType'], { label: string; badge: string }> = {
   pre_approved:    { label: 'Pre-Approved',    badge: 'bg-success-50 text-success-700 border border-success-500/20' },
-  walkin_approved: { label: 'Walk-in Approved', badge: 'bg-amber-50 text-amber-700 border border-amber-500/20' },
-  recurring:       { label: 'Regular',          badge: 'bg-accent-50 text-accent-700 border border-accent-500/20' },
+  walkin_approved: { label: 'Walk-in Approved', badge: 'bg-amber-50 text-amber-700 border border-amber-500/20 dark:bg-amber-500/12 dark:text-amber-300 dark:border-amber-500/25' },
+  recurring:       { label: 'Regular',          badge: 'bg-accent-50 text-accent-700 border border-accent-500/20 dark:bg-accent-500/10 dark:text-accent-300 dark:border-accent-500/25' },
 };
 
 type Props = {
