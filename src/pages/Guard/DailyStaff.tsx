@@ -17,7 +17,7 @@ interface DailyEntry {
 }
 
 const TYPE_META: Record<StaffType, { label: string; color: string; bg: string }> = {
-  maid:   { label: 'Maid',   color: 'text-accent-600',  bg: 'bg-accent-50 border-accent-200/60' },
+  maid:   { label: 'Maid',   color: 'text-accent-600 dark:text-accent-300',  bg: 'bg-accent-50 border-accent-200/60 dark:bg-accent-500/10 dark:border-accent-500/25' },
   worker: { label: 'Worker', color: 'text-brand-600',    bg: 'bg-brand-50 border-brand-200/60' },
   vendor: { label: 'Vendor', color: 'text-amber-600 dark:text-amber-300', bg: 'bg-amber-50 border-amber-200/60 dark:bg-amber-500/12 dark:border-amber-500/25' },
 };
