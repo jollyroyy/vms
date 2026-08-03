@@ -47,12 +47,12 @@ export default function CheckInPhotoStep({
           Scan ID card
         </button>
       ) : matchStatus === 'match' ? (
-        <div className="rounded-xl bg-success-50 border border-success-200 px-4 py-2.5 text-sm flex items-center justify-between gap-2">
+        <div className="rounded-xl bg-success-50 border border-success-200 dark:border-success-500/25 px-4 py-2.5 text-sm flex items-center justify-between gap-2">
           <span className="font-bold text-success-700">Identity verified</span>
           <span className="text-xs text-success-700/80">{scanResult.idType} •••• {scanResult.idLast4}</span>
         </div>
       ) : matchStatus === 'mismatch' ? (
-        <div className="rounded-xl bg-danger-50 border border-danger-200 px-4 py-2.5 text-sm space-y-1.5">
+        <div className="rounded-xl bg-danger-50 border border-danger-200 dark:border-danger-500/25 px-4 py-2.5 text-sm space-y-1.5">
           <p className="font-bold text-danger-700">Name doesn't match the approved visitor</p>
           <p className="text-xs text-danger-700/80">Card shows {scanResult.name} — approved as {selectedMatch.visitorName}</p>
           <button type="button" onClick={() => { setScanResult(null); onScanResult(null); }}

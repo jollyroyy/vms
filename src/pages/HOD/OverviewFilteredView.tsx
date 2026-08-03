@@ -16,8 +16,6 @@ type Props = {
   onReasonChange?: (id: string, value: string) => void;
   onApprove?: (id: string) => void;
   onReject?: (id: string) => void;
-  onCancel?: (id: string) => void;
-  onClearAll?: () => void;
 };
 
 const MODE_META: Record<ViewMode, { title: string; subtitle: string }> = {
@@ -28,7 +26,7 @@ const MODE_META: Record<ViewMode, { title: string; subtitle: string }> = {
 };
 
 export default function OverviewFilteredView({
-  mode, visits, loading, onClearFilter, acting, reasons, onReasonChange, onApprove, onReject, onCancel, onClearAll,
+  mode, visits, loading, onClearFilter, acting, reasons, onReasonChange, onApprove, onReject,
 }: Props): React.ReactElement {
   const [detailVisit, setDetailVisit] = useState<Visit | null>(null);
 
@@ -45,7 +43,6 @@ export default function OverviewFilteredView({
           onReasonChange={onReasonChange ? (val) => onReasonChange(detailVisit.id, val) : undefined}
           onApprove={onApprove ? () => { onApprove(detailVisit.id); setDetailVisit(null); } : undefined}
           onReject={onReject ? () => { onReject(detailVisit.id); setDetailVisit(null); } : undefined}
-          onCancel={onCancel ? () => { onCancel(detailVisit.id); setDetailVisit(null); } : undefined}
         />
       )}
 
@@ -59,15 +56,9 @@ export default function OverviewFilteredView({
           <span className="text-[11px] font-bold text-navy-400 bg-surface-100 dark:bg-white/[0.06] px-3 py-1.5 rounded-full">
             {loading ? '—' : visits.length} {visits.length === 1 ? 'visitor' : 'visitors'}
           </span>
-          {mode === 'approved' && onClearAll && visits.length > 0 && (
-            <button
-              onClick={onClearAll}
-              disabled={acting === 'clear-all'}
-              className="text-[11px] font-semibold text-danger-600 hover:text-danger-700 bg-danger-50 hover:bg-danger-100 dark:bg-danger-500/10 px-3 py-1.5 rounded-full transition-all disabled:opacity-50"
-            >
-              Clear All
-            </button>
-          )}
+          {/* No "Clear All" on the approved list, and no per-visit cancel in
+              the popup this list opens. A pre-approval is final once given —
+              see the note in useVisitDecisions.ts. */}
           <button
             onClick={onClearFilter}
             className="text-[11px] font-semibold text-brand-600 dark:text-brand-400 hover:underline"
@@ -155,9 +146,13 @@ function VisitorCard({ visit: v, index: idx, onClick }: { visit: Visit; index: n
   const dateStr = new Date(when).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' });
   const timeStr = formatTime(when);
 
+  // The card background used to be `dark:bg-navy-900/40`, which washed it out
+  // to a mid grey: navy-900 is DARK in light mode but near-white in dark, so a
+  // 40% wash of it over the page reads as a grey slab, not a raised card. A
+  // low-alpha white lift is what "raised" means on a dark surface.
   return (
     <div
-      className="bg-white dark:bg-navy-900/40 rounded-2xl border border-surface-200/80 dark:border-white/[0.07] p-4 cursor-pointer card-hover animate-fade-in shadow-sm hover:shadow-md transition-shadow"
+      className="bg-white dark:bg-white/[0.045] rounded-2xl border border-surface-200/80 dark:border-white/[0.07] p-4 cursor-pointer card-hover animate-fade-in shadow-sm hover:shadow-md transition-shadow"
       style={{ animationDelay: `${idx * 0.03}s` }}
       onClick={onClick}
     >

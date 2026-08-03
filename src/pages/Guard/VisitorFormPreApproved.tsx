@@ -19,18 +19,20 @@ type Props = {
 export default function VisitorFormPreApproved({
   preApprovedVisit, checkingInPreApproved, onCheckIn, onRegisterWalkIn,
 }: Props): React.ReactElement {
+  // `to-white` is a literal white and does NOT flip, so without the dark:
+  // override this card faded into a white slab on the dark theme.
   return (
-    <div className="rounded-xl border-2 border-success-400/40 bg-gradient-to-br from-success-50 to-white p-5 space-y-4 animate-fade-in">
+    <div className="rounded-xl border-2 border-success-400/40 bg-gradient-to-br from-success-50 to-white dark:to-white/[0.04] p-5 space-y-4 animate-fade-in">
       <div className="flex items-start gap-3">
         <div className="shrink-0 h-10 w-10 rounded-xl bg-success-100 flex items-center justify-center">
           <svg className="w-5 h-5 text-success-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
         </div>
         <div className="flex-1">
-          <p className="font-bold text-success-800 text-lg">Pre-Approved Visitor</p>
+          <p className="font-bold text-success-800 dark:text-success-700 text-lg">Pre-Approved Visitor</p>
           <p className="text-sm text-success-700 mt-0.5">This visitor is pre-approved and ready for check-in.</p>
         </div>
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm bg-white/60 rounded-xl p-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm bg-white/60 dark:bg-white/[0.06] rounded-xl p-4">
         <div><span className="font-semibold text-navy-700">Name:</span> <span className="text-navy-600">{preApprovedVisit.visitor_name}</span></div>
         <div><span className="font-semibold text-navy-700">Ref:</span> <span className="text-navy-600 font-mono">{preApprovedVisit.ref_number}</span></div>
         <div><span className="font-semibold text-navy-700">Department:</span> <span className="text-navy-600">{preApprovedVisit.dept_name}</span></div>

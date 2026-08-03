@@ -254,7 +254,7 @@ describe('M12-HOD: HODOverview', () => {
     expect(screen.queryByText('Past Visitor')).not.toBeInTheDocument();
   });
 
-  it('wires Approve/Reject/Cancel actions through the filtered view into the detail modal', async () => {
+  it('wires Approve/Reject actions through the filtered view into the detail modal', async () => {
     setup();
     mockFilteredData = [{
       id: 'pv1', ref_number: 'VIS-PV1', visitor_id: 'v1', department_id: 'dept1', host_id: 'h1',

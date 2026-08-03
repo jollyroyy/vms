@@ -2,7 +2,11 @@ import { useState } from 'react';
 import { supabase } from '../../supabaseClient';
 import { safeErrorMessage } from '../../lib/errors';
 
-export function useVisitDecisions(deptId: string | null) {
+// Takes no arguments: the only decisions left act on a single visit id, and
+// the department scope is enforced inside the approve_visit / reject_visit
+// SECURITY DEFINER RPCs. The old `deptId` parameter existed solely to scope
+// the department-wide `cancel_all_pre_approved` call, which is gone.
+export function useVisitDecisions() {
   const [acting, setActing] = useState<string | null>(null);
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
@@ -27,39 +31,19 @@ export function useVisitDecisions(deptId: string | null) {
     finally { setActing(null); }
   };
 
-  // Must go through the cancel_visit SECURITY DEFINER RPC: public.visits has no
-  // hod UPDATE policy, so a direct .update() matches zero rows and PostgREST
-  // reports no error — the cancel silently did nothing. See migration 045.
-  const cancelVisit = async (visitId: string): Promise<boolean> => {
-    if (!confirm('Cancel this pre-approval? The visitor will no longer be able to check in.')) return false;
-    setActing(visitId); setError('');
-    try {
-      const rpc = (supabase as any).rpc.bind(supabase);
-      const { error: err } = await rpc('cancel_visit', { visit_id: visitId });
-      if (err) { setError(safeErrorMessage(err, 'Failed to cancel.')); return false; }
-      flash('Pre-approval cancelled.');
-      return true;
-    } catch (err) { setError(safeErrorMessage(err, 'Failed to cancel.')); return false; }
-    finally { setActing(null); }
-  };
-
-  const clearAllApproved = async (): Promise<boolean> => {
-    if (!deptId) return false;
-    if (!confirm('Cancel ALL pre-approved visitors? They will no longer be able to check in.')) return false;
-    setActing('clear-all'); setError('');
-    try {
-      const rpc = (supabase as any).rpc.bind(supabase);
-      const { error: err } = await rpc('cancel_all_pre_approved', { p_department_id: deptId });
-      if (err) { setError(safeErrorMessage(err, 'Failed to clear.')); return false; }
-      flash('All pre-approvals cancelled.');
-      return true;
-    } catch (err) { setError(safeErrorMessage(err, 'Failed to clear.')); return false; }
-    finally { setActing(null); }
-  };
-
+  // Approve and reject are the ONLY decisions an HOD makes on a visit. A
+  // pre-approval is final once given: this hook used to also expose
+  // `cancelVisit` (cancel_visit RPC, one visit) and `clearAllApproved`
+  // (cancel_all_pre_approved RPC, the whole department's pre-approved list),
+  // and both were removed on purpose. A visitor who has been told they are
+  // cleared for entry must not be able to arrive at the gate and be turned
+  // away by a decision reversed behind their back — if entry has to be
+  // stopped, that is the guard's call at the gate, not a retroactive edit to
+  // the approval. The RPCs and their RLS tests stay in the database (see
+  // migration 045 and tests/security/rls.test.ts); do not re-expose them here.
   return {
     acting, error, successMsg, reasons,
     setError, setSuccessMsg, onReasonChange,
-    decide, cancelVisit, clearAllApproved,
+    decide,
   };
 }

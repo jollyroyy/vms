@@ -141,6 +141,33 @@ describe('VisitorDetails — reopening the entry pass', () => {
   });
 });
 
+// A pre-approval is final once the HOD has given it. There is no un-approving
+// a visit from this popup, from the approved list, or from anywhere else in
+// the HOD surface — a visitor told they are cleared must not be turned away by
+// a decision reversed behind their back. See src/pages/HOD/useVisitDecisions.ts.
+describe('VisitorDetails — an approval cannot be taken back', () => {
+  afterEach(() => cleanup());
+
+  it.each(['approved', 'walkin_approved'])(
+    'offers no cancel action for a %s visit',
+    (status) => {
+      render(<VisitorDetails visit={{ ...visit, status } as unknown as Visit} onClose={vi.fn()} viewerRole="hod" />);
+      expect(screen.queryByRole('button', { name: /cancel/i })).not.toBeInTheDocument();
+    },
+  );
+
+  it('still offers Approve and Reject while the visit is pending', () => {
+    render(
+      <VisitorDetails
+        visit={{ ...visit, status: 'pending_approval' } as unknown as Visit}
+        onClose={vi.fn()} viewerRole="hod" reason="" onApprove={vi.fn()} onReject={vi.fn()}
+      />,
+    );
+    expect(screen.getByRole('button', { name: /approve/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^reject$/i })).toBeInTheDocument();
+  });
+});
+
 // A guard must never be able to open, print or download an entry pass: that
 // would let one be issued without the visitor ever being at the gate. The rest
 // of the record stays readable — checking the person against it is the job.

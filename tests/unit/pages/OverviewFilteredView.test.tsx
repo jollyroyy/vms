@@ -4,6 +4,9 @@ import { render, screen, cleanup, fireEvent } from '@testing-library/react';
 import OverviewFilteredView from '../../../src/pages/HOD/OverviewFilteredView';
 import type { Visit } from '../../../src/types/index';
 
+// The stub renders a button per decision callback it is handed, so a test can
+// assert not just that a callback fires but that the popup was never offered
+// one at all. `onCancel` is deliberately absent from the real component.
 vi.mock('../../../src/components/VisitorDetails', () => ({
   default: ({ visit, onClose, onApprove, onReject, onCancel }: any) => (
     <div data-testid="visitor-details">
@@ -184,11 +187,10 @@ describe('OverviewFilteredView', () => {
   it('passes approve/reject/cancel handlers into the detail modal and closes it after use', () => {
     const onApprove = vi.fn();
     const onReject = vi.fn();
-    const onCancel = vi.fn();
     render(
       <OverviewFilteredView
         mode="pending" visits={[baseVisit]} loading={false} onClearFilter={vi.fn()}
-        onApprove={onApprove} onReject={onReject} onCancel={onCancel}
+        onApprove={onApprove} onReject={onReject}
       />,
     );
     fireEvent.click(screen.getByText('John Doe'));
@@ -197,17 +199,22 @@ describe('OverviewFilteredView', () => {
     expect(screen.queryByTestId('visitor-details')).not.toBeInTheDocument();
   });
 
-  it('shows Clear All in approved mode when onClearAll is provided and calls it', () => {
-    const onClearAll = vi.fn();
-    render(
-      <OverviewFilteredView mode="approved" visits={[baseVisit]} loading={false} onClearFilter={vi.fn()} onClearAll={onClearAll} />,
-    );
-    fireEvent.click(screen.getByText('Clear All'));
-    expect(onClearAll).toHaveBeenCalledTimes(1);
-  });
-
-  it('does not show Clear All when onClearAll is not provided', () => {
+  // A pre-approval is final once given. Neither the bulk "Clear All" nor the
+  // per-visit cancel in the popup may come back — see useVisitDecisions.ts.
+  it('offers no Clear All on the approved list', () => {
     render(<OverviewFilteredView mode="approved" visits={[baseVisit]} loading={false} onClearFilter={vi.fn()} />);
     expect(screen.queryByText('Clear All')).not.toBeInTheDocument();
+  });
+
+  it('never hands the details popup a cancel action for a pre-approved visit', () => {
+    render(
+      <OverviewFilteredView
+        mode="approved" visits={[baseVisit]} loading={false} onClearFilter={vi.fn()}
+        onApprove={vi.fn()} onReject={vi.fn()}
+      />,
+    );
+    fireEvent.click(screen.getByText('John Doe'));
+    expect(screen.getByTestId('visitor-details')).toBeInTheDocument();
+    expect(screen.queryByText('Modal Cancel')).not.toBeInTheDocument();
   });
 });

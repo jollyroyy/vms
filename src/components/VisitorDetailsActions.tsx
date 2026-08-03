@@ -1,3 +1,7 @@
+// A pre-approval is FINAL. Approve/Reject are the only decisions this popup
+// offers, and they exist only while the visit is still pending — once an HOD
+// has approved, there is no un-approving it from any surface. Do not re-add a
+// "Cancel Pre-Approval" branch here (see the note in useVisitDecisions.ts).
 import React, { useState } from 'react';
 import type { Visit } from '../types/index';
 
@@ -8,16 +12,14 @@ type Props = {
   onReasonChange?: (value: string) => void;
   onApprove?: () => void;
   onReject?: () => void;
-  onCancel?: () => void;
 };
 
 export default function VisitorDetailsActions({
-  visit, busy, reason, onReasonChange, onApprove, onReject, onCancel,
+  visit, busy, reason, onReasonChange, onApprove, onReject,
 }: Props): React.ReactElement | null {
   const [confirmingReject, setConfirmingReject] = useState(false);
 
   const isPending = visit.status === 'pending_approval';
-  const isPreApproved = visit.status === 'approved' || visit.status === 'walkin_approved';
 
   if (isPending && (onApprove || onReject)) {
     return (
@@ -70,20 +72,6 @@ export default function VisitorDetailsActions({
             </button>
           </div>
         )}
-      </div>
-    );
-  }
-
-  if (isPreApproved && onCancel) {
-    return (
-      <div className="px-5 pb-5">
-        <button
-          onClick={onCancel}
-          disabled={busy}
-          className="w-full rounded-xl border border-danger-200 dark:border-danger-500/20 bg-white dark:bg-white/[0.04] text-danger-600 dark:text-danger-400 hover:bg-danger-50 dark:hover:bg-danger-500/10 py-2.5 text-sm font-semibold disabled:opacity-50 transition-all"
-        >
-          Cancel Pre-Approval
-        </button>
       </div>
     );
   }

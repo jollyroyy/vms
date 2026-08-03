@@ -59,26 +59,52 @@ export default {
           300: 'rgb(var(--c-surface-300) / <alpha-value>)',
           400: 'rgb(var(--c-surface-400) / <alpha-value>)',
         },
+        // Status scales are DELIBERATELY mixed. 50/100/700 are CSS variables,
+        // so they flip with the theme: -50 is always "the faintest tint of this
+        // status on the current background" and -700 is always "readable status
+        // text on it". 200-600/800/900 are static, because a mid shade has to
+        // stay the same hue on both themes or a green stops looking green.
+        //
+        // 200, 300, 400, 800 and 900 were missing entirely until they were
+        // added here, which meant classes already written against them —
+        // including every `dark:text-success-400` / `dark:text-danger-400`
+        // meant to lift a label out of a dark card — compiled to nothing and
+        // silently fell back to the light-mode shade. Keep the scales complete.
         success: {
           50:  'rgb(var(--c-success-50) / <alpha-value>)',
           100: 'rgb(var(--c-success-100) / <alpha-value>)',
+          200: '#bbf7d0',
+          300: '#86efac',
+          400: '#4ade80',
           500: '#22c55e',
           600: '#16a34a',
           700: 'rgb(var(--c-success-700) / <alpha-value>)',
+          800: '#166534',
+          900: '#14532d',
         },
         warning: {
           50:  'rgb(var(--c-warning-50) / <alpha-value>)',
           100: 'rgb(var(--c-warning-100) / <alpha-value>)',
+          200: '#fde68a',
+          300: '#fcd34d',
+          400: '#fbbf24',
           500: '#f59e0b',
           600: '#d97706',
           700: 'rgb(var(--c-warning-700) / <alpha-value>)',
+          800: '#92400e',
+          900: '#78350f',
         },
         danger: {
           50:  'rgb(var(--c-danger-50) / <alpha-value>)',
           100: 'rgb(var(--c-danger-100) / <alpha-value>)',
+          200: '#fecaca',
+          300: '#fca5a5',
+          400: '#f87171',
           500: '#ef4444',
           600: '#dc2626',
           700: 'rgb(var(--c-danger-700) / <alpha-value>)',
+          800: '#991b1b',
+          900: '#7f1d1d',
         },
       },
       fontFamily: {

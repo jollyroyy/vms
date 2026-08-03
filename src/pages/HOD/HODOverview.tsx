@@ -47,7 +47,7 @@ export default function HODOverview(): React.ReactElement {
   const [filteredVisits, setFilteredVisits] = useState<Visit[]>([]);
   const [filterLoading, setFilterLoading] = useState(false);
 
-  const { acting, error: actionError, successMsg, reasons, onReasonChange, decide, cancelVisit, clearAllApproved } = useVisitDecisions(deptId);
+  const { acting, error: actionError, successMsg, reasons, onReasonChange, decide } = useVisitDecisions();
 
   useEffect(() => {
     supabase.auth.getUser().then(async ({ data }) => {
@@ -177,20 +177,6 @@ export default function HODOverview(): React.ReactElement {
     }, { replace: true });
   }, [setSearchParams]);
 
-  // Drop the row locally the moment the cancel succeeds so it leaves the
-  // Approved list immediately, rather than waiting on the realtime round-trip.
-  const handleCancel = useCallback(async (id: string) => {
-    if (!await cancelVisit(id)) return;
-    setFilteredVisits(prev => prev.filter(v => v.id !== id));
-    setStats(prev => ({ ...prev, approvedToday: Math.max(0, prev.approvedToday - 1) }));
-  }, [cancelVisit]);
-
-  const handleClearAll = useCallback(async () => {
-    if (!await clearAllApproved()) return;
-    setFilteredVisits([]);
-    setStats(prev => ({ ...prev, approvedToday: 0 }));
-  }, [clearAllApproved]);
-
   const markRead = async (id: string) => {
     await supabase.from('notifications').delete().eq('id', id);
     setNotifs(prev => prev.filter(n => n.id !== id));
@@ -235,8 +221,6 @@ export default function HODOverview(): React.ReactElement {
           onReasonChange={onReasonChange}
           onApprove={(id) => void decide(id, true)}
           onReject={(id) => void decide(id, false)}
-          onCancel={(id) => void handleCancel(id)}
-          onClearAll={() => void handleClearAll()}
         />
       ) : (
         <>

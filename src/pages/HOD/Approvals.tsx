@@ -32,7 +32,7 @@ export default function HODApprovals(): React.ReactElement {
   const [pendingCount, setPendingCount] = useState(0);
   const navigate = useNavigate();
 
-  const { acting, error: actionError, successMsg, reasons, onReasonChange, decide } = useVisitDecisions(userDeptId);
+  const { acting, error: actionError, successMsg, reasons, onReasonChange, decide } = useVisitDecisions();
 
   useEffect(() => {
     try {
