@@ -7,6 +7,19 @@ records**. Written 2026-08-03 against the live project `oxzzeonftrmohdrancex`.
 Nothing in this document has been implemented. It is a proposal, ordered so the
 cheap high-value items come first.
 
+> ## Status: DEFERRED to pre-production — do not implement yet
+>
+> Decided 2026-08-03. VMS is still in the **prototyping phase**, and hardening a
+> system whose shape is still moving costs more than it buys. Everything below,
+> **including the two findings in §0**, is knowingly accepted for now.
+>
+> This is not a backlog of bugs. Do not open them as issues, do not fix them in
+> passing while doing unrelated work, and do not let them block a feature.
+>
+> **Revisit when production deployment is on the table.** Start with §0 (RPC-gated
+> check-in/out with server-side timestamps) — it outranks the device binding that
+> prompted this document, and it is about a day of work.
+
 ---
 
 ## 0. Two real holes found while writing this
