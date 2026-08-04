@@ -73,15 +73,25 @@ begin
 end;
 $$;
 
--- 18:30 UTC = 00:00 IST. cron.schedule runs as the job owner (postgres), which
--- is not the service role, so the guard inside mark_no_shows() would reject it
--- on the JWT check — auth.jwt() is null in a cron session. Call the UPDATE
--- through a wrapper that is explicitly the scheduled path.
+-- The scheduled path. A cron session has NO JWT: auth.jwt() reads
+-- `request.jwt.claims`, which is unset, so it returns null. That means
+-- is_service_role() is false and jwt_role is null, and the visits_update_rules
+-- BEFORE UPDATE trigger (enforce_visit_update_rules) would reject every row
+-- with "Only HOD or Admin can mark a visitor as no-show." — the job would have
+-- failed silently every single night.
+--
+-- So the wrapper declares who it is. `set_local := true` scopes the claim to
+-- this transaction, so it cannot leak into anything else on the connection, and
+-- the trigger's is_service_role() short-circuit then lets the sweep through.
+-- This is the same authority the nightly job would have had going through the
+-- service role from an edge function; it is just doing it in-database.
 create or replace function public.sweep_no_shows_daily()
 returns integer language plpgsql security definer set search_path = '' as $$
 declare
   affected integer;
 begin
+  perform set_config('request.jwt.claims', '{"role":"service_role"}', true);
+
   update public.visits
   set status = 'no_show'
   where status = 'approved'

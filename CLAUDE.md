@@ -74,6 +74,21 @@
   as null, since at registration nobody knows yet whether the visitor is coming in)
   and `Console.checkInWalkIn` writes the update, handling the migration-060 conflict
   via `isAlreadyInsideError`.
+- **No-shows are swept at end of day, by a job that actually runs.** Migration **061**
+  (applied live 2026-08-04) changed `mark_no_shows()` from "grace_period_minutes past
+  the slot" — which killed a visit while the visitor was still walking to the gate — to
+  "its scheduled moment has passed, and it was never checked in". It also installed
+  `pg_cron` and scheduled `sweep_no_shows_daily()` at **`30 18 * * *` = 18:30 UTC =
+  00:00 IST**. `mark_no_shows()` had existed since 036 but pg_cron was never installed,
+  so it had never executed once. The timezone decision lives in the cron schedule, not
+  in the SQL, so it is adjustable in one place.
+- **`sweep_no_shows_daily()` must set its own JWT claim.** A cron session has no JWT, so
+  `auth.jwt()` is null, `is_service_role()` is false, and `enforce_visit_update_rules`
+  rejects the status change outright. The function does
+  `set_config('request.jwt.claims','{"role":"service_role"}', true)` — transaction-local,
+  so it cannot leak. Remove that line and the nightly job fails silently on every row.
+  It is `revoke`d from anon/authenticated: `mark_no_shows()` (role- and
+  department-scoped) stays the human entry point.
 - **Open visits are never date-bounded.** `Console.loadVisits`, `useGateStats` and
   `useTodayVisits` all used a bare `created_at >= today` window, which silently dropped
   unfinished work at midnight: a walk-in registered at 23:50 and approved at 00:05 was
