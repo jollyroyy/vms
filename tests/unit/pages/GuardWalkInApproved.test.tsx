@@ -2,6 +2,7 @@ import React from 'react';
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { render, screen, cleanup, fireEvent } from '@testing-library/react';
 import GuardWalkInApproved from '../../../src/pages/Guard/GuardWalkInApproved';
+import { formatDateTime } from '../../../src/lib/formatDate';
 import type { Visit } from '../../../src/types/index';
 
 // jsdom has no camera. Stub PhotoCapture with a button that fires onCapture
@@ -50,6 +51,14 @@ describe('GuardWalkInApproved', () => {
   it("renders an approved walk-in's name", () => {
     render(<GuardWalkInApproved {...baseProps({ approved: [visit()] })} />);
     expect(screen.getByText('Rahul Verma')).toBeInTheDocument();
+  });
+
+  // The list is no longer today-only, so a bare "09:00" could not be told
+  // from yesterday's 09:00 — the row must carry the date alongside the time.
+  it("shows the approved walk-in's timestamp WITH its date, not time alone", () => {
+    const v = visit({ created_at: '2026-08-04T04:00:00Z' });
+    render(<GuardWalkInApproved {...baseProps({ approved: [v] })} />);
+    expect(screen.getByText(formatDateTime(v.created_at))).toBeInTheDocument();
   });
 
   it('shows the empty state when there are no approved walk-ins and loading is false', () => {

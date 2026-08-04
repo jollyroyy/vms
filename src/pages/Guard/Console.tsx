@@ -73,12 +73,20 @@ export default function GuardConsole(): React.ReactElement {
     if (tabParam && TAB_MODE_MAP[tabParam]) setMode(TAB_MODE_MAP[tabParam]!);
   }, [tabParam]);
 
+  // Today's visits PLUS every visit still open, whatever day it was raised on.
+  //
+  // This used to be `created_at >= today` alone, which meant an unfinished visit
+  // silently vanished at midnight: a walk-in registered at 23:50 and approved at
+  // 00:05 was approved into an empty list, and a visitor still inside from the
+  // previous evening could not be checked out. Those three statuses are exactly
+  // the ones a guard still has to act on, so they are never date-bounded — the
+  // gate does not stop caring about a queued visitor because the date rolled.
   const loadVisits = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
     const { data, error } = await supabase
       .from('visits')
       .select(`*, visitor:visitors(*), department:departments(id, name, code, created_at)`)
-      .gte('created_at', `${today}T00:00:00Z`)
+      .or(`created_at.gte.${today}T00:00:00Z,status.in.(pending_approval,walkin_approved,checked_in)`)
       .order('created_at', { ascending: false });
     if (error) { console.error('[Console] loadVisits error:', error.message); }
     let rows = ((data as unknown as Visit[]) ?? []);

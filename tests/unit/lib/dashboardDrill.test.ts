@@ -22,8 +22,9 @@ const left = visit({
 });
 const declined = visit({ id: 'declined', status: 'rejected' });
 const pending = visit({ id: 'pending', status: 'pending_approval' });
+const noShow = visit({ id: 'noShow', status: 'no_show' });
 
-const ALL = [approved, walkinApproved, inside, left, declined, pending];
+const ALL = [approved, walkinApproved, inside, left, declined, pending, noShow];
 
 describe('dashboardDrill', () => {
   it('every key has copy, so no tile can expand into an untitled panel', () => {
@@ -59,6 +60,10 @@ describe('dashboardDrill', () => {
 
   it('"declined" is HOD rejection, not a pending request', () => {
     expect(drillVisits(ALL, 'declined').map((v) => v.id)).toEqual(['declined']);
+  });
+
+  it('"noShow" selects only no_show visits, not declined or pending', () => {
+    expect(drillVisits(ALL, 'noShow').map((v) => v.id)).toEqual(['noShow']);
   });
 
   it('sorts by the most recent event first', () => {

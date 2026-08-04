@@ -8,7 +8,9 @@ import type { UserRole } from '../types/index';
 // lands on login; it does not change what the role may access.
 //
 // `/profile` is every role's own account page and is therefore listed LAST in
-// all four entries — it must never become anyone's landing page.
+// all four entries — it must never become anyone's landing page. `/search`
+// (the global top-bar search, see AppShell.tsx) follows the same precedent
+// and is listed LAST as well, after `/profile`.
 export const ROLE_ROUTES: Record<UserRole, string[]> = {
   // The guard SIDEBAR is five items (see components/layout/navLinks.tsx), but the
   // routable surface is deliberately wider. `/kiosk` runs on its own device and
@@ -16,10 +18,10 @@ export const ROLE_ROUTES: Record<UserRole, string[]> = {
   // from the nav because neither is visitor check-in, not because access was
   // revoked. Removing them here would be a regression, not a cleanup.
   guard:       ['/guard/dashboard', '/visitors', '/guard', '/guard/pre-approvals',
-                '/guard/search', '/guard/watchlist', '/guard/daily-staff', '/kiosk', '/whos-inside', '/profile'],
-  hod:         ['/overview', '/approvals', '/reports', '/analytics', '/profile'],
-  staff:       ['/visitors', '/whos-inside', '/reports', '/profile'],
-  admin:       ['/analytics', '/reports', '/admin', '/profile'], // admin is restricted to analytics, reports and settings — no visitor data
+                '/guard/search', '/guard/watchlist', '/guard/daily-staff', '/kiosk', '/whos-inside', '/profile', '/search'],
+  hod:         ['/overview', '/approvals', '/reports', '/analytics', '/profile', '/search'],
+  staff:       ['/visitors', '/whos-inside', '/reports', '/profile', '/search'],
+  admin:       ['/analytics', '/reports', '/admin', '/profile', '/search'], // admin is restricted to analytics, reports and settings — no visitor data
 };
 
 /** Returns true if the given pathname is forbidden for this role. */

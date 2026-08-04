@@ -94,8 +94,11 @@ export default function OverviewUpcoming({ loading, upcoming }: Props): React.Re
                         {v.visitor?.vendor_name && <span className="text-navy-400 font-normal"> — {v.visitor.vendor_name}</span>}
                       </p>
                       <p className="text-xs text-navy-400 mt-0.5">
-                        {v.host?.full_name ? `Host: ${v.host.full_name}` : 'Host: —'}
+                        {v.host?.full_name ? `Person to Meet: ${v.host.full_name}` : 'Person to Meet: —'}
                       </p>
+                      {v.host?.full_name && v.department?.name && (
+                        <p className="text-xs text-navy-400 truncate">{v.department.name}</p>
+                      )}
                     </div>
                     <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
                       <span className={`text-[10px] font-bold px-2.5 py-1 rounded-md border whitespace-nowrap ${badge.cls}`}>{badge.label}</span>

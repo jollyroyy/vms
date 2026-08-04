@@ -38,8 +38,11 @@ export default function OverviewOnSite({ loading, onSite }: Props): React.ReactE
                     {v.visitor?.vendor_name && <span className="text-navy-400 font-normal"> — {v.visitor.vendor_name}</span>}
                   </p>
                   <p className="text-xs text-navy-400 mt-0.5 truncate">
-                    {v.host?.full_name ? `Host: ${v.host.full_name}` : 'Host: —'}
+                    {v.host?.full_name ? `Person to Meet: ${v.host.full_name}` : 'Person to Meet: —'}
                   </p>
+                  {v.host?.full_name && v.department?.name && (
+                    <p className="text-xs text-navy-400 truncate">{v.department.name}</p>
+                  )}
                 </div>
                 <div className="text-right shrink-0">
                   <p className="text-xs font-semibold text-navy-700 dark:text-navy-200 tabular-nums">{formatTime(v.checked_in_at)}</p>

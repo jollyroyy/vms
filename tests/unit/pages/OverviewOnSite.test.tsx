@@ -66,7 +66,7 @@ describe('OverviewOnSite', () => {
     render(<OverviewOnSite loading={false} onSite={onSite} />);
     expect(screen.getByText(/Onsite Visitor/)).toBeInTheDocument();
     expect(screen.getByText(/Acme Co/)).toBeInTheDocument();
-    expect(screen.getByText(/Host: Dr\. Sharma/)).toBeInTheDocument();
+    expect(screen.getByText(/Person to Meet: Dr\. Sharma/)).toBeInTheDocument();
     // Empty state must not also render once real rows are present.
     expect(screen.queryByText('No one on site right now')).not.toBeInTheDocument();
   });
@@ -81,7 +81,7 @@ describe('OverviewOnSite', () => {
     ];
     expect(() => render(<OverviewOnSite loading={false} onSite={onSite} />)).not.toThrow();
     expect(screen.getByText(/No Company Visitor/)).toBeInTheDocument();
-    expect(screen.getByText('Host: —')).toBeInTheDocument();
+    expect(screen.getByText('Person to Meet: —')).toBeInTheDocument();
   });
 
   it('renders multiple on-site visitors as separate rows', () => {

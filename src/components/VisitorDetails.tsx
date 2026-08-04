@@ -41,7 +41,7 @@ const STATUS_COLORS: Record<string, { bg: string; text: string; dot: string }> =
   no_show:          { bg: 'bg-warning-50', text: 'text-warning-700', dot: 'bg-orange-500' },
 };
 
-function InfoRow({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
+function InfoRow({ icon, label, value, sub }: { icon: React.ReactNode; label: string; value: string; sub?: string }) {
   if (!value || value === '—') return null;
   return (
     <div className="flex items-start gap-2.5">
@@ -49,6 +49,10 @@ function InfoRow({ icon, label, value }: { icon: React.ReactNode; label: string;
       <div className="min-w-0">
         <p className="text-[10px] text-navy-400 uppercase tracking-wider font-semibold leading-none mb-0.5">{label}</p>
         <p className="text-[13px] text-navy-800 font-medium truncate">{value}</p>
+        {/* The department the host belongs to — folded under their name rather
+            than kept as its own row, so it is never rendered twice on the
+            same card. */}
+        {sub && <p className="text-[11px] text-navy-400 truncate mt-0.5">{sub}</p>}
       </div>
     </div>
   );
@@ -137,13 +141,9 @@ export default function VisitorDetails({
               icon={<svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z" /></svg>}
             />
             <InfoRow
-              label="Department"
-              value={v.department?.name ?? '—'}
-              icon={<svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 21h19.5m-18-18v18m10.5-18v18m6-13.5V21M6.75 6.75h.75m-.75 3h.75m-.75 3h.75m3-6h.75m-.75 3h.75m-.75 3h.75M6.75 21v-3.375c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21M3 3h12m-.75 4.5H21m-3.75 7.5h.008v.008h-.008v-.008zm0 3h.008v.008h-.008v-.008z" /></svg>}
-            />
-            <InfoRow
-              label="Meeting"
+              label="Person to Meet"
               value={v.host?.full_name ?? '—'}
+              sub={v.department?.name}
               icon={<svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0" /></svg>}
             />
             <InfoRow

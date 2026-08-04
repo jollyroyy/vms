@@ -1,4 +1,5 @@
 import React from 'react';
+import PhotoCapture from '../../components/PhotoCapture';
 
 type PreApprovedVisit = {
   id: string;
@@ -12,12 +13,14 @@ type PreApprovedVisit = {
 type Props = {
   preApprovedVisit: PreApprovedVisit;
   checkingInPreApproved: boolean;
+  photoBlob: Blob | null;
+  onPhotoCapture: (blob: Blob) => void;
   onCheckIn: () => void;
   onRegisterWalkIn: () => void;
 };
 
 export default function VisitorFormPreApproved({
-  preApprovedVisit, checkingInPreApproved, onCheckIn, onRegisterWalkIn,
+  preApprovedVisit, checkingInPreApproved, photoBlob, onPhotoCapture, onCheckIn, onRegisterWalkIn,
 }: Props): React.ReactElement {
   // `to-white` is a literal white and does NOT flip, so without the dark:
   // override this card faded into a white slab on the dark theme.
@@ -38,8 +41,24 @@ export default function VisitorFormPreApproved({
         <div><span className="font-semibold text-navy-700">Department:</span> <span className="text-navy-600">{preApprovedVisit.dept_name}</span></div>
         <div><span className="font-semibold text-navy-700">Purpose:</span> <span className="text-navy-600 capitalize">{preApprovedVisit.purpose}</span></div>
       </div>
+      {/* Holding a pre-approval does not exempt anyone from the camera. The
+          photo is the record of WHO actually walked in — a pre-approval only
+          says someone of that name was expected. Without it the visit has no
+          evidence attached to it at all, so Check In stays disabled. */}
+      <div className="bg-white/60 dark:bg-white/[0.06] rounded-xl p-4 space-y-2">
+        <p className="text-sm font-semibold text-navy-700">Photo required to check in</p>
+        {!photoBlob ? (
+          <PhotoCapture onCapture={onPhotoCapture} />
+        ) : (
+          <div className="flex items-center gap-3">
+            <img src={URL.createObjectURL(photoBlob)} alt="" className="w-14 h-[72px] object-cover rounded-xl ring-2 ring-success-200" />
+            <p className="text-xs font-semibold text-success-700">Photo captured</p>
+          </div>
+        )}
+      </div>
+
       <div className="flex gap-3">
-        <button onClick={onCheckIn} disabled={checkingInPreApproved}
+        <button onClick={onCheckIn} disabled={checkingInPreApproved || !photoBlob}
           className="flex-1 bg-gradient-to-r from-success-600 to-success-700 text-white rounded-xl px-5 py-3 text-sm font-bold hover:from-success-700 hover:to-success-800 active:scale-[0.98] disabled:opacity-50 disabled:active:scale-100 shadow-soft hover:shadow-glow transition-all duration-200 flex items-center justify-center gap-2">
           {checkingInPreApproved ? (
             <><svg className="animate-spin h-4 w-4" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg> Checking in...</>

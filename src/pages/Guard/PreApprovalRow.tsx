@@ -18,9 +18,12 @@ export default function PreApprovalRow({ visit: v }: Props): React.ReactElement 
       </div>
       <div className="min-w-0 flex-1">
         <p className="text-sm font-bold text-navy-900 dark:text-white truncate">{v.visitor?.full_name ?? '—'}</p>
-        <p className="text-xs text-navy-400 truncate">
-          {v.host?.full_name ? `Host: ${v.host.full_name}` : ''}{v.department?.name ? ` · ${v.department.name}` : ''}
-        </p>
+        {v.host?.full_name && (
+          <p className="text-xs text-navy-400 truncate">Person to Meet: {v.host.full_name}</p>
+        )}
+        {v.host?.full_name && v.department?.name && (
+          <p className="text-xs text-navy-400 truncate">{v.department.name}</p>
+        )}
       </div>
       <span className={`shrink-0 text-[10px] font-bold px-2 py-1 rounded-md ${style.bg} ${style.text}`}>
         {style.label}

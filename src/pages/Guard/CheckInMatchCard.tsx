@@ -43,7 +43,7 @@ export default function CheckInMatchCard({ match: m, disabled, isCheckedIn, expi
           {expired && !isCheckedIn && <span className="status-badge bg-danger-50 text-danger-700 border border-danger-500/20">Expired</span>}
         </div>
 
-        <p className="text-xs text-navy-400 mt-1 truncate">{m.departmentName} · {m.purpose}</p>
+        <p className="text-xs text-navy-400 mt-1 truncate">{m.purpose}</p>
 
         <div className="flex flex-col gap-1 mt-2 text-xs text-navy-500">
           {m.hostName && (
@@ -51,7 +51,13 @@ export default function CheckInMatchCard({ match: m, disabled, isCheckedIn, expi
               <svg className="w-3.5 h-3.5 shrink-0 text-navy-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0" />
               </svg>
-              <span className="truncate">Host: <span className="font-semibold text-navy-700">{m.hostName}</span></span>
+              {/* Department moved here, under the host's name, instead of
+                  staying paired with purpose above — that combination
+                  duplicated the same department value on this card. */}
+              <span className="truncate">
+                Person to Meet: <span className="font-semibold text-navy-700">{m.hostName}</span>
+                {m.departmentName && <span className="block text-[11px] text-navy-400">{m.departmentName}</span>}
+              </span>
             </span>
           )}
           {m.vendorName && (

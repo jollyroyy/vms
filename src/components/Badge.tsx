@@ -66,13 +66,17 @@ export default function Badge({ visit }: Props): React.ReactElement {
 
         {/* Info rows with clean separators */}
         <div className="text-xs text-navy-600 space-y-0 border-t border-surface-200 pt-3">
+          {/* Department used to have its own row directly above this one —
+              folded under Person to Meet instead, so the printed pass never
+              shows the same department value twice. */}
           <div className="flex justify-between py-2 border-b border-surface-100">
-            <span className="text-navy-400 font-medium">Department</span>
-            <span className="font-semibold text-navy-700">{dept?.name ?? '—'}</span>
-          </div>
-          <div className="flex justify-between py-2 border-b border-surface-100">
-            <span className="text-navy-400 font-medium">Host</span>
-            <span className="font-semibold text-navy-700">{host?.full_name ?? '—'}</span>
+            <span className="text-navy-400 font-medium">Person to Meet</span>
+            <span className="text-right">
+              <span className="block font-semibold text-navy-700">{host?.full_name ?? '—'}</span>
+              {host?.full_name && dept?.name && (
+                <span className="block text-[10px] text-navy-400">{dept.name}</span>
+              )}
+            </span>
           </div>
           <div className="flex justify-between py-2 border-b border-surface-100">
             <span className="text-navy-400 font-medium">Purpose</span>

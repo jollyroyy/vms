@@ -9,7 +9,7 @@ type Props = {
   onDrill: (key: DrillKey) => void;
 };
 
-// Today's summary. Six tiles, each answering a different question — see the
+// Today's summary. Seven tiles, each answering a different question — see the
 // `entered` vs `inside` note in lib/useGateStats.ts for why those two are not
 // the same filter. `entered = inside + checkedOut` always holds.
 //
@@ -47,13 +47,20 @@ const TILES: Record<DrillKey, Tile> = {
     // entry" on a guard's screen implies the guard turned someone away.
     label: 'Declined', tone: 'text-danger-600', hint: 'Request declined by host',
   },
+  noShow: {
+    // Same orange used for the `no_show` status badge (statusStyles.ts) so the
+    // colour means the same thing everywhere. Orange is a static Tailwind hue,
+    // not a token, so it needs an explicit dark: variant or it goes flat on a
+    // dark card.
+    label: 'No Show', tone: 'text-orange-600 dark:text-orange-300', hint: 'Booked, never arrived',
+  },
 };
 
 export default function DashboardSummary({ stats, loading, activeKey, onDrill }: Props): React.ReactElement {
   return (
     <section>
       <h2 className="section-title mb-3">Today&rsquo;s Summary</h2>
-      <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-3">
         {DRILL_KEYS.map((key, i) => {
           const t = TILES[key];
           const expanded = activeKey === key;

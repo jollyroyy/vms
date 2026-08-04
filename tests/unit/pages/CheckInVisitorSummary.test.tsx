@@ -81,7 +81,7 @@ describe('CheckInVisitorSummary', () => {
 
   it('falls back to an em dash for a blank host', () => {
     render(<CheckInVisitorSummary match={match({ hostName: '' })} />);
-    const hostDt = screen.getByText('Host');
+    const hostDt = screen.getByText('Person to Meet');
     expect(hostDt.nextElementSibling?.textContent).toBe('—');
   });
 });

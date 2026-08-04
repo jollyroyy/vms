@@ -10,9 +10,9 @@ import type { Visit } from '../types/index';
 // the card list disagree on screen. The `entered` vs `inside` distinction is the
 // one that bites — see the long note in useGateStats.ts. `entered` is derived
 // from checked_in_at (cumulative), `inside` from status (live).
-export type DrillKey = 'preApproved' | 'walkInApproved' | 'inside' | 'entered' | 'checkedOut' | 'declined';
+export type DrillKey = 'preApproved' | 'walkInApproved' | 'inside' | 'entered' | 'checkedOut' | 'declined' | 'noShow';
 
-export const DRILL_KEYS: DrillKey[] = ['preApproved', 'walkInApproved', 'inside', 'entered', 'checkedOut', 'declined'];
+export const DRILL_KEYS: DrillKey[] = ['preApproved', 'walkInApproved', 'inside', 'entered', 'checkedOut', 'declined', 'noShow'];
 
 export const DRILL_FILTER: Record<DrillKey, (v: Visit) => boolean> = {
   preApproved: (v) => v.status === 'approved',
@@ -21,6 +21,7 @@ export const DRILL_FILTER: Record<DrillKey, (v: Visit) => boolean> = {
   entered: (v) => v.checked_in_at !== null,
   checkedOut: (v) => v.status === 'checked_out',
   declined: (v) => v.status === 'rejected',
+  noShow: (v) => v.status === 'no_show',
 };
 
 export type DrillCopy = { title: string; subtitle: string; empty: string; countLabel: string };
@@ -63,6 +64,12 @@ export const DRILL_COPY: Record<DrillKey, DrillCopy> = {
     subtitle: 'Declined by the host, usually before arrival',
     empty: 'No requests were declined today.',
     countLabel: 'declined',
+  },
+  noShow: {
+    title: 'No shows',
+    subtitle: 'Booked, never arrived',
+    empty: 'Nobody was marked a no-show.',
+    countLabel: 'no-shows',
   },
 };
 

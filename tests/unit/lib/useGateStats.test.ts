@@ -3,6 +3,7 @@ import { renderHook, waitFor, cleanup } from '@testing-library/react';
 import { useGateStats } from '../../../src/lib/useGateStats';
 
 const mockRows = vi.hoisted(() => ({ current: [] as any[] }));
+const orCalls = vi.hoisted(() => ({ current: [] as string[] }));
 
 vi.mock('../../../src/supabaseClient', () => {
   const ch: any = {};
@@ -12,9 +13,10 @@ vi.mock('../../../src/supabaseClient', () => {
     supabase: {
       from: () => ({
         select: () => ({
-          gte: () => ({
-            lte: () => Promise.resolve({ data: mockRows.current, error: null }),
-          }),
+          or: (filters: string) => {
+            orCalls.current.push(filters);
+            return Promise.resolve({ data: mockRows.current, error: null });
+          },
         }),
       }),
       channel: () => ch,
@@ -36,7 +38,7 @@ function row(over: Partial<{ id: string; status: string; checked_in_at: string |
   };
 }
 
-afterEach(() => { cleanup(); mockRows.current = []; });
+afterEach(() => { cleanup(); mockRows.current = []; orCalls.current = []; });
 
 describe('useGateStats', () => {
   it('reports zeros when nothing happened today', async () => {
@@ -122,6 +124,50 @@ describe('useGateStats', () => {
       await waitFor(() => expect(result.current.loading).toBe(false));
       expect(result.current.stats.preApproved).toBe(2);
       expect(result.current.stats.walkInApproved).toBe(1);
+    });
+  });
+
+  describe('noShow', () => {
+    // A pre-approval's scheduled moment passed with nobody arriving; a
+    // nightly sweep marks it. Must count only that status.
+    it('counts status === no_show only, not rejected or cancelled', async () => {
+      mockRows.current = [
+        row({ status: 'no_show' }),
+        row({ status: 'no_show' }),
+        row({ status: 'rejected' }),
+        row({ status: 'cancelled' }),
+      ];
+      const { result } = renderHook(() => useGateStats(TODAY));
+      await waitFor(() => expect(result.current.loading).toBe(false));
+      expect(result.current.stats.noShow).toBe(2);
+    });
+  });
+
+  // ── Part 2 regression: the window must not be created_at alone ────────────
+  //
+  // A pre-approval created last week for a visit scheduled today, or a
+  // no-show swept overnight (created days before the sweep), both fall
+  // outside a created_at-only window. The hook must query with created_at OR
+  // scheduled_for landing on `today` — otherwise the count is 0 forever for
+  // a no-show whose created_at is days in the past.
+  describe('widened created_at OR scheduled_for window', () => {
+    it('builds an .or() filter covering both created_at and scheduled_for for today', async () => {
+      mockRows.current = [
+        row({ status: 'no_show', scheduled_for: `${TODAY}T09:00:00Z` }),
+      ];
+      const { result } = renderHook(() => useGateStats(TODAY));
+      await waitFor(() => expect(result.current.loading).toBe(false));
+
+      expect(orCalls.current).toHaveLength(1);
+      const filter = orCalls.current[0];
+      expect(filter).toContain(`created_at.gte.${TODAY}T00:00:00Z`);
+      expect(filter).toContain(`created_at.lte.${TODAY}T23:59:59Z`);
+      expect(filter).toContain(`scheduled_for.gte.${TODAY}T00:00:00Z`);
+      expect(filter).toContain(`scheduled_for.lte.${TODAY}T23:59:59Z`);
+
+      // Regression: a visit created before today, scheduled for today, and
+      // swept to no_show overnight must still surface on the tile.
+      expect(result.current.stats.noShow).toBe(1);
     });
   });
 

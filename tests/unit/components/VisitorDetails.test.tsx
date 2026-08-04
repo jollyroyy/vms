@@ -206,6 +206,34 @@ describe('VisitorDetails — the pass is never shown to a guard', () => {
   });
 });
 
+// The host field's label reads "Person to Meet", and their department renders
+// directly beneath their name rather than as its own separate row — folding
+// it in avoids showing the same department value twice on one card.
+describe('VisitorDetails — Person to Meet shows the host\'s department beneath their name', () => {
+  afterEach(() => cleanup());
+
+  it('labels the host field "Person to Meet" and shows their department under their name', () => {
+    render(<VisitorDetails visit={visit} onClose={vi.fn()} />);
+    expect(screen.getByText('Person to Meet')).toBeInTheDocument();
+    expect(screen.queryByText('Meeting')).not.toBeInTheDocument();
+    const hostName = screen.getByText('Jane Smith');
+    // The department line is the very next sibling under the host's name.
+    expect(hostName.nextElementSibling?.textContent).toBe('Engineering');
+  });
+
+  it('does not render the department as its own separate field anymore', () => {
+    render(<VisitorDetails visit={visit} onClose={vi.fn()} />);
+    expect(screen.queryByText('Department')).not.toBeInTheDocument();
+  });
+
+  it('omits the department line when there is no host to show it under', () => {
+    const noHost = { ...visit, host: undefined } as unknown as Visit;
+    render(<VisitorDetails visit={noHost} onClose={vi.fn()} />);
+    expect(screen.queryByText('Person to Meet')).not.toBeInTheDocument();
+    expect(screen.queryByText('Engineering')).not.toBeInTheDocument();
+  });
+});
+
 // An HOD approves on who is visiting and why — confirming a government ID
 // against a face is the guard's job at the gate, not the HOD's, so the ID
 // document must not appear anywhere on the HOD's copy of this popup.

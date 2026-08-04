@@ -14,7 +14,7 @@ import React, { useState } from 'react';
 import type { Visit } from '../../types/index';
 import VisitorCard from './VisitorCard';
 import PhotoCapture from '../../components/PhotoCapture';
-import { formatTime } from '../../lib/formatDate';
+import { formatDateTime } from '../../lib/formatDate';
 
 export type WalkInCheckIn = { photoBlob: Blob; carrying: boolean; remarks: string };
 
@@ -58,7 +58,7 @@ export default function GuardWalkInApproved({ loading, approved, busyId, onCheck
             <div key={v.id} className="animate-slide-up" style={{ animationDelay: `${i * 0.03}s` }}>
               <VisitorCard
                 visit={v}
-                timeLabel={formatTime(v.created_at)}
+                timeLabel={formatDateTime(v.created_at)}
                 action={openId === v.id ? undefined : { label: 'Check In', onClick: () => { reset(); setOpenId(v.id); } }}
               />
 

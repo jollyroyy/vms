@@ -1,11 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { useGateStats } from '../../lib/useGateStats';
 import { useTodayVisits } from '../../lib/useTodayVisits';
-import { useRecentActivity } from '../../lib/useRecentActivity';
 import type { ReportVisit } from '../../lib/reportRow';
 import type { DrillKey } from '../../lib/dashboardDrill';
 import DashboardSummary from './DashboardSummary';
-import DashboardActivity from './DashboardActivity';
 import DashboardDrilldown from './DashboardDrilldown';
 import VisitorDetails from '../../components/VisitorDetails';
 
@@ -18,9 +16,10 @@ import VisitorDetails from '../../components/VisitorDetails';
 // tell which was authoritative. The split is now: read here, act there.
 //
 // Layout order is deliberate and matches how a shift actually starts:
-// summary (where do we stand) → the drill-down the guard just opened → activity
-// (what just happened). Search and Quick Actions were removed from the
-// dashboard — starting a task lives in the console at /visitors, not here.
+// summary (where do we stand) → the drill-down the guard just opened. Search,
+// Quick Actions and the Recent Activity feed were all removed — starting a task
+// lives in the console at /visitors, and every row the activity feed listed was
+// already one click away inside the tile that counts it.
 //
 // Every KPI tile drills down IN PLACE. Clicking a count expands the visits
 // behind it right below the summary; clicking the same tile again collapses it.
@@ -35,7 +34,6 @@ export default function GuardDashboard(): React.ReactElement {
   const today = new Date().toISOString().slice(0, 10);
   const { stats, loading } = useGateStats(today);
   const { visits: todayVisits, loading: visitsLoading } = useTodayVisits(today);
-  const { visits: recent, loading: recentLoading } = useRecentActivity(today);
 
   useEffect(() => {
     const t = setInterval(() => setClock(new Date()), 1000);
@@ -82,11 +80,9 @@ export default function GuardDashboard(): React.ReactElement {
         />
       )}
 
-      <DashboardActivity
-        visits={recent}
-        loading={recentLoading}
-        onSelect={(v) => setDetailVisit(v as ReportVisit)}
-      />
+      {/* No Recent Activity feed. Every one of its rows was already reachable
+          by clicking the tile above that counts it, and a scrolling list of
+          things that already happened is not something a guard acts on. */}
 
       {detailVisit && (
         <VisitorDetails visit={detailVisit} viewerRole="guard" onClose={() => setDetailVisit(null)} />

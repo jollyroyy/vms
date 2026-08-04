@@ -7,10 +7,10 @@ import type { MatchItem } from '../../../src/pages/Guard/CheckInPanel';
 
 afterEach(() => cleanup());
 
-// Text like "Host: Alex Host" is split across a parent node and a nested
-// <span> for the bolded value — getByText's default matcher only looks at
-// direct text-node children, so an exact-textContent function matcher is
-// needed here instead of a plain string/regex.
+// Text like "Person to Meet: Alex Host" is split across a parent node and a
+// nested <span> for the bolded value — getByText's default matcher only
+// looks at direct text-node children, so an exact-textContent function
+// matcher is needed here instead of a plain string/regex.
 function fullText(text: string) {
   return (_content: string, node: Element | null) => node?.textContent === text;
 }
@@ -58,24 +58,34 @@ function match(overrides: Partial<MatchItem> = {}): MatchItem {
 describe('CheckInMatchList — host name and vendor name', () => {
   it('shows the host name and vendor name on a pre-approved visitor card', () => {
     render(<CheckInMatchList {...baseProps({
-      allMatches: [match({ hostName: 'Alex Host', vendorName: 'Acme Corp' })],
+      // departmentName cleared so the assertion below stays an exact match on
+      // the host line alone — its own department-under-name behaviour is
+      // covered separately.
+      allMatches: [match({ hostName: 'Alex Host', vendorName: 'Acme Corp', departmentName: '' })],
     })} />);
-    expect(screen.getAllByText(fullText('Host: Alex Host')).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(fullText('Person to Meet: Alex Host')).length).toBeGreaterThan(0);
     expect(screen.getByText('Acme Corp')).toBeInTheDocument();
   });
 
   it('shows only the host name when no vendor name is present', () => {
     render(<CheckInMatchList {...baseProps({
-      allMatches: [match({ hostName: 'Alex Host', vendorName: '' })],
+      allMatches: [match({ hostName: 'Alex Host', vendorName: '', departmentName: '' })],
     })} />);
-    expect(screen.getAllByText(fullText('Host: Alex Host')).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(fullText('Person to Meet: Alex Host')).length).toBeGreaterThan(0);
+  });
+
+  it('shows the department directly beneath the host name when both are present', () => {
+    render(<CheckInMatchList {...baseProps({
+      allMatches: [match({ hostName: 'Alex Host', departmentName: 'Engineering' })],
+    })} />);
+    expect(screen.getAllByText(fullText('Person to Meet: Alex HostEngineering')).length).toBeGreaterThan(0);
   });
 
   it('renders no host/vendor name line when both are absent', () => {
     render(<CheckInMatchList {...baseProps({
       allMatches: [match({ hostName: '', vendorName: '' })],
     })} />);
-    expect(screen.queryByText(/Host:/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Person to Meet:/)).not.toBeInTheDocument();
   });
 });
 

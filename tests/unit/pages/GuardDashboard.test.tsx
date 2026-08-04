@@ -10,14 +10,14 @@ import GuardDashboard from '../../../src/pages/Guard/Dashboard';
 // bodies run before the rest of the module, including other top-level consts.
 const EMPTY_STATS = {
   preApproved: 0, walkInApproved: 0, entered: 0, inside: 0, checkedOut: 0, declined: 0,
-  awaitingApproval: 0, overdue: 0,
+  noShow: 0, awaitingApproval: 0, overdue: 0,
 };
 
 const mockStats = vi.hoisted(() => ({
   current: {
     stats: {
       preApproved: 0, walkInApproved: 0, entered: 0, inside: 0, checkedOut: 0, declined: 0,
-      awaitingApproval: 0, overdue: 0,
+      noShow: 0, awaitingApproval: 0, overdue: 0,
     },
     loading: false,
   },
@@ -75,7 +75,7 @@ describe('GuardDashboard', () => {
     expect(heading.textContent).toBe('Security Gate');
   });
 
-  it('renders all six KPI tile labels', () => {
+  it('renders all seven KPI tile labels', () => {
     renderDashboard();
     expect(screen.getByText('Pre-approved')).toBeInTheDocument();
     expect(screen.getByText('Walk-ins Approved')).toBeInTheDocument();
@@ -83,6 +83,7 @@ describe('GuardDashboard', () => {
     expect(screen.getByText('Entered Today')).toBeInTheDocument();
     expect(screen.getByText('Checked Out')).toBeInTheDocument();
     expect(screen.getByText('Declined')).toBeInTheDocument();
+    expect(screen.getByText('No Show')).toBeInTheDocument();
   });
 
   it('shows zeros for every tile when there is no data (empty state)', () => {
@@ -93,13 +94,14 @@ describe('GuardDashboard', () => {
     expect(tileFor('Entered Today').textContent).toContain('0');
     expect(tileFor('Checked Out').textContent).toContain('0');
     expect(tileFor('Declined').textContent).toContain('0');
+    expect(tileFor('No Show').textContent).toContain('0');
   });
 
   it('renders seeded stats on their matching tiles', () => {
     mockStats.current = {
       stats: {
         preApproved: 5, walkInApproved: 4, inside: 3, entered: 8, checkedOut: 5, declined: 2,
-        awaitingApproval: 1, overdue: 0,
+        noShow: 6, awaitingApproval: 1, overdue: 0,
       },
       loading: false,
     };
@@ -110,6 +112,7 @@ describe('GuardDashboard', () => {
     expect(tileFor('Entered Today').textContent).toContain('8');
     expect(tileFor('Checked Out').textContent).toContain('5');
     expect(tileFor('Declined').textContent).toContain('2');
+    expect(tileFor('No Show').textContent).toContain('6');
   });
 
   // Regression guard: Inside Now (live, status === 'checked_in') and Entered
@@ -120,7 +123,7 @@ describe('GuardDashboard', () => {
     mockStats.current = {
       stats: {
         preApproved: 0, walkInApproved: 0, inside: 4, entered: 9, checkedOut: 5, declined: 0,
-        awaitingApproval: 0, overdue: 0,
+        noShow: 0, awaitingApproval: 0, overdue: 0,
       },
       loading: false,
     };
@@ -141,6 +144,7 @@ describe('GuardDashboard', () => {
     ['Entered Today', 'entered'],
     ['Checked Out', 'checkedOut'],
     ['Declined', 'declined'],
+    ['No Show', 'noShow'],
   ])('%s is a button that expands its own drill-down on the same page', (label, key) => {
     mockToday.current = {
       visits: [{ id: 'v1', visitor: { full_name: 'Alice Johnson' } }],
@@ -208,13 +212,12 @@ describe('GuardDashboard', () => {
     expect(screen.queryByText('Expected')).toBeNull();
   });
 
-  it('shows the empty state for Recent Activity when there is no activity', () => {
-    renderDashboard();
-    expect(screen.getByText('Recent Activity')).toBeInTheDocument();
-    expect(screen.getByText('No gate activity yet today.')).toBeInTheDocument();
-  });
-
-  it('renders visitor names in Recent Activity when there is data', () => {
+  // Regression guard: the dashboard used to duplicate the console with its own
+  // Recent Activity feed. Every row it listed was already one click away
+  // inside the tile that counts it, so the feed was removed for good — see
+  // the comment in Dashboard.tsx above where it used to render. Must not
+  // silently reappear even when useRecentActivity has data to show.
+  it('renders no Recent Activity feed, even when there is activity data', () => {
     mockActivity.current = {
       visits: [
         { id: 'a1', status: 'checked_out', checked_in_at: '2026-08-02T09:00:00Z', created_at: '2026-08-02T08:00:00Z', visitor: { full_name: 'Priya Nair' } } as any,
@@ -223,8 +226,8 @@ describe('GuardDashboard', () => {
       loading: false,
     };
     renderDashboard();
-    expect(screen.getByText('Priya Nair')).toBeInTheDocument();
-    expect(screen.getByText('Rahul Verma')).toBeInTheDocument();
-    expect(screen.queryByText('No gate activity yet today.')).toBeNull();
+    expect(screen.queryByText('Recent Activity')).toBeNull();
+    expect(screen.queryByText('Priya Nair')).toBeNull();
+    expect(screen.queryByText('Rahul Verma')).toBeNull();
   });
 });

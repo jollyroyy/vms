@@ -137,6 +137,10 @@ export default function VisitorForm({ onRegistered }: Props): React.ReactElement
 
   const checkInPreApproved = async () => {
     if (!preApprovedVisit) return;
+    // Same rule as the registration path below: no photo, no entry. This path
+    // used to flip the status straight to checked_in without one, so a
+    // pre-approved visitor could get inside with no record of who arrived.
+    if (!photoBlob) { setError('Photo is required (FR-CAM-05).'); return; }
     setCheckingInPreApproved(true);
     setError('');
     try {
@@ -147,12 +151,16 @@ export default function VisitorForm({ onRegistered }: Props): React.ReactElement
       const clash = await findActiveVisitByPhone(phone);
       if (clash) { setError(activeVisitMessage(clash)); setCheckingInPreApproved(false); return; }
 
+      const { photoPath, photoData } = await uploadPhoto(photoBlob);
       const { error: err } = await supabase.from('visits').update({
         status: 'checked_in',
         checked_in_at: new Date().toISOString(),
+        ...(photoData ? { photo_data: photoData } : {}),
+        ...(photoPath ? { photo_path: photoPath } : {}),
       }).eq('id', preApprovedVisit.id);
       if (err) throw err;
       setPreApprovedVisit(null);
+      setPhotoBlob(null);
       setPhone(''); setFullName(''); setVendorName(''); setRecalledName(null);
       onRegistered(preApprovedVisit.visitor_name);
     } catch (err) {
@@ -227,6 +235,8 @@ export default function VisitorForm({ onRegistered }: Props): React.ReactElement
         <VisitorFormPreApproved
           preApprovedVisit={preApprovedVisit}
           checkingInPreApproved={checkingInPreApproved}
+          photoBlob={photoBlob}
+          onPhotoCapture={(blob) => setPhotoBlob(blob)}
           onCheckIn={checkInPreApproved}
           onRegisterWalkIn={() => setPreApprovedVisit(null)}
         />

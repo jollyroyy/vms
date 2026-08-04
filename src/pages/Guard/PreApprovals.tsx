@@ -40,11 +40,6 @@ export default function GuardPreApprovals(): React.ReactElement {
 
       <CheckInPanel today={today} onCheckInSuccess={onCheckInSuccess} />
 
-      <div className="flex items-center justify-between">
-        <h2 className="gate-section-title">Due today</h2>
-        <span className="glass-chip !py-1 tabular-nums">{loading ? '—' : visits.length}</span>
-      </div>
-
       <div className="card overflow-hidden">
         {loading ? (
           <div className="p-5 space-y-3">

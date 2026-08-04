@@ -74,6 +74,30 @@
   as null, since at registration nobody knows yet whether the visitor is coming in)
   and `Console.checkInWalkIn` writes the update, handling the migration-060 conflict
   via `isAlreadyInsideError`.
+- **Open visits are never date-bounded.** `Console.loadVisits`, `useGateStats` and
+  `useTodayVisits` all used a bare `created_at >= today` window, which silently dropped
+  unfinished work at midnight: a walk-in registered at 23:50 and approved at 00:05 was
+  approved into an empty list, a visitor still inside from the previous evening could
+  not be checked out, and a pre-approval booked last week for today never appeared.
+  The console now ORs in `status.in.(pending_approval,walkin_approved,checked_in)`, and
+  the two dashboard hooks OR in `scheduled_for` within today. Keep the hooks in step —
+  the count and the drill-down list must come from the same window.
+- **A photo is mandatory on every check-in path.** `CheckInPanel` gates it structurally
+  (the confirm step does not render until a photo exists), `GuardWalkInApproved`
+  disables Confirm without one, and `VisitorForm.checkInPreApproved` — which used to
+  flip status to `checked_in` with no photo at all — now refuses and uploads one. The
+  photo is the record of who actually walked in; an approval only says who was expected.
+- **The guard dashboard has no Recent Activity feed.** Every row it listed was already
+  one click away inside the tile that counts it. `DashboardActivity.tsx` and
+  `lib/useRecentActivity.ts` were deleted, and `GuardDashboard.test.tsx` asserts the
+  feed never comes back.
+- **Global search lives at `/search`**, allowed for all four roles (last in each
+  `ROLE_ROUTES` list). The top bar navigates there with **`?q=`** — it used to send
+  `/visitors?search=`, a route that is not a search surface and a param nothing read,
+  which is why search silently did nothing. `lib/visitorSearch.ts` classifies the query
+  as phone / ref / name; results are cards that open `VisitorDetails` for the approval
+  time and timeline. The pre-approved match search in `checkInMatches.ts` also matches
+  `ref_number` and compares phones digits-only.
 - **The top bar has no scanner button.** Scanning is a step inside `CheckInPanel`,
   where the scanned pass resolves straight to the visitor being checked in. A global
   icon that jumped to a bare scanner was a shortcut to nowhere. Do not re-add it.

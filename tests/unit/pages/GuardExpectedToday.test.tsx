@@ -61,7 +61,7 @@ describe('GuardExpectedToday', () => {
     expect(screen.getByText('Jane Doe')).toBeInTheDocument();
     // VisitorCard renders the host as its own labelled column now, not an
     // inline "Host: Name" string.
-    expect(screen.getByText('Host')).toBeInTheDocument();
+    expect(screen.getByText('Person to Meet')).toBeInTheDocument();
     expect(screen.getByText('Alex Host')).toBeInTheDocument();
     expect(screen.getByText('Pre-approved')).toBeInTheDocument();
   });

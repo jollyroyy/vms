@@ -68,7 +68,7 @@ export default function AppShell({ session, role, children }: Props): React.Reac
     e.preventDefault();
     const q = searchQuery.trim();
     if (!q) return;
-    navigate(`/visitors?search=${encodeURIComponent(q)}`);
+    navigate(`/search?q=${encodeURIComponent(q)}`);
   };
 
   return (

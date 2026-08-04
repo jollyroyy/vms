@@ -4,7 +4,7 @@ import type { Mode } from './GuardConsoleModeTabs';
 import GuardWalkIns from './GuardWalkIns';
 import GuardWalkInApproved, { type WalkInCheckIn } from './GuardWalkInApproved';
 import VisitorCard from './VisitorCard';
-import { formatTime } from '../../lib/formatDate';
+import { formatDateTime } from '../../lib/formatDate';
 
 type Props = {
   mode: Mode;
@@ -37,7 +37,10 @@ const LIST_VIEWS: Record<string, ListView> = {
     empty: 'No one is inside right now.',
     emptyHint: 'Visitors you check in will appear here until they leave.',
     rows: (p) => p.checkedIn,
-    timeOf: (v) => formatTime(v.checked_in_at ?? v.created_at),
+    // Date AND time. Time alone was ambiguous the moment the list stopped being
+    // today-only: a visitor still inside from the previous evening showed
+    // "08:15" with nothing to say it was yesterday's 08:15.
+    timeOf: (v) => formatDateTime(v.checked_in_at ?? v.created_at),
     action: (p, v) => ({ label: 'Check Out', onClick: () => p.onCheckOut(v) }),
   },
 };

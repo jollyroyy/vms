@@ -159,7 +159,8 @@ export default function App(): React.ReactElement {
             <Route path="/guard/dashboard" element={<ProtectedRoute role={role}><GuardDashboard /></ProtectedRoute>} />
             <Route path="/guard/daily-staff" element={<ProtectedRoute role={role}><DailyStaff /></ProtectedRoute>} />
             <Route path="/guard/pre-approvals" element={<ProtectedRoute role={role}><GuardPreApprovals /></ProtectedRoute>} />
-            <Route path="/guard/search"    element={<ProtectedRoute role={role}><GuardSearch /></ProtectedRoute>} />
+            <Route path="/guard/search"    element={<ProtectedRoute role={role}><GuardSearch role={role} /></ProtectedRoute>} />
+            <Route path="/search"          element={<ProtectedRoute role={role}><GuardSearch role={role} /></ProtectedRoute>} />
             <Route path="/guard/watchlist" element={<ProtectedRoute role={role}><GuardWatchlist /></ProtectedRoute>} />
             <Route path="/kiosk"          element={<ProtectedRoute role={role}><KioskPage /></ProtectedRoute>} />
             <Route path="/approvals"       element={<ProtectedRoute role={role}><HODApprovals /></ProtectedRoute>} />

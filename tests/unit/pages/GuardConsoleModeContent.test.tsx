@@ -2,6 +2,7 @@ import React from 'react';
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { render, screen, cleanup, fireEvent } from '@testing-library/react';
 import GuardConsoleModeContent from '../../../src/pages/Guard/GuardConsoleModeContent';
+import { formatDateTime } from '../../../src/lib/formatDate';
 import type { Visit } from '../../../src/types/index';
 
 vi.mock('../../../src/pages/Guard/CheckInPanel', () => ({
@@ -63,6 +64,16 @@ describe('GuardConsoleModeContent', () => {
     const props = baseProps({ mode: 'checked-out' as any });
     const { container } = render(<GuardConsoleModeContent {...props} />);
     expect(container).toBeEmptyDOMElement();
+  });
+
+  // The inside list is no longer today-only (see the .or() window change in
+  // Console.tsx), so a bare "08:15" could not be told from yesterday's 08:15.
+  // Rows must carry the date alongside the time.
+  it('mode="inside" shows the check-in time WITH its date, not time alone', () => {
+    const v = visit({ checked_in_at: '2026-08-02T04:05:00Z' });
+    const props = baseProps({ mode: 'inside', checkedIn: [v] });
+    render(<GuardConsoleModeContent {...props} />);
+    expect(screen.getByText(formatDateTime(v.checked_in_at))).toBeInTheDocument();
   });
 
   it('shows the "inside" empty state when given no rows', () => {

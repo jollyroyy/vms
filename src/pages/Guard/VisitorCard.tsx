@@ -46,17 +46,22 @@ export default function VisitorCard({ visit: v, action, onSelect, timeLabel }: P
       <div className="min-w-0 flex-1">
         <p className="visitor-card-name">{v.visitor?.full_name ?? 'Unknown visitor'}</p>
         <p className="visitor-card-meta">
-          {v.visitor?.vendor_name ? `${v.visitor.vendor_name} · ` : ''}
-          {v.department?.name ?? '—'}
-          {v.purpose ? ` · ${v.purpose}` : ''}
+          {v.visitor?.vendor_name ? `${v.visitor.vendor_name}` : ''}
+          {v.purpose ? `${v.visitor?.vendor_name ? ' · ' : ''}${v.purpose}` : ''}
         </p>
       </div>
 
-      {/* Host — the second-most-asked question at a gate ("who are you here to
-          see?"), so it gets its own column rather than being folded into meta. */}
+      {/* Person to Meet — the second-most-asked question at a gate ("who are
+          you here to see?"), so it gets its own column rather than being
+          folded into meta. Department moved here too, under their name —
+          it used to also sit in the meta line above, which rendered the
+          same value twice on one card. */}
       <div className="hidden md:block text-right shrink-0 min-w-0 max-w-[9rem]">
-        <p className="text-[11px] text-navy-300 uppercase tracking-wide">Host</p>
+        <p className="text-[11px] text-navy-300 uppercase tracking-wide">Person to Meet</p>
         <p className="text-[13px] font-semibold text-navy-700 truncate">{v.host?.full_name ?? '—'}</p>
+        {v.host?.full_name && (
+          <p className="text-[11px] text-navy-400 truncate">{v.department?.name ?? '—'}</p>
+        )}
       </div>
 
       <span className={`status-badge shrink-0 ${style.bg} ${style.text}`}>

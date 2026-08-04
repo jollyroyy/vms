@@ -6,8 +6,7 @@ import { renderHook, waitFor, cleanup } from '@testing-library/react';
 import { useTodayVisits } from '../../../src/lib/useTodayVisits';
 
 const mockRows = vi.hoisted(() => ({ current: null as any[] | null }));
-const gteSpy = vi.hoisted(() => vi.fn());
-const lteSpy = vi.hoisted(() => vi.fn());
+const orSpy = vi.hoisted(() => vi.fn());
 const onSpy = vi.hoisted(() => vi.fn());
 const removeChannelSpy = vi.hoisted(() => vi.fn());
 
@@ -19,14 +18,9 @@ vi.mock('../../../src/supabaseClient', () => {
     supabase: {
       from: () => ({
         select: () => ({
-          gte: (...gArgs: any[]) => {
-            gteSpy(...gArgs);
-            return {
-              lte: (...lArgs: any[]) => {
-                lteSpy(...lArgs);
-                return Promise.resolve({ data: mockRows.current });
-              },
-            };
+          or: (...oArgs: any[]) => {
+            orSpy(...oArgs);
+            return Promise.resolve({ data: mockRows.current });
           },
         }),
       }),
@@ -51,20 +45,27 @@ const TODAY = '2026-08-03';
 afterEach(() => {
   cleanup();
   mockRows.current = null;
-  gteSpy.mockClear();
-  lteSpy.mockClear();
+  orSpy.mockClear();
   onSpy.mockClear();
   removeChannelSpy.mockClear();
 });
 
 describe('useTodayVisits', () => {
-  it('fetches the whole day: gte/lte bound the created_at column to midnight-to-midnight UTC', async () => {
+  // Widened window (Part 2 fix): a pre-approval created last week for a visit
+  // scheduled today, or a no-show swept overnight, both fall outside a
+  // created_at-only window. Must match created_at OR scheduled_for today, so
+  // this list stays in lockstep with useGateStats.ts's count.
+  it('fetches the whole day: matches created_at OR scheduled_for within midnight-to-midnight UTC', async () => {
     mockRows.current = [];
     const { result } = renderHook(() => useTodayVisits(TODAY));
     await waitFor(() => expect(result.current.loading).toBe(false));
 
-    expect(gteSpy).toHaveBeenCalledWith('created_at', `${TODAY}T00:00:00Z`);
-    expect(lteSpy).toHaveBeenCalledWith('created_at', `${TODAY}T23:59:59Z`);
+    expect(orSpy).toHaveBeenCalledTimes(1);
+    const filter = orSpy.mock.calls[0][0];
+    expect(filter).toContain(`created_at.gte.${TODAY}T00:00:00Z`);
+    expect(filter).toContain(`created_at.lte.${TODAY}T23:59:59Z`);
+    expect(filter).toContain(`scheduled_for.gte.${TODAY}T00:00:00Z`);
+    expect(filter).toContain(`scheduled_for.lte.${TODAY}T23:59:59Z`);
   });
 
   it('does not filter by status — every status shares this one fetch', async () => {

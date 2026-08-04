@@ -191,6 +191,14 @@ describe('SEC-7: frontend route protection', () => {
     });
   });
 
+  // ── Global search (top-bar) ─────────────────────────────────
+  it('/search is allowed for every role', () => {
+    const allRoles = ['guard', 'hod', 'staff', 'admin'] as const;
+    for (const role of allRoles) {
+      expect(isForbidden('/search', role), `${role} must be allowed on /search`).toBe(false);
+    }
+  });
+
   // ── Unauthenticated ────────────────────────────────────────
   describe('unauthenticated (role is null)', () => {
     it('null role is never forbidden (handled by session guard in App.tsx)', () => {

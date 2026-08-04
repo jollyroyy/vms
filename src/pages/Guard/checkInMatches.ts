@@ -20,10 +20,32 @@ export interface RecurringWithDept extends RecurringVisit {
 
 export type MatchFilters = { search: string; deptFilter: string };
 
+/** Digits only, so a typed "98765 43210" or "+91-98765-43210" still matches a
+ *  stored "+919876543210". Comparing the raw strings meant any space, dash or
+ *  bracket the guard typed silently killed the match. */
+const digits = (s: string): string => s.replace(/\D/g, '');
+
 /** True when the row survives the search box and the department picker. */
-function matches(name: string, phone: string, departmentId: string, { search, deptFilter }: MatchFilters): boolean {
-  const q = search.toLowerCase().trim();
-  if (q && !name.toLowerCase().includes(q) && !phone.includes(q)) return false;
+function matches(
+  name: string,
+  phone: string,
+  departmentId: string,
+  { search, deptFilter }: MatchFilters,
+  refNumber?: string | null,
+): boolean {
+  const q = search.trim();
+  if (q) {
+    const lower = q.toLowerCase();
+    const qDigits = digits(q);
+    // A guard reading a pass off a phone screen types the REF NUMBER — it is
+    // the most precise thing on the pass and the only field that identifies one
+    // visit rather than one person. It was not searchable at all, which is why
+    // pasting a reference returned nothing.
+    const hitRef = !!refNumber && refNumber.toLowerCase().includes(lower);
+    const hitName = name.toLowerCase().includes(lower);
+    const hitPhone = qDigits.length > 0 && digits(phone).includes(qDigits);
+    if (!hitRef && !hitName && !hitPhone) return false;
+  }
   if (deptFilter && departmentId !== deptFilter) return false;
   return true;
 }
@@ -39,7 +61,7 @@ export function buildMatchItems(
   preApproved.forEach((v) => {
     const name = v.visitor?.full_name ?? '';
     const phone = v.visitor?.phone ?? '';
-    if (!matches(name, phone, v.department_id, filters)) return;
+    if (!matches(name, phone, v.department_id, filters, v.ref_number)) return;
     const isWalkin = v.status === 'walkin_approved';
     items.push({
       id: `pre:${v.id}`,

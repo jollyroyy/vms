@@ -61,7 +61,7 @@ describe('OverviewUpcoming', () => {
     expect(screen.getByText('Upcoming Visitor')).toBeInTheDocument();
     // company appears twice: once inline next to purpose, once as a pill — use getAllByText
     expect(screen.getAllByText(/Acme Co/).length).toBeGreaterThanOrEqual(1);
-    expect(screen.getByText('Host: Dr. Sharma')).toBeInTheDocument();
+    expect(screen.getByText('Person to Meet: Dr. Sharma')).toBeInTheDocument();
     expect(screen.getByText(/Meeting/)).toBeInTheDocument();
     expect(screen.getByText('1 visit')).toBeInTheDocument();
     // Empty state must not also render once a real row is present.
@@ -113,7 +113,7 @@ describe('OverviewUpcoming', () => {
       upcomingVisit({ id: 'bare', visitor: undefined, host: undefined }),
     ];
     expect(() => renderWithRouter(<OverviewUpcoming loading={false} upcoming={upcoming} />)).not.toThrow();
-    expect(screen.getByText('Host: —')).toBeInTheDocument();
+    expect(screen.getByText('Person to Meet: —')).toBeInTheDocument();
     // With no visitor object, the visitor-name pill row must not render at all.
     expect(screen.queryByText('Acme Co')).not.toBeInTheDocument();
   });

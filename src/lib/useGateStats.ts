@@ -24,6 +24,7 @@ export type GateStats = {
   inside: number;      // live — still on the premises
   checkedOut: number;  // came and left
   declined: number;    // HOD rejected the request (usually before arrival)
+  noShow: number;      // pre-approval's scheduled moment passed, nobody arrived (nightly sweep)
   // Queue counts — what still needs a human to do something
   awaitingApproval: number; // raised at the gate, waiting on an HOD decision
   overdue: number;          // approved, scheduled arrival already passed
@@ -31,7 +32,7 @@ export type GateStats = {
 
 const EMPTY: GateStats = {
   preApproved: 0, walkInApproved: 0, entered: 0, inside: 0, checkedOut: 0, declined: 0,
-  awaitingApproval: 0, overdue: 0,
+  noShow: 0, awaitingApproval: 0, overdue: 0,
 };
 
 type Row = {
@@ -59,11 +60,20 @@ export function useGateStats(today: string): { stats: GateStats; loading: boolea
 
   const load = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
+    const start = `${today}T00:00:00Z`;
+    const end = `${today}T23:59:59Z`;
+    // Not just created_at: a pre-approval raised last week FOR today is
+    // created outside today's window, and a no-show swept overnight was
+    // created days before it was marked. Either window alone silently drops
+    // rows the guard needs to see today, so match visits created today OR
+    // scheduled for today.
     const { data } = await supabase
       .from('visits')
       .select('id, status, checked_in_at, scheduled_for')
-      .gte('created_at', `${today}T00:00:00Z`)
-      .lte('created_at', `${today}T23:59:59Z`);
+      .or(
+        `and(created_at.gte.${start},created_at.lte.${end}),` +
+        `and(scheduled_for.gte.${start},scheduled_for.lte.${end})`,
+      );
 
     const rows = (data ?? []) as Row[];
     const now = Date.now();
@@ -76,6 +86,7 @@ export function useGateStats(today: string): { stats: GateStats; loading: boolea
       inside: rows.filter((r) => r.status === 'checked_in').length,
       checkedOut: rows.filter((r) => r.status === 'checked_out').length,
       declined: rows.filter((r) => r.status === 'rejected').length,
+      noShow: rows.filter((r) => r.status === 'no_show').length,
       awaitingApproval: rows.filter((r) => r.status === 'pending_approval').length,
       // Expected, had a booked time, and that time has already gone by.
       overdue: rows.filter((r) =>

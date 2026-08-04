@@ -5,6 +5,7 @@ import { MemoryRouter } from 'react-router-dom';
 import GuardConsole from '../../../src/pages/Guard/Console';
 
 const mockVisitData = vi.hoisted(() => ({ current: [] as any[] }));
+const orCalls = vi.hoisted(() => ({ current: [] as string[] }));
 
 vi.mock('../../../src/pages/Guard/CheckInPanel', () => ({
   default: () => <div>CheckInPanel</div>,
@@ -18,9 +19,12 @@ vi.mock('../../../src/supabaseClient', () => {
     supabase: {
       from: vi.fn(() => ({
         select: vi.fn(() => ({
-          gte: vi.fn(() => ({
-            order: vi.fn(() => Promise.resolve({ data: mockVisitData.current, error: null })),
-          })),
+          or: vi.fn((filters: string) => {
+            orCalls.current.push(filters);
+            return {
+              order: vi.fn(() => Promise.resolve({ data: mockVisitData.current, error: null })),
+            };
+          }),
         })),
         update: vi.fn(() => ({
           eq: vi.fn(() => Promise.resolve({ error: null })),
@@ -40,6 +44,7 @@ afterEach(() => {
   cleanup();
   vi.restoreAllMocks();
   mockVisitData.current = [];
+  orCalls.current = [];
 });
 
 function visit(overrides: Record<string, any> = {}) {
@@ -176,6 +181,16 @@ describe('GuardConsole', () => {
     expect(screen.queryByText('Checked out')).not.toBeInTheDocument();
     expect(screen.queryByText('Declined')).not.toBeInTheDocument();
     expect(screen.queryByText('All today')).not.toBeInTheDocument();
+  });
+
+  // Guards against the load window silently narrowing back to "today only",
+  // which used to drop a walk-in registered at 23:50 and approved at 00:05,
+  // and a visitor still inside from the previous evening.
+  it('loads visits with a filter covering both today\'s created_at window and the live statuses', async () => {
+    renderConsole();
+    await waitFor(() => expect(orCalls.current.length).toBeGreaterThan(0));
+    expect(orCalls.current[0]).toContain('created_at.gte.');
+    expect(orCalls.current[0]).toContain('status.in.(pending_approval,walkin_approved,checked_in)');
   });
 
   it('shows an empty state when nobody is inside', async () => {

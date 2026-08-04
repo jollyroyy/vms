@@ -45,9 +45,11 @@ export default function CheckInVisitorSummary({ match }: Props): React.ReactElem
       </div>
 
       <dl className="text-xs space-y-1.5 border-t border-surface-100 pt-3">
-        <Row term="Department" value={match.departmentName} />
         <Row term="Purpose" value={match.purpose} capitalize />
-        <Row term="Host" value={match.hostName} />
+        {/* Department used to be its own row above this one — folded under
+            Person to Meet instead, so it is never printed twice on this
+            summary. */}
+        <Row term="Person to Meet" value={match.hostName} sub={match.departmentName} />
         {/* The exact instant of approval, not a relative "2 hours ago" — a guard
             challenged on why someone was let in needs the timestamp itself. */}
         {match.approvedAt && <Row term={`${label} at`} value={formatDateTime(match.approvedAt)} />}
@@ -57,12 +59,13 @@ export default function CheckInVisitorSummary({ match }: Props): React.ReactElem
   );
 }
 
-function Row({ term, value, capitalize }: { term: string; value: string; capitalize?: boolean }): React.ReactElement {
+function Row({ term, value, capitalize, sub }: { term: string; value: string; capitalize?: boolean; sub?: string }): React.ReactElement {
   return (
     <div className="flex justify-between gap-3">
       <dt className="text-navy-400 shrink-0">{term}</dt>
       <dd className={`font-semibold text-navy-700 text-right truncate ${capitalize ? 'capitalize' : ''}`}>
         {value || '—'}
+        {value && sub && <span className="block text-[10px] font-normal text-navy-400 truncate">{sub}</span>}
       </dd>
     </div>
   );

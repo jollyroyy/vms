@@ -1,72 +1,12 @@
 // Covers buildMatchItems: flattens pre-approved visits and today's recurring
-// visitors into one ordered candidate list, filtered by search and department.
-// Critical: recurring rows have nulls (not undefined) for photo/id/approval fields,
-// and missing joins degrade to '' not the string "undefined".
+// visitors into one ordered candidate list. Critical: recurring rows have
+// nulls (not undefined) for photo/id/approval fields, and missing joins
+// degrade to '' not the string "undefined". Filter behaviour (search box +
+// department picker) lives in checkInMatchesFilters.test.ts — split to stay
+// under the 300-line file cap.
 import { describe, it, expect } from 'vitest';
-import { buildMatchItems, type PreApprovedVisit, type RecurringWithDept } from '../../../src/pages/Guard/checkInMatches';
-import type { Visit, RecurringVisit, Department, Profile } from '../../../src/types/index';
-
-function makeVisit(overrides: Partial<PreApprovedVisit> = {}): PreApprovedVisit {
-  return {
-    id: 'visit-1',
-    ref_number: 'VMS-2026-0001',
-    visitor_id: 'visitor-1',
-    department_id: 'dept-1',
-    host_id: 'host-1',
-    purpose: 'meeting',
-    photo_path: null,
-    photo_data: null,
-    status: 'approved',
-    checked_in_at: null,
-    checked_out_at: null,
-    exit_verified: null,
-    rejection_reason: null,
-    carrying_material: false,
-    scheduled_for: '2026-08-01T10:00:00Z',
-    qr_token: 'tok-1',
-    qr_expires_at: null,
-    created_at: '2026-08-01T08:00:00Z',
-    visitor: {
-      id: 'visitor-1',
-      phone: '9876543210',
-      full_name: 'Asha Rao',
-      vendor_name: 'Acme Co',
-      id_type: null,
-      id_last4: null,
-      vehicle_number: null,
-      is_blacklisted: false,
-      blacklist_reason: null,
-      created_at: '2026-01-01T00:00:00Z',
-    },
-    department: { id: 'dept-1', name: 'Finance', code: 'FIN', created_at: '2026-01-01T00:00:00Z' },
-    host: { id: 'host-1', full_name: 'Ravi Kumar' },
-    ...overrides,
-  };
-}
-
-function makeRecurring(overrides: Partial<RecurringWithDept> = {}): RecurringWithDept {
-  return {
-    id: 'rec-1',
-    department_id: 'dept-1',
-    host_id: 'host-1',
-    created_by: 'user-1',
-    visitor_name: 'Priya Singh',
-    visitor_phone: '8765432109',
-    visitor_vendor_name: 'Beta Ltd',
-    purpose: 'vendor',
-    recurrence_type: 'weekly',
-    recurrence_day: 3,
-    start_date: '2026-01-01',
-    end_date: null,
-    is_active: true,
-    notes: null,
-    created_at: '2026-01-01T00:00:00Z',
-    updated_at: '2026-01-01T00:00:00Z',
-    department: { id: 'dept-1', name: 'Finance', code: 'FIN', created_at: '2026-01-01T00:00:00Z' },
-    host: { id: 'host-1', full_name: 'Ravi Kumar' },
-    ...overrides,
-  };
-}
+import { buildMatchItems } from '../../../src/pages/Guard/checkInMatches';
+import { makeVisit, makeRecurring } from './checkInMatchesFixtures';
 
 describe('buildMatchItems', () => {
   it('returns empty array when both sources are empty', () => {
@@ -180,80 +120,6 @@ describe('buildMatchItems', () => {
     it('degrades missing host join to empty string', () => {
       const items = buildMatchItems([], [makeRecurring({ host: undefined })], { search: '', deptFilter: '' });
       expect(items[0].hostName).toBe('');
-    });
-  });
-
-  describe('search filtering', () => {
-    it('keeps rows matching visitor name (case-insensitive)', () => {
-      const items = buildMatchItems([makeVisit({ visitor: { ...makeVisit().visitor!, full_name: 'Asha Rao' } })], [], { search: 'asha', deptFilter: '' });
-      expect(items).toHaveLength(1);
-    });
-
-    it('keeps rows matching phone number', () => {
-      const items = buildMatchItems([makeVisit({ visitor: { ...makeVisit().visitor!, phone: '9876543210' } })], [], { search: '9876543210', deptFilter: '' });
-      expect(items).toHaveLength(1);
-    });
-
-    it('drops rows not matching search term', () => {
-      const items = buildMatchItems([makeVisit({ visitor: { ...makeVisit().visitor!, full_name: 'Asha Rao' } })], [], { search: 'nomatch', deptFilter: '' });
-      expect(items).toHaveLength(0);
-    });
-
-    it('keeps all rows when search is empty', () => {
-      const items = buildMatchItems([makeVisit()], [makeRecurring()], { search: '', deptFilter: '' });
-      expect(items).toHaveLength(2);
-    });
-
-    it('keeps all rows when search is whitespace only', () => {
-      const items = buildMatchItems([makeVisit()], [makeRecurring()], { search: '   ', deptFilter: '' });
-      expect(items).toHaveLength(2);
-    });
-
-    it('applies search filter to recurring rows too', () => {
-      const items = buildMatchItems([], [makeRecurring({ visitor_name: 'Priya Singh' })], { search: 'priya', deptFilter: '' });
-      expect(items).toHaveLength(1);
-    });
-  });
-
-  describe('department filtering', () => {
-    it('keeps rows matching department filter', () => {
-      const items = buildMatchItems([makeVisit({ department_id: 'dept-1' })], [], { search: '', deptFilter: 'dept-1' });
-      expect(items).toHaveLength(1);
-    });
-
-    it('drops rows not matching department filter', () => {
-      const items = buildMatchItems([makeVisit({ department_id: 'dept-1' })], [], { search: '', deptFilter: 'dept-2' });
-      expect(items).toHaveLength(0);
-    });
-
-    it('keeps all rows when deptFilter is empty', () => {
-      const items = buildMatchItems([makeVisit({ department_id: 'dept-1' }), makeVisit({ id: 'visit-2', department_id: 'dept-2' })], [], { search: '', deptFilter: '' });
-      expect(items).toHaveLength(2);
-    });
-
-    it('applies department filter to recurring rows too', () => {
-      const items = buildMatchItems([], [makeRecurring({ department_id: 'dept-1' })], { search: '', deptFilter: 'dept-2' });
-      expect(items).toHaveLength(0);
-    });
-  });
-
-  describe('combined filters', () => {
-    it('applies both search and department filters', () => {
-      const items = buildMatchItems(
-        [makeVisit({ visitor: { ...makeVisit().visitor!, full_name: 'Asha Rao' }, department_id: 'dept-1' })],
-        [],
-        { search: 'asha', deptFilter: 'dept-1' },
-      );
-      expect(items).toHaveLength(1);
-    });
-
-    it('drops rows failing either filter', () => {
-      const items = buildMatchItems(
-        [makeVisit({ visitor: { ...makeVisit().visitor!, full_name: 'Asha Rao' }, department_id: 'dept-1' })],
-        [],
-        { search: 'nomatch', deptFilter: 'dept-1' },
-      );
-      expect(items).toHaveLength(0);
     });
   });
 

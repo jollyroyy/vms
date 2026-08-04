@@ -76,8 +76,19 @@ export default function WhosInsideVisitorCard({ visit: v, index: idx, onClick }:
           </div>
           {v.visitor?.vendor_name && <p className="text-[13px] text-navy-500 truncate mt-0.5">{v.visitor.vendor_name}</p>}
           <div className="mt-2 pt-2 border-t border-surface-200/60 dark:border-white/[0.06] space-y-1">
-            <p className="text-[13px] font-bold text-navy-800 truncate">{v.department?.name ?? '—'}</p>
-            {v.host?.full_name && <p className="text-[13px] text-navy-500 truncate">Host: {v.host.full_name}</p>}
+            {/* Department used to be its own bare line above Host, independent
+                of whether a host was even known — that rendered the same
+                department value a guard could also see on the popup, and a
+                department with no name above it read as orphaned. It now
+                lives under the host's name, and only when there is a name
+                for it to sit under. */}
+            {v.host?.full_name && (
+              <>
+                <p className="text-[11px] text-navy-400 uppercase tracking-wide">Person to Meet</p>
+                <p className="text-[13px] font-bold text-navy-800 truncate">{v.host.full_name}</p>
+                {v.department?.name && <p className="text-[13px] text-navy-500 truncate">{v.department.name}</p>}
+              </>
+            )}
             <p className="text-[11px] text-navy-400 font-mono tracking-wide">{v.ref_number}</p>
             {!isInside && (
               <p className={`text-[12px] font-bold flex items-center gap-1.5 ${v.status === 'pending_approval' ? 'text-warning-700' : 'text-success-700'}`}>

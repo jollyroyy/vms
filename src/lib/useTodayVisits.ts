@@ -24,11 +24,20 @@ export function useTodayVisits(today: string): UseTodayVisits {
 
   const load = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
+    const start = `${today}T00:00:00Z`;
+    const end = `${today}T23:59:59Z`;
+    // Same widened window as useGateStats.ts, and it must stay in lockstep:
+    // this feeds the drill-down LIST for the same tiles that hook counts. A
+    // pre-approval created last week for today, or a no-show swept overnight
+    // (created days ago), falls outside created_at alone — match created
+    // today OR scheduled for today so the list never disagrees with the count.
     const { data } = await supabase
       .from('visits')
       .select(`*, visitor:visitors(*), department:departments(id, name, code, created_at)`)
-      .gte('created_at', `${today}T00:00:00Z`)
-      .lte('created_at', `${today}T23:59:59Z`);
+      .or(
+        `and(created_at.gte.${start},created_at.lte.${end}),` +
+        `and(scheduled_for.gte.${start},scheduled_for.lte.${end})`,
+      );
     let rows = ((data as unknown as Visit[]) ?? []);
     rows = await attachHostNames(rows);
     // Approval timestamps live in audit_logs, not on the visit row — the cards
