@@ -37,9 +37,9 @@ describe('navLinks: linksForRole', () => {
     }
   });
 
-  it('hod gets Overview, Approvals, Analytics, Reports', () => {
+  it('hod gets Overview, Pre-Approvals, Analytics, Reports', () => {
     const links = linksForRole('hod');
-    expect(links.map((l) => l.label)).toEqual(['Overview', 'Approvals', 'Analytics', 'Reports']);
+    expect(links.map((l) => l.label)).toEqual(['Overview', 'Pre-Approvals', 'Analytics', 'Reports']);
   });
 
   it('staff gets Visitors, On-site, Reports', () => {

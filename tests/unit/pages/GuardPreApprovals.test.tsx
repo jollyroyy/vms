@@ -79,14 +79,14 @@ describe('GuardPreApprovals', () => {
   });
 
   // The other half of the CheckInPanel move: it left the walk-in console and
-  // now lives here, above the filter tabs, since the QR gate and match search
-  // both only ever resolve a visitor who was booked in advance.
-  it('renders CheckInPanel above the filter tabs', () => {
+  // now lives here, since the QR gate and match search both only ever resolve
+  // a visitor who was booked in advance.
+  it('renders CheckInPanel', () => {
     renderPage();
     expect(screen.getByText('CheckInPanel')).toBeInTheDocument();
   });
 
-  it('shows an empty state for the default Today filter', () => {
+  it('shows an empty state when nothing is due today', () => {
     mockState.current = { visits: [], loading: false };
     renderPage();
     expect(screen.getByText('No pre-approvals scheduled for today.')).toBeInTheDocument();
@@ -114,11 +114,19 @@ describe('GuardPreApprovals', () => {
     expect(container.querySelectorAll('.skeleton').length).toBeGreaterThan(0);
   });
 
-  it('requests the "upcoming" filter when that option is clicked', () => {
+  // A guard can only check in someone who is due today, so Upcoming and All
+  // were removed: they listed rows nothing could be done with, and an upcoming
+  // booking is easy to misread as an arrival that is actually due now.
+  it('only ever requests the "today" filter', () => {
     mockState.current = { visits: [], loading: false };
     renderPage();
-    fireEvent.click(screen.getByText('Upcoming'));
-    expect(mockFilters.current).toContain('upcoming');
-    expect(screen.getByText('No upcoming pre-approvals scheduled.')).toBeInTheDocument();
+    expect(mockFilters.current.every((f) => f === 'today')).toBe(true);
+  });
+
+  it('offers no Upcoming or All filter', () => {
+    mockState.current = { visits: [], loading: false };
+    renderPage();
+    expect(screen.queryByText('Upcoming')).toBeNull();
+    expect(screen.queryByText('All')).toBeNull();
   });
 });

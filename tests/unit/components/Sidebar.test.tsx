@@ -103,7 +103,7 @@ describe('Sidebar navigation links per role', () => {
   it('hod does not see Visitors', () => {
     renderSidebar('hod');
     expect(screen.queryByText('Visitors')).not.toBeInTheDocument();
-    expect(screen.getByText('Approvals')).toBeInTheDocument();
+    expect(screen.getByText('Pre-Approvals')).toBeInTheDocument();
   });
 
   it('guard sees all four nav labels, in the visitor-only console, and no Search', () => {

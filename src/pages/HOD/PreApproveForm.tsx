@@ -72,7 +72,7 @@ export default function PreApproveForm({ onPreApproved }: Props): React.ReactEle
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    const validationError = validatePreApproval({ department_id: deptId, purpose });
+    const validationError = validatePreApproval({ department_id: deptId, purpose, scheduled_for: scheduledFor });
     if (validationError) { setError(validationError); return; }
     if (blacklistHit) return;
     const { data: { session } } = await supabase.auth.getSession();
@@ -185,8 +185,8 @@ export default function PreApproveForm({ onPreApproved }: Props): React.ReactEle
 
         <div className="sm:col-span-2"><label className="label">Vehicle Number (optional)</label><input type="text" maxLength={20} value={vehicle} onChange={(e) => setVehicle(e.target.value)} className="input" placeholder="MH 12 AB 1234" /></div>
         <div className="sm:col-span-2">
-          <label className="label">Schedule for (optional)</label>
-          <input type="datetime-local" value={scheduledFor} onChange={(e) => setScheduledFor(e.target.value)} className="input" />
+          <label className="label">Schedule for *</label>
+          <input type="datetime-local" required value={scheduledFor} onChange={(e) => setScheduledFor(e.target.value)} className="input" />
         </div>
       </div>
 

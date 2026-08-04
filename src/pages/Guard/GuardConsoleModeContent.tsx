@@ -2,6 +2,7 @@ import React from 'react';
 import type { Visit } from '../../types/index';
 import type { Mode } from './GuardConsoleModeTabs';
 import GuardWalkIns from './GuardWalkIns';
+import GuardWalkInApproved, { type WalkInCheckIn } from './GuardWalkInApproved';
 import VisitorCard from './VisitorCard';
 import { formatTime } from '../../lib/formatDate';
 
@@ -11,6 +12,9 @@ type Props = {
   loading: boolean;
   checkedIn: Visit[];
   pendingWalkIns: Visit[];
+  approvedWalkIns: Visit[];
+  busyId: string | null;
+  onCheckIn: (v: Visit, details: WalkInCheckIn) => void;
   onCheckOut: (v: Visit) => void;
 };
 
@@ -43,6 +47,19 @@ export default function GuardConsoleModeContent(props: Props): React.ReactElemen
 
   if (mode === 'walkins') {
     return <GuardWalkIns loading={loading} pending={pendingWalkIns} onSubmitted={onCheckInSuccess} />;
+  }
+
+  // Not a LIST_VIEWS entry: this one captures a photo before it can act, so it
+  // is a flow, not a row with a button.
+  if (mode === 'walkinApproved') {
+    return (
+      <GuardWalkInApproved
+        loading={loading}
+        approved={props.approvedWalkIns}
+        busyId={props.busyId}
+        onCheckIn={props.onCheckIn}
+      />
+    );
   }
 
   const view = LIST_VIEWS[mode];

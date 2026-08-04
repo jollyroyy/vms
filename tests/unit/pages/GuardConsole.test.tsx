@@ -70,12 +70,14 @@ describe('GuardConsole', () => {
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Visitors');
   });
 
-  it('renders the two primary tabs with count badges', async () => {
+  it('renders the three primary tabs with count badges', async () => {
     renderConsole();
     await waitFor(() => {
       expect(screen.getByRole('tab', { name: /Walk-ins/i })).toBeInTheDocument();
+      expect(screen.getByRole('tab', { name: /Approved/i })).toBeInTheDocument();
       expect(screen.getByRole('tab', { name: /Inside/i })).toBeInTheDocument();
     });
+    expect(screen.getAllByRole('tab')).toHaveLength(3);
   });
 
   // "Expected" stopped being a tab: check-in is not one of several things a
@@ -93,6 +95,9 @@ describe('GuardConsole', () => {
   it('never renders CheckInPanel, in any mode', async () => {
     renderConsole();
     await waitFor(() => expect(screen.getByRole('tab', { name: /Walk-ins/i })).toBeInTheDocument());
+    expect(screen.queryByText('CheckInPanel')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('tab', { name: /Approved/i }));
+    await waitFor(() => expect(screen.getByRole('tab', { name: /Approved/i })).toHaveAttribute('aria-selected', 'true'));
     expect(screen.queryByText('CheckInPanel')).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('tab', { name: /Inside/i }));
     await waitFor(() => expect(screen.getByRole('tab', { name: /Inside/i })).toHaveAttribute('aria-selected', 'true'));
@@ -127,6 +132,20 @@ describe('GuardConsole', () => {
     });
   });
 
+  // "Approved" is the gate's only route into checked_in for a walk-in the host
+  // has said yes to — CheckInPanel (the other route) moved to
+  // /guard/pre-approvals and only searches pre-approvals.
+  it('clicking Approved shows walk-ins the host has approved', async () => {
+    mockVisitData.current = [visit({ id: 'v2', status: 'walkin_approved', checked_in_at: null })];
+    renderConsole();
+    await waitFor(() => expect(screen.getByRole('tab', { name: /Approved/i })).toBeInTheDocument());
+    fireEvent.click(screen.getByRole('tab', { name: /Approved/i }));
+    await waitFor(() => {
+      expect(screen.getByText('Approved, waiting to enter')).toBeInTheDocument();
+      expect(screen.getByText('Alice Johnson')).toBeInTheDocument();
+    });
+  });
+
   // Old deep links must degrade onto a live tab rather than 404 into a blank
   // one. Everything that used to mean "expected" now lands on Inside — the
   // check-in flow those links were reaching for is on screen unconditionally.
@@ -140,6 +159,7 @@ describe('GuardConsole', () => {
       ['exit', /Inside/i],
       ['checked-out', /Inside/i],
       ['walkins', /Walk-ins/i],
+      ['walkin-approved', /Approved/i],
     ])('?tab=%s selects a live tab', async (tab, label) => {
       renderConsole(`/visitors?tab=${tab}`);
       await waitFor(() => {

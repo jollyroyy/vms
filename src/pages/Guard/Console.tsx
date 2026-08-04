@@ -6,6 +6,9 @@ import { attachHostNames } from '../../lib/hostNames';
 import { safeErrorMessage } from '../../lib/errors';
 import GuardConsoleModeTabs, { type Mode } from './GuardConsoleModeTabs';
 import GuardConsoleModeContent from './GuardConsoleModeContent';
+import { type WalkInCheckIn } from './GuardWalkInApproved';
+import { uploadPhoto } from '../../lib/photoUpload';
+import { isAlreadyInsideError } from '../../lib/activeVisit';
 // No CheckInPanel import any more — see the header comment below.
 // No Badge import: the guard console must never render an entry pass. See
 // canRoleShowPass in lib/passVisibility.ts for why. Badge draws a live QR
@@ -31,6 +34,7 @@ import GuardConsoleModeContent from './GuardConsoleModeContent';
 // legacy value degrades onto a live one.
 const TAB_MODE_MAP: Record<string, Mode> = {
   walkins: 'walkins',
+  'walkin-approved': 'walkinApproved',
   inside: 'inside',
   // Legacy aliases — old links must not 404 into a blank tab.
   expected: 'inside',
@@ -55,6 +59,7 @@ export default function GuardConsole(): React.ReactElement {
   const [today] = useState(() => new Date().toISOString().slice(0, 10));
   const [successMsg, setSuccessMsg] = useState('');
   const [actionErr, setActionErr] = useState('');
+  const [busyId, setBusyId] = useState<string | null>(null);
 
   // Keep the URL honest so the tab survives a refresh. `replace` so
   // tab-flipping doesn't fill history.
@@ -108,6 +113,37 @@ export default function GuardConsole(): React.ReactElement {
 
   const checkedIn = useMemo(() => visits.filter((v) => v.status === 'checked_in'), [visits]);
   const pendingWalkIns = useMemo(() => visits.filter((v) => v.status === 'pending_approval'), [visits]);
+  const approvedWalkIns = useMemo(() => visits.filter((v) => v.status === 'walkin_approved'), [visits]);
+
+  // Check-in for a walk-in the host has approved. The visit row already exists
+  // (WalkInRequest created it), so this is an update, not an insert — and the
+  // photo is captured now rather than at registration, because at registration
+  // nobody knew yet whether this visitor was coming in.
+  const checkInWalkIn = async (visit: Visit, details: WalkInCheckIn) => {
+    setActionErr(''); setBusyId(visit.id);
+    try {
+      const { photoPath, photoData } = await uploadPhoto(details.photoBlob);
+      const remarks = details.remarks.trim();
+      const { error } = await supabase.from('visits').update({
+        status: 'checked_in',
+        checked_in_at: new Date().toISOString(),
+        carrying_material: details.carrying,
+        carrying_remarks: details.carrying && remarks ? remarks : null,
+        ...(photoData ? { photo_data: photoData } : {}),
+        ...(photoPath ? { photo_path: photoPath } : {}),
+      } as never).eq('id', visit.id);
+      if (error) throw error;
+      onCheckInSuccess(visit.visitor?.full_name ?? 'Visitor');
+    } catch (err) {
+      // The one-open-visit-per-visitor index (migration 060) is matched by
+      // constraint NAME, so an unrelated unique violation is not mislabelled.
+      setActionErr(isAlreadyInsideError(err)
+        ? 'That visitor is already checked in and has not been checked out.'
+        : safeErrorMessage(err, 'Check-in failed.'));
+    } finally {
+      setBusyId(null);
+    }
+  };
 
   const onCheckInSuccess = useCallback((name: string) => {
     setSuccessMsg(`"${name}" checked in successfully.`);
@@ -141,6 +177,7 @@ export default function GuardConsole(): React.ReactElement {
         mode={mode}
         onModeChange={changeMode}
         walkInCount={pendingWalkIns.length}
+        walkInApprovedCount={approvedWalkIns.length}
         insideCount={checkedIn.length}
       />
 
@@ -150,6 +187,9 @@ export default function GuardConsole(): React.ReactElement {
         loading={loading}
         checkedIn={checkedIn}
         pendingWalkIns={pendingWalkIns}
+        approvedWalkIns={approvedWalkIns}
+        busyId={busyId}
+        onCheckIn={(v, details) => { void checkInWalkIn(v, details); }}
         onCheckOut={logExit}
       />
     </div>

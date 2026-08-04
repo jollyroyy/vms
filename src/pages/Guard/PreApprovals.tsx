@@ -4,27 +4,17 @@
 // this page already lists. Scanning a pass and then finding that person's row
 // is one job, so it is now one screen.
 import React, { useCallback, useState } from 'react';
-import { usePreApprovals, type PreApprovalFilter } from '../../lib/usePreApprovals';
+import { usePreApprovals } from '../../lib/usePreApprovals';
 import PreApprovalRow from './PreApprovalRow';
 import CheckInPanel from './CheckInPanel';
 
-const FILTER_OPTIONS: PreApprovalFilter[] = ['today', 'upcoming', 'all'];
-
-const FILTER_LABELS: Record<PreApprovalFilter, string> = {
-  today: 'Today',
-  upcoming: 'Upcoming',
-  all: 'All',
-};
-
-const EMPTY_MESSAGES: Record<PreApprovalFilter, string> = {
-  today: 'No pre-approvals scheduled for today.',
-  upcoming: 'No upcoming pre-approvals scheduled.',
-  all: 'No pre-approvals on record.',
-};
-
+// Today only. The Upcoming and All filters are gone from the guard surface: a
+// guard can only check in a visitor who is due today, so a list of next week's
+// bookings was a list of rows nothing could be done with — and one the guard
+// could mistake for an arrival that is actually due. The hook still supports
+// the other filters for callers that legitimately need history (Reports).
 export default function GuardPreApprovals(): React.ReactElement {
-  const [filter, setFilter] = useState<PreApprovalFilter>('today');
-  const { visits, loading } = usePreApprovals(filter);
+  const { visits, loading } = usePreApprovals('today');
   const [today] = useState(() => new Date().toISOString().slice(0, 10));
   const [successMsg, setSuccessMsg] = useState('');
 
@@ -50,21 +40,9 @@ export default function GuardPreApprovals(): React.ReactElement {
 
       <CheckInPanel today={today} onCheckInSuccess={onCheckInSuccess} />
 
-      <div className="inline-flex rounded-xl bg-surface-100 dark:bg-white/[0.06] p-1 gap-1">
-        {FILTER_OPTIONS.map((opt) => (
-          <button
-            key={opt}
-            type="button"
-            onClick={() => setFilter(opt)}
-            className={
-              opt === filter
-                ? 'tab-active px-3 py-1.5 rounded-lg text-xs font-bold'
-                : 'tab-inactive px-3 py-1.5 rounded-lg text-xs font-bold'
-            }
-          >
-            {FILTER_LABELS[opt]}
-          </button>
-        ))}
+      <div className="flex items-center justify-between">
+        <h2 className="gate-section-title">Due today</h2>
+        <span className="glass-chip !py-1 tabular-nums">{loading ? '—' : visits.length}</span>
       </div>
 
       <div className="card overflow-hidden">
@@ -74,7 +52,7 @@ export default function GuardPreApprovals(): React.ReactElement {
           </div>
         ) : visits.length === 0 ? (
           <div className="py-10 px-5 text-center">
-            <p className="text-sm font-semibold text-navy-500">{EMPTY_MESSAGES[filter]}</p>
+            <p className="text-sm font-semibold text-navy-500">No pre-approvals scheduled for today.</p>
           </div>
         ) : (
           <div className="divide-y divide-surface-100 dark:divide-white/[0.05]">

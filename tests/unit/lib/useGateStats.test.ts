@@ -43,7 +43,7 @@ describe('useGateStats', () => {
     const { result } = renderHook(() => useGateStats(TODAY));
     await waitFor(() => expect(result.current.loading).toBe(false));
     expect(result.current.stats).toMatchObject({
-      expected: 0, entered: 0, inside: 0, checkedOut: 0, declined: 0,
+      preApproved: 0, walkInApproved: 0, entered: 0, inside: 0, checkedOut: 0, declined: 0,
     });
   });
 
@@ -106,9 +106,13 @@ describe('useGateStats', () => {
     });
   });
 
-  describe('expected', () => {
-    it('counts both approval routes and nothing else', async () => {
+  describe('preApproved vs walkInApproved', () => {
+    // The whole point of splitting the old "expected" tile in two: these are
+    // different populations arriving by different routes, and each must count
+    // only its own status — never the other one, never both.
+    it('counts only status === approved toward preApproved, and only walkin_approved toward walkInApproved', async () => {
       mockRows.current = [
+        row({ status: 'approved' }),          // pre-approval
         row({ status: 'approved' }),          // pre-approval
         row({ status: 'walkin_approved' }),   // approved at the gate
         row({ status: 'pending_approval' }),  // not yet decided
@@ -116,7 +120,8 @@ describe('useGateStats', () => {
       ];
       const { result } = renderHook(() => useGateStats(TODAY));
       await waitFor(() => expect(result.current.loading).toBe(false));
-      expect(result.current.stats.expected).toBe(2);
+      expect(result.current.stats.preApproved).toBe(2);
+      expect(result.current.stats.walkInApproved).toBe(1);
     });
   });
 

@@ -36,6 +36,9 @@ function baseProps(overrides: Record<string, any> = {}) {
     loading: false,
     checkedIn: [] as Visit[],
     pendingWalkIns: [] as Visit[],
+    approvedWalkIns: [] as Visit[],
+    busyId: null as string | null,
+    onCheckIn: vi.fn(),
     onCheckOut: vi.fn(),
     ...overrides,
   };
@@ -71,7 +74,7 @@ describe('GuardConsoleModeContent', () => {
   // CheckInPanel moved out of here and up into Console.tsx, where it renders
   // unconditionally above the tab bar. This component now only serves lists.
   it('never renders CheckInPanel, whichever mode it is given', () => {
-    (['inside', 'walkins', 'expected'] as any[]).forEach((mode) => {
+    (['inside', 'walkins', 'walkinApproved', 'expected'] as any[]).forEach((mode) => {
       const { unmount } = render(<GuardConsoleModeContent {...baseProps({ mode })} />);
       expect(screen.queryByText('CheckInPanel')).not.toBeInTheDocument();
       unmount();
@@ -82,5 +85,21 @@ describe('GuardConsoleModeContent', () => {
     const props = baseProps({ mode: 'walkins' });
     render(<GuardConsoleModeContent {...props} />);
     expect(screen.getByText('GuardWalkIns')).toBeInTheDocument();
+  });
+
+  // "Approved" is the route into checked_in for a walk-in the host said yes
+  // to — CheckInPanel moved to /guard/pre-approvals and no longer covers it.
+  it('mode="walkinApproved" renders the approved walk-in list', () => {
+    const v = visit({ id: 'v9', status: 'walkin_approved', visitor: { full_name: 'Approved Guy' } as any });
+    const props = baseProps({ mode: 'walkinApproved', approvedWalkIns: [v] });
+    render(<GuardConsoleModeContent {...props} />);
+    expect(screen.getByText('Approved, waiting to enter')).toBeInTheDocument();
+    expect(screen.getByText('Approved Guy')).toBeInTheDocument();
+  });
+
+  it('mode="walkinApproved" shows its own empty state when there are none', () => {
+    const props = baseProps({ mode: 'walkinApproved', approvedWalkIns: [] });
+    render(<GuardConsoleModeContent {...props} />);
+    expect(screen.getByText('No approved walk-ins waiting.')).toBeInTheDocument();
   });
 });

@@ -9,9 +9,15 @@ type Props = {
   onDrill: (key: DrillKey) => void;
 };
 
-// Today's summary. Five tiles, each answering a different question — see the
+// Today's summary. Six tiles, each answering a different question — see the
 // `entered` vs `inside` note in lib/useGateStats.ts for why those two are not
 // the same filter. `entered = inside + checkedOut` always holds.
+//
+// Pre-approved and Walk-ins Approved used to be a single "Expected" tile that
+// counted `approved` and `walkin_approved` together. Those are two different
+// populations arriving by two different routes (booked ahead vs. approved at
+// the gate), each now with its own console page, so a merged tile hid the
+// split the guard actually needs. Keep the two keys separate.
 //
 // Every tile is a drill-down, not a link. They used to navigate to
 // /visitors?tab=..., which threw the guard off the board they were reading and
@@ -20,8 +26,11 @@ type Props = {
 type Tile = { label: string; tone: string; hint: string };
 
 const TILES: Record<DrillKey, Tile> = {
-  expected: {
-    label: 'Expected', tone: 'text-brand-600', hint: 'Approved, not yet arrived',
+  preApproved: {
+    label: 'Pre-approved', tone: 'text-brand-600', hint: 'Booked ahead, not yet arrived',
+  },
+  walkInApproved: {
+    label: 'Walk-ins Approved', tone: 'text-accent-600 dark:text-accent-300', hint: 'Approved at the gate, not yet in',
   },
   inside: {
     label: 'Inside Now', tone: 'text-success-600', hint: 'Currently on the premises',
@@ -44,7 +53,7 @@ export default function DashboardSummary({ stats, loading, activeKey, onDrill }:
   return (
     <section>
       <h2 className="section-title mb-3">Today&rsquo;s Summary</h2>
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-3">
         {DRILL_KEYS.map((key, i) => {
           const t = TILES[key];
           const expanded = activeKey === key;

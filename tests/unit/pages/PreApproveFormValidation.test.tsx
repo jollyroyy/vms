@@ -107,12 +107,13 @@ describe('PreApproveForm validation', () => {
   /* ── Phone Validation ──────────────────────────────── */
 
   it('shows error for invalid phone number', async () => {
-    render(<PreApproveForm onPreApproved={vi.fn()} />);
+    const { container } = render(<PreApproveForm onPreApproved={vi.fn()} />);
 
     await waitFor(() => expect(screen.getByPlaceholderText(/\+91/)).toBeInTheDocument());
     fireEvent.change(screen.getAllByRole('textbox')[0], { target: { value: '123' } }); // too short
     fireEvent.change(screen.getAllByRole('textbox')[1], { target: { value: 'Test Visitor' } });
     fireEvent.change(screen.getAllByRole('textbox')[2], { target: { value: 'Test Corp' } });
+    fireEvent.change(container.querySelector('input[type="datetime-local"]')!, { target: { value: '2026-08-05T10:00' } });
     fireEvent.click(screen.getByRole('button', { name: /pre-approve visitor/i }));
 
     await waitFor(() => {
@@ -120,17 +121,42 @@ describe('PreApproveForm validation', () => {
     });
   });
 
-  /* ── Session Expired ───────────────────────────────── */
+  /* ── Schedule Validation ───────────────────────────── */
 
-  it('shows session expired error when no session', async () => {
-    mockGetSession.mockResolvedValue({ data: { session: null } });
-
-    render(<PreApproveForm onPreApproved={vi.fn()} />);
+  it('shows the scheduled-date error and does not call the RPC when Schedule for is left blank', async () => {
+    const { container } = render(<PreApproveForm onPreApproved={vi.fn()} />);
 
     await waitFor(() => expect(screen.getByPlaceholderText(/\+91/)).toBeInTheDocument());
     fireEvent.change(screen.getAllByRole('textbox')[0], { target: { value: '9876543210' } });
     fireEvent.change(screen.getAllByRole('textbox')[1], { target: { value: 'Test Visitor' } });
     fireEvent.change(screen.getAllByRole('textbox')[2], { target: { value: 'Test Corp' } });
+    // Schedule for is deliberately left blank. Dispatch the submit event
+    // directly on the form (rather than clicking the submit button) so the
+    // browser's native `required` constraint validation — which would
+    // otherwise silently swallow the submit before React ever sees it —
+    // doesn't mask the assertion we actually care about: the app's own
+    // validatePreApproval() check.
+    fireEvent.submit(container.querySelector('form')!);
+
+    await waitFor(() => {
+      expect(screen.getByText(/Scheduled date and time is required/i)).toBeInTheDocument();
+    });
+
+    expect(mockRpc).not.toHaveBeenCalledWith('pre_approve_visitor_v2', expect.anything());
+  });
+
+  /* ── Session Expired ───────────────────────────────── */
+
+  it('shows session expired error when no session', async () => {
+    mockGetSession.mockResolvedValue({ data: { session: null } });
+
+    const { container } = render(<PreApproveForm onPreApproved={vi.fn()} />);
+
+    await waitFor(() => expect(screen.getByPlaceholderText(/\+91/)).toBeInTheDocument());
+    fireEvent.change(screen.getAllByRole('textbox')[0], { target: { value: '9876543210' } });
+    fireEvent.change(screen.getAllByRole('textbox')[1], { target: { value: 'Test Visitor' } });
+    fireEvent.change(screen.getAllByRole('textbox')[2], { target: { value: 'Test Corp' } });
+    fireEvent.change(container.querySelector('input[type="datetime-local"]')!, { target: { value: '2026-08-05T10:00' } });
     fireEvent.click(screen.getByRole('button', { name: /pre-approve visitor/i }));
 
     await waitFor(() => {

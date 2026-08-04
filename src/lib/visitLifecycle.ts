@@ -40,11 +40,17 @@ export function canTransition(from: VisitStatus, to: VisitStatus): boolean {
 type PreApprovalInput = {
   department_id: string;
   purpose: string;
+  scheduled_for: string;
 };
 
 export function validatePreApproval(input: PreApprovalInput): string | null {
   if (!input.department_id) return 'Department is required';
   if (!input.purpose) return 'Purpose is required';
+  // Required, not optional. A pre-approval with no time is indistinguishable at
+  // the gate from one for next month: the guard cannot tell whether the visitor
+  // is early, expected, or long overdue, and `overdue` on the guard dashboard
+  // can only be derived from a scheduled_for that exists.
+  if (!input.scheduled_for) return 'Scheduled date and time is required';
   return null;
 }
 

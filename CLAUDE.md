@@ -58,11 +58,25 @@
 - **The two arrival routes are two destinations.** A visitor either was booked in
   advance or was not, and a guard is doing one or the other:
   - `/guard/pre-approvals` is the **pre-booked** desk. `CheckInPanel` (QR gate,
-    pre-approved match search, ID scan, photo, Check In) renders there, above the
-    filter tabs. Everything it resolves is a visitor who was booked ahead, which is
-    exactly the population that page already lists.
+    pre-approved match search, ID scan, photo, Check In) renders there. Everything it
+    resolves is a visitor who was booked ahead, which is exactly the population that
+    page already lists. It shows **today only** — the Upcoming and All filters were
+    removed, because a guard can only check in someone due today and a future booking
+    reads too easily as an arrival that is due now. `usePreApprovals` still accepts
+    the other filters for callers that need history.
   - `/visitors` is the **walk-in** lane, titled "Walk-in Visitors". `Mode` is
-    `'walkins' | 'inside'`, defaulting to `walkins`.
+    `'walkins' | 'walkinApproved' | 'inside'`, defaulting to `walkins` — the three
+    stages of a walk-in's life at the gate, in order.
+- **`walkinApproved` is a required tab, not a nicety.** `CheckInPanel` searches
+  pre-approvals only, so once it moved off `/visitors` an approved walk-in had no
+  route into `checked_in` at all. `GuardWalkInApproved.tsx` is that route: it captures
+  the photo at the gate (WalkInRequest deliberately inserts `photo_path`/`photo_data`
+  as null, since at registration nobody knows yet whether the visitor is coming in)
+  and `Console.checkInWalkIn` writes the update, handling the migration-060 conflict
+  via `isAlreadyInsideError`.
+- **The top bar has no scanner button.** Scanning is a step inside `CheckInPanel`,
+  where the scanned pass resolves straight to the visitor being checked in. A global
+  icon that jumped to a bare scanner was a shortcut to nowhere. Do not re-add it.
   `CheckInPanel` used to render unconditionally on `/visitors`; it no longer renders
   there at all, and `GuardConsole.test.tsx` asserts its absence. Do not move it back,
   and do not put it into `GuardConsoleModeContent` — that component serves lists only,
@@ -121,7 +135,8 @@
   carried by a colour rail **and** a text badge — never colour alone.
 
 ### HOD surface
-- **`/approvals` is the pre-approval FORM only.** It has no tabs. The "Pending" tab
+- **`/approvals` is the pre-approval FORM only**, and the HOD nav calls it
+  "Pre-Approvals". It has no tabs. The "Pending" tab
   that used to live there moved to `/overview`, because an HOD opens the Overview to
   see what needs them and making them navigate to a second page to act on it was a
   detour. Do not re-add a tab bar to `Approvals.tsx`.
@@ -135,6 +150,11 @@
 - `pending_approval` is only ever reached by a **walk-in** raised at the gate — a
   pre-approval is created already approved and never passes through that state. Hence
   the tile and both list headings read "Pending Walk-in Approvals".
+- **`scheduled_for` is REQUIRED on a pre-approval**, enforced in
+  `validatePreApproval` (`lib/visitLifecycle.ts`) as well as on the input. A
+  pre-approval with no time is indistinguishable at the gate from one for next month:
+  the guard cannot tell whether the visitor is early, expected or overdue, and the
+  dashboard's `overdue` count can only be derived from a `scheduled_for` that exists.
 - **The HOD never sees a visitor's ID proof.** `VisitorDetails` hides the ID Document
   row when `viewerRole === 'hod'` and passes `showIdProof={false}` down through
   `PreApprovalPass` to `PassIdentity`. An approver decides on who is visiting and why;

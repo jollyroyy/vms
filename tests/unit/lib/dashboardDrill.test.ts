@@ -33,11 +33,12 @@ describe('dashboardDrill', () => {
     });
   });
 
-  it('"expected" covers both approved and walkin_approved', () => {
-    expect(drillVisits(ALL, 'expected').map((v) => v.id)).toEqual(
-      expect.arrayContaining(['approved', 'walkinApproved']),
-    );
-    expect(drillVisits(ALL, 'expected')).toHaveLength(2);
+  it('"preApproved" is approved only, not walkin_approved', () => {
+    expect(drillVisits(ALL, 'preApproved').map((v) => v.id)).toEqual(['approved']);
+  });
+
+  it('"walkInApproved" is walkin_approved only, not approved', () => {
+    expect(drillVisits(ALL, 'walkInApproved').map((v) => v.id)).toEqual(['walkinApproved']);
   });
 
   it('"inside" is live occupancy only — a visitor who left is not inside', () => {

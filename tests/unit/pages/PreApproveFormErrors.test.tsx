@@ -85,12 +85,13 @@ describe('PreApproveForm errors', () => {
     });
 
     const onApproved = vi.fn();
-    render(<PreApproveForm onPreApproved={onApproved} />);
+    const { container } = render(<PreApproveForm onPreApproved={onApproved} />);
 
     await waitFor(() => expect(screen.getByPlaceholderText(/\+91/)).toBeInTheDocument());
     fireEvent.change(screen.getAllByRole('textbox')[0], { target: { value: '9876543210' } });
     fireEvent.change(screen.getAllByRole('textbox')[1], { target: { value: 'Test Visitor' } });
     fireEvent.change(screen.getAllByRole('textbox')[2], { target: { value: 'Test Corp' } });
+    fireEvent.change(container.querySelector('input[type="datetime-local"]')!, { target: { value: '2026-08-05T10:00' } });
     fireEvent.click(screen.getByRole('button', { name: /pre-approve visitor/i }));
 
     await waitFor(() => {
@@ -111,11 +112,12 @@ describe('PreApproveForm errors', () => {
       return Promise.resolve({ data: null, error: null });
     });
 
-    render(<PreApproveForm onPreApproved={vi.fn()} />);
+    const { container } = render(<PreApproveForm onPreApproved={vi.fn()} />);
     await waitFor(() => expect(screen.getByPlaceholderText(/\+91/)).toBeInTheDocument());
     fireEvent.change(screen.getAllByRole('textbox')[0], { target: { value: '9876543210' } });
     fireEvent.change(screen.getAllByRole('textbox')[1], { target: { value: 'Test Visitor' } });
     fireEvent.change(screen.getAllByRole('textbox')[2], { target: { value: 'Test Corp' } });
+    fireEvent.change(container.querySelector('input[type="datetime-local"]')!, { target: { value: '2026-08-05T10:00' } });
     fireEvent.click(screen.getByRole('button', { name: /pre-approve visitor/i }));
 
     await waitFor(() => {
@@ -131,11 +133,12 @@ describe('PreApproveForm errors', () => {
       return Promise.resolve({ data: null, error: null });
     });
 
-    render(<PreApproveForm onPreApproved={vi.fn()} />);
+    const { container } = render(<PreApproveForm onPreApproved={vi.fn()} />);
     await waitFor(() => expect(screen.getByPlaceholderText(/\+91/)).toBeInTheDocument());
     fireEvent.change(screen.getAllByRole('textbox')[0], { target: { value: '9876543210' } });
     fireEvent.change(screen.getAllByRole('textbox')[1], { target: { value: 'Test Visitor' } });
     fireEvent.change(screen.getAllByRole('textbox')[2], { target: { value: 'Test Corp' } });
+    fireEvent.change(container.querySelector('input[type="datetime-local"]')!, { target: { value: '2026-08-05T10:00' } });
     fireEvent.click(screen.getByRole('button', { name: /pre-approve visitor/i }));
 
     await waitFor(() => {
@@ -151,11 +154,12 @@ describe('PreApproveForm errors', () => {
       return Promise.resolve({ data: null, error: null });
     });
 
-    render(<PreApproveForm onPreApproved={vi.fn()} />);
+    const { container } = render(<PreApproveForm onPreApproved={vi.fn()} />);
     await waitFor(() => expect(screen.getByPlaceholderText(/\+91/)).toBeInTheDocument());
     fireEvent.change(screen.getAllByRole('textbox')[0], { target: { value: '9876543210' } });
     fireEvent.change(screen.getAllByRole('textbox')[1], { target: { value: 'Test Visitor' } });
     fireEvent.change(screen.getAllByRole('textbox')[2], { target: { value: 'Test Corp' } });
+    fireEvent.change(container.querySelector('input[type="datetime-local"]')!, { target: { value: '2026-08-05T10:00' } });
     fireEvent.click(screen.getByRole('button', { name: /pre-approve visitor/i }));
 
     await waitFor(() => {
@@ -172,11 +176,12 @@ describe('PreApproveForm errors', () => {
       return Promise.resolve({ data: null, error: null });
     });
 
-    render(<PreApproveForm onPreApproved={vi.fn()} />);
+    const { container } = render(<PreApproveForm onPreApproved={vi.fn()} />);
     await waitFor(() => expect(screen.getByPlaceholderText(/\+91/)).toBeInTheDocument());
     fireEvent.change(screen.getAllByRole('textbox')[0], { target: { value: '9876543210' } });
     fireEvent.change(screen.getAllByRole('textbox')[1], { target: { value: 'Test Visitor' } });
     fireEvent.change(screen.getAllByRole('textbox')[2], { target: { value: 'Test Corp' } });
+    fireEvent.change(container.querySelector('input[type="datetime-local"]')!, { target: { value: '2026-08-05T10:00' } });
     fireEvent.click(screen.getByRole('button', { name: /pre-approve visitor/i }));
 
     await waitFor(() => {

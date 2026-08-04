@@ -18,7 +18,8 @@ import { supabase } from '../supabaseClient';
 //
 // If those ever stop reconciling, the data is wrong — which is worth surfacing.
 export type GateStats = {
-  expected: number;    // approved / walkin_approved, not yet at the gate
+  preApproved: number;   // status === 'approved' — booked in advance
+  walkInApproved: number; // status === 'walkin_approved' — approved at the gate
   entered: number;     // cumulative — everyone who checked in today
   inside: number;      // live — still on the premises
   checkedOut: number;  // came and left
@@ -29,7 +30,7 @@ export type GateStats = {
 };
 
 const EMPTY: GateStats = {
-  expected: 0, entered: 0, inside: 0, checkedOut: 0, declined: 0,
+  preApproved: 0, walkInApproved: 0, entered: 0, inside: 0, checkedOut: 0, declined: 0,
   awaitingApproval: 0, overdue: 0,
 };
 
@@ -43,6 +44,10 @@ type Row = {
 // Which statuses count as "still expected at the gate". A pre-approval is
 // INSERTed already `approved`; a walk-in becomes `walkin_approved` when the HOD
 // says yes. Lookup map rather than an includes() chain, per CLAUDE.md.
+//
+// The tile split into `preApproved` / `walkInApproved` below, but `overdue`
+// MUST keep covering both statuses — a visitor is overdue whichever route got
+// them approved, so do not narrow this to one status.
 const IS_EXPECTED: Record<string, boolean> = {
   approved: true,
   walkin_approved: true,
@@ -64,7 +69,8 @@ export function useGateStats(today: string): { stats: GateStats; loading: boolea
     const now = Date.now();
 
     setStats({
-      expected: rows.filter((r) => IS_EXPECTED[r.status] === true).length,
+      preApproved: rows.filter((r) => r.status === 'approved').length,
+      walkInApproved: rows.filter((r) => r.status === 'walkin_approved').length,
       // Cumulative, NOT status-derived — see the note above.
       entered: rows.filter((r) => r.checked_in_at !== null).length,
       inside: rows.filter((r) => r.status === 'checked_in').length,

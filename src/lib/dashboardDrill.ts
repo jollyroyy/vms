@@ -2,7 +2,7 @@ import type { Visit } from '../types/index';
 
 // The guard dashboard's KPI tiles are drill-downs, not links. Clicking a count
 // expands the visits behind it *on the same page* — a guard reading the board
-// should never lose the board to answer "which five?".
+// should never lose the board to answer "which ones?".
 //
 // Each key here must stay in lockstep with the matching field on GateStats
 // (lib/useGateStats.ts): the tile shows `stats[key]` and the drill-down shows
@@ -10,20 +10,13 @@ import type { Visit } from '../types/index';
 // the card list disagree on screen. The `entered` vs `inside` distinction is the
 // one that bites — see the long note in useGateStats.ts. `entered` is derived
 // from checked_in_at (cumulative), `inside` from status (live).
-export type DrillKey = 'expected' | 'inside' | 'entered' | 'checkedOut' | 'declined';
+export type DrillKey = 'preApproved' | 'walkInApproved' | 'inside' | 'entered' | 'checkedOut' | 'declined';
 
-export const DRILL_KEYS: DrillKey[] = ['expected', 'inside', 'entered', 'checkedOut', 'declined'];
-
-// Same lookup map as useGateStats.IS_EXPECTED, for the same reason: a
-// pre-approval is INSERTed already `approved`, a walk-in becomes
-// `walkin_approved` once the HOD says yes. No includes() chains (CLAUDE.md).
-const IS_EXPECTED: Record<string, boolean> = {
-  approved: true,
-  walkin_approved: true,
-};
+export const DRILL_KEYS: DrillKey[] = ['preApproved', 'walkInApproved', 'inside', 'entered', 'checkedOut', 'declined'];
 
 export const DRILL_FILTER: Record<DrillKey, (v: Visit) => boolean> = {
-  expected: (v) => IS_EXPECTED[v.status] === true,
+  preApproved: (v) => v.status === 'approved',
+  walkInApproved: (v) => v.status === 'walkin_approved',
   inside: (v) => v.status === 'checked_in',
   entered: (v) => v.checked_in_at !== null,
   checkedOut: (v) => v.status === 'checked_out',
@@ -33,11 +26,17 @@ export const DRILL_FILTER: Record<DrillKey, (v: Visit) => boolean> = {
 export type DrillCopy = { title: string; subtitle: string; empty: string; countLabel: string };
 
 export const DRILL_COPY: Record<DrillKey, DrillCopy> = {
-  expected: {
-    title: 'Expected today',
-    subtitle: 'Approved, not yet at the gate',
-    empty: 'Nobody is expected right now.',
-    countLabel: 'expected',
+  preApproved: {
+    title: 'Pre-approved today',
+    subtitle: 'Booked in advance, not yet at the gate',
+    empty: 'No pre-approved visitors are due.',
+    countLabel: 'pre-approved',
+  },
+  walkInApproved: {
+    title: 'Walk-ins approved',
+    subtitle: 'Approved at the gate, not yet checked in',
+    empty: 'No approved walk-ins waiting.',
+    countLabel: 'approved',
   },
   inside: {
     title: 'Inside now',

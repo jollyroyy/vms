@@ -71,10 +71,6 @@ export default function AppShell({ session, role, children }: Props): React.Reac
     navigate(`/visitors?search=${encodeURIComponent(q)}`);
   };
 
-  const handleScanner = () => {
-    navigate('/guard?scanner=1');
-  };
-
   return (
     <div className="min-h-screen bg-surface-50 relative">
       <AuroraBackground />
@@ -82,7 +78,7 @@ export default function AppShell({ session, role, children }: Props): React.Reac
       <Sidebar session={session} role={role} collapsed={collapsed} onCollapsedChange={setCollapsed} />
 
       <div className={`app-shell-content relative z-10 flex flex-col min-h-screen transition-[padding] duration-300 ease-in-out ${collapsed ? 'lg:pl-[84px]' : 'lg:pl-[264px]'}`}>
-        {/* Top strip — search, scanner, notifications */}
+        {/* Top strip — search, notifications */}
         <header className="no-print sticky top-0 z-30 card-glass !rounded-none !border-x-0 !border-t-0">
           <div className="flex items-center gap-3 h-16 px-4 sm:px-6 lg:px-8 pl-16 lg:pl-8">
             {/* Search bar — a contained pill, not a stretched box; sits with the
@@ -124,19 +120,11 @@ export default function AppShell({ session, role, children }: Props): React.Reac
               </div>
             </form>
 
-            {/* Scanner action — scanning is a gate action, guard-only */}
-            {role === 'guard' && (
-              <button
-                onClick={handleScanner}
-                className="relative p-2 rounded-xl hover:bg-surface-100 transition-all duration-200"
-                title="Scan QR code"
-              >
-                <svg className="w-5 h-5 text-navy-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 013.75 9.375v-4.5zM3.75 14.625c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5a1.125 1.125 0 01-1.125-1.125v-4.5zM13.5 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 0113.5 9.375v-4.5z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 6.75h.75v.75h-.75v-.75zM6.75 16.5h.75v.75h-.75v-.75zM16.5 6.75h.75v.75h-.75v-.75zM13.5 13.5h.75v.75h-.75v-.75zM13.5 19.5h.75v.75h-.75v-.75zM19.5 13.5h.75v.75h-.75v-.75zM16.5 16.5h.75v.75h-.75v-.75z" />
-                </svg>
-              </button>
-            )}
+            {/* No scanner button here. Scanning is not a global action — it is
+                a step inside CheckInPanel on /guard/pre-approvals, where the
+                scanned pass immediately resolves to the visitor being checked
+                in. A top-bar icon that jumped to a scanner with no check-in
+                context around it was a shortcut to nowhere. */}
 
             <NotificationBell userId={session.user.id} role={role} />
           </div>

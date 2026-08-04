@@ -51,7 +51,9 @@ export const ALL_LINKS: NavLink[] = [
 
   // ── Other roles ───────────────────────────────────────────────────────────
   { to: '/overview', label: 'Overview', roles: ['hod'], icon: icon(ICON_GRID) },
-  { to: '/approvals', label: 'Approvals', roles: ['hod'], icon: icon(ICON_CHECK) },
+  // "Pre-Approvals", not "Approvals": the pending walk-in decisions moved to the
+  // Overview, so this route is now only the form for booking a visitor ahead.
+  { to: '/approvals', label: 'Pre-Approvals', roles: ['hod'], icon: icon(ICON_CHECK) },
   { to: '/whos-inside', label: 'On-site', roles: ['staff'], icon: icon(ICON_USERS) },
   { to: '/analytics', label: 'Analytics', roles: ['hod', 'admin'], icon: icon(ICON_SPARKLE) },
   { to: '/reports', label: 'Reports', roles: ['hod', 'staff', 'admin'], icon: icon(ICON_REPORT) },

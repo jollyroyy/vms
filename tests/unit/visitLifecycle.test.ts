@@ -51,19 +51,28 @@ describe('S8/FR-VIS-08: auto-checkout at day close', () => {
 
 describe('HOD pre-approval', () => {
   it('accepts valid pre-approval input', () => {
-    expect(validatePreApproval({ department_id: 'dept-1', purpose: 'meeting' })).toBeNull();
+    expect(validatePreApproval({ department_id: 'dept-1', purpose: 'meeting', scheduled_for: '2026-08-05T10:00' })).toBeNull();
   });
 
   it('rejects missing department_id', () => {
-    expect(validatePreApproval({ department_id: '', purpose: 'meeting' })).toBe('Department is required');
+    expect(validatePreApproval({ department_id: '', purpose: 'meeting', scheduled_for: '2026-08-05T10:00' })).toBe('Department is required');
   });
 
   it('rejects missing purpose', () => {
-    expect(validatePreApproval({ department_id: 'dept-1', purpose: '' })).toBe('Purpose is required');
+    expect(validatePreApproval({ department_id: 'dept-1', purpose: '', scheduled_for: '2026-08-05T10:00' })).toBe('Purpose is required');
   });
 
   it('rejects null department_id', () => {
-    expect(validatePreApproval({ department_id: null as unknown as string, purpose: 'meeting' })).toBe('Department is required');
+    expect(validatePreApproval({ department_id: null as unknown as string, purpose: 'meeting', scheduled_for: '2026-08-05T10:00' })).toBe('Department is required');
+  });
+
+  it('rejects missing scheduled_for', () => {
+    expect(validatePreApproval({ department_id: 'dept-1', purpose: 'meeting', scheduled_for: '' })).toBe('Scheduled date and time is required');
+  });
+
+  it('department and purpose checks still run before the schedule check', () => {
+    expect(validatePreApproval({ department_id: '', purpose: '', scheduled_for: '' })).toBe('Department is required');
+    expect(validatePreApproval({ department_id: 'dept-1', purpose: '', scheduled_for: '' })).toBe('Purpose is required');
   });
 });
 

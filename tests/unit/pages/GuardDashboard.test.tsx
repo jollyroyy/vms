@@ -9,13 +9,16 @@ import GuardDashboard from '../../../src/pages/Guard/Dashboard';
 // Defined inside vi.hoisted (not as a sibling const) because vi.hoisted
 // bodies run before the rest of the module, including other top-level consts.
 const EMPTY_STATS = {
-  expected: 0, entered: 0, inside: 0, checkedOut: 0, declined: 0,
+  preApproved: 0, walkInApproved: 0, entered: 0, inside: 0, checkedOut: 0, declined: 0,
   awaitingApproval: 0, overdue: 0,
 };
 
 const mockStats = vi.hoisted(() => ({
   current: {
-    stats: { expected: 0, entered: 0, inside: 0, checkedOut: 0, declined: 0, awaitingApproval: 0, overdue: 0 },
+    stats: {
+      preApproved: 0, walkInApproved: 0, entered: 0, inside: 0, checkedOut: 0, declined: 0,
+      awaitingApproval: 0, overdue: 0,
+    },
     loading: false,
   },
 }));
@@ -72,9 +75,10 @@ describe('GuardDashboard', () => {
     expect(heading.textContent).toBe('Security Gate');
   });
 
-  it('renders all five KPI tile labels', () => {
+  it('renders all six KPI tile labels', () => {
     renderDashboard();
-    expect(screen.getByText('Expected')).toBeInTheDocument();
+    expect(screen.getByText('Pre-approved')).toBeInTheDocument();
+    expect(screen.getByText('Walk-ins Approved')).toBeInTheDocument();
     expect(screen.getByText('Inside Now')).toBeInTheDocument();
     expect(screen.getByText('Entered Today')).toBeInTheDocument();
     expect(screen.getByText('Checked Out')).toBeInTheDocument();
@@ -83,7 +87,8 @@ describe('GuardDashboard', () => {
 
   it('shows zeros for every tile when there is no data (empty state)', () => {
     renderDashboard();
-    expect(tileFor('Expected').textContent).toContain('0');
+    expect(tileFor('Pre-approved').textContent).toContain('0');
+    expect(tileFor('Walk-ins Approved').textContent).toContain('0');
     expect(tileFor('Inside Now').textContent).toContain('0');
     expect(tileFor('Entered Today').textContent).toContain('0');
     expect(tileFor('Checked Out').textContent).toContain('0');
@@ -92,11 +97,15 @@ describe('GuardDashboard', () => {
 
   it('renders seeded stats on their matching tiles', () => {
     mockStats.current = {
-      stats: { expected: 5, inside: 3, entered: 8, checkedOut: 5, declined: 2, awaitingApproval: 1, overdue: 0 },
+      stats: {
+        preApproved: 5, walkInApproved: 4, inside: 3, entered: 8, checkedOut: 5, declined: 2,
+        awaitingApproval: 1, overdue: 0,
+      },
       loading: false,
     };
     renderDashboard();
-    expect(tileFor('Expected').textContent).toContain('5');
+    expect(tileFor('Pre-approved').textContent).toContain('5');
+    expect(tileFor('Walk-ins Approved').textContent).toContain('4');
     expect(tileFor('Inside Now').textContent).toContain('3');
     expect(tileFor('Entered Today').textContent).toContain('8');
     expect(tileFor('Checked Out').textContent).toContain('5');
@@ -109,7 +118,10 @@ describe('GuardDashboard', () => {
   // tiles must show 4 and 9 respectively — not the same value.
   it('shows Inside Now and Entered Today as different, independently correct numbers', () => {
     mockStats.current = {
-      stats: { expected: 0, inside: 4, entered: 9, checkedOut: 5, declined: 0, awaitingApproval: 0, overdue: 0 },
+      stats: {
+        preApproved: 0, walkInApproved: 0, inside: 4, entered: 9, checkedOut: 5, declined: 0,
+        awaitingApproval: 0, overdue: 0,
+      },
       loading: false,
     };
     renderDashboard();
@@ -123,7 +135,8 @@ describe('GuardDashboard', () => {
   // Every tile drills down IN PLACE. None of them may be a link — navigating
   // away to answer "which ones?" is the behaviour this replaced.
   it.each([
-    ['Expected', 'expected'],
+    ['Pre-approved', 'preApproved'],
+    ['Walk-ins Approved', 'walkInApproved'],
     ['Inside Now', 'inside'],
     ['Entered Today', 'entered'],
     ['Checked Out', 'checkedOut'],
@@ -185,6 +198,14 @@ describe('GuardDashboard', () => {
     expect(screen.queryByText('Awaiting host approval')).toBeNull();
     expect(screen.queryByText('Expected to arrive')).toBeNull();
     expect(screen.queryByText('Overdue arrivals')).toBeNull();
+  });
+
+  // Regression guard: "Expected" hid that pre-approvals (booked ahead) and
+  // walk-ins approved at the gate are two different populations, each with
+  // its own console page now. Must not silently reappear as a merged tile.
+  it('does not render a single merged "Expected" tile', () => {
+    renderDashboard();
+    expect(screen.queryByText('Expected')).toBeNull();
   });
 
   it('shows the empty state for Recent Activity when there is no activity', () => {
