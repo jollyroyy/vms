@@ -1,0 +1,156 @@
+/* Department filter on the register (pages/Shared/ReportsDeptFilter.tsx).
+   Every colour resolves to an existing token, so both themes and any rebrand
+   follow automatically. */
+@layer components {
+  .dept-trigger {
+    @apply inline-flex items-center gap-3 rounded-2xl pl-2.5 pr-3.5 py-2 text-sm
+           border border-surface-200
+           hover:border-surface-300 active:scale-[0.99]
+           focus:outline-none focus:ring-2 focus:ring-brand-500/25
+           transition-all duration-200;
+    max-width: 20rem;
+    background: linear-gradient(135deg, rgb(var(--glass-bg) / 0.92), rgb(var(--glass-bg) / 0.72));
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    box-shadow: var(--shadow-contact), var(--edge-highlight);
+  }
+  .dept-trigger:hover {
+    box-shadow: var(--shadow-contact-hover), var(--shadow-ambient), var(--edge-highlight-hover);
+  }
+  .dark .dept-trigger {
+    border-color: rgb(255 255 255 / 0.10);
+  }
+  .dark .dept-trigger:hover {
+    border-color: rgb(255 255 255 / 0.18);
+  }
+
+  /* A filtered register is a partial register. The gold edge is the standing
+     reminder that rows are being withheld. */
+  .dept-trigger-active {
+    @apply pr-9;
+    border-color: rgb(201 165 88 / 0.55);
+    box-shadow: 0 0 0 3px rgb(184 147 74 / 0.12), var(--shadow-contact-hover), var(--edge-highlight-hover);
+  }
+  .dark .dept-trigger-active {
+    border-color: rgb(201 165 88 / 0.55);
+  }
+
+  .dept-trigger-icon {
+    @apply h-8 w-8 rounded-xl flex items-center justify-center shrink-0 text-white;
+    background: linear-gradient(135deg, #c9a558, #a8623a);
+    box-shadow: 0 3px 10px -3px rgb(184 147 74 / 0.55), inset 0 1px 0 0 rgb(255 255 255 / 0.25);
+  }
+
+  .dept-trigger-eyebrow {
+    @apply block text-[9.5px] font-bold uppercase tracking-[0.14em] text-navy-400 leading-none mb-0.5;
+  }
+  .dept-trigger-label {
+    @apply block truncate font-semibold text-navy-900 leading-tight;
+  }
+
+  .dept-count {
+    @apply text-[11px] font-bold tabular-nums rounded-full px-2 py-0.5 shrink-0;
+    background: rgb(184 147 74 / 0.14);
+    color: #a8623a;
+  }
+  .dark .dept-count {
+    background: rgb(201 165 88 / 0.18);
+    color: rgb(224 190 128);
+  }
+
+  .dept-clear {
+    @apply absolute right-2.5 top-1/2 -translate-y-1/2 h-5 w-5 rounded-full
+           flex items-center justify-center text-navy-400
+           hover:text-navy-800 hover:bg-surface-200
+           focus:outline-none focus:ring-2 focus:ring-brand-500/30
+           transition-colors duration-200;
+  }
+  .dark .dept-clear:hover {
+    background: rgb(255 255 255 / 0.12);
+  }
+
+  /* Anchored to the RIGHT edge: the control lives in the top-right of the page,
+     so a left-anchored panel would hang off the viewport. */
+  .dept-panel {
+    @apply absolute right-0 z-50 mt-2 w-[19rem] overflow-hidden origin-top-right;
+    border-radius: var(--radius-md);
+    background: linear-gradient(140deg, rgb(var(--glass-bg) / 0.99), rgb(var(--glass-bg) / 0.95));
+    backdrop-filter: blur(28px) saturate(190%);
+    -webkit-backdrop-filter: blur(28px) saturate(190%);
+    border: 1px solid rgb(var(--glass-border) / var(--hairline-opacity));
+    box-shadow: var(--shadow-ambient-hover), var(--shadow-wide-hover), var(--edge-highlight-hover);
+    animation: modalScaleIn var(--dur-premium) var(--ease-premium);
+  }
+  .dept-panel::after {
+    content: '';
+    @apply absolute inset-x-0 top-0 h-px pointer-events-none;
+    background: linear-gradient(90deg, transparent, rgb(201 165 88 / 0.55), transparent);
+  }
+
+  .dept-panel-head {
+    @apply flex items-center justify-between px-3.5 pt-3 pb-2;
+  }
+  .dept-panel-eyebrow {
+    @apply text-[10px] font-bold uppercase tracking-[0.14em] text-navy-400;
+  }
+  .dept-panel-total {
+    @apply text-[10px] font-semibold tabular-nums text-navy-300;
+  }
+
+  .dept-list {
+    @apply max-h-[19rem] overflow-y-auto p-1.5 pt-0;
+  }
+
+  .dept-option {
+    @apply w-full flex items-center gap-2.5 rounded-xl px-2.5 py-2 text-left text-sm
+           text-navy-600 hover:text-navy-900 hover:bg-surface-100/80
+           focus:outline-none focus:bg-surface-100/80
+           transition-colors duration-150;
+  }
+  .dark .dept-option:hover,
+  .dark .dept-option:focus {
+    background: rgb(255 255 255 / 0.06);
+  }
+  .dept-option-on {
+    @apply text-navy-900 font-semibold;
+    background: rgb(184 147 74 / 0.12);
+  }
+  .dark .dept-option-on {
+    background: rgb(201 165 88 / 0.16);
+  }
+
+  /* Initials tile — a fixed left-hand anchor the eye can run down. */
+  .dept-mark {
+    @apply h-7 w-7 rounded-lg shrink-0 flex items-center justify-center
+           text-[10px] font-bold tracking-wide text-navy-500;
+    background: rgb(var(--c-surface-100));
+    border: 1px solid rgb(var(--glass-border) / var(--hairline-opacity));
+  }
+  .dark .dept-mark {
+    background: rgb(255 255 255 / 0.06);
+    color: rgb(var(--c-navy-500));
+  }
+  .dept-option-on .dept-mark {
+    background: linear-gradient(135deg, #c9a558, #a8623a);
+    border-color: transparent;
+    @apply text-white;
+  }
+  .dept-mark-all {
+    @apply text-navy-400;
+  }
+
+  .dept-option-name {
+    @apply flex-1 truncate;
+  }
+  .dept-code {
+    @apply text-[10px] font-semibold uppercase tracking-wider text-navy-400 shrink-0;
+  }
+  .dept-option-count {
+    @apply text-xs tabular-nums text-navy-400 shrink-0;
+  }
+
+  .dept-divider {
+    @apply mx-2.5 my-1.5 h-px;
+    background: rgb(var(--glass-border) / var(--hairline-opacity));
+  }
+}

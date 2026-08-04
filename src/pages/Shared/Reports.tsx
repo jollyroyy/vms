@@ -1,7 +1,7 @@
 /**
  * Reports — FR-RPT-01/02/04/05/06 / S12a
  */
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { supabase } from '../../supabaseClient';
 import type { Visit } from '../../types/index';
 import { attachHostNames } from '../../lib/hostNames';
@@ -11,7 +11,9 @@ import { maskPhone, maskIdProof } from '../../lib/pii';
 import { approvalTimestamp } from '../../lib/visitApproval';
 import { computeDateRange, type RangePreset } from '../../lib/reportsDateRange';
 import type { ReportVisit } from '../../lib/reportRow';
+import { ALL_DEPTS, deptOptions, filterVisitsByDept } from '../../lib/reportsDeptFilter';
 import ReportsToolbar from './ReportsToolbar';
+import ReportsDeptFilter from './ReportsDeptFilter';
 import ReportsPrintHeader from './ReportsPrintHeader';
 
 const TODAY = new Date().toISOString().slice(0, 10);
@@ -23,6 +25,7 @@ export default function ReportsPage(): React.ReactElement {
   const [loading, setLoading] = useState(true);
   const [userRole, setUserRole] = useState<string | null>(null);
   const [userDeptId, setUserDeptId] = useState<string | null>(null);
+  const [deptId, setDeptId] = useState<string>(ALL_DEPTS);
 
   const range = computeDateRange(preset, date);
 
@@ -38,11 +41,17 @@ export default function ReportsPage(): React.ReactElement {
     } catch { /* auth not available */ }
   }, []);
 
+  // One source of truth for "does this viewer see more than one department".
+  // It decides both the server-side scoping below and whether the department
+  // filter is offered at all — an HOD locked to their own department has
+  // nothing to pick between, so showing them a picker would be a lie.
+  const deptScoped = Boolean(userDeptId && userRole && !['admin', 'guard'].includes(userRole));
+
   const load = useCallback(async () => {
     setLoading(true);
     let query = supabase.from('visits').select(`*, visitor:visitors(*), department:departments(id,name,code,created_at)`)
       .gte('created_at', `${range.from}T00:00:00Z`).lte('created_at', `${range.to}T23:59:59Z`);
-    if (userDeptId && userRole && !['admin', 'guard'].includes(userRole)) {
+    if (deptScoped && userDeptId) {
       query = query.eq('department_id', userDeptId);
     }
     const { data, error } = await query.order('created_at', { ascending: true });
@@ -53,9 +62,18 @@ export default function ReportsPage(): React.ReactElement {
       setVisits(withActors.map((v) => ({ ...v, photo_url: v.photo_data ?? undefined })));
     }
     setLoading(false);
-  }, [range.from, range.to, userDeptId, userRole]);
+  }, [range.from, range.to, userDeptId, deptScoped]);
 
   useEffect(() => { void load(); }, [load]);
+
+  // Options are derived from the loaded rows, so the picker can never offer a
+  // department that would open an empty table. That also means a selection can
+  // fall out of range when the dates change — resolve it back to All rather
+  // than showing an empty register under a department's name.
+  const options = useMemo(() => deptOptions(visits), [visits]);
+  const activeDeptId = options.some((o) => o.id === deptId) ? deptId : ALL_DEPTS;
+  const activeDept = options.find((o) => o.id === activeDeptId) ?? null;
+  const shown = filterVisitsByDept(visits, activeDeptId);
 
   const STATUS_COLORS: Record<string, string> = {
     rejected: 'text-danger-600', checked_out: 'text-navy-300', checked_in: 'text-brand-600', approved: 'text-brand-600', walkin_approved: 'text-brand-600', pending_approval: 'text-warning-600',
@@ -92,12 +110,21 @@ export default function ReportsPage(): React.ReactElement {
     );
   };
 
-  const rangeLabel = preset === 'today' ? range.to : `${range.from} to ${range.to}`;
-  const filenameSuffix = preset === 'today' ? range.to : `${range.from}_to_${range.to}`;
+  const dateLabel = preset === 'today' ? range.to : `${range.from} to ${range.to}`;
+  // A filtered register that prints or exports without naming its department is
+  // an undated-looking document that quietly omits most of the day's visitors.
+  const rangeLabel = activeDept ? `${activeDept.name} · ${dateLabel}` : dateLabel;
+  const dateSuffix = preset === 'today' ? range.to : `${range.from}_to_${range.to}`;
+  const filenameSuffix = activeDept
+    ? `${(activeDept.code ?? activeDept.name).replace(/\s+/g, '-').toLowerCase()}-${dateSuffix}`
+    : dateSuffix;
 
   return (
     <div className="space-y-8 animate-fade-in">
-      <div className="page-header !mb-6 flex items-center gap-3.5 no-print">
+      {/* The scope of the register belongs beside its title, not buried in the
+          toolbar among the date controls: it names WHAT you are looking at,
+          while the toolbar changes WHEN and what you do with it. */}
+      <div className="page-header !mb-6 flex items-center gap-3.5 flex-wrap no-print">
         <div className="h-11 w-11 rounded-xl bg-gradient-to-br from-brand-500 to-accent-500 text-white flex items-center justify-center shadow-glow-sm ring-1 ring-white/20">
           <svg className="w-5.5 h-5.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" /></svg>
         </div>
@@ -105,6 +132,11 @@ export default function ReportsPage(): React.ReactElement {
           <h1 className="page-title">Reports</h1>
           <p className="page-subtitle">Daily visitor register</p>
         </div>
+        {!deptScoped && (
+          <div className="ml-auto">
+            <ReportsDeptFilter options={options} value={activeDeptId} onChange={setDeptId} total={visits.length} />
+          </div>
+        )}
       </div>
 
       <ReportsToolbar
@@ -113,18 +145,23 @@ export default function ReportsPage(): React.ReactElement {
         onDateChange={setDate}
         preset={preset}
         onPresetChange={setPreset}
-        visits={visits}
+        visits={shown}
         filenameSuffix={filenameSuffix}
       />
 
       <div className="print-only">
-        <ReportsPrintHeader rangeLabel={`Register — ${rangeLabel}`} entryCount={visits.length} />
+        <ReportsPrintHeader rangeLabel={`Register — ${rangeLabel}`} entryCount={shown.length} />
       </div>
 
       <section>
         <div className="flex items-center gap-3 mb-4 no-print">
           <h2 className="section-title">Register — {rangeLabel}</h2>
-          <span className="glass-chip text-navy-400 tabular-nums">({visits.length} entries)</span>
+          <span className="glass-chip text-navy-400 tabular-nums">({shown.length} entries)</span>
+          {activeDept && (
+            <span className="glass-chip text-navy-500">
+              Filtered to {activeDept.name} · {visits.length - shown.length} hidden
+            </span>
+          )}
         </div>
         {loading ? (
           <div className="card p-6 space-y-3 no-print">{[1, 2, 3].map((i) => <div key={i} className="h-8 skeleton" />)}</div>
@@ -140,7 +177,7 @@ export default function ReportsPage(): React.ReactElement {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-surface-200/50 dark:divide-white/[0.05]">
-                  {visits.map((v, i) => (
+                  {shown.map((v, i) => (
                     <tr key={v.id} className="hover:bg-surface-100/60 dark:hover:bg-white/[0.03] transition-colors">
                       <td className="px-3.5 py-3 text-navy-300 tabular-nums">{i + 1}</td>
                       <td className="px-3.5 py-3 text-[11px] font-mono text-navy-400">{v.ref_number}</td>
@@ -174,7 +211,13 @@ export default function ReportsPage(): React.ReactElement {
                       <td className={`px-3.5 py-3 font-medium ${PLAIN_STATUS[v.status] ? 'capitalize' : ''} ${STATUS_COLORS[v.status] ?? 'text-navy-500'}`}>{visitStatusLabel(v)}</td>
                     </tr>
                   ))}
-                  {visits.length === 0 && (<tr><td colSpan={16} className="px-4 py-12 text-center text-navy-300">No visits between {range.from} and {range.to}</td></tr>)}
+                  {shown.length === 0 && (
+                    <tr><td colSpan={16} className="px-4 py-12 text-center text-navy-300">
+                      {activeDept
+                        ? `No ${activeDept.name} visits between ${range.from} and ${range.to}`
+                        : `No visits between ${range.from} and ${range.to}`}
+                    </td></tr>
+                  )}
                 </tbody>
               </table>
             </div>
@@ -186,7 +229,7 @@ export default function ReportsPage(): React.ReactElement {
           explicit end-of-report block — otherwise a printed copy has no way to
           show it is complete and no place to sign it off. */}
       <div className="print-only print-footer">
-        <p className="print-meta">End of register · {visits.length} {visits.length === 1 ? 'entry' : 'entries'} · {rangeLabel}</p>
+        <p className="print-meta">End of register · {shown.length} {shown.length === 1 ? 'entry' : 'entries'} · {rangeLabel}</p>
         <p className="print-meta">Confidential — contains personal data. Phone and ID numbers are masked.</p>
         <div className="print-signature"><span className="print-meta">Verified by</span></div>
       </div>

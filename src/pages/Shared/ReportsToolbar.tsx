@@ -2,7 +2,6 @@ import React from 'react';
 import { exportToCsv } from '../../lib/exportUtils';
 import { toReportRows, type ReportVisit } from '../../lib/reportRow';
 import { RANGE_PRESETS, type RangePreset } from '../../lib/reportsDateRange';
-
 type Props = {
   date: string;
   today: string;
@@ -13,6 +12,9 @@ type Props = {
   filenameSuffix: string;
 };
 
+// The department filter deliberately does NOT live here — it names the scope of
+// the register and sits beside the page title. This toolbar is for the date
+// range and what you do with the result.
 export default function ReportsToolbar({ date, today, onDateChange, preset, onPresetChange, visits, filenameSuffix }: Props): React.ReactElement {
   return (
     <div className="card p-4 flex items-center gap-4 flex-wrap no-print">
