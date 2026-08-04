@@ -3,6 +3,7 @@
 // so the label associations stay unambiguous.
 import React, { useId, useState } from 'react';
 import type { HodInput } from '../../lib/adminHods';
+import { PERSON_NAME_MAX } from '../../lib/inputRules';
 
 type Props = {
   initial?: HodInput;
@@ -34,6 +35,7 @@ export default function HodForm({ initial, busy = false, onSubmit, onCancel }: P
           <input
             id={nameId}
             placeholder="e.g. Asha Rao"
+            maxLength={PERSON_NAME_MAX}
             value={fullName}
             onChange={(e) => setFullName(e.target.value)}
             className="input"

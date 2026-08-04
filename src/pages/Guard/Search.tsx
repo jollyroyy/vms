@@ -4,6 +4,7 @@ import { supabase } from '../../supabaseClient';
 import type { UserRole, Visit } from '../../types/index';
 import { attachHostNames } from '../../lib/hostNames';
 import { parseSearchQuery, SEARCH_KIND_LABEL, type ParsedQuery } from '../../lib/visitorSearch';
+import { escapeLikePattern } from '../../lib/inputRules';
 import VisitorDetails from '../../components/VisitorDetails';
 import SearchResultCard from './SearchResultCard';
 
@@ -27,7 +28,11 @@ async function runSearch(parsed: ParsedQuery): Promise<Visit[]> {
 
   const visitorFilter = parsed.kind === 'phone'
     ? supabase.from('visitors').select('id').eq('phone', parsed.value)
-    : supabase.from('visitors').select('id').ilike('full_name', `%${parsed.value}%`);
+    // `%` and `_` are LIKE wildcards. Unescaped, a search for "%" is a valid
+    // pattern matching EVERY visitor — a name lookup that quietly becomes a
+    // full directory dump. Not an injection (PostgREST parameterises the
+    // value), but the result is an enumeration hole all the same.
+    : supabase.from('visitors').select('id').ilike('full_name', `%${escapeLikePattern(parsed.value)}%`);
 
   const { data: visitorRows } = await visitorFilter;
   const visitorIds = ((visitorRows as { id: string }[] | null) ?? []).map((v) => v.id);

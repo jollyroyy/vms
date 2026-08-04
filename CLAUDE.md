@@ -44,6 +44,20 @@
   `created_at` only for statuses that prove a prior approval. Admin is exempt from the
   department filter in `Reports.tsx` and can read `audit_logs` (migration 041), so admins
   see every visit's real approval instant.
+- **Admin-entered text is allowlisted, in the browser AND in the database.**
+  `src/lib/inputRules.ts` owns the rules; migration **062** (applied live
+  2026-08-04) mirrors them as CHECK constraints, because client validation is a
+  usability guard that any admin token can skip by calling PostgREST directly.
+  Department name `^[A-Za-z0-9 &./'-]+$` (2-60), code `^[A-Z0-9&-]+$` (1-10),
+  person name `^[A-Za-z .'-]+$` (2-80, **no digits**). It is an allowlist, not a
+  blocklist of "bad" strings — do not add `<script>`/`DROP TABLE` pattern
+  matching, that is a guessing game. Three live rows shaped these rules: a
+  department coded `R&D` (hence `&` in codes), and two trailing-space values the
+  migration trims. `profiles.full_name`'s constraints are **NOT VALID** on
+  purpose — a legacy `Bugfix Test 2` row would have failed the digit rule, and
+  rewriting history behind the admin's back is worse than grandfathering it.
+  None of this is an SQL-injection fix: nothing in the app concatenates SQL, so
+  injection is structurally unavailable. It buys data hygiene and depth.
 - HODs are added by **name + email**. `addHod()` promotes an existing profile if that
   email is already known, otherwise it invites a new account via `supabase.auth.signUp`
   and upserts the profile. Writing `profiles.role` is enough — the

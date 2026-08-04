@@ -2,6 +2,7 @@
 // the manager, and once inline inside a department card when editing.
 import React, { useId, useState } from 'react';
 import { DEPT_CODE_MAX, type DepartmentInput } from '../../lib/adminDepartments';
+import { DEPT_NAME_MAX } from '../../lib/inputRules';
 
 type Props = {
   mode: 'create' | 'edit';
@@ -34,6 +35,7 @@ export default function DepartmentForm({
         <input
           id={nameId}
           placeholder="e.g. Human Resources"
+          maxLength={DEPT_NAME_MAX}
           value={name}
           onChange={(e) => setName(e.target.value)}
           className="input"

@@ -3,18 +3,28 @@
 // on failure so the UI only has to try/catch. Tested by tests/unit/lib/adminDepartments.test.ts.
 import { supabase } from '../supabaseClient';
 import type { Department } from '../types/index';
+import {
+  DEPT_CODE_MAX as CODE_MAX,
+  departmentCodeError,
+  departmentNameError,
+  squashSpace,
+  stripControlChars,
+} from './inputRules';
 
 export type DepartmentInput = { name: string; code: string };
 
-export const DEPT_CODE_MAX = 10;
+export const DEPT_CODE_MAX = CODE_MAX;
 
-const squash = (s: string) => s.trim().replace(/\s+/g, ' ');
-
-/** Trims the name and uppercases the code (codes are stored uppercase, whitespace-free). */
+/**
+ * Trims the name and uppercases the code (codes are stored uppercase,
+ * whitespace-free). Control characters are stripped first: they are invisible,
+ * so they survive every "looks fine to me" review and then break search,
+ * sorting and CSV export downstream.
+ */
 export function normalizeDepartmentInput(input: DepartmentInput): DepartmentInput {
   return {
-    name: squash(input.name),
-    code: input.code.replace(/\s+/g, '').toUpperCase(),
+    name: squashSpace(stripControlChars(input.name)),
+    code: stripControlChars(input.code).replace(/\s+/g, '').toUpperCase(),
   };
 }
 
@@ -31,9 +41,15 @@ export function validateDepartment(
 
   if (!name) return 'Department name is required.';
   if (!code) return 'Department code is required.';
-  if (code.length > DEPT_CODE_MAX) {
-    return `Department code must be ${DEPT_CODE_MAX} characters or fewer.`;
-  }
+
+  // Charset and length come before the duplicate check: telling an admin their
+  // name clashes is misleading when the name would have been rejected anyway.
+  // Mirrored as CHECK constraints in migration 062 — this half is the message,
+  // that half is the boundary.
+  const nameError = departmentNameError(name);
+  if (nameError) return nameError;
+  const codeError = departmentCodeError(code);
+  if (codeError) return codeError;
 
   const others = existing.filter((d) => d.id !== excludeId);
 

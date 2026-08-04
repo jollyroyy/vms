@@ -121,8 +121,28 @@ describe('validateHod', () => {
 
   it('still rejects a clash with a different HOD when excludeId is given', () => {
     const existing = [hod(), hod({ id: 'p2', email: 'ravi@corp.com', full_name: 'Ravi Kumar' })];
-    expect(validateHod({ fullName: 'X', email: 'ravi@corp.com' }, existing, 'p1')).toMatch(/already/i);
+    expect(validateHod({ fullName: 'Xavier Lee', email: 'ravi@corp.com' }, existing, 'p1')).toMatch(/already/i);
   });
+
+  it('rejects a name containing digits', () => {
+    expect(validateHod({ fullName: 'Bugfix Test 2', email: 'ravi@corp.com' }, [])).toMatch(/cannot contain/i);
+  });
+
+  it('rejects a name containing a script tag', () => {
+    expect(validateHod({ fullName: '<script>', email: 'ravi@corp.com' }, [])).toMatch(/cannot contain/i);
+  });
+
+  it('rejects an email longer than 254 characters', () => {
+    const long = `${'a'.repeat(250)}@b.com`;
+    expect(validateHod({ fullName: 'Ravi Kumar', email: long }, [])).toMatch(/254 characters/i);
+  });
+
+  it.each(["O'Brien", 'Mary-Jane Watson', 'Dr. Rao'])(
+    'accepts the real-world name %s',
+    (name) => {
+      expect(validateHod({ fullName: name, email: 'ravi@corp.com' }, [])).toBeNull();
+    },
+  );
 });
 
 /* ─── addHod ────────────────────────────────────────────── */

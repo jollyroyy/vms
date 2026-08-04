@@ -132,6 +132,46 @@ describe('validateDepartment', () => {
     const existing = [dept(), dept({ id: 'd2', name: 'Finance', code: 'FIN' })];
     expect(validateDepartment({ name: 'Finance', code: 'HR' }, existing, 'd1')).toMatch(/already exists/i);
   });
+
+  it('rejects a name containing a script tag', () => {
+    expect(validateDepartment({ name: '<script>alert(1)</script>', code: 'X' }, [])).toMatch(/cannot contain/i);
+  });
+
+  it('rejects a name shaped like a SQL injection payload', () => {
+    expect(validateDepartment({ name: "'; DROP TABLE departments;--", code: 'X' }, [])).toMatch(/cannot contain/i);
+  });
+
+  it('rejects a name longer than 60 characters', () => {
+    const long = 'A'.repeat(61);
+    expect(validateDepartment({ name: long, code: 'X' }, [])).toMatch(/60 characters/i);
+  });
+
+  it('rejects an emoji name', () => {
+    expect(validateDepartment({ name: '🎉 Party Dept', code: 'X' }, [])).toMatch(/cannot contain/i);
+  });
+
+  it('rejects an invalid code character', () => {
+    expect(validateDepartment({ name: 'Finance', code: 'H@R' }, [])).toMatch(/cannot contain/i);
+  });
+
+  it('accepts an ampersand in both name and code (R&D)', () => {
+    expect(validateDepartment({ name: 'R&D', code: 'R&D' }, [])).toBeNull();
+  });
+
+  it('accepts Human Resources / HR', () => {
+    expect(validateDepartment({ name: 'Human Resources', code: 'HR' }, [])).toBeNull();
+  });
+
+  it('accepts a slash in the name (Legal/Compliance)', () => {
+    expect(validateDepartment({ name: 'Legal/Compliance', code: 'LC' }, [])).toBeNull();
+  });
+
+  it('reports the charset error rather than the duplicate error when a name is both invalid AND a duplicate', () => {
+    const existing = [dept({ name: '<script>x</script>' })];
+    const msg = validateDepartment({ name: '<script>x</script>', code: 'HRX' }, existing);
+    expect(msg).toMatch(/cannot contain/i);
+    expect(msg).not.toMatch(/already exists/i);
+  });
 });
 
 /* ─── createDepartment ──────────────────────────────────── */

@@ -6,18 +6,20 @@
 // Tested by tests/unit/lib/adminHods.test.ts.
 import { supabase } from '../supabaseClient';
 import type { Profile } from '../types/index';
+import { personNameError, squashSpace, stripControlChars, PERSON_NAME_MAX } from './inputRules';
 
 export type HodInput = { fullName: string; email: string };
 
 // Deliberately strict: one @, a dotted domain, and no whitespace anywhere.
 const EMAIL_RE = /^[^\s@]+@[^\s@.]+(\.[^\s@.]+)+$/;
 
-const squash = (s: string) => s.trim().replace(/\s+/g, ' ');
+/** An address longer than this is not a real mailbox, it is a payload. */
+const EMAIL_MAX = 254;
 
 export function normalizeHodInput(input: HodInput): HodInput {
   return {
-    fullName: squash(input.fullName),
-    email: input.email.trim().toLowerCase(),
+    fullName: squashSpace(stripControlChars(input.fullName)),
+    email: stripControlChars(input.email).trim().toLowerCase(),
   };
 }
 
@@ -35,6 +37,14 @@ export function validateHod(
 
   if (!fullName) return 'HOD name is required.';
   if (!email) return 'Email is required.';
+
+  // An HOD's name reaches the JWT-synced profiles row and every approval trail,
+  // so it gets the same allowlist as any other stored identity. Mirrored as a
+  // CHECK constraint in migration 062.
+  const nameError = personNameError(fullName, 'HOD name');
+  if (nameError) return nameError;
+
+  if (email.length > EMAIL_MAX) return `Email must be ${EMAIL_MAX} characters or fewer.`;
   if (!EMAIL_RE.test(email)) return 'Enter a valid email address.';
 
   const clash = existingHods
