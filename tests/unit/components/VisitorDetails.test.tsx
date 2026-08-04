@@ -205,3 +205,23 @@ describe('VisitorDetails — the pass is never shown to a guard', () => {
     expect(screen.queryByRole('button', { name: /view pass/i })).not.toBeInTheDocument();
   });
 });
+
+// An HOD approves on who is visiting and why — confirming a government ID
+// against a face is the guard's job at the gate, not the HOD's, so the ID
+// document must not appear anywhere on the HOD's copy of this popup.
+describe('VisitorDetails — ID document is hidden from an HOD', () => {
+  afterEach(() => cleanup());
+
+  const withId = { ...visit, visitor: { ...visit.visitor, id_type: 'Aadhaar', id_last4: '9646' } } as unknown as Visit;
+
+  it('does not show the ID Document row to an HOD', () => {
+    render(<VisitorDetails visit={withId} onClose={vi.fn()} viewerRole="hod" />);
+    expect(screen.queryByText('ID Document')).not.toBeInTheDocument();
+  });
+
+  it('still shows the ID Document row to a non-HOD viewer', () => {
+    render(<VisitorDetails visit={withId} onClose={vi.fn()} viewerRole="admin" />);
+    expect(screen.getByText('ID Document')).toBeInTheDocument();
+    expect(screen.getByText('Aadhaar ••••46')).toBeInTheDocument();
+  });
+});

@@ -90,9 +90,9 @@ describe('Sidebar navigation links per role', () => {
     expect(links.length).toBe(3);
   });
 
-  it('guard still sees Visitors', () => {
+  it('guard still sees Walk-in Visitors', () => {
     renderSidebar('guard');
-    expect(screen.getByText('Visitors')).toBeInTheDocument();
+    expect(screen.getByText('Walk-in Visitors')).toBeInTheDocument();
   });
 
   it('staff still sees Visitors', () => {
@@ -109,7 +109,7 @@ describe('Sidebar navigation links per role', () => {
   it('guard sees all four nav labels, in the visitor-only console, and no Search', () => {
     renderSidebar('guard');
     expect(screen.getByText('Dashboard')).toBeInTheDocument();
-    expect(screen.getByText('Visitors')).toBeInTheDocument();
+    expect(screen.getByText('Walk-in Visitors')).toBeInTheDocument();
     expect(screen.getByText('Pre-Approvals')).toBeInTheDocument();
     expect(screen.getByText('Watchlist & Alerts')).toBeInTheDocument();
     expect(screen.queryByText('Search')).not.toBeInTheDocument();

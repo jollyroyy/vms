@@ -12,7 +12,7 @@ describe('OverviewStatCards', () => {
     render(<OverviewStatCards loading={false} stats={stats} activeFilter={null} onSelect={vi.fn()} />);
     expect(screen.getByText('Inside')).toBeInTheDocument();
     expect(screen.getByText('Approved')).toBeInTheDocument();
-    expect(screen.getByText('Pending Approval')).toBeInTheDocument();
+    expect(screen.getByText('Pending Walk-in Approvals')).toBeInTheDocument();
     expect(screen.getByText('Rejected')).toBeInTheDocument();
   });
 
@@ -46,7 +46,7 @@ describe('OverviewStatCards', () => {
     fireEvent.click(screen.getByText('Approved').closest('button')!);
     expect(onSelect).toHaveBeenCalledWith('approved');
 
-    fireEvent.click(screen.getByText('Pending Approval').closest('button')!);
+    fireEvent.click(screen.getByText('Pending Walk-in Approvals').closest('button')!);
     expect(onSelect).toHaveBeenCalledWith('pending');
 
     fireEvent.click(screen.getByText('Rejected').closest('button')!);

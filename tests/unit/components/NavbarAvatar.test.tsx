@@ -76,6 +76,7 @@ afterEach(cleanup);
 
 beforeEach(() => {
   vi.clearAllMocks();
+  window.localStorage.clear();
   mockProfileData = { full_name: 'Guard User', department_id: 'dept-1', avatar_url: null };
   mockDeptData = { name: 'IT Department' };
   mockGetUser.mockResolvedValue({
@@ -102,9 +103,9 @@ describe('Sidebar: profile card — avatar photo', () => {
     await waitFor(() => {
       expect(screen.getByText('GU')).toBeInTheDocument();
     });
-    // No <img> should be rendered for avatar
-    const profileCard = screen.getByTitle('Change profile photo');
-    expect(profileCard.querySelector('img')).toBeNull();
+    // No <img> should be rendered inside the profile link
+    const link = screen.getByText('Guard User').closest('a');
+    expect(link?.querySelector('img')).toBeNull();
   });
 
   it('shows avatar image when avatar_url exists', async () => {
@@ -121,89 +122,36 @@ describe('Sidebar: profile card — avatar photo', () => {
     });
   });
 
-  it('renders a hidden file input for photo upload', () => {
-    renderWithRouter(<Sidebar session={guardSession} role="guard" />);
-    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
-    expect(fileInput).toBeTruthy();
-    expect(fileInput.accept).toBe('image/*');
-    expect(fileInput.className).toContain('hidden');
-  });
-
-  it('has a clickable "Change profile photo" button', async () => {
-    renderWithRouter(<Sidebar session={guardSession} role="guard" />);
-    await waitFor(() => {
-      const btn = screen.getByTitle('Change profile photo');
-      expect(btn).toBeInTheDocument();
-      expect(btn.tagName).toBe('BUTTON');
-    });
-  });
-
-  it('triggers file input click when avatar is clicked', async () => {
-    renderWithRouter(<Sidebar session={guardSession} role="guard" />);
-    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
-    const clickSpy = vi.spyOn(fileInput, 'click');
-
-    await waitFor(() => {
-      const btn = screen.getByTitle('Change profile photo');
-      fireEvent.click(btn);
-    });
-
-    expect(clickSpy).toHaveBeenCalled();
-    clickSpy.mockRestore();
-  });
-
-  it('uploads a photo and updates the avatar', async () => {
-    renderWithRouter(<Sidebar session={guardSession} role="guard" />);
-
-    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
-    const file = new File(['photo-data'], 'photo.png', { type: 'image/png' });
-
+  it('renders no file input in the sidebar — upload moved to /profile', async () => {
+    const { container } = renderWithRouter(<Sidebar session={guardSession} role="guard" />);
     await waitFor(() => {
       expect(screen.getByText('Guard User')).toBeInTheDocument();
     });
+    expect(container.querySelector('input[type="file"]')).toBeNull();
+  });
 
-    fireEvent.change(fileInput, { target: { files: [file] } });
-
+  it('the avatar/name block is a link to /profile', async () => {
+    renderWithRouter(<Sidebar session={guardSession} role="guard" />);
     await waitFor(() => {
-      expect(mockUpload).toHaveBeenCalledWith(
-        'user-1/avatar.png',
-        file,
-        { upsert: true },
-      );
-    });
-
-    await waitFor(() => {
-      expect(mockUpdate).toHaveBeenCalledWith(
-        expect.objectContaining({ avatar_url: expect.stringContaining('https://storage.example.com/avatars/user-1/avatar.jpg') }),
-      );
+      const link = screen.getByText('Guard User').closest('a');
+      expect(link).toHaveAttribute('href', '/profile');
     });
   });
 
-  it('rejects files larger than 2 MB silently', async () => {
-    renderWithRouter(<Sidebar session={guardSession} role="guard" />);
-
-    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
-    // Create a fake file > 2MB
-    const bigFile = new File(['x'.repeat(3 * 1024 * 1024)], 'huge.png', { type: 'image/png' });
-
-    fireEvent.change(fileInput, { target: { files: [bigFile] } });
-
-    // Upload should NOT be called
+  it('the collapsed sidebar still links to /profile', async () => {
+    renderWithRouter(<Sidebar session={guardSession} role="guard" collapsed />);
     await waitFor(() => {
-      expect(mockUpload).not.toHaveBeenCalled();
+      const link = screen.getByLabelText('My profile');
+      expect(link).toHaveAttribute('href', '/profile');
     });
   });
 
-  it('rejects non-image files silently', async () => {
+  it('sign out still works from the sidebar', async () => {
     renderWithRouter(<Sidebar session={guardSession} role="guard" />);
-
-    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
-    const textFile = new File(['hello'], 'readme.txt', { type: 'text/plain' });
-
-    fireEvent.change(fileInput, { target: { files: [textFile] } });
-
     await waitFor(() => {
-      expect(mockUpload).not.toHaveBeenCalled();
+      expect(screen.getByText('Guard User')).toBeInTheDocument();
     });
+    fireEvent.click(screen.getByLabelText('Sign out'));
+    expect(mockSignOut).toHaveBeenCalled();
   });
 });

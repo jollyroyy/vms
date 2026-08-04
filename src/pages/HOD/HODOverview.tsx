@@ -9,6 +9,7 @@ import OverviewUpcoming from './OverviewUpcoming';
 import OverviewOnSite from './OverviewOnSite';
 import OverviewNotifications from './OverviewNotifications';
 import OverviewFilteredView from './OverviewFilteredView';
+import OverviewPendingApprovals from './OverviewPendingApprovals';
 
 interface Stats {
   inside: number;
@@ -36,6 +37,7 @@ export default function HODOverview(): React.ReactElement {
   const [userId, setUserId] = useState<string | null>(null);
   const [stats, setStats] = useState<Stats>({ inside: 0, approvedToday: 0, pending: 0, rejectedToday: 0 });
   const [upcoming, setUpcoming] = useState<Visit[]>([]);
+  const [pendingVisits, setPendingVisits] = useState<Visit[]>([]);
   const [onSite, setOnSite] = useState<Visit[]>([]);
   const [notifs, setNotifs] = useState<Notification[]>([]);
   const [searchParams, setSearchParams] = useSearchParams();
@@ -81,6 +83,18 @@ export default function HODOverview(): React.ReactElement {
         pending: todayRows.filter(r => r.status === 'pending_approval').length,
         rejectedToday: todayRows.filter(r => r.status === 'rejected').length,
       });
+
+      // Pending walk-in requests, deliberately NOT bounded to today: a request
+      // raised at 11pm is still someone waiting at the gate at 12:05am, and the
+      // whole point of surfacing this on the Overview is that it is unfinished
+      // business. The stats tile above stays day-bounded like every other tile.
+      const { data: pendingData } = await supabase
+        .from('visits').select('*, visitor:visitors(*), department:departments(id, name, code, created_at)')
+        .eq('department_id', deptId).eq('status', 'pending_approval')
+        .order('created_at', { ascending: false }).limit(50);
+      let pendingRows = ((pendingData as unknown as Visit[]) ?? []);
+      pendingRows = await attachHostNames(pendingRows);
+      setPendingVisits(pendingRows.map(v => ({ ...v, photo_url: v.photo_data ?? undefined })));
 
       const { data: upcomingData } = await supabase
         .from('visits').select('*, visitor:visitors(*), department:departments(id, name, code, created_at)')
@@ -224,6 +238,17 @@ export default function HODOverview(): React.ReactElement {
         />
       ) : (
         <>
+          {/* Above everything else: this is the only section on the page that
+              someone is actively waiting on. */}
+          <OverviewPendingApprovals
+            visits={pendingVisits}
+            loading={loading}
+            acting={acting}
+            reasons={reasons}
+            onReasonChange={onReasonChange}
+            onDecide={(id, approved) => void decide(id, approved)}
+          />
+
           <OverviewOnSite loading={loading} onSite={onSite} />
 
           <div className="grid grid-cols-1 xl:grid-cols-[1fr_340px] gap-3 items-start">

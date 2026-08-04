@@ -20,7 +20,10 @@ export default function OverviewStatCards({ loading, stats, activeFilter, onSele
     // the 600 shades are tuned to sit on white and go muddy on a dark card.
     { key: 'inside',   value: stats.inside,         label: 'Inside',           color: 'text-brand-600 dark:text-brand-300' },
     { key: 'approved', value: stats.approvedToday,  label: 'Approved',         color: 'text-success-600 dark:text-success-700' },
-    { key: 'pending',  value: stats.pending,        label: 'Pending Approval', color: 'text-amber-600 dark:text-amber-300' },
+    // Named for what it actually holds: `pending_approval` is only ever reached
+    // by a walk-in request raised at the gate. A pre-approval is created already
+    // approved, so it never passes through this state.
+    { key: 'pending',  value: stats.pending,        label: 'Pending Walk-in Approvals', color: 'text-amber-600 dark:text-amber-300' },
     { key: 'rejected', value: stats.rejectedToday,  label: 'Rejected',         color: 'text-danger-600 dark:text-danger-700' },
   ];
 

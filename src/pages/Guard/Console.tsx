@@ -6,21 +6,29 @@ import { attachHostNames } from '../../lib/hostNames';
 import { safeErrorMessage } from '../../lib/errors';
 import GuardConsoleModeTabs, { type Mode } from './GuardConsoleModeTabs';
 import GuardConsoleModeContent from './GuardConsoleModeContent';
-import CheckInPanel from './CheckInPanel';
+// No CheckInPanel import any more — see the header comment below.
 // No Badge import: the guard console must never render an entry pass. See
 // canRoleShowPass in lib/passVisibility.ts for why. Badge draws a live QR
 // straight from visit.qr_token and has no role gate of its own, so wiring it
 // back in here would reintroduce the leak that gate exists to close.
 
+// This page is the WALK-IN lane. CheckInPanel — the QR gate, the pre-approved
+// match search and the check-in that follows — has moved to /guard/pre-approvals,
+// because everything it does concerns a visitor who was booked in advance. A
+// walk-in is by definition someone nobody expected, so pairing the two on one
+// screen meant a guard scanned past the pre-approved half every time. The two
+// arrival routes are now two destinations.
+//
+// What stays here is the pair of things a walk-in needs: register the arrival,
+// and — on the Inside tab — let anyone out again. Inside deliberately lists
+// EVERY checked-in visitor, pre-approved ones included: it is the exit lane,
+// and a visitor who cannot be checked out is a visitor who never leaves the
+// system. Only the Walk-ins tab is walk-in-only.
+//
 // URL tab → mode. Kept as a lookup map (CLAUDE.md forbids includes() chains for
-// known enums). Only two modes are live now: the audit views (checked-out /
-// rejected / all) were removed from the guard surface entirely, and "expected"
-// stopped being a tab when CheckInPanel was promoted to sit above the tab bar.
-// Old deep-links (dashboard tiles, bookmarks, the former sidebar sub-nav, the
-// former audit tabs) must not 404 into a blank tab, so every legacy value
-// degrades onto a live one. Everything that used to mean "expected" now lands
-// on Inside — the check-in flow those links were reaching for is on screen
-// unconditionally, so the tab choice underneath it is free.
+// known enums). Old deep-links (dashboard tiles, bookmarks, the former sidebar
+// sub-nav, the former audit tabs) must not 404 into a blank tab, so every
+// legacy value degrades onto a live one.
 const TAB_MODE_MAP: Record<string, Mode> = {
   walkins: 'walkins',
   inside: 'inside',
@@ -37,7 +45,9 @@ const TAB_MODE_MAP: Record<string, Mode> = {
 export default function GuardConsole(): React.ReactElement {
   const [searchParams, setSearchParams] = useSearchParams();
   const tabParam = searchParams.get('tab');
-  const initialMode: Mode = (tabParam && TAB_MODE_MAP[tabParam]) ? TAB_MODE_MAP[tabParam]! : 'inside';
+  // Defaults to walk-ins: that is what this page is now for. Check-out is a
+  // deliberate second step, one tab away.
+  const initialMode: Mode = (tabParam && TAB_MODE_MAP[tabParam]) ? TAB_MODE_MAP[tabParam]! : 'walkins';
 
   const [mode, setMode] = useState<Mode>(initialMode);
   const [visits, setVisits] = useState<Visit[]>([]);
@@ -108,8 +118,8 @@ export default function GuardConsole(): React.ReactElement {
   return (
     <div className="max-w-4xl mx-auto space-y-5 animate-fade-in pb-4">
       <header>
-        <h1 className="page-title">Visitors</h1>
-        <p className="page-subtitle">Check visitors in and out, and register walk-ins</p>
+        <h1 className="page-title">Walk-in Visitors</h1>
+        <p className="page-subtitle">Register unannounced arrivals and let visitors out</p>
       </header>
 
       {successMsg && (
@@ -126,9 +136,6 @@ export default function GuardConsole(): React.ReactElement {
           <button onClick={() => setActionErr('')} className="text-xs font-bold opacity-70 hover:opacity-100">Dismiss</button>
         </div>
       )}
-
-      {/* Check-in is unconditional, not a tab. See GuardConsoleModeTabs. */}
-      <CheckInPanel today={today} onCheckInSuccess={onCheckInSuccess} />
 
       <GuardConsoleModeTabs
         mode={mode}

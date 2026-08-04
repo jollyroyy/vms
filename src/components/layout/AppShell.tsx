@@ -15,15 +15,31 @@ type Props = {
 
 const COLLAPSE_KEY = 'securegate-sidebar-collapsed';
 
+// Computed once — Mac shows the ⌘ glyph, everyone else gets a spelled-out Ctrl.
+const SHORTCUT_HINT = typeof navigator !== 'undefined' && /Mac/i.test(navigator.platform) ? '⌘K' : 'Ctrl K';
+
 export default function AppShell({ session, role, children }: Props): React.ReactElement {
   const [collapsed, setCollapsed] = useState<boolean>(() => {
     try { return window.localStorage.getItem(COLLAPSE_KEY) === '1'; } catch { return false; }
   });
   const [searchQuery, setSearchQuery] = useState('');
+  const [searchFocused, setSearchFocused] = useState(false);
   const [deptName, setDeptName] = useState('');
   const [profileName, setProfileName] = useState('');
   const searchRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
+
+  // Global ⌘K / Ctrl+K shortcut — focuses the topbar search from anywhere.
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        searchRef.current?.focus();
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, []);
 
   // Fetch department name for greeting banner
   useEffect(() => {
@@ -69,10 +85,14 @@ export default function AppShell({ session, role, children }: Props): React.Reac
         {/* Top strip — search, scanner, notifications */}
         <header className="no-print sticky top-0 z-30 card-glass !rounded-none !border-x-0 !border-t-0">
           <div className="flex items-center gap-3 h-16 px-4 sm:px-6 lg:px-8 pl-16 lg:pl-8">
-            {/* Search bar */}
-            <form onSubmit={handleSearch} className="flex-1 min-w-0 max-w-md">
-              <div className="relative">
-                <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-navy-400 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            {/* Search bar — a contained pill, not a stretched box; sits with the
+                notification bell as a right-hand action cluster. */}
+            <form
+              onSubmit={handleSearch}
+              className={`ml-auto min-w-0 w-40 sm:w-64 transition-[width] duration-200 ease-out ${searchFocused ? 'sm:w-80' : ''}`}
+            >
+              <div className={`topbar-search relative flex items-center ${searchFocused ? 'is-focused' : ''}`}>
+                <svg className="topbar-search-icon absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
                 </svg>
                 <input
@@ -80,23 +100,43 @@ export default function AppShell({ session, role, children }: Props): React.Reac
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
+                  onFocus={() => setSearchFocused(true)}
+                  onBlur={() => setSearchFocused(false)}
                   placeholder="Search visitors, passes..."
-                  className="w-full h-9 pl-9 pr-3 rounded-xl bg-surface-100 border border-surface-200 text-sm text-navy-700 placeholder:text-navy-400 focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-400 transition-all"
+                  className="w-full h-9 pl-9 pr-9 bg-transparent border-0 text-sm text-navy-700 placeholder:text-navy-400 focus:outline-none"
                 />
+                {searchQuery ? (
+                  <button
+                    type="button"
+                    onClick={() => { setSearchQuery(''); searchRef.current?.focus(); }}
+                    className="topbar-search-clear absolute right-2 top-1/2 -translate-y-1/2 flex items-center justify-center w-5 h-5 rounded-full"
+                    aria-label="Clear search"
+                  >
+                    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                ) : (
+                  <kbd className="topbar-search-kbd hidden sm:inline-flex absolute right-2 top-1/2 -translate-y-1/2 items-center justify-center px-1.5 py-0.5 rounded-md text-[10px] font-semibold tracking-wide">
+                    {SHORTCUT_HINT}
+                  </kbd>
+                )}
               </div>
             </form>
 
-            {/* Scanner action */}
-            <button
-              onClick={handleScanner}
-              className="relative p-2 rounded-xl hover:bg-surface-100 transition-all duration-200"
-              title="Scan QR code"
-            >
-              <svg className="w-5 h-5 text-navy-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 013.75 9.375v-4.5zM3.75 14.625c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5a1.125 1.125 0 01-1.125-1.125v-4.5zM13.5 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 0113.5 9.375v-4.5z" />
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 6.75h.75v.75h-.75v-.75zM6.75 16.5h.75v.75h-.75v-.75zM16.5 6.75h.75v.75h-.75v-.75zM13.5 13.5h.75v.75h-.75v-.75zM13.5 19.5h.75v.75h-.75v-.75zM19.5 13.5h.75v.75h-.75v-.75zM16.5 16.5h.75v.75h-.75v-.75z" />
-              </svg>
-            </button>
+            {/* Scanner action — scanning is a gate action, guard-only */}
+            {role === 'guard' && (
+              <button
+                onClick={handleScanner}
+                className="relative p-2 rounded-xl hover:bg-surface-100 transition-all duration-200"
+                title="Scan QR code"
+              >
+                <svg className="w-5 h-5 text-navy-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 013.75 9.375v-4.5zM3.75 14.625c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5a1.125 1.125 0 01-1.125-1.125v-4.5zM13.5 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 0113.5 9.375v-4.5z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 6.75h.75v.75h-.75v-.75zM6.75 16.5h.75v.75h-.75v-.75zM16.5 6.75h.75v.75h-.75v-.75zM13.5 13.5h.75v.75h-.75v-.75zM13.5 19.5h.75v.75h-.75v-.75zM19.5 13.5h.75v.75h-.75v-.75zM16.5 16.5h.75v.75h-.75v-.75z" />
+                </svg>
+              </button>
+            )}
 
             <NotificationBell userId={session.user.id} role={role} />
           </div>

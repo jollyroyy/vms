@@ -13,9 +13,14 @@ import { downloadQrPassPdf } from '../lib/qrPassPdf';
 import { downloadQrPassPng } from '../lib/qrPassImage';
 import PassIdentity from './PassIdentity';
 
-type Props = { visit: Visit };
+type Props = {
+  visit: Visit;
+  /** Forwarded to PassIdentity. Defaults to true; VisitorDetails turns it off
+   * for an HOD viewer, who approves on who/why and never checks the ID itself. */
+  showIdProof?: boolean;
+};
 
-export default function PreApprovalPass({ visit }: Props): React.ReactElement {
+export default function PreApprovalPass({ visit, showIdProof = true }: Props): React.ReactElement {
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
   // The PDF has to load and re-encode the photo before it can be written, so
   // the button would otherwise sit there looking inert on a slow photo fetch.
@@ -37,7 +42,12 @@ export default function PreApprovalPass({ visit }: Props): React.ReactElement {
   }, [visit.qr_token]);
 
   return (
-    <div className="border-t border-surface-200 pt-4 mt-2 flex flex-col items-center gap-2">
+    // Its own contained surface, not the bare border-t this used to be — inside
+    // the HOD popup's translucent glass modal, content floating with no card of
+    // its own had nothing to read against in dark mode. White in light, a low-
+    // alpha white lift in dark: `dark:bg-navy-800` looks right until you remember
+    // navy is INVERTED in dark mode and would render this near-white-on-white.
+    <div className="mt-2 flex flex-col items-center gap-2 rounded-2xl border border-surface-200/60 dark:border-white/[0.08] bg-white dark:bg-white/[0.06] p-4">
       <p className="text-xs font-bold text-navy-400 uppercase tracking-wide">Entry Pass</p>
       {/* The QR itself carries only an opaque token — never the visitor's name,
           ID or photo. This block is what a *human* checks the pass against;
@@ -49,12 +59,19 @@ export default function PreApprovalPass({ visit }: Props): React.ReactElement {
           vendorName={visit.visitor?.vendor_name}
           idType={visit.visitor?.id_type}
           idLast4={visit.visitor?.id_last4}
+          showIdProof={showIdProof}
         />
       </div>
+      {/* A QR is only scannable as dark-on-white, so its tile stays explicitly
+          white in both themes — it must never inherit the card's dark lift. */}
       {qrDataUrl ? (
-        <img src={qrDataUrl} alt="Entry pass QR code" className="w-32 h-32 rounded-lg ring-1 ring-surface-200" />
+        <div className="bg-white p-2 rounded-xl">
+          <img src={qrDataUrl} alt="Entry pass QR code" className="w-32 h-32 rounded-lg ring-1 ring-surface-200" />
+        </div>
       ) : (
-        <div className="w-32 h-32 rounded-lg bg-surface-50 animate-pulse" />
+        <div className="bg-white p-2 rounded-xl">
+          <div className="w-32 h-32 rounded-lg bg-surface-50 animate-pulse" />
+        </div>
       )}
       <p className="text-[11px] text-navy-400 font-mono">{visit.ref_number}</p>
       {/* Once the visit is checked in the token no longer opens the gate, but

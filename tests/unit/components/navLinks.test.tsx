@@ -6,16 +6,16 @@ describe('navLinks: linksForRole', () => {
     const links = linksForRole('guard');
     expect(links.map((l) => l.label)).toEqual([
       'Dashboard',
-      'Visitors',
+      'Walk-in Visitors',
       'Pre-Approvals',
       'Watchlist & Alerts',
     ]);
     expect(links.map((l) => l.label)).not.toContain('Search');
   });
 
-  it('guard Visitors link points to /visitors and carries no sub-nav children', () => {
+  it('guard Walk-in Visitors link points to /visitors and carries no sub-nav children', () => {
     const links = linksForRole('guard');
-    const visitors = links.find((l) => l.label === 'Visitors');
+    const visitors = links.find((l) => l.label === 'Walk-in Visitors');
     expect(visitors?.to).toBe('/visitors');
     expect((visitors as any)?.children).toBeUndefined();
   });

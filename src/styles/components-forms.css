@@ -17,8 +17,83 @@
     border-color: rgb(201 165 88 / 0.55);
     box-shadow: 0 0 0 4px rgb(184 147 74 / 0.15);
   }
+  /* A native <select>'s popup list inherits the control's own background, and
+     the 4%-white lift above composites to near-white over the OS surface —
+     putting near-white option text on a near-white list. The popup needs an
+     OPAQUE colour, and `color-scheme` is what tells the browser to draw the
+     native chrome (scrollbar, highlight) dark to match. */
+  .dark select {
+    color-scheme: dark;
+  }
+  .dark select.input {
+    background-color: rgb(var(--c-surface-100));
+  }
+  .dark select option,
+  .dark select optgroup {
+    background-color: rgb(var(--c-surface-100));
+    color: rgb(var(--c-navy-900));
+  }
   .label {
     @apply block text-xs font-semibold text-navy-600 mb-1.5 uppercase tracking-wide;
+  }
+
+  /* --- Topbar search pill --- */
+  .topbar-search {
+    @apply rounded-full;
+    background: rgb(var(--c-navy-900) / 0.035);
+    border: 1px solid rgb(var(--c-navy-900) / 0.09);
+    box-shadow: none;
+    transition: background-color 200ms ease, border-color 200ms ease, box-shadow 200ms ease;
+  }
+  .dark .topbar-search {
+    background: rgb(255 255 255 / 0.04);
+    border-color: rgb(255 255 255 / 0.09);
+  }
+  .topbar-search.is-focused,
+  .topbar-search:focus-within {
+    background: rgb(var(--c-navy-900) / 0.05);
+    border-color: rgb(201 165 88 / 0.55);
+    box-shadow: 0 0 0 4px rgb(184 147 74 / 0.12);
+  }
+  .dark .topbar-search.is-focused,
+  .dark .topbar-search:focus-within {
+    background: rgb(255 255 255 / 0.07);
+    border-color: rgb(201 165 88 / 0.55);
+    box-shadow: 0 0 0 4px rgb(184 147 74 / 0.15);
+  }
+  .topbar-search-icon {
+    @apply text-navy-400;
+    transition: color 200ms ease;
+  }
+  .topbar-search.is-focused .topbar-search-icon,
+  .topbar-search:focus-within .topbar-search-icon {
+    color: rgb(184 147 74 / 1);
+  }
+  .topbar-search-kbd {
+    @apply text-navy-400 border border-surface-200;
+    background: rgb(var(--c-navy-900) / 0.04);
+    transition: opacity 150ms ease;
+  }
+  .dark .topbar-search-kbd {
+    background: rgb(255 255 255 / 0.05);
+    border-color: rgb(255 255 255 / 0.10);
+  }
+  .topbar-search.is-focused .topbar-search-kbd {
+    opacity: 0;
+  }
+  .topbar-search-clear {
+    @apply text-navy-400 hover:text-navy-700;
+    background: rgb(var(--c-navy-900) / 0.06);
+    transition: color 150ms ease, background-color 150ms ease;
+  }
+  .dark .topbar-search-clear {
+    background: rgb(255 255 255 / 0.08);
+  }
+  .topbar-search-clear:hover {
+    background: rgb(var(--c-navy-900) / 0.10);
+  }
+  .dark .topbar-search-clear:hover {
+    background: rgb(255 255 255 / 0.12);
   }
 
   /* --- Buttons --- */

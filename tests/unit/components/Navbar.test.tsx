@@ -109,7 +109,7 @@ describe('Sidebar: navigation links', () => {
     renderWithRouter(<Sidebar session={guardSession} role="guard" />);
     // The four-item visitor console. See components/layout/navLinks.tsx.
     expect(screen.getByText('Dashboard')).toBeInTheDocument();
-    expect(screen.getByText('Visitors')).toBeInTheDocument();
+    expect(screen.getByText('Walk-in Visitors')).toBeInTheDocument();
     expect(screen.getByText('Pre-Approvals')).toBeInTheDocument();
     expect(screen.getByText('Watchlist & Alerts')).toBeInTheDocument();
 
@@ -169,14 +169,14 @@ describe('Sidebar: navigation links', () => {
 
   it('highlights active link based on current route', () => {
     renderWithRouter(<Sidebar session={guardSession} role="guard" />, { route: '/visitors' });
-    const visitorsLinks = screen.getAllByText('Visitors');
+    const visitorsLinks = screen.getAllByText('Walk-in Visitors');
     const activeLink = visitorsLinks.find((el) => el.closest('a')?.className.includes('sidebar-link-active'));
     expect(activeLink).toBeTruthy();
   });
 
   it('does not highlight inactive links', () => {
     renderWithRouter(<Sidebar session={guardSession} role="guard" />, { route: '/whos-inside' });
-    const visitorsLinks = screen.getAllByText('Visitors');
+    const visitorsLinks = screen.getAllByText('Walk-in Visitors');
     const inactiveLink = visitorsLinks.find((el) => !el.closest('a')?.className.includes('sidebar-link-active'));
     expect(inactiveLink).toBeTruthy();
   });
@@ -202,10 +202,10 @@ describe('Sidebar: sign out', () => {
 describe('Sidebar: mobile menu', () => {
   it('toggles mobile menu on hamburger click', () => {
     renderWithRouter(<Sidebar session={guardSession} role="guard" />);
-    const beforeCount = screen.getAllByText('Visitors').length;
+    const beforeCount = screen.getAllByText('Walk-in Visitors').length;
     const toggleBtn = screen.getByLabelText('Open menu');
     expect(toggleBtn).toBeInTheDocument();
     fireEvent.click(toggleBtn);
-    expect(screen.getAllByText('Visitors').length).toBeGreaterThan(beforeCount);
+    expect(screen.getAllByText('Walk-in Visitors').length).toBeGreaterThan(beforeCount);
   });
 });

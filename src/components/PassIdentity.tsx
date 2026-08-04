@@ -12,6 +12,11 @@ export type PassIdentityProps = {
   idLast4?: string | null;
   /** 'lg' for the pass preview, 'sm' for the compact guard summary. Default 'lg'. */
   size?: 'sm' | 'lg';
+  /** Whether to show the redacted ID Proof row. Defaults to true — the guard's
+   * post-scan summary still needs it to check a document against the person
+   * at the gate. Callers that hand this pass to an approver instead (never at
+   * the gate) turn it off. */
+  showIdProof?: boolean;
 };
 
 export default function PassIdentity({
@@ -21,6 +26,7 @@ export default function PassIdentity({
   idType,
   idLast4,
   size = 'lg',
+  showIdProof = true,
 }: PassIdentityProps): React.ReactElement {
   const isLarge = size === 'lg';
   const photoSize = isLarge ? 'w-20 h-24' : 'w-14 h-[72px]';
@@ -67,11 +73,14 @@ export default function PassIdentity({
           <p className="text-sm text-navy-400">{vendorName}</p>
         )}
 
-        {/* ID Proof */}
-        <div className="flex items-baseline gap-2 text-xs">
-          <span className="text-navy-400 font-medium uppercase tracking-wide">ID Proof</span>
-          <span className="font-mono text-navy-600">{maskIdProof(idType, idLast4)}</span>
-        </div>
+        {/* ID Proof — omitted entirely (not blanked) for a viewer whose job is
+            deciding on who and why, not checking a document against a face. */}
+        {showIdProof && (
+          <div className="flex items-baseline gap-2 text-xs">
+            <span className="text-navy-400 font-medium uppercase tracking-wide">ID Proof</span>
+            <span className="font-mono text-navy-600">{maskIdProof(idType, idLast4)}</span>
+          </div>
+        )}
       </div>
     </div>
   );

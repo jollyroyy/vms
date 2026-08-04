@@ -11,6 +11,7 @@ vi.mock('../../../src/lib/hostNames', () => ({
 }));
 
 let mockTodayData: any;
+let mockPendingData: any;
 let mockUpcomingData: any;
 let mockOnSiteData: any;
 let mockNotifData: any;
@@ -40,12 +41,17 @@ vi.mock('../../../src/supabaseClient', () => ({
               }),
             };
           }
-          // General case: select → eq → in → order → limit
-          // `.in('status', [...])` is used both for the "upcoming" query
-          // (pending_approval/approved) and the "on-site" query (checked_in
-          // only) — distinguish by the statuses actually requested.
+          // General case: select → eq(department) → { eq(status) | in(status) }
+          // The pending walk-in query is `.eq(department).eq('status',
+          // 'pending_approval').order().limit()` — a second .eq(), not
+          // .in() — so it needs its own branch ahead of the .in() ones used
+          // by the "upcoming" and "on-site" queries (distinguished from
+          // each other by the statuses actually requested).
           return {
             eq: () => ({
+              eq: () => ({
+                order: () => ({ limit: () => Promise.resolve({ data: mockPendingData, error: null }) }),
+              }),
               in: (_col: string, statuses: string[]) => ({
                 order: () => ({
                   limit: () => {
@@ -89,6 +95,7 @@ function setup(opts?: { deptId?: string | null; deptName?: string | null }) {
     { id: 'v4', status: 'rejected' },
     { id: 'v5', status: 'checked_in' },
   ];
+  mockPendingData = [];
   mockUpcomingData = [];
   mockOnSiteData = [];
   mockNotifData = [];

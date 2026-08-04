@@ -17,6 +17,15 @@ vi.mock('../../../src/lib/usePreApprovals', () => ({
   },
 }));
 
+// CheckInPanel moved here from the console (see PreApprovals.tsx header
+// comment) — it has its own extensive supabase surface (visits, visitors,
+// recurring_visits, departments) covered by CheckInPanel's own tests, so it
+// is stubbed here the same way GuardConsole.test.tsx used to stub it before
+// the move.
+vi.mock('../../../src/pages/Guard/CheckInPanel', () => ({
+  default: () => <div>CheckInPanel</div>,
+}));
+
 vi.mock('../../../src/lib/hostNames', () => ({
   attachHostNames: (rows: any[]) => Promise.resolve(rows),
 }));
@@ -67,6 +76,14 @@ describe('GuardPreApprovals', () => {
   it('renders the heading', () => {
     renderPage();
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Pre-Approvals');
+  });
+
+  // The other half of the CheckInPanel move: it left the walk-in console and
+  // now lives here, above the filter tabs, since the QR gate and match search
+  // both only ever resolve a visitor who was booked in advance.
+  it('renders CheckInPanel above the filter tabs', () => {
+    renderPage();
+    expect(screen.getByText('CheckInPanel')).toBeInTheDocument();
   });
 
   it('shows an empty state for the default Today filter', () => {

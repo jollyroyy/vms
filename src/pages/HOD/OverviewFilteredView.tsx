@@ -21,7 +21,7 @@ type Props = {
 const MODE_META: Record<ViewMode, { title: string; subtitle: string }> = {
   inside:   { title: 'Currently Inside',   subtitle: 'Checked-in visitors right now' },
   approved: { title: 'Approved Today',     subtitle: 'Pre-approved & walk-in approved visitors' },
-  pending:  { title: 'Pending Approval',   subtitle: 'Visitors awaiting your decision' },
+  pending:  { title: 'Pending Walk-in Approvals', subtitle: 'Gate requests awaiting your decision' },
   rejected: { title: 'Rejected Today',     subtitle: 'Visitors denied entry today' },
 };
 

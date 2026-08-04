@@ -23,6 +23,7 @@ import HODOverview        from './pages/HOD/HODOverview';
 import WhosInside         from './pages/Shared/WhosInside';
 import ReportsPage        from './pages/Shared/Reports';
 import AnalyticsPage      from './pages/Shared/Analytics';
+import ProfilePage        from './pages/Shared/Profile';
 import AdminPanel         from './pages/Admin/AdminPanel';
 import ActivityPage       from './pages/Admin/Activity';
 import NotFoundPage       from './pages/NotFound';
@@ -168,6 +169,7 @@ export default function App(): React.ReactElement {
             <Route path="/analytics"      element={<ProtectedRoute role={role}><AnalyticsPage /></ProtectedRoute>} />
             <Route path="/admin"           element={<ProtectedRoute role={role}><AdminPanel /></ProtectedRoute>} />
             <Route path="/admin/activity"  element={<ProtectedRoute role={role}><ActivityPage /></ProtectedRoute>} />
+            <Route path="/profile"         element={<ProtectedRoute role={role}><ProfilePage session={session} role={role} /></ProtectedRoute>} />
             <Route path="*"                element={<NotFoundPage />} />
           </Routes>
         </AppShell>

@@ -1,6 +1,12 @@
-import React, { useState } from 'react';
+// The pre-booked arrival desk. CheckInPanel moved here from the visitor console
+// (pages/Guard/Console.tsx): the QR gate and the match search both only ever
+// resolve a visitor who was booked in advance, which is exactly the population
+// this page already lists. Scanning a pass and then finding that person's row
+// is one job, so it is now one screen.
+import React, { useCallback, useState } from 'react';
 import { usePreApprovals, type PreApprovalFilter } from '../../lib/usePreApprovals';
 import PreApprovalRow from './PreApprovalRow';
+import CheckInPanel from './CheckInPanel';
 
 const FILTER_OPTIONS: PreApprovalFilter[] = ['today', 'upcoming', 'all'];
 
@@ -19,13 +25,30 @@ const EMPTY_MESSAGES: Record<PreApprovalFilter, string> = {
 export default function GuardPreApprovals(): React.ReactElement {
   const [filter, setFilter] = useState<PreApprovalFilter>('today');
   const { visits, loading } = usePreApprovals(filter);
+  const [today] = useState(() => new Date().toISOString().slice(0, 10));
+  const [successMsg, setSuccessMsg] = useState('');
+
+  const onCheckInSuccess = useCallback((name: string) => {
+    setSuccessMsg(`"${name}" checked in successfully.`);
+    setTimeout(() => setSuccessMsg(''), 6000);
+  }, []);
 
   return (
     <div className="space-y-5">
       <div>
         <h1 className="font-display text-xl font-bold text-navy-950 dark:text-white">Pre-Approvals</h1>
-        <p className="text-sm text-navy-400 mt-0.5">Visitors booked to arrive, including future dates.</p>
+        <p className="text-sm text-navy-400 mt-0.5">Scan a pass or find a booked visitor to check them in.</p>
       </div>
+
+      {successMsg && (
+        <div className="alert-success">
+          <svg className="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+          <span className="flex-1 font-semibold">{successMsg}</span>
+          <button onClick={() => setSuccessMsg('')} className="text-xs font-bold opacity-70 hover:opacity-100">Dismiss</button>
+        </div>
+      )}
+
+      <CheckInPanel today={today} onCheckInSuccess={onCheckInSuccess} />
 
       <div className="inline-flex rounded-xl bg-surface-100 dark:bg-white/[0.06] p-1 gap-1">
         {FILTER_OPTIONS.map((opt) => (

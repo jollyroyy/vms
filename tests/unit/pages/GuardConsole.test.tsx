@@ -87,18 +87,22 @@ describe('GuardConsole', () => {
     expect(screen.queryByRole('tab', { name: /Expected/i })).not.toBeInTheDocument();
   });
 
-  it('renders CheckInPanel above the tabs regardless of the selected mode', async () => {
+  // CheckInPanel moved to /guard/pre-approvals (see PreApprovals.tsx) — the
+  // console is the walk-in lane and never resolves a booked-in-advance visitor,
+  // so it must not render the panel in any mode.
+  it('never renders CheckInPanel, in any mode', async () => {
     renderConsole();
-    await waitFor(() => expect(screen.getByText('CheckInPanel')).toBeInTheDocument());
-    fireEvent.click(screen.getByRole('tab', { name: /Walk-ins/i }));
-    await waitFor(() => expect(screen.getByText('Register a walk-in')).toBeInTheDocument());
-    expect(screen.getByText('CheckInPanel')).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByRole('tab', { name: /Walk-ins/i })).toBeInTheDocument());
+    expect(screen.queryByText('CheckInPanel')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('tab', { name: /Inside/i }));
+    await waitFor(() => expect(screen.getByRole('tab', { name: /Inside/i })).toHaveAttribute('aria-selected', 'true'));
+    expect(screen.queryByText('CheckInPanel')).not.toBeInTheDocument();
   });
 
-  it('defaults to the "inside" mode', async () => {
+  it('defaults to the "walkins" mode', async () => {
     renderConsole();
     await waitFor(() => {
-      expect(screen.getByRole('tab', { name: /Inside/i })).toHaveAttribute('aria-selected', 'true');
+      expect(screen.getByRole('tab', { name: /Walk-ins/i })).toHaveAttribute('aria-selected', 'true');
     });
   });
 
@@ -136,12 +140,12 @@ describe('GuardConsole', () => {
       ['exit', /Inside/i],
       ['checked-out', /Inside/i],
       ['walkins', /Walk-ins/i],
-    ])('?tab=%s selects a live tab and still shows the check-in panel', async (tab, label) => {
+    ])('?tab=%s selects a live tab', async (tab, label) => {
       renderConsole(`/visitors?tab=${tab}`);
       await waitFor(() => {
         expect(screen.getByRole('tab', { name: label })).toHaveAttribute('aria-selected', 'true');
-        expect(screen.getByText('CheckInPanel')).toBeInTheDocument();
       });
+      expect(screen.queryByText('CheckInPanel')).not.toBeInTheDocument();
     });
   });
 

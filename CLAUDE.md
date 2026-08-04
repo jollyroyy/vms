@@ -50,17 +50,27 @@
   `sync_profile_role_to_auth` trigger (migration 010) mirrors it into JWT `app_metadata`.
 
 ### Guard console (visitor-only deployment)
-- The guard **sidebar is four items** — Dashboard, Visitors, Pre-Approvals, Watchlist &
-  Alerts. Defined in `src/components/layout/navLinks.tsx` (extracted out of
-  `Sidebar.tsx`). `Visitors` carries **no sub-nav children**.
-- **`/visitors` has TWO tabs — Walk-ins and Inside — and check-in above them.**
-  "Expected" was never a list: it rendered the whole `CheckInPanel` (QR gate,
-  pre-approved match search, ID scan, photo, Check In). Checking someone in is not one
-  of several things a guard might be doing at a gate, it is *the* thing, so
-  `CheckInPanel` now renders unconditionally in `Console.tsx` above
-  `GuardConsoleModeTabs`, and `Mode` is `'walkins' | 'inside'`. Do not re-add an
-  Expected tab and do not move `CheckInPanel` back into `GuardConsoleModeContent` —
-  that component serves lists only now, and a test asserts it never renders the panel.
+- The guard **sidebar is four items** — Dashboard, Walk-in Visitors, Pre-Approvals,
+  Watchlist & Alerts. Defined in `src/components/layout/navLinks.tsx` (extracted out of
+  `Sidebar.tsx`). `Walk-in Visitors` carries **no sub-nav children**. The `/visitors`
+  entry is declared **twice** on purpose — guards see "Walk-in Visitors", staff see
+  "Visitors" — because the two roles land on different components at that route.
+- **The two arrival routes are two destinations.** A visitor either was booked in
+  advance or was not, and a guard is doing one or the other:
+  - `/guard/pre-approvals` is the **pre-booked** desk. `CheckInPanel` (QR gate,
+    pre-approved match search, ID scan, photo, Check In) renders there, above the
+    filter tabs. Everything it resolves is a visitor who was booked ahead, which is
+    exactly the population that page already lists.
+  - `/visitors` is the **walk-in** lane, titled "Walk-in Visitors". `Mode` is
+    `'walkins' | 'inside'`, defaulting to `walkins`.
+  `CheckInPanel` used to render unconditionally on `/visitors`; it no longer renders
+  there at all, and `GuardConsole.test.tsx` asserts its absence. Do not move it back,
+  and do not put it into `GuardConsoleModeContent` — that component serves lists only,
+  which has its own test.
+- **The Inside tab lists EVERY checked-in visitor, pre-approved ones included.** Only
+  the Walk-ins tab is walk-in-only. Inside is the exit lane, and it is the sole place
+  in the guard surface that checks a visitor out (`/guard/dashboard` reads, it does not
+  act) — filtering pre-approved arrivals out of it would mean they could never leave.
 - **Daily Staff, the Kiosk and Search were removed from the NAV but are still ROUTABLE.**
   `/guard/daily-staff`, `/kiosk` and `/guard/search` remain in `ROLE_ROUTES.guard` on
   purpose — the kiosk runs on its own device. They left the sidebar because neither is
@@ -109,6 +119,42 @@
   `.rail-*`, `.gate-action`, `.gate-tab`, `.queue-row`). Every colour resolves to an
   existing token, so both themes and any rebrand follow automatically. Status is always
   carried by a colour rail **and** a text badge — never colour alone.
+
+### HOD surface
+- **`/approvals` is the pre-approval FORM only.** It has no tabs. The "Pending" tab
+  that used to live there moved to `/overview`, because an HOD opens the Overview to
+  see what needs them and making them navigate to a second page to act on it was a
+  detour. Do not re-add a tab bar to `Approvals.tsx`.
+- **Pending walk-in requests render as full detail cards on the Overview.**
+  `OverviewPendingApprovals.tsx` sits above `OverviewOnSite`, owns its own
+  `VisitorDetails` modal and reuses `ApprovalsPendingList` (Approve / Reject /
+  Details). It returns `null` when nothing is pending, so a quiet day does not push
+  the day's activity below the fold. `HODOverview`'s pending query is deliberately
+  **not** day-bounded, unlike every other query on that page: a request raised at
+  11pm is still someone waiting at the gate at 12:05am.
+- `pending_approval` is only ever reached by a **walk-in** raised at the gate — a
+  pre-approval is created already approved and never passes through that state. Hence
+  the tile and both list headings read "Pending Walk-in Approvals".
+- **The HOD never sees a visitor's ID proof.** `VisitorDetails` hides the ID Document
+  row when `viewerRole === 'hod'` and passes `showIdProof={false}` down through
+  `PreApprovalPass` to `PassIdentity`. An approver decides on who is visiting and why;
+  matching a government ID to a face is the gate's job. `PassIdentity` defaults
+  `showIdProof` to `true`, which is what preserves it for the guard's post-scan summary.
+
+### My Profile (`/profile`)
+- Every role can reach it, so it is listed **last** in all four `ROLE_ROUTES` entries —
+  the first entry of each list is that role's landing page.
+- The sidebar profile block is a `<Link to="/profile">`. It used to fire a bare file
+  picker, which left no way to see your current photo, remove it, or read back your
+  role and department. Avatar upload/removal now lives in `lib/avatarUpload.ts` and
+  `pages/Shared/ProfilePhotoCard.tsx`.
+- Storage path is a fixed `${userId}/avatar` with **no extension**, so an upsert
+  replaces the previous photo instead of orphaning a `.png` beside a new `.jpg`, and
+  removal knows the one key to delete. Bucket and RLS come from migration **053**.
+- Only `full_name` and `avatar_url` are ever written. `role`, `department_id` and
+  `delegate_id` are administered from the Admin Panel — `role` in particular syncs into
+  the JWT via `sync_profile_role_to_auth` (migration 010) and must never be reachable
+  from a self-service form.
 
 ### Visitor identity and check-in constraints
 - **The visitor's organisation is `visitors.vendor_name`, never "company".** Renamed

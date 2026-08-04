@@ -37,7 +37,13 @@ const ICON_COG = 'M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11
 export const ALL_LINKS: NavLink[] = [
   // ── Guard: the four-item visitor console ──────────────────────────────────
   { to: '/guard/dashboard', label: 'Dashboard', roles: ['guard'], icon: icon(ICON_GRID) },
-  { to: '/visitors', label: 'Visitors', roles: ['guard', 'staff'], icon: icon(ICON_USERS) },
+  // Same route, two labels. For a guard this page is now the walk-in lane
+  // only — the pre-booked arrival flow lives under Pre-Approvals — so the nav
+  // has to say which of the two arrival routes it leads to. Staff get the
+  // unqualified label because they see a different page at this route
+  // (VisitorsDashboard, not the guard console).
+  { to: '/visitors', label: 'Walk-in Visitors', roles: ['guard'], icon: icon(ICON_USERS) },
+  { to: '/visitors', label: 'Visitors', roles: ['staff'], icon: icon(ICON_USERS) },
   { to: '/guard/pre-approvals', label: 'Pre-Approvals', roles: ['guard'], icon: icon(ICON_CALENDAR) },
   // Search left the nav but stays routable at /guard/search (see
   // ROLE_ROUTES.guard in roleRoutes.ts) — same reasoning as Daily Staff/Kiosk.

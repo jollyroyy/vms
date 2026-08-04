@@ -82,7 +82,7 @@ describe('OverviewFilteredView', () => {
     const cases: { mode: 'inside' | 'approved' | 'pending' | 'rejected'; title: string }[] = [
       { mode: 'inside', title: 'Currently Inside' },
       { mode: 'approved', title: 'Approved Today' },
-      { mode: 'pending', title: 'Pending Approval' },
+      { mode: 'pending', title: 'Pending Walk-in Approvals' },
       { mode: 'rejected', title: 'Rejected Today' },
     ];
     for (const { mode, title } of cases) {
