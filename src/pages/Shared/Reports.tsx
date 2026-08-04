@@ -129,9 +129,9 @@ export default function ReportsPage(): React.ReactElement {
         {loading ? (
           <div className="card p-6 space-y-3 no-print">{[1, 2, 3].map((i) => <div key={i} className="h-8 skeleton" />)}</div>
         ) : (
-          <div className="card-premium overflow-hidden">
+          <div className="card-premium overflow-hidden print:overflow-visible">
             <div className="overflow-x-auto print:overflow-visible">
-              <table className="w-full text-sm tabular-nums">
+              <table className="register-table w-full text-sm tabular-nums">
                 <thead>
                   <tr className="bg-surface-50/80 border-b border-surface-200/60 dark:border-white/[0.06]">
                     {['#', 'Ref', 'Photo', 'Name', 'Vendor', 'Phone', 'Dept', 'Host', 'ID Proof', 'Purpose', 'Carrying', 'Carrying Remarks', 'Approved', 'Check-in', 'Check-out', 'Status'].map((h) => (
@@ -174,13 +174,22 @@ export default function ReportsPage(): React.ReactElement {
                       <td className={`px-3.5 py-3 font-medium ${PLAIN_STATUS[v.status] ? 'capitalize' : ''} ${STATUS_COLORS[v.status] ?? 'text-navy-500'}`}>{visitStatusLabel(v)}</td>
                     </tr>
                   ))}
-                  {visits.length === 0 && (<tr><td colSpan={15} className="px-4 py-12 text-center text-navy-300">No visits between {range.from} and {range.to}</td></tr>)}
+                  {visits.length === 0 && (<tr><td colSpan={16} className="px-4 py-12 text-center text-navy-300">No visits between {range.from} and {range.to}</td></tr>)}
                 </tbody>
               </table>
             </div>
           </div>
         )}
       </section>
+
+      {/* Only the table header repeats across pages, so the register needs an
+          explicit end-of-report block — otherwise a printed copy has no way to
+          show it is complete and no place to sign it off. */}
+      <div className="print-only print-footer">
+        <p className="print-meta">End of register · {visits.length} {visits.length === 1 ? 'entry' : 'entries'} · {rangeLabel}</p>
+        <p className="print-meta">Confidential — contains personal data. Phone and ID numbers are masked.</p>
+        <div className="print-signature"><span className="print-meta">Verified by</span></div>
+      </div>
     </div>
   );
 }

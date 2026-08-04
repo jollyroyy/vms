@@ -102,7 +102,7 @@ export default function ActivityPage(): React.ReactElement {
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-semibold text-sm text-navy-900">
+                    <span className="font-semibold text-sm text-navy-900 dark:text-white">
                       {log.profile?.full_name ?? (log.user_id ? log.user_id.slice(0, 8) : 'System')}
                     </span>
                     <span className={`status-badge text-xs ${lbl.color}`}>{lbl.text}</span>

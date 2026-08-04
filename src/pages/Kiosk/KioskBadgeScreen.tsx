@@ -10,7 +10,7 @@ type Props = {
 
 export default function KioskBadgeScreen({ badgeVisit, successMsg, resetCountdown }: Props): React.ReactElement {
   return (
-    <div className="min-h-screen bg-navy-950 flex flex-col items-center justify-center p-8">
+    <div className="min-h-screen bg-navy-950 dark:bg-navy-100 flex flex-col items-center justify-center p-8">
       <div className="animate-fade-in text-center max-w-md">
         {badgeVisit ? (
           <div className="mb-6 flex justify-center scale-125 origin-top">

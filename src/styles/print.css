@@ -9,7 +9,7 @@
   .no-print { display: none !important; }
   .print-only { display: block !important; }
 
-  @page { size: landscape; margin: 12mm; }
+  @page { size: A4 landscape; margin: 9mm 7mm 11mm; }
 
   html, body { background: #fff !important; color: #111 !important; }
 
@@ -26,6 +26,16 @@
     border-radius: 0 !important;
   }
   .card-premium::before { display: none !important; }
+
+  /* The register is 16 columns wide and lives inside a horizontal scroller
+     (`.card-premium.overflow-hidden` > `.overflow-x-auto`). On paper there is no
+     scrolling — anything past the page edge is simply CUT, which is why the
+     printed register used to stop somewhere around "Purpose" and lose Approved /
+     Check-in / Check-out / Status entirely. Nothing in the print tree may clip. */
+  .card, .card-hover, .card-glass, .card-premium,
+  .overflow-hidden, .overflow-x-auto, .overflow-y-auto, .overflow-auto {
+    overflow: visible !important;
+  }
 
   /* --- Letterhead --- */
   .print-header {
@@ -50,28 +60,101 @@
   .print-meta { font-size: 7.5pt; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: #999; margin: 0; }
 
   /* --- Table --- */
-  table { width: 100% !important; font-size: 8.5pt; border-collapse: collapse; color: #111; }
+  /* `table-layout: fixed` + explicit column widths below. Auto layout lets the
+     widest cell dictate the column and pushes the table past the page; fixed
+     layout makes every column a known share of the paper, so all 16 always fit. */
+  table { width: 100% !important; font-size: 7.5pt; border-collapse: collapse; color: #111; }
+  .register-table { table-layout: fixed; }
   thead { display: table-header-group; }
   thead th {
-    background: #f5f5f5 !important;
-    color: #666 !important;
-    font-size: 7pt;
+    background: #f2f2f2 !important;
+    color: #555 !important;
+    font-size: 6pt;
     font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.06em;
-    border-bottom: 1pt solid #ddd;
+    letter-spacing: 0.05em;
+    border-bottom: 0.75pt solid #999;
     print-color-adjust: exact;
     -webkit-print-color-adjust: exact;
   }
-  tbody tr { break-inside: avoid; border-bottom: 0.5pt solid #ddd; }
+  tbody tr { break-inside: avoid; border-bottom: 0.4pt solid #e0e0e0; }
   tbody tr:nth-child(even) {
     background: #fafafa !important;
     print-color-adjust: exact;
     -webkit-print-color-adjust: exact;
   }
-  td, th { padding: 4pt 6pt !important; }
+  td, th { padding: 3pt 4pt !important; vertical-align: top; }
   td { color: #111; }
-  table .whitespace-nowrap { white-space: nowrap; }
+
+  /* Screen keeps long values on one line because it can scroll sideways; paper
+     cannot, so every cell wraps instead. This overrides the `whitespace-nowrap`,
+     `truncate` and `max-w-*` utilities the register uses for its scroller. */
+  .register-table th, .register-table td,
+  .register-table .whitespace-nowrap, .register-table .truncate {
+    white-space: normal !important;
+    overflow: visible !important;
+    text-overflow: clip !important;
+    overflow-wrap: anywhere;
+    max-width: none !important;
+  }
+  /* Date cells stack date over time already — keep the pair together. */
+  .register-table td .block { display: block; }
+
+  /* 16 columns, summing to 100% of the printable width. Order must track the
+     header array in Reports.tsx: # Ref Photo Name Vendor Phone Dept Host
+     ID-Proof Purpose Carrying Remarks Approved Check-in Check-out Status. */
+  .register-table th:nth-child(1),  .register-table td:nth-child(1)  { width: 2%; }
+  .register-table th:nth-child(2),  .register-table td:nth-child(2)  { width: 5.5%; }
+  .register-table th:nth-child(3),  .register-table td:nth-child(3)  { width: 4%; }
+  .register-table th:nth-child(4),  .register-table td:nth-child(4)  { width: 8.5%; }
+  .register-table th:nth-child(5),  .register-table td:nth-child(5)  { width: 7%; }
+  .register-table th:nth-child(6),  .register-table td:nth-child(6)  { width: 6.5%; }
+  .register-table th:nth-child(7),  .register-table td:nth-child(7)  { width: 7%; }
+  .register-table th:nth-child(8),  .register-table td:nth-child(8)  { width: 7%; }
+  .register-table th:nth-child(9),  .register-table td:nth-child(9)  { width: 6.5%; }
+  .register-table th:nth-child(10), .register-table td:nth-child(10) { width: 7%; }
+  .register-table th:nth-child(11), .register-table td:nth-child(11) { width: 4%; }
+  .register-table th:nth-child(12), .register-table td:nth-child(12) { width: 8%; }
+  .register-table th:nth-child(13), .register-table td:nth-child(13) { width: 7%; }
+  .register-table th:nth-child(14), .register-table td:nth-child(14) { width: 7%; }
+  .register-table th:nth-child(15), .register-table td:nth-child(15) { width: 7%; }
+  .register-table th:nth-child(16), .register-table td:nth-child(16) { width: 6%; }
+
+  /* Photo: 40px on screen is too tall for a 3pt-padded print row. */
+  .register-table td img,
+  .register-table td > div.w-10 {
+    width: 22pt !important;
+    height: 22pt !important;
+    object-fit: cover;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+  }
+  /* The no-photo placeholder is a filled tile on screen; on paper an outline. */
+  .register-table td > div.w-10 { background: #fff !important; border: 0.4pt solid #ccc !important; }
+  .register-table td > div.w-10 svg { width: 11pt !important; height: 11pt !important; color: #bbb !important; }
+
+  /* Column-group hairlines make a 16-wide grid readable at 7.5pt. */
+  .register-table td + td, .register-table th + th { border-left: 0.3pt solid #ececec; }
+
+  /* --- End-of-report block --- */
+  .print-footer {
+    break-inside: avoid;
+    margin-top: 8pt;
+    padding-top: 6pt;
+    border-top: 0.75pt solid #ddd;
+  }
+  /* `.print-only` sets `display: block !important`, so no flex/gap here — the
+     footer is a plain block and its children space themselves. */
+  .print-footer > * + * { margin-top: 3pt; }
+  .print-signature {
+    margin-top: 16pt;
+    width: 150pt;
+    border-top: 0.5pt solid #999;
+    padding-top: 3pt;
+  }
+
+  /* The screen layout spaces sections 2rem apart; on paper that is dead sheet. */
+  .space-y-8 > * + * { margin-top: 8pt !important; }
 
   /* Neutralise the theme's CSS-variable-driven neutrals so a dark-mode
      session still prints near-black/grey instead of near-white. */

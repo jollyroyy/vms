@@ -40,7 +40,7 @@ export default function ConfirmDialog({
             </svg>
           </div>
         )}
-        <h3 className="text-lg font-semibold text-navy-900 font-display mb-2">{title}</h3>
+        <h3 className="text-lg font-semibold text-navy-900 dark:text-white font-display mb-2">{title}</h3>
         <p className="text-sm text-navy-500 mb-6 leading-relaxed">{message}</p>
         <div className="flex gap-3 justify-end">
           <button type="button" onClick={onCancel} className="btn-secondary">Cancel</button>

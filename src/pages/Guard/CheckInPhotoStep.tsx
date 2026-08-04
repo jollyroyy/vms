@@ -59,8 +59,8 @@ export default function CheckInPhotoStep({
             className="text-xs font-bold text-danger-700 underline underline-offset-2">Discard scan</button>
         </div>
       ) : (
-        <div className="rounded-xl bg-accent-50 border border-accent-200 px-4 py-2.5 text-sm flex items-center justify-between gap-2">
-          <span className="font-bold text-accent-700">ID recorded — no name could be read</span>
+        <div className="rounded-xl bg-accent-50 border border-accent-200 dark:bg-accent-500/10 dark:border-accent-500/25 px-4 py-2.5 text-sm flex items-center justify-between gap-2">
+          <span className="font-bold text-accent-700 dark:text-accent-300">ID recorded — no name could be read</span>
           <span className="text-xs text-accent-700/80">{scanResult.idType} •••• {scanResult.idLast4}</span>
         </div>
       )}
@@ -80,7 +80,7 @@ export default function CheckInPhotoStep({
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" /></svg>
           Back to search
         </button>
-        <div className="bg-white rounded-2xl p-5 shadow-sm border border-surface-100 space-y-4">
+        <div className="bg-white dark:bg-white/[0.06] dark:border-white/[0.07] rounded-2xl p-5 shadow-sm border border-surface-100 space-y-4">
           <CheckInVisitorSummary match={selectedMatch} />
           {scanSection}
           <p className="text-sm font-semibold text-navy-700">Take a photo to check in</p>
@@ -99,7 +99,7 @@ export default function CheckInPhotoStep({
           onClose={() => setScanOpen(false)}
         />
       )}
-      <div className="bg-white rounded-2xl p-5 shadow-sm border border-surface-100 space-y-4">
+      <div className="bg-white dark:bg-white/[0.06] dark:border-white/[0.07] rounded-2xl p-5 shadow-sm border border-surface-100 space-y-4">
         <div className="flex items-center gap-3">
           <img src={URL.createObjectURL(photoBlob)} alt="" className="w-14 h-[72px] object-cover rounded-xl ring-2 ring-success-200" />
           <div className="flex-1 min-w-0">

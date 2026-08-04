@@ -55,7 +55,7 @@ export default function DepartmentCard({
               </svg>
             </div>
             <div className="min-w-0">
-              <h3 className="text-[15px] font-bold text-navy-900 tracking-tight truncate leading-tight">{d.name}</h3>
+              <h3 className="text-[15px] font-bold text-navy-900 dark:text-white tracking-tight truncate leading-tight">{d.name}</h3>
               <span className="glass-chip !px-2 !py-0.5 !text-[11px] font-mono tracking-wider text-navy-400 mt-1.5">
                 {d.code}
               </span>

@@ -52,7 +52,7 @@ export default function KioskFormScreen({
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" /></svg>
           </button>
           <div>
-            <h1 className="text-lg font-bold text-navy-950 font-display">Visitor Registration</h1>
+            <h1 className="text-lg font-bold text-navy-950 dark:text-white font-display">Visitor Registration</h1>
             <p className="text-sm text-navy-400">Complete the form to register your visit</p>
           </div>
         </div>
