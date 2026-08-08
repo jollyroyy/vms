@@ -2,7 +2,13 @@
  * VMS Demo Seed Script — S14 / goal.md §2.2
  *
  * Creates 3 departments, HODs + delegates, a guard, an admin, and sample
- * visits/gate passes in every status so the demo has realistic data.
+ * visits in every status so the demo has realistic data.
+ *
+ * The material-pass module (public.gate_passes / gate_pass_items) has no UI in
+ * this app — it moved to the separate GatePass app (gatepass schema). The
+ * tables stay in the shared project for the RLS/realtime security tests, but
+ * this seed no longer plants demo rows in them (the old "Gate passes" section
+ * was removed 2026-08-08: rows no screen reads).
  *
  * Usage:
  *   cp .env.example .env          # fill VITE_SUPABASE_URL + SERVICE_ROLE_KEY
@@ -247,105 +253,6 @@ async function seed() {
     }
     visitIds.push(data.id);
     console.log(`  ✓ visit ${data.ref_number}`);
-  }
-
-  // ── 6. Gate passes ──
-  console.log('\n── Gate passes');
-  const today     = new Date().toISOString().slice(0, 10);
-  const tomorrow  = new Date(Date.now() + 86400_000).toISOString().slice(0, 10);
-  const yesterday = new Date(Date.now() - 86400_000).toISOString().slice(0, 10);
-
-  const passRows = [
-    // RGP OUT — awaiting return (due tomorrow, so 'due_soon')
-    {
-      type:                 'RGP'             as const,
-      direction:            'OUT'             as const,
-      department_id:        itDeptId,
-      status:               'awaiting_return' as const,
-      reason:               'Laptop repair at vendor workshop',
-      carrier_name:         'Rohan Desai',
-      expected_return_date: tomorrow,
-      created_by:           users['hod_it']!.id,
-    },
-    // RGP OUT — overdue (expected yesterday)
-    {
-      type:                 'RGP'             as const,
-      direction:            'OUT'             as const,
-      department_id:        hrDeptId,
-      status:               'awaiting_return' as const,
-      reason:               'Projector sent for calibration',
-      carrier_name:         'Kavita Joshi',
-      expected_return_date: yesterday,
-      created_by:           users['hod_hr']!.id,
-    },
-    // NRGP IN — dispatched
-    {
-      type:          'NRGP'       as const,
-      direction:     'IN'        as const,
-      department_id: finDeptId,
-      status:        'dispatched' as const,
-      reason:        'Stationery delivery',
-      carrier_name:  'Mohan Das',
-      created_by:    users['staff1']!.id,
-    },
-    // RGP OUT — draft
-    {
-      type:                 'RGP'  as const,
-      direction:            'OUT'  as const,
-      department_id:        itDeptId,
-      status:               'draft' as const,
-      reason:               'Test equipment for field visit',
-      expected_return_date: today,
-      created_by:           users['hod_it']!.id,
-    },
-  ];
-
-  const passInsertItems: Array<{ passId: string; items: Array<{ description: string; qty: number; unit?: string; serial_no?: string; approx_value?: number }> }> = [
-    {
-      passId: '',
-      items: [
-        { description: 'Dell Laptop XPS 15', qty: 1, unit: 'pc',  serial_no: 'DL-XPS-00123', approx_value: 85000 },
-        { description: 'Laptop Charger',      qty: 1, unit: 'pc',  serial_no: null,            approx_value: 3500  },
-      ],
-    },
-    {
-      passId: '',
-      items: [
-        { description: 'Epson Projector', qty: 1, unit: 'pc', serial_no: 'EP-PRJ-77', approx_value: 42000 },
-      ],
-    },
-    {
-      passId: '',
-      items: [
-        { description: 'A4 Paper Ream',  qty: 20, unit: 'ream', approx_value: 5000 },
-        { description: 'Ball Point Pens', qty: 100, unit: 'pcs', approx_value: 500  },
-      ],
-    },
-    {
-      passId: '',
-      items: [
-        { description: 'Oscilloscope', qty: 1, unit: 'pc', serial_no: 'OSC-2024-01', approx_value: 35000 },
-      ],
-    },
-  ];
-
-  for (let i = 0; i < passRows.length; i++) {
-    const pr = passRows[i]!;
-    const { data, error } = await admin.from('gate_passes').insert(pr).select('id, ref_number').single();
-    if (error) { console.error(`  ✗ gate_pass[${i}]:`, error.message); continue; }
-
-    // Patch status (trigger sets ref + created_at; we must update status after)
-    if (pr.status !== 'draft') {
-      await admin.from('gate_passes').update({ status: pr.status }).eq('id', data.id);
-    }
-
-    // Insert items
-    const itemSpec = passInsertItems[i]!;
-    const items = itemSpec.items.map((it) => ({ ...it, gate_pass_id: data.id }));
-    const { error: itemErr } = await admin.from('gate_pass_items').insert(items);
-    if (itemErr) console.error(`  ✗ items for ${data.ref_number}:`, itemErr.message);
-
-    console.log(`  ✓ gate_pass ${data.ref_number} (${pr.type}/${pr.direction}) — ${pr.status}`);
   }
 
   // ── Done ──

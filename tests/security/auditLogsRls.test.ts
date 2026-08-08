@@ -9,10 +9,17 @@
 // removed in afterAll — this file owns its fixtures independently, since
 // vi/beforeAll state cannot be shared across test files (see rls.test.ts).
 //
+// Since migration 063 the client can no longer INSERT into audit_logs at all
+// (the permissive "triggers can insert" policy + INSERT grant are gone — every
+// writer is a SECURITY DEFINER trigger, so no client grant is needed). The
+// file therefore also proves the two halves of that fix: a forged insert is
+// refused, and a real visit-approval still leaves its audit row behind.
+//
 // Enforcement under test:
 //   043_department_scoped_rls_audit.sql — "audit_logs: read via visit access"
 //   (sits alongside the pre-existing admin-only policy from migration 041;
-//   this file does not re-test the admin path, only the new visit-scoped one)
+//   this file does not re-test the admin path, only the visit-scoped one)
+//   063_audit_logs_no_client_insert.sql — forgery closure
 import 'dotenv/config';
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
@@ -142,5 +149,44 @@ describe('S9/SEC-5: audit_logs RLS — read scoped by visit access (migration 04
     const { data: hrData, error: hrErr } = await guard.from('audit_logs').select('*').eq('entity_id', hrVisitId);
     expect(hrErr).toBeNull();
     expect(hrData).toHaveLength(1);
+  }, 30_000);
+
+  it('a non-admin user CANNOT insert an audit_logs row (forgery closed, migration 063)', async () => {
+    // With "audit_logs: triggers can insert" (with check (true)) + a client
+    // INSERT grant, any signed-in user could fabricate trail rows — arbitrary
+    // actor, action and even created_at. That policy and grant are gone; this
+    // is the behavioural proof the forgery vector is closed.
+    const { error } = await hodIT.from('audit_logs').insert({
+      entity_type: 'visit',
+      entity_id: itVisitId,
+      action: 'visit_approved',
+      user_id: hodItId,
+      details: { forged: true },
+    });
+    expect(error).not.toBeNull();
+
+    // And the attempted forgery is nowhere in the trail.
+    const { data } = await svc.from('audit_logs').select('id').eq('details', { forged: true } as Record<string, boolean>);
+    expect(data ?? []).toHaveLength(0);
+  }, 30_000);
+
+  it('approving a visit still writes its audit row (SECURITY DEFINER trigger unaffected by the revoke)', async () => {
+    // The audit writers are SECURITY DEFINER triggers owned by the table
+    // owner, so they never depended on the client grant — revoking it must not
+    // have silenced the trail. Approve the IT fixture via the same RPC the app
+    // uses and expect the trigger to add a row. (beforeAll already planted one
+    // visit_approved fixture row for this visit, so assert on the DELTA.)
+    const before = (await svc.from('audit_logs').select('id')
+      .eq('entity_type', 'visit').eq('entity_id', itVisitId).eq('action', 'visit_approved')).data ?? [];
+
+    const { error: aErr } = await hodIT.rpc('approve_visit', { visit_id: itVisitId });
+    expect(aErr).toBeNull();
+
+    const { data, error } = await svc.from('audit_logs').select('id, action, user_id, created_at')
+      .eq('entity_type', 'visit').eq('entity_id', itVisitId).eq('action', 'visit_approved')
+      .order('created_at', { ascending: true });
+    expect(error).toBeNull();
+    expect(data ?? []).toHaveLength(before.length + 1);
+    expect(data![data!.length - 1].user_id).toBe(hodItId);
   }, 30_000);
 });

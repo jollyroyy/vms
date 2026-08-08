@@ -58,6 +58,17 @@
   rewriting history behind the admin's back is worse than grandfathering it.
   None of this is an SQL-injection fix: nothing in the app concatenates SQL, so
   injection is structurally unavailable. It buys data hygiene and depth.
+- **`audit_logs` is trigger-only — no client can forge an entry.** The 041-era
+  policy `audit_logs: triggers can insert` let **any authenticated user** POST an
+  arbitrary audit row (actor/action/entity/timestamps of their choosing), which
+  would have made `/admin/activity` a record someone could poison. Migration **063**
+  (applied live 2026-08-08) drops that policy and revokes `INSERT` from
+  `authenticated`. Let the `log_visit_approval` SECURITY DEFINER triggers be the
+  only writers — they are owned by the table owner and never depended on the grant
+  (this is why the policy's original rationale was wrong). Covered by
+  `tests/security/auditLogsRls.test.ts`: a forged insert is refused and no forged
+  row exists, while an approve still writes its audit line. If a feature ever needs
+  a manual audit entry, it belongs inside a SECURITY DEFINER function, not a policy.
 - HODs are added by **name + email**. `addHod()` promotes an existing profile if that
   email is already known, otherwise it invites a new account via `supabase.auth.signUp`
   and upserts the profile. Writing `profiles.role` is enough — the

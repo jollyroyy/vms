@@ -28,7 +28,9 @@
 ```bash
 npm run seed
 ```
-This creates 3 departments, 7 users (with roles), and sample visits/gate passes.
+This creates 3 departments, 7 users (with roles), and sample visits in every status.
+(Material gate passes moved to the separate GatePass app — the seed no longer
+plants rows in `public.gate_passes`.)
 
 ### 3. Start the app
 ```bash
@@ -182,6 +184,5 @@ npm run seed
 |---------|-----|
 | Webcam not working | Use HTTPS or `localhost`; check browser camera permissions |
 | HOD not receiving notifications | Confirm HOD's `department_id` matches the visit's department |
-| Gate pass ref number missing | Check `generate_gate_pass_ref` trigger in 001_schema.sql |
 | Photos showing 403 | Bucket must be **private**; app uses signed URLs (60-min expiry) |
 | Seed fails on users | Ensure `SUPABASE_SERVICE_ROLE_KEY` is set (not the anon key) |
