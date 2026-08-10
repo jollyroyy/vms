@@ -115,6 +115,26 @@ describe('VisitorDetails — reopening the entry pass', () => {
     expect(screen.queryByAltText('Entry pass QR code')).not.toBeInTheDocument();
   });
 
+  // 2026-08-10 client report: the expanded pass re-showed the name, company
+  // and ID the popup header and Details rows already display. The pass must
+  // show the QR and timing only — each identity fact exactly once, from the
+  // popup, not twice.
+  it('expanded pass repeats none of the identity shown in the popup — no second name, vendor or ID', async () => {
+    const withId = {
+      ...visit,
+      visitor: { ...visit.visitor, id_type: 'Aadhaar', id_last4: '9646' },
+    } as unknown as Visit;
+    render(<VisitorDetails visit={withId} onClose={vi.fn()} viewerRole="admin" />);
+
+    fireEvent.click(screen.getByRole('button', { name: /view pass/i }));
+    await waitFor(() => expect(screen.getByAltText('Entry pass QR code')).toBeInTheDocument());
+
+    expect(screen.getAllByText('John Doe')).toHaveLength(1);
+    expect(screen.getAllByText('Acme Corp')).toHaveLength(1);
+    expect(screen.getAllByText('Aadhaar ••••46')).toHaveLength(1);
+    expect(screen.getByText('Valid For')).toBeInTheDocument();
+  });
+
   it('offers a pass for a walk-in approval so the badge can still be printed', () => {
     render(<VisitorDetails visit={{ ...visit, status: 'walkin_approved' }} onClose={vi.fn()} viewerRole="hod" />);
     expect(screen.getByRole('button', { name: /view pass/i })).toBeInTheDocument();

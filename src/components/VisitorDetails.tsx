@@ -197,9 +197,13 @@ export default function VisitorDetails({
                 <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 4.5h4.5v4.5h-4.5v-4.5zM15.75 4.5h4.5v4.5h-4.5v-4.5zM3.75 15.75h4.5v4.5h-4.5v-4.5zM15.75 15.75h1.5v1.5h-1.5v-1.5zM19.5 15.75h.75v.75h-.75v-.75zM15.75 19.5h.75v.75h-.75v-.75zM18.75 18.75h1.5v1.5h-1.5v-1.5z" /></svg>
                 {showPass ? 'Hide Pass' : 'View Pass'}
               </button>
-              {/* Same "approver, not gate check" reasoning as the ID Document row
-                  above — the pass preview must not hand the HOD the ID either. */}
-              {showPass && <PreApprovalPass visit={v} showIdProof={viewerRole !== 'hod'} />}
+              {/* The header card above already shows the photo, name and
+                  company; Details shows Person to Meet and the ID. The
+                  expanded pass must NOT repeat any of them — it carries only
+                  what the popup does not: ref/status, the pass timing and
+                  the QR. identityShownElsewhere strips the identity block
+                  (and the ID with it) out of PreApprovalPass. */}
+              {showPass && <PreApprovalPass visit={v} identityShownElsewhere />}
             </div>
           )}
         </div>

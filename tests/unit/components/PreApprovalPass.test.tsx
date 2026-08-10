@@ -145,6 +145,28 @@ describe('M-QR-PASS: PreApprovalPass', () => {
     expect(screen.getByText('ID Proof')).toBeInTheDocument();
     expect(await screen.findByAltText('Entry pass QR code')).toBeInTheDocument();
   });
+
+  // 2026-08-10 client report (second pass): opening a pass from inside the
+  // VisitorDetails popup repeated the visitor's name, company and ID that the
+  // popup header already showed. When the caller renders identity elsewhere,
+  // the pass must keep only ref/status, the scheduled time and the QR —
+  // never a second identity block.
+  it('omits identity and Person-to-Meet when identityShownElsewhere, leaving QR and timing', async () => {
+    render(<PreApprovalPass visit={{
+      ...baseVisit,
+      host: { id: 'h1', full_name: 'Jane Smith' },
+      department: { id: 'd1', name: 'Engineering', code: 'ENG', created_at: '' },
+      visitor: { id: 'vis1', phone: '9876543210', full_name: 'Asha Rao', vendor_name: 'Acme', id_type: 'Aadhaar', id_last4: '9646', vehicle_number: null, is_blacklisted: false, blacklist_reason: null, created_at: '' },
+    }} identityShownElsewhere />);
+    expect(screen.queryByText('Asha Rao')).not.toBeInTheDocument();
+    expect(screen.queryByText('Acme')).not.toBeInTheDocument();
+    expect(screen.queryByText('Company')).not.toBeInTheDocument();
+    expect(screen.queryByText('ID Proof')).not.toBeInTheDocument();
+    expect(screen.queryByText('Person to Meet')).not.toBeInTheDocument();
+    expect(screen.queryByText('Jane Smith')).not.toBeInTheDocument();
+    expect(screen.getByText('Valid For')).toBeInTheDocument();
+    expect(await screen.findByAltText('Entry pass QR code')).toBeInTheDocument();
+  });
 });
 
 // Part 2 of the popup-close audit: the pass is read at a gate under time

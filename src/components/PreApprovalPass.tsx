@@ -17,8 +17,9 @@ import PassIdentity from './PassIdentity';
 
 type Props = {
   visit: Visit;
-  /** Forwarded to PassIdentity. Defaults to true; VisitorDetails turns it off
-   * for an HOD viewer, who approves on who/why and never checks the ID itself. */
+  /** Forwarded to PassIdentity. Defaults to true; PreApproveForm's success
+   * popup relies on it (its visitor has an ID on record), while callers that
+   * pass identityShownElsewhere never render PassIdentity at all. */
   showIdProof?: boolean;
   /** True when the caller already renders the visitor's photo, name and
    * company above this component (VisitorDetails' own header card does,
@@ -76,26 +77,34 @@ export default function PreApprovalPass({ visit, showIdProof = true, identitySho
         </span>
       </div>
 
-      {/* Visitor identity block. The QR itself carries only an opaque token —
-          never the visitor's name, ID or photo. This block is what a *human*
-          checks the pass against; scanning it is what pulls the same details
-          out of the database. */}
-      <div className="w-full max-w-xs">
-        <PassIdentity
-          photoUrl={photo}
-          name={visit.visitor?.full_name ?? ''}
-          vendorName={visit.visitor?.vendor_name}
-          idType={visit.visitor?.id_type}
-          idLast4={visit.visitor?.id_last4}
-          showIdProof={showIdProof}
-        />
-      </div>
+      {/* Visitor identity block. Omitted when the caller already renders the
+          photo, name and company above this component — VisitorDetails' own
+          header card does, and showing them twice is an error. The QR itself
+          carries only an opaque token — never the visitor's name, ID or
+          photo. This block is what a *human* checks the pass against;
+          scanning it is what pulls the same details out of the database. */}
+      {!identityShownElsewhere && (
+        <div className="w-full max-w-xs">
+          <PassIdentity
+            photoUrl={photo}
+            name={visit.visitor?.full_name ?? ''}
+            vendorName={visit.visitor?.vendor_name}
+            idType={visit.visitor?.id_type}
+            idLast4={visit.visitor?.id_last4}
+            showIdProof={showIdProof}
+          />
+        </div>
+      )}
 
       {/* Who they're here for, and how long the pass is good for — grouped
           apart from identity so a guard scanning down the card finds each
-          fact in its own labelled block, not one undifferentiated list. */}
-      <div className="w-full max-w-xs grid grid-cols-2 gap-x-3 gap-y-2 rounded-xl bg-surface-50 dark:bg-white/[0.04] px-3 py-2.5">
-        <PassField label="Person to Meet" value={visit.host?.full_name} sub={visit.department?.name} />
+          fact in its own labelled block, not one undifferentiated list. The
+          Person-to-Meet fact is dropped along with the identity block: the
+          caller that says it already shows identity also shows it. */}
+      <div className={`w-full max-w-xs grid gap-x-3 gap-y-2 rounded-xl bg-surface-50 dark:bg-white/[0.04] px-3 py-2.5 ${identityShownElsewhere ? 'grid-cols-1' : 'grid-cols-2'}`}>
+        {!identityShownElsewhere && (
+          <PassField label="Person to Meet" value={visit.host?.full_name} sub={visit.department?.name} />
+        )}
         <PassField label="Valid For" value={formatDateTime(visit.scheduled_for ?? visit.created_at)} />
       </div>
 
