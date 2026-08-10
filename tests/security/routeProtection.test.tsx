@@ -65,8 +65,13 @@ describe('SEC-7: frontend route protection', () => {
     it('guard is allowed on /guard/search', () => {
       expect(isForbidden('/guard/search', role)).toBe(false);
     });
-    it('guard is allowed on /guard/watchlist', () => {
-      expect(isForbidden('/guard/watchlist', role)).toBe(false);
+    it('guard route list no longer contains /guard/watchlist', () => {
+      // The Watchlist & Alerts feature was REMOVED. The blanket `/guard` prefix
+      // (deliberately, for the guard console) lets isForbidden("watchlist")
+      // through, so the array itself is the pin: if the route is ever re-added
+      // here it must also be re-added to App.tsx's <Routes>, and this test is
+      // the reminder.
+      expect(ROLE_ROUTES.guard).not.toContain('/guard/watchlist');
     });
 
     it('guard is FORBIDDEN on /admin', () => {
@@ -236,8 +241,8 @@ describe('SEC-7: frontend route protection', () => {
   });
 
   // ── New guard-only routes (sidebar restructure) ─────────────
-  it('only guard may reach /guard/pre-approvals, /guard/search and /guard/watchlist', () => {
-    const newGuardRoutes = ['/guard/pre-approvals', '/guard/search', '/guard/watchlist'];
+  it('only guard may reach /guard/pre-approvals and /guard/search', () => {
+    const newGuardRoutes = ['/guard/pre-approvals', '/guard/search'];
     const nonGuardRoles = ['hod', 'staff', 'admin'] as const;
     for (const route of newGuardRoutes) {
       expect(isForbidden(route, 'guard'), `guard must be allowed on ${route}`).toBe(false);

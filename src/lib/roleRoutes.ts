@@ -12,13 +12,15 @@ import type { UserRole } from '../types/index';
 // (the global top-bar search, see AppShell.tsx) follows the same precedent
 // and is listed LAST as well, after `/profile`.
 export const ROLE_ROUTES: Record<UserRole, string[]> = {
-  // The guard SIDEBAR is five items (see components/layout/navLinks.tsx), but the
+  // The guard SIDEBAR is three items (see components/layout/navLinks.tsx), but the
   // routable surface is deliberately wider. `/kiosk` runs on its own device and
   // `/guard/daily-staff` is still reachable by direct link — they were dropped
   // from the nav because neither is visitor check-in, not because access was
   // revoked. Removing them here would be a regression, not a cleanup.
+  // `/guard/watchlist` is gone entirely: the Watchlist & Alerts feature was
+  // removed; blacklist enforcement at the gate is unaffected.
   guard:       ['/guard/dashboard', '/visitors', '/guard', '/guard/pre-approvals',
-                '/guard/search', '/guard/watchlist', '/guard/daily-staff', '/kiosk', '/whos-inside', '/profile', '/search'],
+                '/guard/search', '/guard/daily-staff', '/kiosk', '/whos-inside', '/profile', '/search'],
   hod:         ['/overview', '/approvals', '/reports', '/analytics', '/profile', '/search'],
   staff:       ['/visitors', '/whos-inside', '/reports', '/profile', '/search'],
   admin:       ['/analytics', '/reports', '/admin', '/profile', '/search'], // admin is restricted to analytics, reports and settings — no visitor data

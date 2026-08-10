@@ -204,26 +204,6 @@
     border: 1px solid rgb(var(--glass-border) / var(--glass-border-opacity));
   }
 
-  /* --- Critical alert (watchlist hit at the gate) ------------------------
-     The one place loud red is correct. Ringed rather than filled so it stays
-     legible in dark mode. */
-  .gate-alert {
-    @apply relative rounded-2xl px-4 py-3.5 flex items-start gap-3;
-    background: rgb(var(--c-danger-50) / 0.92);
-    border: 1px solid rgb(239 68 68 / 0.35);
-    box-shadow: 0 6px 24px -8px rgb(239 68 68 / 0.35), inset 0 1px 0 0 rgb(255 255 255 / 0.25);
-  }
-  .gate-alert-pulse {
-    animation: gatePulse 2.4s ease-in-out infinite;
-  }
-  @keyframes gatePulse {
-    0%, 100% { box-shadow: 0 6px 24px -8px rgb(239 68 68 / 0.35), inset 0 1px 0 0 rgb(255 255 255 / 0.25); }
-    50%      { box-shadow: 0 6px 30px -6px rgb(239 68 68 / 0.60), inset 0 1px 0 0 rgb(255 255 255 / 0.25); }
-  }
-  @media (prefers-reduced-motion: reduce) {
-    .gate-alert-pulse { animation: none; }
-  }
-
   /* --- Queue row (dashboard) --------------------------------------------
      Count-first: the number is what the guard is triaging on. */
   .queue-row {

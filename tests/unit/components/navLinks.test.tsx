@@ -2,13 +2,12 @@ import { describe, it, expect } from 'vitest';
 import { ALL_LINKS, linksForRole } from '../../../src/components/layout/navLinks';
 
 describe('navLinks: linksForRole', () => {
-  it('guard gets exactly 4 links, in order, with the exact labels, and no Search', () => {
+  it('guard gets exactly 3 links, in order, with the exact labels, and no Search', () => {
     const links = linksForRole('guard');
     expect(links.map((l) => l.label)).toEqual([
       'Dashboard',
       'Walk-in Visitors',
       'Pre-Approvals',
-      'Watchlist & Alerts',
     ]);
     expect(links.map((l) => l.label)).not.toContain('Search');
   });

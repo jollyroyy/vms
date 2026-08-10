@@ -106,19 +106,18 @@ describe('Sidebar navigation links per role', () => {
     expect(screen.getByText('Pre-Approvals')).toBeInTheDocument();
   });
 
-  it('guard sees all four nav labels, in the visitor-only console, and no Search', () => {
+  it('guard sees all three nav labels, in the visitor-only console, and no Search', () => {
     renderSidebar('guard');
     expect(screen.getByText('Dashboard')).toBeInTheDocument();
     expect(screen.getByText('Walk-in Visitors')).toBeInTheDocument();
     expect(screen.getByText('Pre-Approvals')).toBeInTheDocument();
-    expect(screen.getByText('Watchlist & Alerts')).toBeInTheDocument();
     expect(screen.queryByText('Search')).not.toBeInTheDocument();
   });
 
-  it('guard sidebar has exactly 4 nav links', () => {
+  it('guard sidebar has exactly 3 nav links', () => {
     const { container } = renderSidebar('guard');
     const links = container.querySelectorAll('a.sidebar-link');
-    expect(links.length).toBe(4);
+    expect(links.length).toBe(3);
   });
 
   // Daily Staff and the Self-Service Kiosk are still ROUTABLE (see

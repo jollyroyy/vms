@@ -107,11 +107,10 @@ describe('Sidebar: navigation links', () => {
 
   it('renders correct nav links for guard role', () => {
     renderWithRouter(<Sidebar session={guardSession} role="guard" />);
-    // The four-item visitor console. See components/layout/navLinks.tsx.
+    // The three-item visitor console. See components/layout/navLinks.tsx.
     expect(screen.getByText('Dashboard')).toBeInTheDocument();
     expect(screen.getByText('Walk-in Visitors')).toBeInTheDocument();
     expect(screen.getByText('Pre-Approvals')).toBeInTheDocument();
-    expect(screen.getByText('Watchlist & Alerts')).toBeInTheDocument();
 
     // Search left the nav but stays routable at /guard/search (see
     // ROLE_ROUTES.guard in roleRoutes.ts) — same reasoning as Daily Staff/Kiosk.
