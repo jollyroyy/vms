@@ -146,3 +146,42 @@ describe('M-QR-PASS: PreApprovalPass', () => {
     expect(await screen.findByAltText('Entry pass QR code')).toBeInTheDocument();
   });
 });
+
+// Part 2 of the popup-close audit: the pass is read at a gate under time
+// pressure, so it must group who/whom-they're-meeting/validity/status into
+// labelled blocks rather than one flat list, and use the app's own status
+// colour tokens (never a parallel palette).
+describe('M-QR-PASS: PreApprovalPass — scannable hierarchy', () => {
+  it('shows a status badge using the shared STATUS_STYLES label', () => {
+    render(<PreApprovalPass visit={{ ...baseVisit, status: 'checked_in' }} />);
+    expect(screen.getByText('On-site')).toBeInTheDocument();
+  });
+
+  it('groups the person being met and their department under "Person to Meet"', () => {
+    render(<PreApprovalPass visit={{
+      ...baseVisit,
+      host: { id: 'h1', full_name: 'Jane Smith' },
+      department: { id: 'd1', name: 'Engineering', code: 'ENG', created_at: '' },
+    }} />);
+    expect(screen.getByText('Person to Meet')).toBeInTheDocument();
+    expect(screen.getByText('Jane Smith')).toBeInTheDocument();
+    expect(screen.getByText('Engineering')).toBeInTheDocument();
+  });
+
+  it('renders "—" for a missing Person to Meet instead of a blank', () => {
+    render(<PreApprovalPass visit={baseVisit} />);
+    const label = screen.getByText('Person to Meet');
+    expect(label.closest('div')?.parentElement?.textContent).toContain('—');
+  });
+
+  it('never introduces the word "Host" into the label', () => {
+    render(<PreApprovalPass visit={baseVisit} />);
+    expect(screen.queryByText(/\bHost\b/)).not.toBeInTheDocument();
+  });
+
+  it('keeps the QR at least 128px so it stays scannable, not shrunk for aesthetics', async () => {
+    render(<PreApprovalPass visit={baseVisit} />);
+    const img = await screen.findByAltText('Entry pass QR code');
+    expect(img.className).toMatch(/w-3[2-9]|w-4[0-9]/);
+  });
+});

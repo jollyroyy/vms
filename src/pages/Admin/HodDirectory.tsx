@@ -54,7 +54,7 @@ export default function HodDirectory({ id, departments, hodsByDept }: Props): Re
           className={`card p-5 animate-slide-up stagger-${Math.min(i + 1, 5)}`}
         >
           <div className="flex items-center justify-between mb-3">
-            <p className="section-title">{g.dept.name}</p>
+            <p className="eyebrow">{g.dept.name}</p>
             <span className="glass-chip !px-2 !py-0.5 !text-[10px] tabular-nums text-navy-400">
               {g.hods.length}
             </span>

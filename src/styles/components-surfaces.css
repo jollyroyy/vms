@@ -64,19 +64,40 @@
     animation: gradientShift 6s ease infinite;
   }
 
-  /* --- Page structure --- */
+  /* --- Page structure ---
+     Heading hierarchy (2026-08-10 premium pass): a page title is the ONE
+     place font-display carries real weight — Playfair Display has genuine
+     700, unlike GatePass's Antic Didone. Every other heading below (section,
+     card, table) stays on Inter at 600/700, per the design spec. The gap
+     between page-title and page-subtitle is now 4 scale steps (h1 vs
+     caption) and 200+ weight units, never one step apart as before. */
   .page-header {
     @apply mb-8;
   }
   .page-title {
-    @apply text-2xl font-extrabold text-navy-950 tracking-tight font-display;
-    letter-spacing: -0.01em;
+    @apply text-h1 text-navy-950 font-display;
   }
   .page-subtitle {
-    @apply text-sm font-medium text-navy-400 mt-1;
+    @apply text-caption text-navy-500 mt-2;
   }
+  /* PAGE-level section heading — the heading of a region of the page. 22px/700.
+     This was an 11px uppercase micro-label used as a real <h2>, which is
+     exactly why headings read as subtext: a section heading was SMALLER than
+     the body text under it. The ladder must stay distinct:
+       page 28  >  section 22  >  card 18  >  body 14  >  eyebrow 11 */
   .section-title {
-    @apply text-xs font-bold text-navy-500 uppercase tracking-wider;
+    @apply text-h2 text-navy-900;
+  }
+  /* CARD-level heading — the title of one card WITHIN a section. 18px/600.
+     Matches .gate-section-title, which the guard console already uses. */
+  .card-title {
+    @apply text-h3 text-navy-950;
+  }
+  /* The genuine micro-label: a grouping caption above a list, NOT a heading.
+     This is what .section-title used to be, kept for the handful of places
+     that really did want an eyebrow. */
+  .eyebrow {
+    @apply text-micro text-navy-400 uppercase;
   }
 
   /* --- Tabs --- */
@@ -131,12 +152,14 @@
     background: linear-gradient(90deg, rgb(201 165 88 / 0.35), rgb(168 98 58 / 0.14), transparent);
     border-radius: 2px 2px 0 0;
   }
+  /* KPI numeral: text-kpi, deliberately NOT font-display — a serif numeral
+     cannot carry tabular figures or a true 800 weight the way Inter can, and
+     the whole point of a KPI is that its digits never jitter. */
   .stat-value {
-    @apply text-3xl font-extrabold text-navy-950 tracking-tight font-display tabular-nums;
-    letter-spacing: -0.02em;
+    @apply text-kpi text-navy-950 tabular-nums;
   }
   .stat-label {
-    @apply text-xs font-semibold text-navy-400 uppercase tracking-wide;
+    @apply text-micro text-navy-400 uppercase;
   }
 
   /* --- List item --- */

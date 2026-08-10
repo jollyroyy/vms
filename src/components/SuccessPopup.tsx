@@ -1,4 +1,6 @@
 import React from 'react';
+import ModalCloseButton from './ModalCloseButton';
+import { useEscapeKey } from '../lib/useEscapeKey';
 
 type Props = {
   title: string;
@@ -8,9 +10,12 @@ type Props = {
 };
 
 export default function SuccessPopup({ title, message, onClose, children }: Props): React.ReactElement {
+  useEscapeKey(onClose);
+
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-content max-w-sm p-0 relative overflow-hidden" onClick={(e) => e.stopPropagation()}>
+        <ModalCloseButton onClose={onClose} />
         <div className="bg-gradient-to-br from-success-500/10 to-success-600/5 p-8 flex flex-col items-center text-center">
           <div className="w-16 h-16 rounded-full bg-gradient-to-br from-success-400 to-success-600 flex items-center justify-center shadow-glow-sm ring-4 ring-success-100 mb-4">
             <svg className="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>

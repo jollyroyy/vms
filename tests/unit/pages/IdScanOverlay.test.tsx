@@ -147,10 +147,52 @@ describe('M-AI-OCR-UI: IdScanOverlay failures', () => {
 });
 
 describe('M-AI-OCR-UI: IdScanOverlay close', () => {
-  it('Close calls onClose', () => {
+  it('renders a corner Close button in every phase', () => {
     const onClose = vi.fn();
     render(<IdScanOverlay onScanned={vi.fn()} onClose={onClose} />);
-    fireEvent.click(screen.getByText('Close'));
+    expect(screen.getByRole('button', { name: 'Close' })).toBeInTheDocument();
+  });
+
+  it('the corner Close button calls onClose and stops the camera', () => {
+    const onClose = vi.fn();
+    render(<IdScanOverlay onScanned={vi.fn()} onClose={onClose} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+    expect(onClose).toHaveBeenCalled();
+    expect(camera.stop).toHaveBeenCalled();
+  });
+
+  it('Escape closes the overlay', () => {
+    const onClose = vi.fn();
+    render(<IdScanOverlay onScanned={vi.fn()} onClose={onClose} />);
+    fireEvent.keyDown(window, { key: 'Escape' });
+    expect(onClose).toHaveBeenCalled();
+  });
+
+  it('clicking the backdrop closes the overlay, clicking inside the card does not', () => {
+    const onClose = vi.fn();
+    const { container } = render(<IdScanOverlay onScanned={vi.fn()} onClose={onClose} />);
+    fireEvent.click(screen.getByText('Scan ID card'));
+    expect(onClose).not.toHaveBeenCalled();
+    fireEvent.click(container.querySelector('.fixed.inset-0')!);
+    expect(onClose).toHaveBeenCalled();
+  });
+
+  it('the error phase still offers a Close button alongside Retry', async () => {
+    mockRecognise.mockRejectedValue(new Error('Inference crashed'));
+    const onClose = vi.fn();
+    render(<IdScanOverlay onScanned={vi.fn()} onClose={onClose} />);
+    fireEvent.click(screen.getByText('Capture Card'));
+    await waitFor(() => expect(screen.getByText(/Inference crashed/)).toBeInTheDocument());
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+    expect(onClose).toHaveBeenCalled();
+  });
+
+  it('the review phase offers a Close button alongside Use Details/Retake', async () => {
+    const onClose = vi.fn();
+    render(<IdScanOverlay onScanned={vi.fn()} onClose={onClose} />);
+    fireEvent.click(screen.getByText('Capture Card'));
+    await screen.findByText('Use Details');
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
     expect(onClose).toHaveBeenCalled();
   });
 });

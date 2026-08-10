@@ -1,6 +1,8 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { supabase } from '../supabaseClient';
 import type { UserRole, Notification } from '../types/index';
+import ModalCloseButton from './ModalCloseButton';
+import { useEscapeKey } from '../lib/useEscapeKey';
 
 interface Props {
   userId: string;
@@ -64,6 +66,8 @@ export default function NotificationBell({ userId, role }: Props): React.ReactEl
     await supabase.from('notifications').update({ is_read: true }).in('id', unreadIds);
   };
 
+  useEscapeKey(() => setOpen(false), open);
+
   if (!isEligible) return null;
 
   return (
@@ -87,13 +91,14 @@ export default function NotificationBell({ userId, role }: Props): React.ReactEl
         <>
           <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
           <div className="absolute right-0 top-full mt-2 w-80 sm:w-96 z-50 bg-white rounded-2xl shadow-modal border border-surface-200/80 overflow-hidden animate-scale-in">
-            <div className="flex items-center justify-between px-5 py-3.5 border-b border-surface-100">
+            <div className="relative flex items-center justify-between px-5 py-3.5 border-b border-surface-100 pr-14">
               <h3 className="text-sm font-bold text-navy-900">Notifications</h3>
               {unreadCount > 0 && (
                 <button onClick={() => void markAllRead()} className="text-xs font-semibold text-brand-600 hover:text-brand-700 transition-colors">
                   Mark all read
                 </button>
               )}
+              <ModalCloseButton onClose={() => setOpen(false)} />
             </div>
 
             <div className="max-h-80 overflow-y-auto">

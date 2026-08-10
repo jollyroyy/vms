@@ -1,5 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { supabase } from '../supabaseClient';
+import ModalCloseButton from './ModalCloseButton';
+import { useEscapeKey } from '../lib/useEscapeKey';
 
 const TIMEOUT_MS = 10 * 60 * 1000;
 const COUNTDOWN_SEC = 60;
@@ -59,11 +61,28 @@ export default function SessionTimeout(): React.ReactElement | null {
     };
   }, [startTimer, clearTimers]);
 
+  // Close (× or Escape) means "Keep session" — the SAME action as the button.
+  //
+  // It briefly did something else: hide the prompt and let the countdown run
+  // on. That turns the one and only warning a user gets into a trap — dismiss
+  // it and the sign-out still lands mid-task, wiping unsaved work with nothing
+  // on screen to explain why. Clicking × is itself proof that a human is
+  // present, which is precisely what the idle timer exists to establish.
+  //
+  // This does not weaken the timeout: an unattended terminal has nobody to
+  // click anything, so it still signs out on schedule, and closing buys exactly
+  // one more idle window rather than disabling the clock. GatePass's
+  // SessionTimeout makes the same call — the two apps must not disagree about
+  // what × does on the same dialog.
+  const dismiss = useCallback(() => startTimer(), [startTimer]);
+  useEscapeKey(dismiss, showPrompt);
+
   if (!showPrompt) return null;
 
   return (
     <div className="modal-overlay z-[9999]">
-      <div className="modal-content p-6">
+      <div className="modal-content p-6 relative">
+        <ModalCloseButton onClose={dismiss} />
         <div className="flex flex-col items-center text-center space-y-4">
           <div className="h-12 w-12 rounded-2xl bg-warning-50 border border-warning-500/20 flex items-center justify-center">
             <svg className="w-6 h-6 text-warning-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>

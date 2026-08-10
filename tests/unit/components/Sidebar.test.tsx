@@ -1,6 +1,6 @@
 import React from 'react';
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { render, screen, cleanup } from '@testing-library/react';
+import { render, screen, cleanup, fireEvent } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import Sidebar from '../../../src/components/layout/Sidebar';
 import type { UserRole } from '../../../src/types/index';
@@ -147,5 +147,41 @@ describe('Sidebar navigation links per role', () => {
     expect(screen.queryByText('Expected')).not.toBeInTheDocument();
     expect(screen.queryByText('Walk-ins')).not.toBeInTheDocument();
     expect(screen.queryByText('Inside')).not.toBeInTheDocument();
+  });
+});
+
+describe('Sidebar mobile drawer — closing', () => {
+  function openDrawer() {
+    renderSidebar('guard');
+    fireEvent.click(screen.getByLabelText('Open menu'));
+  }
+
+  it('renders a corner Close button once the drawer is open', () => {
+    openDrawer();
+    expect(screen.getByRole('button', { name: 'Close' })).toBeInTheDocument();
+  });
+
+  it('clicking the corner Close button closes the drawer', () => {
+    openDrawer();
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+    expect(screen.queryByRole('button', { name: 'Close' })).not.toBeInTheDocument();
+  });
+
+  it('Escape closes the drawer', () => {
+    openDrawer();
+    fireEvent.keyDown(window, { key: 'Escape' });
+    expect(screen.queryByRole('button', { name: 'Close' })).not.toBeInTheDocument();
+  });
+
+  it('clicking the backdrop closes the drawer, clicking inside it does not', () => {
+    openDrawer();
+    const closeBtn = screen.getByRole('button', { name: 'Close' });
+    const drawer = closeBtn.closest('aside')!;
+    fireEvent.click(drawer);
+    expect(screen.getByRole('button', { name: 'Close' })).toBeInTheDocument();
+    const backdrop = document.body.querySelector('.bg-black\\/40');
+    expect(backdrop).not.toBeNull();
+    fireEvent.click(backdrop!);
+    expect(screen.queryByRole('button', { name: 'Close' })).not.toBeInTheDocument();
   });
 });

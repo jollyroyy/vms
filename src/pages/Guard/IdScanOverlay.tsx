@@ -4,6 +4,8 @@ import { getEngine } from '../../lib/ai/engine';
 import { parseIdDocument, type IdDocumentType } from '../../lib/ai/idParser';
 import { lastFourOf, maskIdNumber } from '../../lib/ai/redact';
 import { safeErrorMessage } from '../../lib/errors';
+import ModalCloseButton from '../../components/ModalCloseButton';
+import { useEscapeKey } from '../../lib/useEscapeKey';
 
 export type IdScanResult = { idType: string; idLast4: string; name: string | null };
 
@@ -101,10 +103,15 @@ export default function IdScanOverlay({ onScanned, onClose }: Props): React.Reac
     onClose();
   }, [onClose, stopCamera]);
 
+  // One Escape handler for the whole overlay, regardless of which phase is
+  // showing — every phase below shares the same `close`.
+  useEscapeKey(close);
+
   if (phase === 'reading') {
     return (
-      <div className="fixed inset-0 z-50 bg-navy-950/80 flex items-center justify-center p-4">
-        <div className="bg-white rounded-2xl p-8 max-w-sm w-full text-center space-y-4">
+      <div className="fixed inset-0 z-50 bg-navy-950/80 flex items-center justify-center p-4" onClick={close}>
+        <div className="bg-white rounded-2xl p-8 max-w-sm w-full text-center space-y-4 relative" onClick={(e) => e.stopPropagation()}>
+          <ModalCloseButton onClose={close} />
           <div className="animate-spin h-10 w-10 border-4 border-brand-600 border-t-transparent rounded-full mx-auto" />
           <p className="font-bold text-navy-900">Reading card…</p>
           <p className="text-sm text-navy-400">On-device OCR — nothing leaves this machine</p>
@@ -115,13 +122,11 @@ export default function IdScanOverlay({ onScanned, onClose }: Props): React.Reac
 
   if (phase === 'error') {
     return (
-      <div className="fixed inset-0 z-50 bg-navy-950/80 flex items-center justify-center p-4">
-        <div className="bg-white rounded-2xl p-6 max-w-sm w-full space-y-4">
-          <p className="text-sm font-semibold text-danger-700">{error}</p>
-          <div className="flex gap-3">
-            <button onClick={retry} className="flex-1 bg-brand-600 hover:bg-brand-700 text-white font-bold rounded-xl py-2.5 text-sm">Retry</button>
-            <button onClick={close} className="flex-1 bg-surface-50 hover:bg-surface-100 text-navy-700 font-bold rounded-xl py-2.5 text-sm">Close</button>
-          </div>
+      <div className="fixed inset-0 z-50 bg-navy-950/80 flex items-center justify-center p-4" onClick={close}>
+        <div className="bg-white rounded-2xl p-6 max-w-sm w-full space-y-4 relative" onClick={(e) => e.stopPropagation()}>
+          <ModalCloseButton onClose={close} />
+          <p className="text-sm font-semibold text-danger-700 pr-8">{error}</p>
+          <button onClick={retry} className="w-full bg-brand-600 hover:bg-brand-700 text-white font-bold rounded-xl py-2.5 text-sm">Retry</button>
         </div>
       </div>
     );
@@ -129,9 +134,10 @@ export default function IdScanOverlay({ onScanned, onClose }: Props): React.Reac
 
   if (phase === 'review' && parsed) {
     return (
-      <div className="fixed inset-0 z-50 bg-navy-950/80 flex items-center justify-center p-4">
-        <div className="bg-white rounded-2xl p-6 max-w-sm w-full space-y-4">
-          <h3 className="font-bold text-navy-900">Review scanned details</h3>
+      <div className="fixed inset-0 z-50 bg-navy-950/80 flex items-center justify-center p-4" onClick={close}>
+        <div className="bg-white rounded-2xl p-6 max-w-sm w-full space-y-4 relative" onClick={(e) => e.stopPropagation()}>
+          <ModalCloseButton onClose={close} />
+          <h3 className="font-bold text-navy-900 pr-8">Review scanned details</h3>
           <div className="space-y-2 text-sm">
             <div className="flex justify-between"><span className="text-navy-400">Document</span><span className="font-semibold text-navy-900">{parsed.typeLabel}</span></div>
             <div className="flex justify-between"><span className="text-navy-400">ID number</span><span className="font-mono font-semibold text-navy-900">{parsed.masked}</span></div>
@@ -150,11 +156,11 @@ export default function IdScanOverlay({ onScanned, onClose }: Props): React.Reac
   const cameraDown = status === 'denied' || status === 'error';
 
   return (
-    <div className="fixed inset-0 z-50 bg-navy-950/80 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl p-5 max-w-sm w-full space-y-4">
-        <div className="flex items-center justify-between">
+    <div className="fixed inset-0 z-50 bg-navy-950/80 flex items-center justify-center p-4" onClick={close}>
+      <div className="bg-white rounded-2xl p-5 max-w-sm w-full space-y-4 relative" onClick={(e) => e.stopPropagation()}>
+        <ModalCloseButton onClose={close} />
+        <div className="flex items-center justify-between pr-8">
           <h3 className="font-bold text-navy-900">Scan ID card</h3>
-          <button onClick={close} className="text-navy-400 hover:text-navy-600 text-sm font-semibold">Close</button>
         </div>
 
         {cameraDown ? (

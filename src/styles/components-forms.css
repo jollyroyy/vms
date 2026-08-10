@@ -34,7 +34,7 @@
     color: rgb(var(--c-navy-900));
   }
   .label {
-    @apply block text-xs font-semibold text-navy-600 mb-1.5 uppercase tracking-wide;
+    @apply block text-micro text-navy-500 mb-1.5 uppercase;
   }
 
   /* --- Topbar search pill --- */

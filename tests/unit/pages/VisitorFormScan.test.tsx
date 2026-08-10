@@ -130,7 +130,7 @@ describe('M-AI-OCR-UI: VisitorForm scan wiring', () => {
   it('closes the overlay without applying anything', async () => {
     render(<VisitorForm onRegistered={vi.fn()} />);
     fireEvent.click(await screen.findByText('Scan ID card'));
-    fireEvent.click(screen.getByText('Close'));
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
     await waitFor(() => {
       expect(screen.queryByText('Capture Card')).not.toBeInTheDocument();
     });

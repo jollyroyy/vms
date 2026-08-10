@@ -191,6 +191,38 @@ describe('M12-NOTIFICATION: NotificationBell', () => {
     });
   });
 
+  it('renders a corner Close button on the dropdown once opened', async () => {
+    setupMocks([]);
+    render(<NotificationBell userId="user-1" role="hod" />);
+    const bell = document.querySelector('button');
+    if (bell) fireEvent.click(bell);
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Close' })).toBeInTheDocument();
+    });
+  });
+
+  it('clicking the corner Close button closes the dropdown', async () => {
+    setupMocks([]);
+    render(<NotificationBell userId="user-1" role="hod" />);
+    const bell = document.querySelector('button');
+    if (bell) fireEvent.click(bell);
+    await waitFor(() => screen.getByRole('button', { name: 'Close' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+    expect(screen.queryByText('Notifications')).not.toBeInTheDocument();
+  });
+
+  it('Escape closes the dropdown', async () => {
+    setupMocks([]);
+    render(<NotificationBell userId="user-1" role="hod" />);
+    const bell = document.querySelector('button');
+    if (bell) fireEvent.click(bell);
+    await waitFor(() => {
+      expect(screen.getByText('Notifications')).toBeInTheDocument();
+    });
+    fireEvent.keyDown(window, { key: 'Escape' });
+    expect(screen.queryByText('Notifications')).not.toBeInTheDocument();
+  });
+
   it('unsubscribes on unmount', async () => {
     setupMocks([]);
     const { unmount } = render(<NotificationBell userId="user-1" role="hod" />);

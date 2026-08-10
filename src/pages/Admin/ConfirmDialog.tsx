@@ -3,6 +3,8 @@
 // primary-styled confirm button. Exposed as role="dialog" so callers (and tests)
 // can scope queries to the modal rather than the page behind it.
 import React from 'react';
+import ModalCloseButton from '../../components/ModalCloseButton';
+import { useEscapeKey } from '../../lib/useEscapeKey';
 
 type Props = {
   title: string;
@@ -18,15 +20,20 @@ type Props = {
 export default function ConfirmDialog({
   title, message, confirmLabel, busyLabel, busy = false, danger = true, onConfirm, onCancel,
 }: Props): React.ReactElement {
+  // Close is always cancel here — never confirm — because this dialog only
+  // ever guards a destructive/irreversible action.
+  useEscapeKey(onCancel);
+
   return (
     <div className="modal-overlay" onClick={onCancel}>
       <div
         role="dialog"
         aria-modal="true"
         aria-label={title}
-        className="modal-content p-6"
+        className="modal-content p-6 relative"
         onClick={(e) => e.stopPropagation()}
       >
+        <ModalCloseButton onClose={onCancel} />
         {danger ? (
           <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-danger-500/15 to-danger-600/5 text-danger-600 border border-danger-500/20 flex items-center justify-center mb-4 shadow-soft">
             <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.7}>

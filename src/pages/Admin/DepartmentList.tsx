@@ -40,7 +40,7 @@ export default function DepartmentList({
   return (
     <div id={id} className="space-y-5 animate-fade-in">
       <div className="card-premium p-5">
-        <p className="section-title mb-3">New Department</p>
+        <p className="card-title mb-3">New Department</p>
         <DepartmentForm key={createKey} mode="create" busy={createBusy} onSubmit={onCreate} />
       </div>
 

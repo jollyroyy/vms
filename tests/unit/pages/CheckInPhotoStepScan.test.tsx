@@ -158,7 +158,7 @@ describe('M-AI-OCR-UI: CheckInPhotoStep scan + identity match', () => {
   it('closes the overlay without applying anything', async () => {
     render(<CheckInPhotoStep {...baseProps} />);
     fireEvent.click(await screen.findByText('Scan ID card'));
-    fireEvent.click(screen.getByText('Close'));
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
     await waitFor(() => {
       expect(screen.queryByText('Capture Card')).not.toBeInTheDocument();
     });

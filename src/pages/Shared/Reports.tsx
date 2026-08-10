@@ -172,7 +172,7 @@ export default function ReportsPage(): React.ReactElement {
                 <thead>
                   <tr className="bg-surface-50/80 border-b border-surface-200/60 dark:border-white/[0.06]">
                     {['#', 'Ref', 'Photo', 'Name', 'Vendor', 'Phone', 'Dept', 'Person to Meet', 'ID Proof', 'Purpose', 'Carrying', 'Carrying Remarks', 'Approved', 'Check-in', 'Check-out', 'Status'].map((h) => (
-                      <th key={h} className="px-3.5 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-navy-400 whitespace-nowrap">{h}</th>
+                      <th key={h} className="px-3.5 py-3.5 text-left text-micro uppercase text-navy-400 whitespace-nowrap">{h}</th>
                     ))}
                   </tr>
                 </thead>

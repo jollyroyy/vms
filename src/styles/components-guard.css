@@ -44,11 +44,13 @@
     box-shadow: var(--shadow-contact-hover), var(--shadow-ambient-hover), var(--shadow-wide-hover),
                 var(--ring-gold-hover), var(--edge-highlight-hover);
   }
+  /* KPI numeral, not a heading — Inter 800 tabular figures, never the serif
+     display face (a guard reads this in glare; a real bold beats a faux one). */
   .gate-tile-value {
-    @apply text-[2rem] leading-none font-extrabold tabular-nums tracking-tight font-display;
+    @apply text-kpi leading-none tabular-nums text-navy-950;
   }
   .gate-tile-label {
-    @apply mt-1.5 text-[11px] font-semibold uppercase tracking-wider text-navy-400;
+    @apply mt-1.5 text-micro uppercase text-navy-400;
   }
   /* The live tile gets the gold treatment — it is the number that matters
      most at any given moment (who is still on the premises). */
@@ -245,11 +247,13 @@
     background: linear-gradient(120deg, rgb(184 147 74 / 0.95), rgb(168 98 58 / 0.88));
   }
 
-  /* --- Section heading --------------------------------------------------- */
+  /* --- Section heading --- Inter, not display: a sub-section heading is not
+     the page title. text-h3 (18/600) against the caption sub keeps the two-
+     step, 200-weight gap the spec requires. */
   .gate-section-title {
-    @apply font-display text-sm font-bold text-navy-950 tracking-tight;
+    @apply text-h3 text-navy-950;
   }
   .gate-section-sub {
-    @apply text-xs text-navy-400 mt-0.5;
+    @apply text-caption text-navy-400 mt-0.5;
   }
 }

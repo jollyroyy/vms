@@ -189,7 +189,7 @@ export default function Analytics(): React.ReactElement {
 
           {/* Daily trend bar chart */}
           <div className="card p-6 col-span-1 md:col-span-2 animate-slide-up stagger-3">
-            <h3 className="section-title mb-4">Daily Visitor Trend</h3>
+            <h3 className="card-title mb-4">Daily Visitor Trend</h3>
             <div className="flex items-end gap-1 h-32">
               {dailyStats.map((d) => (
                 <div key={d.date} className="flex-1 flex flex-col items-center gap-1">
@@ -208,7 +208,7 @@ export default function Analytics(): React.ReactElement {
 
           {/* Department distribution */}
           <div className="card p-6 animate-slide-up stagger-4">
-            <h3 className="section-title mb-4">By Department</h3>
+            <h3 className="card-title mb-4">By Department</h3>
             <div className="space-y-2.5">
               {deptStats.map((d) => (
                 <div key={d.name} className="flex items-center gap-3">
@@ -224,7 +224,7 @@ export default function Analytics(): React.ReactElement {
 
           {/* Hourly distribution */}
           <div className="card p-6 animate-slide-up stagger-5">
-            <h3 className="section-title mb-4">Peak Hours (check-ins)</h3>
+            <h3 className="card-title mb-4">Peak Hours (check-ins)</h3>
             <div className="flex items-end gap-0.5 h-24">
               {hourlyStats.map((h) => (
                 <div key={h.hour} className="flex-1 flex flex-col items-center gap-0.5">

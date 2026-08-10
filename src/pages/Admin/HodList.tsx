@@ -35,7 +35,7 @@ export default function HodList({
   return (
     <div className="border-t border-surface-200/60 dark:border-white/[0.06] pt-4 mt-4">
       <div className="flex items-center justify-between mb-2.5">
-        <p className="section-title">Heads of Department</p>
+        <p className="card-title">Heads of Department</p>
         <span className="glass-chip !px-2 !py-0.5 !text-[10px] text-navy-400">{hods.length}</span>
       </div>
 

@@ -8,6 +8,8 @@ import SidebarAnalytics from './SidebarAnalytics';
 import SidebarProfile from './SidebarProfile';
 import Logo from '../Logo';
 import { linksForRole } from './navLinks';
+import ModalCloseButton from '../ModalCloseButton';
+import { useEscapeKey } from '../../lib/useEscapeKey';
 
 type Props = {
   session: Session;
@@ -31,6 +33,7 @@ export default function Sidebar({ session, role, collapsed: collapsedProp, onCol
   const [collapsedInternal, setCollapsedInternal] = useState<boolean>(() => {
     try { return window.localStorage.getItem(COLLAPSE_KEY) === '1'; } catch { return false; }
   });
+  useEscapeKey(() => setMobileOpen(false), mobileOpen);
   const collapsed = collapsedProp ?? collapsedInternal;
   const setCollapsed = (next: boolean | ((c: boolean) => boolean)) => {
     const value = typeof next === 'function' ? next(collapsed) : next;
@@ -158,6 +161,7 @@ export default function Sidebar({ session, role, collapsed: collapsedProp, onCol
         <div className="no-print lg:hidden fixed inset-0 z-40">
           <div className="absolute inset-0 bg-black/40 backdrop-blur-sm animate-fade-in" onClick={() => setMobileOpen(false)} />
           <aside className="absolute left-0 top-0 bottom-0 w-72 max-w-[85vw] card-glass !rounded-none !border-y-0 !border-l-0 animate-slide-down overflow-hidden">
+            <ModalCloseButton onClose={() => setMobileOpen(false)} />
             {navContent(false)}
           </aside>
         </div>

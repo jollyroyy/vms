@@ -11,6 +11,8 @@ import type { Visit } from '../types/index';
 import { buildQrPayload, evaluateQrVisit } from '../lib/qrToken';
 import { downloadQrPassPdf } from '../lib/qrPassPdf';
 import { downloadQrPassPng } from '../lib/qrPassImage';
+import { formatDateTime } from '../lib/formatDate';
+import { STATUS_STYLES } from '../lib/statusStyles';
 import PassIdentity from './PassIdentity';
 
 type Props = {
@@ -41,17 +43,33 @@ export default function PreApprovalPass({ visit, showIdProof = true }: Props): R
       .catch(() => setQrDataUrl(null));
   }, [visit.qr_token]);
 
+  const statusStyle = STATUS_STYLES[visit.status];
+
   return (
     // Its own contained surface, not the bare border-t this used to be — inside
     // the HOD popup's translucent glass modal, content floating with no card of
     // its own had nothing to read against in dark mode. White in light, a low-
     // alpha white lift in dark: `dark:bg-navy-800` looks right until you remember
     // navy is INVERTED in dark mode and would render this near-white-on-white.
-    <div className="mt-2 flex flex-col items-center gap-2 rounded-2xl border border-surface-200/60 dark:border-white/[0.08] bg-white dark:bg-white/[0.06] p-4">
-      <p className="text-xs font-bold text-navy-400 uppercase tracking-wide">Entry Pass</p>
-      {/* The QR itself carries only an opaque token — never the visitor's name,
-          ID or photo. This block is what a *human* checks the pass against;
-          scanning it is what pulls the same details out of the database. */}
+    <div className="mt-2 w-full flex flex-col items-center gap-3 rounded-2xl border border-surface-200/60 dark:border-white/[0.08] bg-white dark:bg-white/[0.06] p-4">
+      {/* Ref number + status are the two facts a guard checks first, side by
+          side at the top so neither needs scrolling to find. Status reuses the
+          app's own STATUS_STYLES tokens — never a parallel palette. */}
+      <div className="w-full flex items-center justify-between gap-2">
+        <div>
+          <p className="text-[10px] font-bold text-navy-400 uppercase tracking-wide">Entry Pass</p>
+          <p className="text-xs text-navy-500 font-mono">{visit.ref_number}</p>
+        </div>
+        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold shrink-0 ${statusStyle.bg} ${statusStyle.text}`}>
+          <span className={`h-1.5 w-1.5 rounded-full ${statusStyle.dot}`} />
+          {statusStyle.label}
+        </span>
+      </div>
+
+      {/* Visitor identity block. The QR itself carries only an opaque token —
+          never the visitor's name, ID or photo. This block is what a *human*
+          checks the pass against; scanning it is what pulls the same details
+          out of the database. */}
       <div className="w-full max-w-xs">
         <PassIdentity
           photoUrl={photo}
@@ -62,8 +80,19 @@ export default function PreApprovalPass({ visit, showIdProof = true }: Props): R
           showIdProof={showIdProof}
         />
       </div>
+
+      {/* Who they're here for, and how long the pass is good for — grouped
+          apart from identity so a guard scanning down the card finds each
+          fact in its own labelled block, not one undifferentiated list. */}
+      <div className="w-full max-w-xs grid grid-cols-2 gap-x-3 gap-y-2 rounded-xl bg-surface-50 dark:bg-white/[0.04] px-3 py-2.5">
+        <PassField label="Person to Meet" value={visit.host?.full_name} sub={visit.department?.name} />
+        <PassField label="Valid For" value={formatDateTime(visit.scheduled_for ?? visit.created_at)} />
+      </div>
+
       {/* A QR is only scannable as dark-on-white, so its tile stays explicitly
-          white in both themes — it must never inherit the card's dark lift. */}
+          white in both themes — it must never inherit the card's dark lift.
+          Size is unchanged from before this redesign: never shrink it for
+          aesthetics, it has to actually scan at the gate. */}
       {qrDataUrl ? (
         <div className="bg-white p-2 rounded-xl">
           <img src={qrDataUrl} alt="Entry pass QR code" className="w-32 h-32 rounded-lg ring-1 ring-surface-200" />
@@ -73,7 +102,6 @@ export default function PreApprovalPass({ visit, showIdProof = true }: Props): R
           <div className="w-32 h-32 rounded-lg bg-surface-50 animate-pulse" />
         </div>
       )}
-      <p className="text-[11px] text-navy-400 font-mono">{visit.ref_number}</p>
       {/* Once the visit is checked in the token no longer opens the gate, but
           the pass is still the badge being worn — so it stays downloadable and
           says plainly that the code itself is spent. */}
@@ -111,6 +139,19 @@ export default function PreApprovalPass({ visit, showIdProof = true }: Props): R
       <p className="text-[10px] text-navy-300 text-center">
         Send the image if the guard will upload it — the PDF is for printing.
       </p>
+    </div>
+  );
+}
+
+// A single labelled fact in the "who/validity" block. Every value reads as
+// intentional — a missing Person to Meet renders "—", never a blank that
+// looks broken.
+function PassField({ label, value, sub }: { label: string; value?: string | null; sub?: string | null }) {
+  return (
+    <div className="min-w-0">
+      <p className="text-[9px] text-navy-400 uppercase tracking-wider font-semibold leading-none mb-1">{label}</p>
+      <p className="text-xs font-semibold text-navy-800 truncate">{value || '—'}</p>
+      {sub && <p className="text-[10px] text-navy-400 truncate">{sub}</p>}
     </div>
   );
 }

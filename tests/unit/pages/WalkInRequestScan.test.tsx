@@ -154,7 +154,7 @@ describe('M-AI-OCR-UI: WalkInRequest scan wiring', () => {
   it('closes the overlay without applying anything', async () => {
     render(<WalkInRequest onSubmitted={vi.fn()} onCancel={vi.fn()} />);
     fireEvent.click(await screen.findByText('Scan ID card'));
-    fireEvent.click(screen.getByText('Close'));
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
     await waitFor(() => {
       expect(screen.queryByText('Capture Card')).not.toBeInTheDocument();
     });
