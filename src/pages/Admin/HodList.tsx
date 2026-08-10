@@ -88,6 +88,7 @@ export default function HodList({
           initial={mine.kind === 'edit'
             ? { fullName: mine.hod.full_name ?? '', email: mine.hod.email ?? '' }
             : undefined}
+          editingHodId={mine.kind === 'edit' ? mine.hod.id : undefined}
           busy={busy}
           onSubmit={onSubmit}
           onCancel={onCancel}

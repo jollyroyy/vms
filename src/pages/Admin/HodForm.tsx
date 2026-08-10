@@ -4,15 +4,20 @@
 import React, { useId, useState } from 'react';
 import type { HodInput } from '../../lib/adminHods';
 import { PERSON_NAME_MAX } from '../../lib/inputRules';
+import HodPasswordReset from './HodPasswordReset';
 
 type Props = {
   initial?: HodInput;
+  /** Present only when editing an existing person — unlocks the password-reset section. */
+  editingHodId?: string;
   busy?: boolean;
   onSubmit: (input: HodInput) => void;
   onCancel: () => void;
 };
 
-export default function HodForm({ initial, busy = false, onSubmit, onCancel }: Props): React.ReactElement {
+export default function HodForm({
+  initial, editingHodId, busy = false, onSubmit, onCancel,
+}: Props): React.ReactElement {
   const [fullName, setFullName] = useState(initial?.fullName ?? '');
   const [email, setEmail] = useState(initial?.email ?? '');
   const uid = useId();
@@ -63,6 +68,10 @@ export default function HodForm({ initial, busy = false, onSubmit, onCancel }: P
           {busy ? 'Saving…' : 'Save HOD'}
         </button>
       </div>
+
+      {editingHodId && (
+        <HodPasswordReset userId={editingHodId} userName={fullName || 'this person'} />
+      )}
     </form>
   );
 }

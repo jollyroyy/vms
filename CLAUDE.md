@@ -281,6 +281,49 @@
   the live project — it was actually landed by
   `054_drift_realtime_departments_profiles.sql`. Realtime still honours RLS.
 
+### `064` — admin-assisted password reset, and a forced change on first sign-in (2026-08-10)
+
+**Applied + verified live 2026-08-10.** Self-service reset was removed from the login card
+in the same session: the built-in Supabase email sender is capped at **~2 mails/hour,
+PROJECT-WIDE** — and that budget is shared with the sibling GatePass app — so
+"Forgot password?" failed for most people who pressed it. The login card now names a human
+(`ADMIN_CONTACT_EMAIL`, exported from `src/pages/Login.tsx`) and the admin does the reset.
+
+- **`public.admin_reset_user_password(uuid, text)`** — gated on
+  `current_user_role() in ('admin','super_admin')`. Writes the password as bcrypt
+  (`extensions.crypt(pw, extensions.gen_salt('bf'))` — GoTrue accepts a hash written this
+  way), raises `must_change_password`, and **deletes every session that user holds**
+  (`auth.sessions`; `refresh_tokens.session_id` cascades, `confdeltype` `'c'`, verified
+  live). Without the delete, someone already signed in elsewhere keeps full access.
+- **It refuses to target an `admin` / `super_admin`.** Otherwise the weakest admin account
+  is a takeover route into every stronger one, and "reset" becomes an undetectable way to
+  seize a super_admin. A locked-out admin is a Supabase-dashboard job, on purpose.
+- **`public.set_my_password(text)`** — the user's own choice, scoped to `auth.uid()`.
+  **It clears the flag in the same call that writes the password, and nothing else clears
+  it** — a separate "clear the flag" RPC would let the forced-change screen be skipped from
+  the browser console. It also refuses reusing the current password, since keeping the one
+  the admin read out over the phone leaves the account as exposed as it was.
+- **`public.my_must_change_password()`** — SECURITY DEFINER, scoped to `auth.uid()`, and
+  the ONLY thing the app shell should ask. Do **not** `select must_change_password from
+  profiles` in the startup path: `public.profiles` has a history of recursive-policy
+  failures (42P17) and a select that raises there would either lock everyone out of the
+  app or fail open. Policy evaluation is sidestepped entirely and it can only read your row.
+- **`public.profiles.must_change_password`** is `not null default false`, so every existing
+  account is unaffected and only an explicit reset can raise it. Nullable would make "never
+  reset" and "reset, unknown state" indistinguishable at the one moment the answer decides
+  whether to block someone out of the app.
+
+**This column is SHARED with GatePass** and is the one place it lives — GatePass migration
+`036` mirrors the two functions into the `gatepass` schema but must never alter `public`.
+**Apply this migration before GatePass `036`.** The apps mirror rather than call each
+other so each authorizes with its own admin check.
+
+**Verified live 2026-08-10** via `gatepass/scripts/verify-036.mjs` — 16/16 with real
+anon-key JWTs (postgres bypasses every guard here, so psql could not prove any of it),
+including that a fresh user is NOT flagged, a non-admin cannot reset, an admin cannot reset
+an admin, the old password dies, the new one signs in, and the flag clears only with an
+actual password write. Probe user deleted; `profiles` has 0 rows flagged.
+
 ### Migration drift
 - This project has always been migrated by hand, so
   `supabase_migrations.schema_migrations` is **not** authoritative and the 3-digit

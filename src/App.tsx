@@ -10,6 +10,7 @@ import Logo from './components/Logo';
 // Pages
 import LoginPage          from './pages/Login';
 import ResetPassword      from './pages/ResetPassword';
+import ForcePasswordChange from './pages/ForcePasswordChange';
 import { hasRecoveryHash, isRecoveryPending, markRecoveryPending, clearRecoveryPending } from './lib/passwordRecovery';
 import VisitorsDashboard  from './pages/Shared/VisitorsDashboard';
 import GuardConsole       from './pages/Guard/Console';
@@ -59,10 +60,49 @@ export default function App(): React.ReactElement {
     if (hasRecoveryHash()) { markRecoveryPending(); return true; }
     return isRecoveryPending();
   });
+  // Admin-reset gate (migration 064). `null` means "unknown / still checking" —
+  // rendered as the same loading screen as `loading` so the app shell can never
+  // flash before we know the answer. `false` is also the value used when there is
+  // no session, or when the RPC itself fails (see checkMustChangePassword below).
+  const [mustChangePassword, setMustChangePassword] = useState<boolean | null>(null);
 
   useEffect(() => {
     document.title = 'Secure Gate — Visitor Management';
   }, []);
+
+  // Asks `my_must_change_password()` (SECURITY DEFINER, scoped to auth.uid()) whether
+  // this session owes a password change. Deliberately never queries `profiles` directly
+  // — see CLAUDE.md's recursive-policy history on that table.
+  //
+  // Fail-open-but-not-silent on error: an RPC failure logs loudly to the console (so a
+  // real outage or typo is visible to whoever is watching logs) but does NOT block
+  // sign-in. The alternative — failing closed — would turn any transient error into an
+  // outage that locks out every single existing user, which is strictly worse than the
+  // temporary-password gate this feature exists to add in the first place.
+  //
+  // Database['public']['Functions'] is Record<string, never> (src/types/index.ts), which
+  // types every supabase.rpc(name, args) call as taking `undefined`. Widening that shared
+  // type ripples into postgrest-js's relationship inference elsewhere (see
+  // src/pages/Admin/HodPasswordReset.tsx for the same note) — cast narrowly instead.
+  const callMustChangePassword = supabase.rpc as unknown as (
+    fn: 'my_must_change_password',
+  ) => Promise<{ data: boolean | null; error: { message: string } | null }>;
+
+  const checkMustChangePassword = async () => {
+    setMustChangePassword(null);
+    try {
+      const { data, error } = await callMustChangePassword('my_must_change_password');
+      if (error) {
+        console.error('[VMS] my_must_change_password check failed — failing OPEN (not blocking sign-in):', error);
+        setMustChangePassword(false);
+        return;
+      }
+      setMustChangePassword(Boolean(data));
+    } catch (err) {
+      console.error('[VMS] my_must_change_password threw — failing OPEN (not blocking sign-in):', err);
+      setMustChangePassword(false);
+    }
+  };
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -75,6 +115,11 @@ export default function App(): React.ReactElement {
       setSession(data.session);
       if (data.session?.user?.app_metadata?.role) {
         setRole(data.session.user.app_metadata.role as UserRole);
+      }
+      if (data.session) {
+        void checkMustChangePassword();
+      } else {
+        setMustChangePassword(false);
       }
       setLoading(false);
     });
@@ -89,6 +134,12 @@ export default function App(): React.ReactElement {
       setSession(s);
       if (s?.user?.app_metadata?.role) {
         setRole(s.user.app_metadata.role as UserRole);
+      }
+      if (s && event === 'SIGNED_IN') {
+        void checkMustChangePassword();
+      }
+      if (!s) {
+        setMustChangePassword(false);
       }
     });
     return () => subscription.unsubscribe();
@@ -141,6 +192,41 @@ export default function App(): React.ReactElement {
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </BrowserRouter>
+      </ThemeProvider>
+    );
+  }
+
+  // Admin-reset gate outranks role routing: until the temporary password is replaced,
+  // this session must not reach any role's screens or be escapable via a typed URL —
+  // there are no <Route>s rendered at all while this branch is active, so react-router
+  // never gets a chance to match a deep link.
+  if (mustChangePassword === null) {
+    return (
+      <ThemeProvider>
+        <div className="flex h-screen items-center justify-center bg-surface-50 relative overflow-hidden">
+          <div className="aurora-stage" aria-hidden="true">
+            <div className="aurora-blob aurora-blob-1" />
+            <div className="aurora-blob aurora-blob-2" />
+          </div>
+          <div className="flex flex-col items-center gap-4 relative z-10">
+            <div className="relative">
+              <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-brand-500 to-accent-500 blur-lg opacity-50 animate-pulse-soft" />
+              <Logo size="lg" className="relative" />
+            </div>
+            <p className="font-display text-sm font-bold text-navy-600 tracking-tight">Secure Gate</p>
+            <div className="h-1 w-20 rounded-full bg-surface-200 overflow-hidden">
+              <div className="h-full w-1/2 rounded-full bg-gradient-to-r from-brand-400 to-accent-500 animate-shimmer" />
+            </div>
+          </div>
+        </div>
+      </ThemeProvider>
+    );
+  }
+
+  if (mustChangePassword) {
+    return (
+      <ThemeProvider>
+        <ForcePasswordChange onSuccess={() => setMustChangePassword(false)} />
       </ThemeProvider>
     );
   }

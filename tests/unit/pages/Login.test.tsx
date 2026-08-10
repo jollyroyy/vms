@@ -1,7 +1,7 @@
 import React from 'react';
 import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest';
 import { render, screen, cleanup, fireEvent, waitFor, act } from '@testing-library/react';
-import LoginPage from '../../../src/pages/Login';
+import LoginPage, { ADMIN_CONTACT_EMAIL } from '../../../src/pages/Login';
 import { resetRateLimit } from '../../../src/lib/rateLimiter';
 
 const mockSignIn = vi.hoisted(() => vi.fn());
@@ -62,39 +62,35 @@ describe('M12-LOGIN: LoginPage', () => {
     vi.useRealTimers();
   });
 
-  it('shows forgot password link', () => {
+  // Password reset is NOT self-service (user's call, 2026-08-10). The old
+  // "Forgot password?" button called resetPasswordForEmail directly from this
+  // page; it is gone, because the built-in Supabase email sender is capped at
+  // ~2 messages/hour PROJECT-WIDE (shared with GatePass), so most people who
+  // pressed it got a rate-limit error and no next step. The card names a human
+  // instead. These tests pin both halves — the button must not come back, and
+  // the admin's address must be on the page and actionable.
+  it('has no forgot-password control at all', () => {
     render(<LoginPage />);
-    expect(screen.getByText(/forgot password/i)).toBeInTheDocument();
+    expect(screen.queryByText(/forgot password\?/i)).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /forgot password/i })).not.toBeInTheDocument();
   });
 
-  it('shows error on forgot-password with empty email', () => {
-    render(<LoginPage />);
-    fireEvent.click(screen.getByText(/forgot password/i));
-    expect(screen.getByText('Enter your email address first.')).toBeInTheDocument();
-  });
-
-  it('calls resetPasswordForEmail on forgot password with valid email', async () => {
-    mockResetPw.mockResolvedValue({ error: null });
+  it('never sends a reset email from the login page', () => {
     render(<LoginPage />);
     fireEvent.change(screen.getByPlaceholderText('you@company.com'), { target: { value: 'test@test.com' } });
-    fireEvent.click(screen.getByText(/forgot password/i));
-    await waitFor(() => {
-      // Must land on the reset page, not the app root — otherwise the recovery
-      // session drops the user straight into the dashboard with no way to set a password.
-      expect(mockResetPw).toHaveBeenCalledWith('test@test.com', {
-        redirectTo: `${window.location.origin}/reset-password`,
-      });
-    });
+    expect(mockResetPw).not.toHaveBeenCalled();
   });
 
-  it('does not reveal whether the email is registered', async () => {
-    mockResetPw.mockResolvedValue({ error: null });
+  it('tells the user to contact the administrator, and names the address', () => {
     render(<LoginPage />);
-    fireEvent.change(screen.getByPlaceholderText('you@company.com'), { target: { value: 'test@test.com' } });
-    fireEvent.click(screen.getByText(/forgot password/i));
-    await waitFor(() => {
-      expect(screen.getByText(/if that email is registered/i)).toBeInTheDocument();
-    });
+    expect(screen.getByText(/contact the administrator/i)).toBeInTheDocument();
+    expect(screen.getByText(ADMIN_CONTACT_EMAIL)).toBeInTheDocument();
+  });
+
+  it('makes the admin address a mailto link so it can be actioned in one tap', () => {
+    render(<LoginPage />);
+    const link = screen.getByRole('link', { name: ADMIN_CONTACT_EMAIL });
+    expect(link).toHaveAttribute('href', `mailto:${ADMIN_CONTACT_EMAIL}`);
   });
 
   it('shows error message on failed login', async () => {

@@ -268,8 +268,11 @@ describe('SEC-7: frontend route protection', () => {
       window.history.pushState({}, '', '/');
       render(<App />);
 
+      // The login card's own copy, used here purely as a "this is the login
+      // page" marker. It replaced the old "Forgot password?" button, which was
+      // removed when password reset became administrator-assisted.
       await waitFor(() => {
-        expect(screen.getByText('Forgot password?')).toBeInTheDocument();
+        expect(screen.getByText(/contact the administrator/i)).toBeInTheDocument();
       });
       // Sidebar-specific section header must not appear
       expect(screen.queryByText('Menu')).not.toBeInTheDocument();
@@ -284,7 +287,7 @@ describe('SEC-7: frontend route protection', () => {
       render(<App />);
 
       await waitFor(() => {
-        expect(screen.getByText('Forgot password?')).toBeInTheDocument();
+        expect(screen.getByText(/contact the administrator/i)).toBeInTheDocument();
       });
       expect(window.location.pathname).toBe('/');
     });
