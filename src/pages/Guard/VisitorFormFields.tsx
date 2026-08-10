@@ -65,7 +65,7 @@ export default function VisitorFormFields({
             onChange={(e) => onPhoneChange(e.target.value)}
             onBlur={onPhoneBlur} placeholder="+91 98765 43210" className="input" />
         </div>
-        <div><label className="label">Full Name *</label><input type="text" required maxLength={100} value={fullName} onChange={(e) => onFullNameChange(e.target.value)} className="input" /></div>
+        <div><label className="label">Visitor Name *</label><input type="text" required maxLength={100} value={fullName} onChange={(e) => onFullNameChange(e.target.value)} className="input" /></div>
         <div><label className="label">Vendor Name *</label><input type="text" required maxLength={200} value={vendorName} onChange={(e) => onVendorNameChange(e.target.value)} className="input" /></div>
         <div>
           <label className="label">Purpose *</label>

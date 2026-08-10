@@ -1,6 +1,7 @@
 import React from 'react';
 import { getInitials } from '../../components/DailyVisitorTypes';
 import { formatDateTime, formatTime } from '../../lib/formatDate';
+import { CRISP_CARD_INTERACTIVE } from '../../lib/cardStyles';
 import type { MatchItem } from './CheckInPanel';
 
 const APPROVAL_META: Record<MatchItem['approvalType'], { label: string; badge: string }> = {
@@ -22,7 +23,7 @@ export default function CheckInMatchCard({ match: m, disabled, isCheckedIn, expi
 
   return (
     <div
-      className={`card-hover p-4 flex items-start gap-3.5 transition-all ${disabled ? 'opacity-50' : 'cursor-pointer'}`}
+      className={`${CRISP_CARD_INTERACTIVE} p-4 flex items-start gap-3.5 ${disabled ? 'opacity-50 pointer-events-none' : ''}`}
       onClick={() => { if (!disabled) onSelect(); }}
     >
       <div className="h-11 w-11 rounded-2xl avatar-gradient flex items-center justify-center text-sm font-bold shrink-0">
@@ -31,7 +32,7 @@ export default function CheckInMatchCard({ match: m, disabled, isCheckedIn, expi
 
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2 flex-wrap">
-          <p className="font-bold text-navy-900 truncate">{m.visitorName}</p>
+          <p className="text-h3 text-navy-900 truncate">{m.visitorName}</p>
           <span className={`status-badge ${approval.badge}`}>{approval.label}</span>
           <span className="status-badge bg-navy-50 text-navy-600 border border-navy-500/15 dark:bg-white/[0.06] dark:text-navy-200">
             <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -43,9 +44,9 @@ export default function CheckInMatchCard({ match: m, disabled, isCheckedIn, expi
           {expired && !isCheckedIn && <span className="status-badge bg-danger-50 text-danger-700 border border-danger-500/20">Expired</span>}
         </div>
 
-        <p className="text-xs text-navy-400 mt-1 truncate">{m.purpose}</p>
+        <p className="text-caption text-navy-400 mt-1 truncate">{m.purpose}</p>
 
-        <div className="flex flex-col gap-1 mt-2 text-xs text-navy-500">
+        <div className="flex flex-col gap-1 mt-2 text-caption text-navy-500">
           {m.hostName && (
             <span className="flex items-center gap-1.5">
               <svg className="w-3.5 h-3.5 shrink-0 text-navy-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>

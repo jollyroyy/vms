@@ -35,14 +35,11 @@ export default function OverviewStatCards({ loading, stats, activeFilter, onSele
           <button
             key={key}
             onClick={() => onSelect(isActive ? '' : key)}
-            className={`bg-white dark:bg-white/[0.04] rounded-xl border p-4 text-left transition-all duration-200
-              ${isActive
-                ? 'border-brand-500 ring-2 ring-brand-500/20 shadow-glow-sm'
-                : 'border-surface-200 hover:shadow-sm hover:border-surface-300'
-              }`}
+            className={`stat-card card-hover text-left w-full cursor-pointer
+              ${isActive ? 'ring-2 ring-brand-500/20 border-brand-500' : ''}`}
           >
-            <p className={`text-3xl font-bold ${color} tabular-nums`}>{loading ? '—' : value}</p>
-            <p className="text-xs text-navy-400 font-medium mt-0.5">{label}</p>
+            <p className={`stat-value ${color}`}>{loading ? '—' : value}</p>
+            <p className="stat-label mt-1">{label}</p>
           </button>
         );
       })}

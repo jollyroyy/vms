@@ -3,6 +3,8 @@ import type { Visit } from '../../types/index';
 import { formatTime, formatDuration } from '../../lib/formatDate';
 import { STATUS_STYLES } from '../../lib/statusStyles';
 import VisitorDetails from '../../components/VisitorDetails';
+import CardField from '../../components/CardField';
+import { CRISP_CARD_INTERACTIVE } from '../../lib/cardStyles';
 
 type ViewMode = 'inside' | 'approved' | 'pending' | 'rejected';
 
@@ -88,7 +90,7 @@ export default function OverviewFilteredView({
 
       {/* Loading */}
       {loading && (
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="flex flex-col gap-4">
           {[1, 2, 3].map(i => (
             <div key={i} className="bg-white dark:bg-white/[0.04] rounded-xl border border-surface-200 p-4">
               <div className="flex gap-3">
@@ -114,9 +116,10 @@ export default function OverviewFilteredView({
         </div>
       )}
 
-      {/* Visitor grid — not loading and non-empty */}
+      {/* Visitor list — a full-width vertical stack, one card after another
+          (client feedback, 2026-08-10 — see WhosInside.tsx for the same fix). */}
       {!loading && visits.length > 0 && (
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <div data-card-list className="flex flex-col gap-4">
           {visits.map((v, idx) => <VisitorCard key={v.id} visit={v} index={idx} onClick={() => setDetailVisit(v)} />)}
         </div>
       )}
@@ -129,16 +132,11 @@ const PURPOSE_LABELS: Record<string, string> = {
   delivery: 'Delivery', maintenance: 'Maintenance', audit: 'Audit', other: 'Other',
 };
 
-function Field({ label, value }: { label: string; value: string | null | undefined }): React.ReactElement | null {
-  if (!value) return null;
-  return (
-    <div className="min-w-0">
-      <p className="text-[9px] font-bold text-navy-300 dark:text-navy-500 uppercase tracking-wider leading-none mb-1">{label}</p>
-      <p className="text-[12.5px] font-semibold text-navy-800 dark:text-navy-100 truncate leading-tight">{value}</p>
-    </div>
-  );
-}
-
+// Header = identity (photo, name) + state (status pill) only. Every other
+// fact — vendor, department, reason, phone, date, ref — lives in the body
+// grid below, exactly once. Vendor used to also print here under the name,
+// duplicating the value the Field grid already shows (client feedback,
+// 2026-08-10).
 function VisitorCard({ visit: v, index: idx, onClick }: { visit: Visit; index: number; onClick: () => void }): React.ReactElement {
   const style = STATUS_STYLES[v.status];
   const dur = v.status === 'checked_in' && v.checked_in_at ? formatDuration(v.checked_in_at) : null;
@@ -146,18 +144,15 @@ function VisitorCard({ visit: v, index: idx, onClick }: { visit: Visit; index: n
   const dateStr = new Date(when).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' });
   const timeStr = formatTime(when);
 
-  // The card background used to be `dark:bg-navy-900/40`, which washed it out
-  // to a mid grey: navy-900 is DARK in light mode but near-white in dark, so a
-  // 40% wash of it over the page reads as a grey slab, not a raised card. A
-  // low-alpha white lift is what "raised" means on a dark surface.
   return (
     <div
-      className="bg-white dark:bg-white/[0.045] rounded-2xl border border-surface-200/80 dark:border-white/[0.07] p-4 cursor-pointer card-hover animate-fade-in shadow-sm hover:shadow-md transition-shadow"
+      data-card-header-root
+      className={`${CRISP_CARD_INTERACTIVE} p-4 animate-fade-in`}
       style={{ animationDelay: `${idx * 0.03}s` }}
       onClick={onClick}
     >
-      {/* Identity row */}
-      <div className="flex gap-3 items-center">
+      {/* Header — identity + state only */}
+      <div data-card-header className="flex gap-3 items-center">
         <div className="shrink-0 relative">
           {v.photo_url ? (
             <img src={v.photo_url} alt="" className="w-12 h-12 object-cover rounded-full ring-2 ring-brand-500/15" />
@@ -168,8 +163,7 @@ function VisitorCard({ visit: v, index: idx, onClick }: { visit: Visit; index: n
           )}
         </div>
         <div className="flex-1 min-w-0">
-          <p className="font-display font-bold text-navy-950 dark:text-white truncate text-[15px] leading-tight">{v.visitor?.full_name ?? '—'}</p>
-          {v.visitor?.vendor_name && <p className="text-[12px] text-navy-400 dark:text-navy-400 truncate mt-0.5">{v.visitor.vendor_name}</p>}
+          <p className="text-h3 text-navy-950 dark:text-white truncate">{v.visitor?.full_name ?? '—'}</p>
         </div>
         <span className={`shrink-0 status-badge ${style.bg} ${style.text}`}>
           <span className={`h-1.5 w-1.5 rounded-full ${style.dot} ${v.status === 'checked_in' ? 'animate-pulse-soft' : ''}`} />
@@ -177,53 +171,60 @@ function VisitorCard({ visit: v, index: idx, onClick }: { visit: Visit; index: n
         </span>
       </div>
 
-      {/* Field grid */}
-      <div className="mt-3.5 pt-3.5 border-t border-surface-200/60 dark:border-white/[0.06] grid grid-cols-2 gap-x-3 gap-y-2.5">
-        <Field label="Department" value={v.department?.name} />
-        <Field label="Reason" value={PURPOSE_LABELS[v.purpose] ?? v.purpose} />
-        <Field label="Date" value={`${dateStr} · ${timeStr}`} />
-        <Field label="Phone" value={v.visitor?.phone} />
+      {/* Body — every other fact, exactly once. Collapses to a single column
+          below `sm` (375px) so nothing crowds on a phone at the gate. */}
+      <div className="mt-3.5 pt-3.5 border-t border-surface-200/60 dark:border-white/[0.06] grid grid-cols-1 sm:grid-cols-2 gap-x-3 gap-y-2.5">
+        <CardField label="Vendor" value={v.visitor?.vendor_name} />
+        <CardField label="Department" value={v.department?.name} />
+        <CardField label="Reason" value={PURPOSE_LABELS[v.purpose] ?? v.purpose} />
+        <CardField label="Date" value={`${dateStr} · ${timeStr}`} />
+        <CardField label="Phone" value={v.visitor?.phone} />
+        <CardField label="Ref" value={v.ref_number} />
       </div>
 
-      {/* Status context + ref */}
-      <div className="mt-3 flex items-center justify-between gap-2">
+      {/* Muted footer band — status context, the shadcn CardFooter idiom
+          (distinct surface, not another bordered box nested inside this one). */}
+      <div className="mt-3 -mx-4 -mb-4 px-4 py-2.5 rounded-b-2xl bg-surface-100/60 dark:bg-white/[0.03] border-t border-surface-200 dark:border-white/[0.06]">
         <div className="min-w-0">
           {/* Which approval route the visit took is already named on the badge
               above ('Pre-approved' vs 'Walk-in approved'), so this line carries
               the one thing both routes share once the HOD has decided: the visit
               is now waiting on the gate. */}
           {v.status === 'approved' && (
-            <p className="text-[11px] text-success-600 dark:text-success-400 font-semibold truncate flex items-center gap-1">
+            <p className="text-caption text-success-600 dark:text-success-400 font-semibold truncate flex items-center gap-1">
               <span className="h-1.5 w-1.5 rounded-full bg-success-500 shrink-0" />
               Awaiting gate check{v.scheduled_for && ` · ETA ${formatTime(v.scheduled_for)}`}
             </p>
           )}
           {v.status === 'pending_approval' && (
-            <p className="text-[11px] text-amber-600 dark:text-amber-400 font-semibold flex items-center gap-1">
+            <p className="text-caption text-amber-600 dark:text-amber-400 font-semibold flex items-center gap-1">
               <span className="h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse shrink-0" />
               Pending HOD Approval
             </p>
           )}
           {v.status === 'walkin_approved' && (
-            <p className="text-[11px] text-brand-600 dark:text-brand-400 font-semibold truncate flex items-center gap-1">
+            <p className="text-caption text-brand-600 dark:text-brand-400 font-semibold truncate flex items-center gap-1">
               <span className="h-1.5 w-1.5 rounded-full bg-brand-500 shrink-0" />
               Awaiting gate check
             </p>
           )}
           {v.checked_in_at && v.status === 'checked_in' && (
-            <p className={`text-[11px] font-semibold flex items-center gap-1 ${dur?.isOvertime ? 'text-danger-600' : 'text-brand-600 dark:text-brand-400'}`}>
+            <p className={`text-caption font-semibold flex items-center gap-1 ${dur?.isOvertime ? 'text-danger-600' : 'text-brand-600 dark:text-brand-400'}`}>
               <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${dur?.isOvertime ? 'bg-danger-500' : 'bg-brand-500'}`} />
               {dur?.text} on-site{dur?.isOvertime ? ' — Overtime' : ''}
             </p>
           )}
           {v.rejection_reason && (
-            <p className="text-[11px] text-danger-600 dark:text-danger-400 font-medium truncate flex items-center gap-1">
+            <p className="text-caption text-danger-600 dark:text-danger-400 font-medium truncate flex items-center gap-1">
               <span className="h-1.5 w-1.5 rounded-full bg-danger-500 shrink-0" />
               {v.rejection_reason}
             </p>
           )}
+          {!v.rejection_reason && v.status !== 'approved' && v.status !== 'pending_approval'
+            && v.status !== 'walkin_approved' && !(v.checked_in_at && v.status === 'checked_in') && (
+            <p className="text-caption text-navy-500 dark:text-navy-400 font-medium">{style.label}</p>
+          )}
         </div>
-        <span className="text-[10px] text-navy-300 dark:text-navy-600 font-mono shrink-0">{v.ref_number}</span>
       </div>
     </div>
   );

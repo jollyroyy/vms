@@ -202,11 +202,12 @@ export default function HODOverview(): React.ReactElement {
 
   return (
     <div className="space-y-5 animate-fade-in">
-      <div>
+      <div className="page-header !mb-0">
         {deptName && (
-          <p className="text-xs font-bold uppercase tracking-[0.18em] text-brand-500 dark:text-brand-300 mb-1">{deptName} Department</p>
+          <p className="eyebrow mb-1">{deptName} Department</p>
         )}
-        <p className="text-sm text-navy-400 mt-0.5">Your visitors at a glance</p>
+        <h1 className="page-title">Overview</h1>
+        <p className="page-subtitle">Your visitors at a glance</p>
       </div>
 
       {successMsg && (

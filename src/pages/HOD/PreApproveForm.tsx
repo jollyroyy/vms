@@ -165,7 +165,7 @@ export default function PreApproveForm({ onPreApproved }: Props): React.ReactEle
             onChange={(e) => { setPhone(e.target.value); setBlacklistHit(null); }}
             onBlur={recallByPhone} placeholder="+91 98765 43210" className="input" />
         </div>
-        <div><label className="label">Full Name *</label><input type="text" required value={fullName} onChange={(e) => setFullName(e.target.value)} className="input" /></div>
+        <div><label className="label">Visitor Name *</label><input type="text" required value={fullName} onChange={(e) => setFullName(e.target.value)} className="input" /></div>
         <div><label className="label">Vendor Name / Coming from *</label><input type="text" required value={vendorName} onChange={(e) => setVendorName(e.target.value)} className="input" /></div>
         <div>
           <label className="label">Purpose *</label>

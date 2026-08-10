@@ -256,4 +256,21 @@ describe('M12-REPORTS: Reports', () => {
     });
     expect(screen.queryByText(asDate('2026-07-01T08:15:00Z'))).not.toBeInTheDocument();
   });
+
+  // Premium type-scale pass (2026-08-10): register headers sit at the micro
+  // scale (11px/600 uppercase) and every numeral column stays tabular so
+  // digits never jitter as rows load or filter.
+  it('renders the register header at the micro scale and keeps numerals tabular', async () => {
+    mockOrder.mockResolvedValue({ data: [], error: null });
+    mockIn.mockResolvedValue({ data: [], error: null });
+    render(<MemoryRouter><ReportsPage /></MemoryRouter>);
+    await waitFor(() => {
+      expect(screen.getByText('Visitor Name')).toBeInTheDocument();
+    });
+    const header = screen.getByText('Visitor Name');
+    expect(header.tagName).toBe('TH');
+    expect(header.className).toContain('text-micro');
+    const table = header.closest('table')!;
+    expect(table.className).toContain('tabular-nums');
+  });
 });

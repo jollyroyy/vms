@@ -144,8 +144,8 @@ export default function WalkInRequest({ onSubmitted, onCancel }: Props): React.R
               onBlur={handlePhoneBlur} placeholder="98xxx xxxxx" className="w-full px-4 py-2.5 bg-surface-50 border border-surface-200 rounded-xl text-sm text-navy-900 placeholder-navy-300 focus:outline-none focus:ring-2 focus:ring-brand-500 transition-all" />
           </div>
           <div>
-            <label className="text-xs font-semibold text-navy-600 mb-1 block">Name *</label>
-            <input type="text" required value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Full name" className="w-full px-4 py-2.5 bg-surface-50 border border-surface-200 rounded-xl text-sm text-navy-900 placeholder-navy-300 focus:outline-none focus:ring-2 focus:ring-brand-500 transition-all" />
+            <label className="text-xs font-semibold text-navy-600 mb-1 block">Visitor Name *</label>
+            <input type="text" required value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Visitor name" className="w-full px-4 py-2.5 bg-surface-50 border border-surface-200 rounded-xl text-sm text-navy-900 placeholder-navy-300 focus:outline-none focus:ring-2 focus:ring-brand-500 transition-all" />
             {isFeatureEnabled('ocr') && (
               <button type="button" onClick={() => setScanOpen(true)}
                 className="mt-1.5 w-full flex items-center justify-center gap-2 bg-surface-50 hover:bg-surface-100 border border-surface-200 rounded-xl px-4 py-2.5 text-sm font-semibold text-brand-700 transition-all">

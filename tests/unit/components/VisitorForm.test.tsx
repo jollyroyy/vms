@@ -67,6 +67,14 @@ describe('M12-GUARD: VisitorForm host loading', () => {
     });
   });
 
+  it('labels the name field "Visitor Name", not "Full Name"', async () => {
+    render(<VisitorForm onRegistered={vi.fn()} />);
+    await waitFor(() => {
+      expect(screen.getByText('Visitor Name *')).toBeInTheDocument();
+    });
+    expect(screen.queryByText('Full Name *')).not.toBeInTheDocument();
+  });
+
   it('loads departments on mount', async () => {
     render(<VisitorForm onRegistered={vi.fn()} />);
     await waitFor(() => {

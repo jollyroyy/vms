@@ -88,6 +88,19 @@ describe('M12-GUARD: WhosInside', () => {
     });
   });
 
+  // Client feedback, 2026-08-10: cards must be "one row after another", never
+  // a 2-up/3-up grid.
+  it('renders the visitor list as a full-width vertical stack, not a grid', async () => {
+    setup();
+    mockOrder.mockResolvedValue({ data: [mockCheckedIn], error: null });
+    const { container } = render(<MemoryRouter><WhosInside /></MemoryRouter>);
+    await waitFor(() => expect(screen.getByText('Alice')).toBeInTheDocument());
+    const list = container.querySelector('[data-card-list]');
+    expect(list).not.toBeNull();
+    expect(list!.className).not.toMatch(/\bgrid\b/);
+    expect(list!.className).toMatch(/flex-col/);
+  });
+
   it('switches to Pre-Approved tab and shows pre-approved visitors', async () => {
     setup();
     mockOrder.mockResolvedValue({ data: [mockPreApproved], error: null });

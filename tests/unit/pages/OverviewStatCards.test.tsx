@@ -68,4 +68,19 @@ describe('OverviewStatCards', () => {
     expect(insideBtn.className).toContain('ring-2');
     expect(insideBtn.className).toContain('ring-brand-500/20');
   });
+
+  // Premium type-scale pass (2026-08-10): the number is the one thing each
+  // card exists for, so it must render at the kpi scale (`.stat-value`,
+  // 36px/800/tabular) with its label two steps down at the micro scale
+  // (`.stat-label`, 11px/600 uppercase) — never the old ad hoc
+  // `text-3xl font-bold` / `text-xs` utility pair.
+  it('renders each number at the kpi scale and its label at the micro scale', () => {
+    render(<OverviewStatCards loading={false} stats={stats} activeFilter={null} onSelect={vi.fn()} />);
+
+    const value = screen.getByText('5');
+    expect(value.className).toContain('stat-value');
+
+    const label = screen.getByText('Inside');
+    expect(label.className).toContain('stat-label');
+  });
 });

@@ -85,18 +85,18 @@ describe('GuardSearch', () => {
 
   it('shows an idle hint before anything is typed', () => {
     renderAt('/guard/search');
-    expect(screen.getByText(/Type a name, phone number or reference number/i)).toBeTruthy();
+    expect(screen.getByText(/Type a visitor name, phone number or reference number/i)).toBeTruthy();
   });
 
   it('pre-populates the input from the ?q= param', () => {
     renderAt('/guard/search?q=Alice');
-    const input = screen.getByPlaceholderText('Name, phone or reference number') as HTMLInputElement;
+    const input = screen.getByPlaceholderText('Visitor name, phone or reference number') as HTMLInputElement;
     expect(input.value).toBe('Alice');
   });
 
   it('shows which interpretation was used for a name query', async () => {
     renderAt('/guard/search?q=Alice');
-    await waitFor(() => expect(screen.getByText(/Searching by: Name/)).toBeTruthy());
+    await waitFor(() => expect(screen.getByText(/Searching by: Visitor Name/)).toBeTruthy());
   });
 
   it('shows the no-results empty state when nothing matches', async () => {
@@ -116,6 +116,19 @@ describe('GuardSearch', () => {
     expect(screen.getByText('Bob Smith')).toBeInTheDocument();
     expect(screen.getByText('9876543210')).toBeInTheDocument();
     expect(screen.getByText('VIS-20260720-0001')).toBeInTheDocument();
+  });
+
+  // Client feedback, 2026-08-10: cards must be "one row after another", never
+  // a 2-up/3-up grid.
+  it('renders the result list as a full-width vertical stack, not a grid', async () => {
+    mockVisitorRows.current = [{ id: 'visitor-1' }];
+    mockVisitRows.current = [sampleVisit];
+    const { container } = renderAt('/guard/search?q=Alice');
+    await waitFor(() => expect(screen.getByText('Alice Johnson')).toBeTruthy());
+    const list = container.querySelector('[data-card-list]');
+    expect(list).not.toBeNull();
+    expect(list!.className).not.toMatch(/\bgrid\b/);
+    expect(list!.className).toMatch(/flex-col/);
   });
 
   it('renders a result card for a reference-number query', async () => {

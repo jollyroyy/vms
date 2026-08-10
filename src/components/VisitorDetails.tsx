@@ -47,12 +47,12 @@ function InfoRow({ icon, label, value, sub }: { icon: React.ReactNode; label: st
     <div className="flex items-start gap-2.5">
       <span className="text-navy-300 mt-0.5 shrink-0">{icon}</span>
       <div className="min-w-0">
-        <p className="text-[10px] text-navy-400 uppercase tracking-wider font-semibold leading-none mb-0.5">{label}</p>
-        <p className="text-[13px] text-navy-800 font-medium truncate">{value}</p>
+        <p className="text-micro text-navy-400 uppercase leading-none mb-0.5">{label}</p>
+        <p className="text-body font-medium text-navy-800 truncate">{value}</p>
         {/* The department the host belongs to — folded under their name rather
             than kept as its own row, so it is never rendered twice on the
             same card. */}
-        {sub && <p className="text-[11px] text-navy-400 truncate mt-0.5">{sub}</p>}
+        {sub && <p className="text-caption text-navy-400 truncate mt-0.5">{sub}</p>}
       </div>
     </div>
   );
@@ -98,7 +98,7 @@ export default function VisitorDetails({
             </svg>
           </button>
           <div className="relative z-10">
-            <span className="text-[10px] text-white/50 font-mono tracking-wider">{v.ref_number}</span>
+            <span className="text-micro text-white/50 font-mono normal-case">{v.ref_number}</span>
           </div>
         </div>
 
@@ -119,10 +119,10 @@ export default function VisitorDetails({
               </div>
             )}
             <div className="min-w-0 flex-1">
-              <p className="font-bold text-navy-950 text-base truncate leading-tight">{v.visitor?.full_name ?? '—'}</p>
-              {v.visitor?.vendor_name && <p className="text-xs text-navy-400 truncate mt-0.5">{v.visitor.vendor_name}</p>}
+              <p className="text-h3 text-navy-950 truncate">{v.visitor?.full_name ?? '—'}</p>
+              {v.visitor?.vendor_name && <p className="text-caption text-navy-400 truncate mt-0.5">{v.visitor.vendor_name}</p>}
               <div className="mt-1.5">
-                <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold capitalize ${s.bg} ${s.text}`}>
+                <span className={`status-badge capitalize ${s.bg} ${s.text}`}>
                   <span className={`h-1.5 w-1.5 rounded-full ${s.dot} ${v.status === 'checked_in' ? 'animate-pulse' : ''}`} />
                   {v.status.replace(/_/g, ' ')}
                 </span>
@@ -133,7 +133,7 @@ export default function VisitorDetails({
 
         {/* Details section */}
         <div className="px-5 pt-5 pb-3">
-          <p className="text-[10px] font-bold text-navy-400 uppercase tracking-wider mb-3">Details</p>
+          <p className="eyebrow mb-3">Details</p>
           <div className="grid grid-cols-2 gap-x-4 gap-y-3.5">
             <InfoRow
               label="Phone"
@@ -170,14 +170,14 @@ export default function VisitorDetails({
             <div className="mt-3.5 flex items-start gap-2 text-warning-700 bg-warning-50 rounded-lg px-3 py-2">
               <svg className="w-4 h-4 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z" /></svg>
               <div className="min-w-0">
-                <p className="text-xs font-semibold">Carrying</p>
-                <p className="text-xs mt-0.5 break-words">{v.carrying_remarks}</p>
+                <p className="text-caption font-semibold">Carrying</p>
+                <p className="text-caption mt-0.5 break-words">{v.carrying_remarks}</p>
               </div>
             </div>
           ) : v.carrying_material ? (
             <div className="mt-3.5 flex items-center gap-2 text-warning-700 bg-warning-50 rounded-lg px-3 py-2">
               <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z" /></svg>
-              <span className="text-xs font-semibold">Carrying Material</span>
+              <span className="text-caption font-semibold">Carrying Material</span>
             </div>
           ) : null}
 
@@ -192,7 +192,7 @@ export default function VisitorDetails({
               <button
                 type="button"
                 onClick={() => setShowPass((prev) => !prev)}
-                className="w-full text-xs font-bold text-brand-600 dark:text-brand-300 hover:text-brand-700 dark:hover:text-brand-200 flex items-center justify-center gap-1.5 py-2 rounded-lg border border-brand-200 dark:border-brand-500/30 bg-brand-50/60 hover:bg-brand-50 transition-all"
+                className="w-full text-caption font-bold text-brand-600 dark:text-brand-300 hover:text-brand-700 dark:hover:text-brand-200 flex items-center justify-center gap-1.5 py-2 rounded-lg border border-brand-200 dark:border-brand-500/30 bg-brand-50/60 hover:bg-brand-50 transition-all"
               >
                 <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 4.5h4.5v4.5h-4.5v-4.5zM15.75 4.5h4.5v4.5h-4.5v-4.5zM3.75 15.75h4.5v4.5h-4.5v-4.5zM15.75 15.75h1.5v1.5h-1.5v-1.5zM19.5 15.75h.75v.75h-.75v-.75zM15.75 19.5h.75v.75h-.75v-.75zM18.75 18.75h1.5v1.5h-1.5v-1.5z" /></svg>
                 {showPass ? 'Hide Pass' : 'View Pass'}
@@ -226,8 +226,8 @@ export default function VisitorDetails({
               <div className="flex items-start gap-3 relative">
                 <div className="w-[11px] h-[11px] rounded-full bg-danger-500 border-2 border-white dark:border-navy-50 shrink-0 mt-0.5 z-10" />
                 <div className="flex-1 min-w-0">
-                  <span className="text-[11px] text-danger-500 font-medium block">Rejection Reason</span>
-                  <span className="text-[11px] text-danger-700 font-medium">{v.rejection_reason}</span>
+                  <span className="text-micro normal-case text-danger-500 font-medium block">Rejection Reason</span>
+                  <span className="text-caption text-danger-700 font-medium">{v.rejection_reason}</span>
                 </div>
               </div>
             )}
@@ -255,8 +255,8 @@ function TimelineEntry({ color, label, time, highlight, strong }: { color: strin
           of the flipped scale and reads as the panel in dark mode. */}
       <div className={`w-[11px] h-[11px] rounded-full ${color} border-2 border-white dark:border-navy-50 shrink-0 mt-0.5 z-10`} />
       <div className={`flex-1 flex justify-between items-baseline gap-2 min-w-0 ${highlight ? 'text-danger-600 font-bold' : ''}`}>
-        <span className="text-[11px] uppercase tracking-wider text-navy-500 font-bold shrink-0">{label}</span>
-        <span className={`truncate tabular-nums ${strong ? 'text-[14px] font-bold' : 'text-[13px] font-semibold'} ${highlight ? 'text-danger-600' : 'text-navy-800'}`}>{time}</span>
+        <span className="text-micro uppercase text-navy-500 shrink-0">{label}</span>
+        <span className={`truncate tabular-nums ${strong ? 'text-body-lg font-bold' : 'text-body font-semibold'} ${highlight ? 'text-danger-600' : 'text-navy-800'}`}>{time}</span>
       </div>
     </div>
   );

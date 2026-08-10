@@ -59,6 +59,6 @@ describe('SEARCH_KIND_LABEL', () => {
   it('provides a human label for every search kind', () => {
     expect(SEARCH_KIND_LABEL.phone).toBe('Phone number');
     expect(SEARCH_KIND_LABEL.ref).toBe('Reference number');
-    expect(SEARCH_KIND_LABEL.name).toBe('Name');
+    expect(SEARCH_KIND_LABEL.name).toBe('Visitor Name');
   });
 });

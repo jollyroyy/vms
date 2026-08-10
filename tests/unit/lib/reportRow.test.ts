@@ -47,7 +47,7 @@ describe('reportRow', () => {
       const row = toReportRow(makeVisit(), 0);
       const keys = Object.keys(row);
       expect(keys).toEqual([
-        '#', 'Ref', 'Name', 'Vendor', 'Phone', 'Department', 'Person to Meet', 'ID Proof',
+        '#', 'Ref', 'Visitor Name', 'Vendor', 'Phone', 'Department', 'Person to Meet', 'ID Proof',
         'Purpose', 'Approved At', 'Checked In At', 'Checked Out At',
         'Carrying', 'Carrying Remarks', 'Status',
       ]);
@@ -145,10 +145,10 @@ describe('reportRow', () => {
       expect(row['Carrying Remarks']).toBe('');
     });
 
-    it('missing visitor join degrades Name to empty string', () => {
+    it('missing visitor join degrades Visitor Name to empty string', () => {
       const row = toReportRow(makeVisit({ visitor: undefined }), 0);
-      expect(row['Name']).toBe('');
-      expect(row['Name']).not.toMatch(/undefined/);
+      expect(row['Visitor Name']).toBe('');
+      expect(row['Visitor Name']).not.toMatch(/undefined/);
     });
 
     it('missing visitor join degrades Vendor to empty string', () => {

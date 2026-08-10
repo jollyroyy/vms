@@ -39,7 +39,7 @@ export default function AddNewForm({
       </div>
 
       <div className="space-y-1.5">
-        <label className="label">Full Name</label>
+        <label className="label">Visitor Name</label>
         <input
           type="text"
           className="input"

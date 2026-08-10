@@ -120,7 +120,7 @@ export default function GuardSearch({ role }: Props): React.ReactElement {
         type="text"
         autoFocus
         className="input w-full text-base"
-        placeholder="Name, phone or reference number"
+        placeholder="Visitor name, phone or reference number"
         value={query}
         onChange={(e) => handleChange(e.target.value)}
       />
@@ -132,10 +132,10 @@ export default function GuardSearch({ role }: Props): React.ReactElement {
       <div className="mt-4">
         {!parsed ? (
           <div className="card py-10 px-5 text-center">
-            <p className="text-sm font-semibold text-navy-500">Type a name, phone number or reference number to search.</p>
+            <p className="text-sm font-semibold text-navy-500">Type a visitor name, phone number or reference number to search.</p>
           </div>
         ) : searching ? (
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div className="flex flex-col gap-4">
             {[0, 1, 2].map((i) => <div key={i} className="skeleton h-32 w-full rounded-2xl" />)}
           </div>
         ) : searched && visits.length === 0 ? (
@@ -143,7 +143,9 @@ export default function GuardSearch({ role }: Props): React.ReactElement {
             <p className="text-sm font-semibold text-navy-500">No matching visits found.</p>
           </div>
         ) : (
-          <div className="grid gap-3 sm:grid-cols-2">
+          // A full-width vertical stack, not a grid — see WhosInside.tsx for
+          // the same client feedback (2026-08-10).
+          <div data-card-list className="flex flex-col gap-4">
             {visits.map((v) => (
               <SearchResultCard key={v.id} visit={v} onClick={() => setDetailVisit(v)} />
             ))}

@@ -28,7 +28,7 @@ export function toReportRow(visit: ReportVisit, index: number): ReportRow {
   return {
     '#': String(index + 1),
     'Ref': visit.ref_number ?? '',
-    'Name': visit.visitor?.full_name ?? '',
+    'Visitor Name': visit.visitor?.full_name ?? '',
     'Vendor': visit.visitor?.vendor_name ?? '',
     'Phone': maskPhone(visit.visitor?.phone),
     'Department': visit.department?.name ?? '',

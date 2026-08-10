@@ -225,7 +225,7 @@ export default function WhosInside(): React.ReactElement {
       )}
 
       {loading && (
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="flex flex-col gap-4">
           {[1, 2, 3, 4, 5, 6].map((i) => (
             <div key={i} className="card p-4">
               <div className="flex gap-3">
@@ -255,8 +255,12 @@ export default function WhosInside(): React.ReactElement {
         </div>
       )}
 
-      {/* Visitor grid */}
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      {/* Visitor list — a full-width vertical stack, one card after another.
+          A 2/3-up grid was the client's core complaint (2026-08-10): it
+          doubled the eye's travel scanning a KPI-drill-shaped list for no
+          gain. `gap-4` keeps 16px between cards, the top of the spec's
+          ≥12px floor for the boundary between stacked cards to stay legible. */}
+      <div data-card-list className="flex flex-col gap-4">
         {displayed.map((v, idx) => (
           <WhosInsideVisitorCard key={v.id} visit={v} index={idx} onClick={() => setDetailVisit(v)} />
         ))}

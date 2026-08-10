@@ -44,7 +44,7 @@ export default function DashboardDrilldown({
       </div>
 
       {loading ? (
-        <div className="p-5 grid grid-cols-1 lg:grid-cols-2 gap-3">
+        <div className="p-5 flex flex-col gap-4">
           {[0, 1].map((i) => <div key={i} className="skeleton h-14 w-full rounded-xl" />)}
         </div>
       ) : rows.length === 0 ? (
@@ -52,7 +52,9 @@ export default function DashboardDrilldown({
           <p className="text-sm font-semibold text-navy-500">{copy.empty}</p>
         </div>
       ) : (
-        <div className="p-4 grid grid-cols-1 lg:grid-cols-2 gap-3">
+        // A full-width vertical stack, not a 2-up grid — the client's core
+        // complaint (2026-08-10) was exactly this doubling of scan travel.
+        <div data-card-list className="p-4 flex flex-col gap-4">
           {rows.map((v, i) => (
             <WhosInsideVisitorCard key={v.id} visit={v} index={i} onClick={() => onSelect(v)} />
           ))}

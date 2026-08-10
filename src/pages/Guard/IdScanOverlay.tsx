@@ -141,7 +141,7 @@ export default function IdScanOverlay({ onScanned, onClose }: Props): React.Reac
           <div className="space-y-2 text-sm">
             <div className="flex justify-between"><span className="text-navy-400">Document</span><span className="font-semibold text-navy-900">{parsed.typeLabel}</span></div>
             <div className="flex justify-between"><span className="text-navy-400">ID number</span><span className="font-mono font-semibold text-navy-900">{parsed.masked}</span></div>
-            <div className="flex justify-between"><span className="text-navy-400">Name</span><span className="font-semibold text-navy-900">{parsed.name ?? '—'}</span></div>
+            <div className="flex justify-between"><span className="text-navy-400">Visitor Name</span><span className="font-semibold text-navy-900">{parsed.name ?? '—'}</span></div>
             <div className="flex justify-between"><span className="text-navy-400">Date of birth</span><span className="font-semibold text-navy-900">{parsed.dob ?? '—'}</span></div>
           </div>
           <div className="flex gap-3">

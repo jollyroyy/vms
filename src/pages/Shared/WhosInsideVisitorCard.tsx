@@ -4,6 +4,8 @@ import { useLiveElapsed } from '../../lib/useLiveElapsed';
 import { approvalTimestamp } from '../../lib/visitApproval';
 import type { ReportVisit } from '../../lib/reportRow';
 import { STATUS_STYLES } from '../../lib/statusStyles';
+import CardField from '../../components/CardField';
+import { CRISP_CARD_INTERACTIVE, CARD_FOOTER_BAND } from '../../lib/cardStyles';
 
 type Props = {
   visit: ReportVisit;
@@ -29,11 +31,11 @@ function TimelineRow({ tone, icon, label, value, live, strong }: { tone: Tone; i
     <div className="flex items-start gap-2.5">
       <span className={`mt-0.5 h-7 w-7 rounded-lg flex items-center justify-center shrink-0 ${TONE_CLASSES[tone]}`}>{icon}</span>
       <div className="min-w-0">
-        <p className="text-[10px] font-bold uppercase tracking-widest text-navy-500">{label}</p>
-        <p className={`truncate tabular-nums ${strong ? 'text-[15px] font-bold leading-snug text-navy-950' : 'text-[13px] font-semibold leading-snug text-navy-800'}`}>
+        <p className="text-micro uppercase text-navy-500">{label}</p>
+        <p className={`truncate tabular-nums leading-snug ${strong ? 'text-body-lg font-bold text-navy-950' : 'text-body font-medium text-navy-800'}`}>
           {value}
           {live && (
-            <span className="ml-1.5 inline-flex items-center gap-1 align-middle text-[10px] font-bold uppercase tracking-wide text-success-600">
+            <span className="ml-1.5 inline-flex items-center gap-1 align-middle text-micro uppercase text-success-600">
               <span className="h-1.5 w-1.5 rounded-full bg-success-500 animate-pulse-soft" />Live
             </span>
           )}
@@ -52,11 +54,15 @@ export default function WhosInsideVisitorCard({ visit: v, index: idx, onClick }:
 
   return (
     <div
-      className="card card-hover p-4 cursor-pointer animate-fade-in"
+      className={`${CRISP_CARD_INTERACTIVE} animate-fade-in`}
       style={{ animationDelay: `${idx * 0.03}s` }}
       onClick={onClick}
     >
-      <div className="flex gap-3 items-start">
+      {/* Header — identity (photo, visitor name) + state (status pill) ONLY.
+          Vendor, host and department used to also print here, duplicating the
+          same values the field grid below shows (client feedback, 2026-08-10:
+          "I see the vendor name in the body and also on the top"). */}
+      <div data-card-header className="flex gap-3 items-start p-4">
         <div className="shrink-0 relative">
           {v.photo_url ? (
             <img src={v.photo_url} alt="" className="w-12 h-16 object-cover rounded-xl ring-2 ring-brand-500/10" />
@@ -66,45 +72,37 @@ export default function WhosInsideVisitorCard({ visit: v, index: idx, onClick }:
             </div>
           )}
         </div>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-start justify-between gap-1">
-            <p className="font-bold text-navy-950 truncate text-[15px] leading-tight tracking-tight">{v.visitor?.full_name ?? '—'}</p>
-            <span className={`shrink-0 status-badge ${style.bg} ${style.text}`}>
-              <span className={`h-1.5 w-1.5 rounded-full ${style.dot} ${isInside ? 'animate-pulse-soft' : ''}`} />
-              {style.label}
-            </span>
-          </div>
-          {v.visitor?.vendor_name && <p className="text-[13px] text-navy-500 truncate mt-0.5">{v.visitor.vendor_name}</p>}
-          <div className="mt-2 pt-2 border-t border-surface-200/60 dark:border-white/[0.06] space-y-1">
-            {/* Department used to be its own bare line above Host, independent
-                of whether a host was even known — that rendered the same
-                department value a guard could also see on the popup, and a
-                department with no name above it read as orphaned. It now
-                lives under the host's name, and only when there is a name
-                for it to sit under. */}
-            {v.host?.full_name && (
-              <>
-                <p className="text-[11px] text-navy-400 uppercase tracking-wide">Person to Meet</p>
-                <p className="text-[13px] font-bold text-navy-800 truncate">{v.host.full_name}</p>
-                {v.department?.name && <p className="text-[13px] text-navy-500 truncate">{v.department.name}</p>}
-              </>
-            )}
-            <p className="text-[11px] text-navy-400 font-mono tracking-wide">{v.ref_number}</p>
-            {!isInside && (
-              <p className={`text-[12px] font-bold flex items-center gap-1.5 ${v.status === 'pending_approval' ? 'text-warning-700' : 'text-success-700'}`}>
-                <span className={`h-1.5 w-1.5 rounded-full ${v.status === 'pending_approval' ? 'bg-warning-500 animate-pulse' : 'bg-success-500'}`} />
-                {v.status === 'pending_approval' ? 'Pending HOD Approval'
-                  : v.status === 'walkin_approved' ? 'Walk-in Approved — Awaiting Check-in'
-                  : 'Pre-approved — Awaiting Arrival'}
-              </p>
-            )}
-          </div>
+        <div className="flex-1 min-w-0 flex items-start justify-between gap-2">
+          <p className="text-h3 text-navy-950 truncate">{v.visitor?.full_name ?? '—'}</p>
+          <span className={`shrink-0 status-badge ${style.bg} ${style.text}`}>
+            <span className={`h-1.5 w-1.5 rounded-full ${style.dot} ${isInside ? 'animate-pulse-soft' : ''}`} />
+            {style.label}
+          </span>
         </div>
       </div>
 
-      <div className="mt-3 rounded-xl bg-gradient-to-b from-surface-50/80 to-surface-100/40 border border-surface-200/60 dark:border-white/[0.06] p-3 space-y-2.5">
-        {/* Approval and check-in are separate events and were previously
-            collapsed into one row that only ever showed the check-in time. */}
+      {/* Body — every other fact, exactly once, as a labelled field grid.
+          Collapses to one column below `sm` (375px) so nothing crowds on a
+          phone at the gate. */}
+      <div className="px-4 pb-3 grid grid-cols-1 sm:grid-cols-2 gap-x-3 gap-y-2.5 border-t border-surface-200/60 dark:border-white/[0.06] pt-3">
+        <CardField label="Vendor" value={v.visitor?.vendor_name} />
+        <CardField label="Person to Meet" value={v.host?.full_name} />
+        <CardField label="Department" value={v.department?.name} />
+        <CardField label="Ref" value={v.ref_number} className="font-mono" />
+      </div>
+      {!isInside && (
+        <p className={`px-4 pb-3 text-caption font-semibold flex items-center gap-1.5 ${v.status === 'pending_approval' ? 'text-warning-700' : 'text-success-700'}`}>
+          <span className={`h-1.5 w-1.5 rounded-full ${v.status === 'pending_approval' ? 'bg-warning-500 animate-pulse' : 'bg-success-500'}`} />
+          {v.status === 'pending_approval' ? 'Pending HOD Approval'
+            : v.status === 'walkin_approved' ? 'Walk-in Approved — Awaiting Check-in'
+            : 'Pre-approved — Awaiting Arrival'}
+        </p>
+      )}
+
+      {/* Footer — the shadcn CardFooter idiom: a distinct muted band, not a
+          bordered box nested inside the card. Horizontal 2-column strip of
+          labelled facts on `sm` and up, one column on a phone. */}
+      <div className={`${CARD_FOOTER_BAND} rounded-b-2xl p-3 grid grid-cols-1 sm:grid-cols-2 gap-2.5`}>
         <TimelineRow
           tone={approvedAt ? 'success' : 'warning'}
           icon={<svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>}

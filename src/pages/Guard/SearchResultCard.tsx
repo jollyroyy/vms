@@ -8,35 +8,31 @@ import React from 'react';
 import type { Visit } from '../../types/index';
 import { formatDateTime } from '../../lib/formatDate';
 import { STATUS_STYLES } from '../../lib/statusStyles';
+import CardField from '../../components/CardField';
+import { CRISP_CARD_INTERACTIVE } from '../../lib/cardStyles';
 
 const PURPOSE_LABELS: Record<string, string> = {
   meeting: 'Meeting', vendor: 'Vendor', interview: 'Interview',
   delivery: 'Delivery', maintenance: 'Maintenance', audit: 'Audit', other: 'Other',
 };
 
-function Field({ label, value }: { label: string; value: string | null | undefined }): React.ReactElement | null {
-  if (!value) return null;
-  return (
-    <div className="min-w-0">
-      <p className="text-[9px] font-bold text-navy-300 dark:text-navy-500 uppercase tracking-wider leading-none mb-1">{label}</p>
-      <p className="text-[12.5px] font-semibold text-navy-800 dark:text-navy-100 truncate leading-tight">{value}</p>
-    </div>
-  );
-}
-
+// Header = visitor name (identity) + status pill (state) only. Vendor moved
+// into the field grid below — it used to also print here under the name,
+// duplicating the "Vendor" field a search result already carries (client
+// feedback, 2026-08-10).
 export default function SearchResultCard({ visit: v, onClick }: { visit: Visit; onClick: () => void }): React.ReactElement {
   const style = STATUS_STYLES[v.status];
 
   return (
     <div
-      className="bg-white dark:bg-white/[0.045] rounded-2xl border border-surface-200/80 dark:border-white/[0.07] p-4 cursor-pointer card-hover animate-fade-in shadow-sm hover:shadow-md transition-shadow"
+      className={`${CRISP_CARD_INTERACTIVE} p-4 animate-fade-in`}
       onClick={onClick}
       role="button"
       tabIndex={0}
       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(); } }}
     >
-      {/* Identity row */}
-      <div className="flex gap-3 items-center">
+      {/* Header — identity + state only */}
+      <div data-card-header className="flex gap-3 items-center">
         <div className="shrink-0 relative">
           {v.photo_url ? (
             <img src={v.photo_url} alt="" className="w-12 h-12 object-cover rounded-full ring-2 ring-brand-500/15" />
@@ -47,8 +43,7 @@ export default function SearchResultCard({ visit: v, onClick }: { visit: Visit; 
           )}
         </div>
         <div className="flex-1 min-w-0">
-          <p className="font-display font-bold text-navy-950 dark:text-white truncate text-[15px] leading-tight">{v.visitor?.full_name ?? '—'}</p>
-          {v.visitor?.vendor_name && <p className="text-[12px] text-navy-400 dark:text-navy-400 truncate mt-0.5">{v.visitor.vendor_name}</p>}
+          <p className="text-h3 text-navy-950 dark:text-white truncate">{v.visitor?.full_name ?? '—'}</p>
         </div>
         <span className={`shrink-0 status-badge ${style.bg} ${style.text}`}>
           <span className={`h-1.5 w-1.5 rounded-full ${style.dot} ${v.status === 'checked_in' ? 'animate-pulse-soft' : ''}`} />
@@ -56,16 +51,17 @@ export default function SearchResultCard({ visit: v, onClick }: { visit: Visit; 
         </span>
       </div>
 
-      {/* Field grid — everything the user asked a search result to surface:
-          who, vendor (above), department, who they're meeting, why, phone,
-          the reference number, and when the visit is/was. */}
-      <div className="mt-3.5 pt-3.5 border-t border-surface-200/60 dark:border-white/[0.06] grid grid-cols-2 gap-x-3 gap-y-2.5">
-        <Field label="Department" value={v.department?.name} />
-        <Field label="Person to Meet" value={v.host?.full_name} />
-        <Field label="Purpose" value={PURPOSE_LABELS[v.purpose] ?? v.purpose} />
-        <Field label="Phone" value={v.visitor?.phone} />
-        <Field label="Ref" value={v.ref_number} />
-        <Field label="Date & Time" value={formatDateTime(v.scheduled_for ?? v.created_at)} />
+      {/* Body — everything else a search result needs, exactly once each.
+          Collapses to one column below `sm` (375px) so nothing crowds on a
+          phone at the gate. */}
+      <div className="mt-3.5 pt-3.5 border-t border-surface-200/60 dark:border-white/[0.06] grid grid-cols-1 sm:grid-cols-2 gap-x-3 gap-y-2.5">
+        <CardField label="Vendor" value={v.visitor?.vendor_name} />
+        <CardField label="Department" value={v.department?.name} />
+        <CardField label="Person to Meet" value={v.host?.full_name} />
+        <CardField label="Purpose" value={PURPOSE_LABELS[v.purpose] ?? v.purpose} />
+        <CardField label="Phone" value={v.visitor?.phone} />
+        <CardField label="Ref" value={v.ref_number} className="font-mono" />
+        <CardField label="Date & Time" value={formatDateTime(v.scheduled_for ?? v.created_at)} />
       </div>
     </div>
   );

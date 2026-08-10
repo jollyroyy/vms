@@ -118,6 +118,13 @@ describe('PreApproveForm submission', () => {
     expect(screen.getByText(/Mobile Number/)).toBeInTheDocument();
   });
 
+  it('labels the name field "Visitor Name", not "Full Name"', async () => {
+    render(<PreApproveForm onPreApproved={vi.fn()} />);
+    await waitFor(() => expect(screen.getByPlaceholderText(/\+91/)).toBeInTheDocument());
+    expect(screen.getByText('Visitor Name *')).toBeInTheDocument();
+    expect(screen.queryByText('Full Name *')).not.toBeInTheDocument();
+  });
+
   /* ── Happy path ────────────────────────────────────── */
 
   it('inserts visitor and visit on submit with valid data', async () => {

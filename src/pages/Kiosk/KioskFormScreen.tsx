@@ -71,7 +71,7 @@ export default function KioskFormScreen({
               <input type="tel" value={phone} disabled className="input bg-surface-100 text-navy-500" />
             </div>
             <div>
-              <label className="label">Full Name *</label>
+              <label className="label">Visitor Name *</label>
               <input type="text" required maxLength={100} value={fullName} onChange={(e) => onFullNameChange(e.target.value)} className="input" placeholder="e.g. John Doe" autoFocus />
             </div>
             <div>

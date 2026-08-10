@@ -14,7 +14,7 @@ const REF_PATTERN = /^(VIS|GP-IN|GP-OUT)-\d{8}-\d{4,}$/;
 export const SEARCH_KIND_LABEL: Record<SearchKind, string> = {
   phone: 'Phone number',
   ref: 'Reference number',
-  name: 'Name',
+  name: 'Visitor Name',
 };
 
 export function parseSearchQuery(raw: string): ParsedQuery | null {

@@ -134,7 +134,7 @@ describe('M12-REPORTS: Reports department filter integration', () => {
     expect(mockExportCsv).toHaveBeenCalledTimes(1);
     const [rows, filename] = mockExportCsv.mock.calls[0];
     expect(rows).toHaveLength(1);
-    expect(rows[0]['Name']).toBe('Fiona Ledger');
+    expect(rows[0]['Visitor Name']).toBe('Fiona Ledger');
     expect(filename).toMatch(/fin|finance/i);
   });
 
