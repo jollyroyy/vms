@@ -126,7 +126,7 @@ export default function GuardSearch({ role }: Props): React.ReactElement {
       />
 
       {parsed && (
-        <p className="text-xs text-navy-400 mt-2">Searching by: {SEARCH_KIND_LABEL[parsed.kind]}</p>
+        <p className="text-xs text-navy-500 dark:text-navy-400 mt-2">Searching by: {SEARCH_KIND_LABEL[parsed.kind]}</p>
       )}
 
       <div className="mt-4">

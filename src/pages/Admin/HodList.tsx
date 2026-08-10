@@ -36,7 +36,7 @@ export default function HodList({
     <div className="border-t border-surface-200/60 dark:border-white/[0.06] pt-4 mt-4">
       <div className="flex items-center justify-between mb-2.5">
         <p className="card-title">Heads of Department</p>
-        <span className="glass-chip !px-2 !py-0.5 !text-[10px] text-navy-400">{hods.length}</span>
+        <span className="glass-chip !px-2 !py-0.5 !text-[10px] text-navy-500 dark:text-navy-400">{hods.length}</span>
       </div>
 
       {hods.length === 0 && !mine && (
@@ -55,7 +55,7 @@ export default function HodList({
               </div>
               <div className="min-w-0">
                 <p className="text-sm font-semibold text-navy-800 truncate">{hod.full_name}</p>
-                <p className="text-xs text-navy-400 truncate">{hod.email}</p>
+                <p className="text-xs text-navy-500 dark:text-navy-400 truncate">{hod.email}</p>
               </div>
             </div>
             <div className="flex items-center gap-1 shrink-0">
@@ -64,7 +64,7 @@ export default function HodList({
                 aria-label={`Edit ${hod.full_name}`}
                 title={`Edit ${hod.full_name}`}
                 onClick={() => onOpenEdit(hod)}
-                className="text-xs font-medium text-navy-400 hover:text-brand-600 px-2.5 py-1.5 rounded-lg hover:bg-brand-500/10 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-all"
+                className="text-xs font-medium text-navy-500 dark:text-navy-400 hover:text-brand-600 px-2.5 py-1.5 rounded-lg hover:bg-brand-500/10 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-all"
               >
                 Edit
               </button>

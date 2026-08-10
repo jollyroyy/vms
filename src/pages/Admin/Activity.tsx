@@ -78,7 +78,7 @@ export default function ActivityPage(): React.ReactElement {
             <svg className="w-8 h-8 text-brand-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
           </div>
           <p className="text-lg font-semibold text-navy-600 font-display">No activity yet</p>
-          <p className="text-sm text-navy-400 mt-1">Visit actions will appear here</p>
+          <p className="text-sm text-navy-500 dark:text-navy-400 mt-1">Visit actions will appear here</p>
         </div>
       )}
 
@@ -107,7 +107,7 @@ export default function ActivityPage(): React.ReactElement {
                     </span>
                     <span className={`status-badge text-xs ${lbl.color}`}>{lbl.text}</span>
                   </div>
-                  <p className="text-xs text-navy-400 mt-0.5">
+                  <p className="text-xs text-navy-500 dark:text-navy-400 mt-0.5">
                     {det?.ref_number ? `${String(det.ref_number)} · ` : ''}
                     {new Date(log.created_at).toLocaleString('en-IN')}
                   </p>

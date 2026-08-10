@@ -50,7 +50,7 @@ export default function SidebarAnalytics({ deptId, isCollapsed }: { deptId: stri
   return (
     <div className="mx-3 rounded-xl border border-surface-200/60 dark:border-white/[0.06] bg-surface-50/80 dark:bg-white/[0.02] p-3 space-y-2">
       <div className="flex items-center justify-between">
-        <span className="text-[10px] font-bold uppercase tracking-wider text-navy-400">Live Today</span>
+        <span className="text-[10px] font-bold uppercase tracking-wider text-navy-500 dark:text-navy-400">Live Today</span>
         <span className="relative flex h-1.5 w-1.5">
           <span className="absolute inline-flex h-full w-full rounded-full bg-success-500 opacity-75 animate-ping" />
           <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-success-500" />
@@ -61,7 +61,7 @@ export default function SidebarAnalytics({ deptId, isCollapsed }: { deptId: stri
           <div key={it.label} className="flex items-center gap-1.5">
             <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${it.dot}`} />
             <span className={`text-sm font-bold tabular-nums ${it.color}`}>{it.value}</span>
-            <span className="text-[10px] text-navy-400 truncate">{it.label}</span>
+            <span className="text-[10px] text-navy-500 dark:text-navy-400 truncate">{it.label}</span>
           </div>
         ))}
       </div>

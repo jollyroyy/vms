@@ -34,7 +34,7 @@ export default function AddNewForm({
         </div>
         <div>
           <h3 className="text-sm font-bold text-navy-900">Add Daily Visitor</h3>
-          <p className="text-xs text-navy-400">Register a new recurring visitor</p>
+          <p className="text-xs text-navy-500 dark:text-navy-400">Register a new recurring visitor</p>
         </div>
       </div>
 

@@ -19,7 +19,7 @@ const TONE_CLASSES: Record<Tone, string> = {
   success: 'bg-success-50 text-success-600 dark:bg-success-500/10',
   brand: 'bg-brand-50 text-brand-600 dark:bg-brand-500/10',
   warning: 'bg-warning-50 text-warning-600 dark:bg-warning-500/10',
-  muted: 'bg-surface-100 text-navy-400',
+  muted: 'bg-surface-100 text-navy-500 dark:text-navy-400',
   danger: 'bg-danger-50 text-danger-600 dark:bg-danger-500/10',
 };
 

@@ -135,7 +135,7 @@ export default function DailyVisitors({ visitors, onAdd, onRemove }: Props): Rea
             </svg>
           </div>
           <p className="text-sm font-semibold text-navy-600">No visitors found</p>
-          <p className="text-xs text-navy-400 mt-1">
+          <p className="text-xs text-navy-500 dark:text-navy-400 mt-1">
             {search ? 'Try a different search term' : 'Add your first daily visitor to get started'}
           </p>
         </div>

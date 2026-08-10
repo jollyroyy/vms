@@ -83,7 +83,7 @@ export default function GuardConsoleModeContent(props: Props): React.ReactElemen
       ) : rows.length === 0 ? (
         <div className="card empty-state !py-14">
           <p className="text-sm font-semibold text-navy-500">{view.empty}</p>
-          <p className="text-xs text-navy-400 mt-1">{view.emptyHint}</p>
+          <p className="text-xs text-navy-500 dark:text-navy-400 mt-1">{view.emptyHint}</p>
         </div>
       ) : (
         <div className="space-y-2">

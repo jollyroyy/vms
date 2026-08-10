@@ -68,7 +68,7 @@ export default function ProfilePhotoCard({ userId, fullName, email, avatarUrl, o
         )}
       </div>
 
-      <p className="text-xs text-navy-400">JPG, PNG or WebP · up to 2 MB</p>
+      <p className="text-xs text-navy-500 dark:text-navy-400">JPG, PNG or WebP · up to 2 MB</p>
       {error && <p role="alert" className="text-xs font-semibold text-danger-600">{error}</p>}
       {saved && !error && <p className="text-xs font-semibold text-success-700">{saved}</p>}
     </div>

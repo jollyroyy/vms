@@ -15,7 +15,7 @@ type Props = {
 export default function ModalCloseButton({ onClose, variant = 'light', className = '' }: Props): React.ReactElement {
   const tone = variant === 'dark'
     ? 'bg-white/10 hover:bg-white/20 text-white/80 hover:text-white'
-    : 'bg-surface-100 hover:bg-surface-200 text-navy-400 hover:text-navy-700 dark:bg-white/10 dark:hover:bg-white/20 dark:text-navy-300 dark:hover:text-white';
+    : 'bg-surface-100 hover:bg-surface-200 text-navy-500 hover:text-navy-700 dark:bg-white/10 dark:hover:bg-white/20 dark:text-navy-300 dark:hover:text-white';
 
   return (
     <button

@@ -126,7 +126,7 @@ export default function DailyStaff(): React.ReactElement {
         ].map(card => (
           <div key={card.label} className="bg-white dark:bg-white/[0.04] rounded-xl border border-surface-200 dark:border-white/[0.06] p-4">
             <p className={`text-2xl font-bold tabular-nums ${card.color}`}>{loading ? '—' : card.value}</p>
-            <p className="text-xs text-navy-400 font-medium mt-0.5">{card.label}</p>
+            <p className="text-xs text-navy-500 dark:text-navy-400 font-medium mt-0.5">{card.label}</p>
           </div>
         ))}
       </div>
@@ -167,7 +167,7 @@ export default function DailyStaff(): React.ReactElement {
             </svg>
           </div>
           <p className="text-sm font-semibold text-navy-600">No daily staff visits found</p>
-          <p className="text-xs text-navy-400 mt-1">{search ? 'Try a different search term' : 'No vendors, maids, or workers expected today'}</p>
+          <p className="text-xs text-navy-500 dark:text-navy-400 mt-1">{search ? 'Try a different search term' : 'No vendors, maids, or workers expected today'}</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
@@ -199,9 +199,9 @@ export default function DailyStaff(): React.ReactElement {
                     </div>
                     <div className="flex items-center gap-2 mt-1.5">
                       <span className={`status-badge ${meta.bg} ${meta.color}`}>{meta.label}</span>
-                      <span className="text-xs text-navy-400">{entry.department_name}</span>
+                      <span className="text-xs text-navy-500 dark:text-navy-400">{entry.department_name}</span>
                     </div>
-                    <div className="flex items-center gap-3 mt-2.5 text-xs text-navy-400">
+                    <div className="flex items-center gap-3 mt-2.5 text-xs text-navy-500 dark:text-navy-400">
                       {entry.visitor_phone && (
                         <span className="flex items-center gap-1">
                           <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>

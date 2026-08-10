@@ -48,7 +48,7 @@ export default function GuardWalkInApproved({ loading, approved, busyId, onCheck
       ) : approved.length === 0 ? (
         <div className="card empty-state !py-14">
           <p className="text-sm font-semibold text-navy-500">No approved walk-ins waiting.</p>
-          <p className="text-xs text-navy-400 mt-1">
+          <p className="text-xs text-navy-500 dark:text-navy-400 mt-1">
             Once a person to meet approves a walk-in, they appear here ready to check in.
           </p>
         </div>

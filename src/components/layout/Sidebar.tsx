@@ -85,7 +85,7 @@ export default function Sidebar({ session, role, collapsed: collapsedProp, onCol
         {!isCollapsed && (
           <div className="min-w-0">
             <span className="font-display font-bold text-base text-navy-950 tracking-tight block leading-tight">Secure Gate</span>
-            <span className="text-[10px] text-navy-400 block leading-tight mt-0.5">Visitor Management System</span>
+            <span className="text-[10px] text-navy-500 dark:text-navy-400 block leading-tight mt-0.5">Visitor Management System</span>
           </div>
         )}
       </Link>
@@ -133,7 +133,7 @@ export default function Sidebar({ session, role, collapsed: collapsedProp, onCol
             aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
             title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
             className="h-8 w-8 flex items-center justify-center rounded-xl card-glass !rounded-xl
-                       text-navy-400 hover:text-brand-600 hover:border-brand-500/30
+                       text-navy-500 dark:text-navy-400 hover:text-brand-600 hover:border-brand-500/30
                        hover:shadow-glow-sm active:scale-[0.95] transition-all duration-200">
             <svg className={`w-4 h-4 transition-transform duration-300 ${isCollapsed ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M18.75 19.5l-7.5-7.5 7.5-7.5m-6 15L5.25 12l7.5-7.5" />

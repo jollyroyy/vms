@@ -97,7 +97,10 @@
      This is what .section-title used to be, kept for the handful of places
      that really did want an eyebrow. */
   .eyebrow {
-    @apply text-micro text-navy-400 uppercase;
+    @apply text-micro text-navy-500 uppercase;
+  }
+  .dark .eyebrow {
+    @apply text-navy-400;
   }
 
   /* --- Tabs --- */
@@ -118,7 +121,10 @@
     box-shadow: inset 0 1px 0 0 rgb(255 255 255 / 0.08), 0 2px 8px -2px rgb(0 0 0 / 0.4);
   }
   .tab-inactive {
-    @apply text-navy-400 hover:text-navy-600 hover:bg-white/50 tab-item;
+    @apply text-navy-500 hover:text-navy-600 hover:bg-white/50 tab-item;
+  }
+  .dark .tab-inactive {
+    @apply text-navy-400;
   }
   .dark .tab-inactive:hover {
     background: rgb(255 255 255 / 0.05);
@@ -159,7 +165,10 @@
     @apply text-kpi text-navy-950 tabular-nums;
   }
   .stat-label {
-    @apply text-micro text-navy-400 uppercase;
+    @apply text-micro text-navy-500 uppercase;
+  }
+  .dark .stat-label {
+    @apply text-navy-400;
   }
 
   /* --- List item --- */

@@ -10,6 +10,7 @@ import OverviewOnSite from './OverviewOnSite';
 import OverviewNotifications from './OverviewNotifications';
 import OverviewFilteredView from './OverviewFilteredView';
 import OverviewPendingApprovals from './OverviewPendingApprovals';
+import VisitorDetails from '../../components/VisitorDetails';
 
 interface Stats {
   inside: number;
@@ -48,6 +49,10 @@ export default function HODOverview(): React.ReactElement {
   );
   const [filteredVisits, setFilteredVisits] = useState<Visit[]>([]);
   const [filterLoading, setFilterLoading] = useState(false);
+  // "More information" on a notification, same fix as OverviewUpcoming's
+  // "Open details": a notification carries only `related_id`, so the visit it
+  // points at has to be fetched on demand rather than navigated to blind.
+  const [notifDetail, setNotifDetail] = useState<Visit | null>(null);
 
   const { acting, error: actionError, successMsg, reasons, onReasonChange, decide } = useVisitDecisions();
 
@@ -191,6 +196,22 @@ export default function HODOverview(): React.ReactElement {
     }, { replace: true });
   }, [setSearchParams]);
 
+  // `related_id` is a visit id for the visit-lifecycle notification types; for
+  // the two gate-pass types it is a gate_pass id, which will simply not match
+  // any row here — VMS has no gate-pass surface, so those notifications are
+  // dead in practice and this resolves to nothing, silently, rather than
+  // throwing or navigating anywhere.
+  const openNotifDetail = async (relatedId: string) => {
+    const { data } = await supabase
+      .from('visits').select('*, visitor:visitors(*), department:departments(id, name, code, created_at)')
+      .eq('id', relatedId).maybeSingle();
+    if (!data) return;
+    const rows = await attachHostNames([data as unknown as Visit]);
+    const withHost = rows[0];
+    if (!withHost) return;
+    setNotifDetail({ ...withHost, photo_url: withHost.photo_data ?? undefined });
+  };
+
   const markRead = async (id: string) => {
     await supabase.from('notifications').delete().eq('id', id);
     setNotifs(prev => prev.filter(n => n.id !== id));
@@ -252,9 +273,17 @@ export default function HODOverview(): React.ReactElement {
 
           <OverviewOnSite loading={loading} onSite={onSite} />
 
+          {notifDetail && (
+            <VisitorDetails
+              visit={notifDetail}
+              viewerRole="hod"
+              onClose={() => setNotifDetail(null)}
+            />
+          )}
+
           <div className="grid grid-cols-1 xl:grid-cols-[1fr_340px] gap-3 items-start">
             <OverviewUpcoming loading={loading} upcoming={upcoming} />
-            <OverviewNotifications loading={loading} notifs={notifs} onMarkRead={markRead} onDismiss={dismiss} />
+            <OverviewNotifications loading={loading} notifs={notifs} onMarkRead={markRead} onDismiss={dismiss} onOpenDetails={openNotifDetail} />
           </div>
         </>
       )}

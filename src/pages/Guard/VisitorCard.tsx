@@ -60,7 +60,7 @@ export default function VisitorCard({ visit: v, action, onSelect, timeLabel }: P
         <p className="text-[11px] text-navy-300 uppercase tracking-wide">Person to Meet</p>
         <p className="text-[13px] font-semibold text-navy-700 truncate">{v.host?.full_name ?? '—'}</p>
         {v.host?.full_name && (
-          <p className="text-[11px] text-navy-400 truncate">{v.department?.name ?? '—'}</p>
+          <p className="text-[11px] text-navy-500 dark:text-navy-400 truncate">{v.department?.name ?? '—'}</p>
         )}
       </div>
 

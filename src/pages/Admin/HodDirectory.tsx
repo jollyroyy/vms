@@ -55,7 +55,7 @@ export default function HodDirectory({ id, departments, hodsByDept }: Props): Re
         >
           <div className="flex items-center justify-between mb-3">
             <p className="eyebrow">{g.dept.name}</p>
-            <span className="glass-chip !px-2 !py-0.5 !text-[10px] tabular-nums text-navy-400">
+            <span className="glass-chip !px-2 !py-0.5 !text-[10px] tabular-nums text-navy-500 dark:text-navy-400">
               {g.hods.length}
             </span>
           </div>
@@ -74,7 +74,7 @@ export default function HodDirectory({ id, departments, hodsByDept }: Props): Re
                   <p className="text-sm font-semibold text-navy-800 truncate">
                     {hod.full_name}
                   </p>
-                  <p className="text-xs text-navy-400 truncate">{hod.email}</p>
+                  <p className="text-xs text-navy-500 dark:text-navy-400 truncate">{hod.email}</p>
                 </div>
               </div>
             ))}

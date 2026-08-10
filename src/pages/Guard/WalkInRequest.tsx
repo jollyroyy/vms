@@ -120,7 +120,7 @@ export default function WalkInRequest({ onSubmitted, onCancel }: Props): React.R
         </div>
         <div>
           <p className="text-sm font-bold text-navy-900">Not found — request walk-in approval</p>
-          <p className="text-xs text-navy-400">HOD will be notified to approve</p>
+          <p className="text-xs text-navy-500 dark:text-navy-400">HOD will be notified to approve</p>
         </div>
       </div>
 

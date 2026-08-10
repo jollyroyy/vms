@@ -33,7 +33,7 @@ export default function ProfilePage({ session, role }: Props): React.ReactElemen
     <div className="space-y-6 animate-fade-in max-w-4xl">
       <div>
         <h1 className="font-display text-2xl font-bold text-navy-950 dark:text-white">My Profile</h1>
-        <p className="text-sm text-navy-400 mt-1">Your photo and account details</p>
+        <p className="text-sm text-navy-500 dark:text-navy-400 mt-1">Your photo and account details</p>
       </div>
 
       {loading ? (

@@ -229,7 +229,7 @@ describe('deleteDepartment', () => {
 
   it('translates a foreign-key violation into an actionable message', async () => {
     state.error = 'update or delete on table "departments" violates foreign key constraint';
-    await expect(deleteDepartment('d1')).rejects.toThrow(/visits, gate passes or users/i);
+    await expect(deleteDepartment('d1')).rejects.toThrow(/visits, visitor passes or users/i);
   });
 
   it('rethrows other errors unchanged', async () => {
@@ -262,7 +262,7 @@ describe('describeDeleteError', () => {
     const msg = describeDeleteError(
       'update or delete on table "departments" violates foreign key constraint',
     );
-    expect(msg).toMatch(/visits, gate passes or users/i);
+    expect(msg).toMatch(/visits, visitor passes or users/i);
   });
 
   it('translates a profiles RLS recursion error into a migration hint', () => {

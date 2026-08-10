@@ -48,7 +48,7 @@ export default function SidebarProfile({ session, role, isCollapsed, profileName
 
   const signOutButton = (
     <button onClick={() => supabase.auth.signOut()} title="Sign out" aria-label="Sign out"
-      className="shrink-0 flex items-center justify-center w-8 h-8 rounded-lg text-navy-400 hover:text-danger-600 hover:bg-danger-500/10 transition-all duration-200">
+      className="shrink-0 flex items-center justify-center w-8 h-8 rounded-lg text-navy-500 dark:text-navy-400 hover:text-danger-600 hover:bg-danger-500/10 transition-all duration-200">
       <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d={SIGNOUT_ICON} /></svg>
     </button>
   );

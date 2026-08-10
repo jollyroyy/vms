@@ -129,7 +129,7 @@ export default function VisitorFormFields({
             <img src={URL.createObjectURL(photoBlob)} alt="" className="w-14 h-[72px] object-cover rounded-xl shadow-xs" />
             <div className="flex-1">
               <p className="text-sm font-medium text-navy-700">Photo captured</p>
-              <p className="text-xs text-navy-400">Ready to submit</p>
+              <p className="text-xs text-navy-500 dark:text-navy-400">Ready to submit</p>
             </div>
             <button type="button" onClick={onRetakePhoto} className="btn-ghost text-danger-600 hover:text-danger-700 text-sm">Retake</button>
           </div>

@@ -27,7 +27,7 @@ export default function GuardPreApprovals(): React.ReactElement {
     <div className="space-y-5">
       <div>
         <h1 className="font-display text-xl font-bold text-navy-950 dark:text-white">Pre-Approvals</h1>
-        <p className="text-sm text-navy-400 mt-0.5">Scan a pass or find a booked visitor to check them in.</p>
+        <p className="text-sm text-navy-500 dark:text-navy-400 mt-0.5">Scan a pass or find a booked visitor to check them in.</p>
       </div>
 
       {successMsg && (

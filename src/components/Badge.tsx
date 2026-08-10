@@ -61,7 +61,7 @@ export default function Badge({ visit }: Props): React.ReactElement {
         {/* Typography hierarchy */}
         <div className="text-center space-y-1">
           <p className="font-extrabold text-navy-950 text-xl tracking-tight">{visitor?.full_name ?? '—'}</p>
-          <p className="text-sm text-navy-400 font-medium">{visitor?.vendor_name ?? ''}</p>
+          <p className="text-sm text-navy-500 dark:text-navy-400 font-medium">{visitor?.vendor_name ?? ''}</p>
         </div>
 
         {/* Info rows with clean separators */}
@@ -70,28 +70,28 @@ export default function Badge({ visit }: Props): React.ReactElement {
               folded under Person to Meet instead, so the printed pass never
               shows the same department value twice. */}
           <div className="flex justify-between py-2 border-b border-surface-100">
-            <span className="text-navy-400 font-medium">Person to Meet</span>
+            <span className="text-navy-500 dark:text-navy-400 font-medium">Person to Meet</span>
             <span className="text-right">
               <span className="block font-semibold text-navy-700">{host?.full_name ?? '—'}</span>
               {host?.full_name && dept?.name && (
-                <span className="block text-[10px] text-navy-400">{dept.name}</span>
+                <span className="block text-[10px] text-navy-500 dark:text-navy-400">{dept.name}</span>
               )}
             </span>
           </div>
           <div className="flex justify-between py-2 border-b border-surface-100">
-            <span className="text-navy-400 font-medium">Purpose</span>
+            <span className="text-navy-500 dark:text-navy-400 font-medium">Purpose</span>
             <span className="font-semibold text-navy-700">{formatPurpose(visit.purpose)}</span>
           </div>
           <div className="flex justify-between py-2 border-b border-surface-100">
-            <span className="text-navy-400 font-medium">ID Proof</span>
+            <span className="text-navy-500 dark:text-navy-400 font-medium">ID Proof</span>
             <span className="font-semibold text-navy-700 font-mono">{maskIdProof(visitor?.id_type, visitor?.id_last4)}</span>
           </div>
           <div className="flex justify-between py-2 border-b border-surface-100">
-            <span className="text-navy-400 font-medium">Date</span>
+            <span className="text-navy-500 dark:text-navy-400 font-medium">Date</span>
             <span className="font-semibold text-navy-700">{new Date(visit.created_at).toLocaleDateString('en-IN')}</span>
           </div>
           <div className="flex justify-between py-2">
-            <span className="text-navy-400 font-medium">Status</span>
+            <span className="text-navy-500 dark:text-navy-400 font-medium">Status</span>
             <span className="capitalize font-bold text-brand-700">{visit.status.replace(/_/g, ' ')}</span>
           </div>
         </div>
@@ -103,7 +103,7 @@ export default function Badge({ visit }: Props): React.ReactElement {
               <img src={qrDataUrl} alt="QR Code" className="w-16 h-16" />
             </div>
           ) : (
-            <div className="w-16 h-16 border-2 border-navy-800 rounded-xl flex items-center justify-center text-xs text-navy-400 bg-surface-50 animate-pulse">QR</div>
+            <div className="w-16 h-16 border-2 border-navy-800 rounded-xl flex items-center justify-center text-xs text-navy-500 dark:text-navy-400 bg-surface-50 animate-pulse">QR</div>
           )}
           <p className="text-[10px] text-navy-300 font-medium">Scan at reception</p>
         </div>
@@ -114,7 +114,7 @@ export default function Badge({ visit }: Props): React.ReactElement {
         <div className="absolute inset-0 opacity-20" style={{ background: 'repeating-linear-gradient(45deg, transparent, transparent 5px, rgba(51,150,255,0.08) 5px, rgba(51,150,255,0.08) 10px)' }} />
         <div className="relative flex items-center justify-center gap-2">
           <svg className="w-3 h-3 text-brand-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" /></svg>
-          <p className="text-[9px] text-navy-400 text-center font-medium">Valid for one visit only. Carry at all times.</p>
+          <p className="text-[9px] text-navy-500 dark:text-navy-400 text-center font-medium">Valid for one visit only. Carry at all times.</p>
         </div>
       </div>
     </div>

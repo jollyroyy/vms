@@ -1,6 +1,6 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState } from 'react';
 import type { Visit } from '../../types/index';
+import VisitorDetails from '../../components/VisitorDetails';
 
 const PURPOSE_LABELS: Record<string, string> = {
   meeting: 'Meeting', vendor: 'Vendor', interview: 'Interview',
@@ -44,17 +44,30 @@ const fmtTime24 = (iso: string) =>
   new Date(iso).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: false });
 
 export default function OverviewUpcoming({ loading, upcoming }: Props): React.ReactElement {
+  // "Open details" used to be a blanket <Link to="/approvals">, which carries
+  // no visitor identity — for an HOD with nothing pending it silently landed
+  // on the empty pre-approve FORM, reading as a dead button. It now opens the
+  // CLICKED row's own VisitorDetails popup in place; nothing navigates.
+  const [detailVisit, setDetailVisit] = useState<Visit | null>(null);
+
   return (
     <div className="bg-white dark:bg-white/[0.04] rounded-2xl border border-surface-200/70 dark:border-white/[0.06] overflow-hidden">
+      {detailVisit && (
+        <VisitorDetails
+          visit={detailVisit}
+          viewerRole="hod"
+          onClose={() => setDetailVisit(null)}
+        />
+      )}
       <div className="flex items-center justify-between px-6 pt-5 pb-4 border-b border-surface-100 dark:border-white/[0.05]">
         <div>
           <h2 className="font-display text-sm font-bold text-navy-950 dark:text-white">Upcoming visits</h2>
-          <p className="text-xs text-navy-400 mt-0.5">
+          <p className="text-xs text-navy-500 dark:text-navy-400 mt-0.5">
             Pending &amp; pre-approved · up to 30 days ahead, max 15 entries
           </p>
         </div>
         {!loading && (
-          <span className="text-[11px] font-bold text-navy-400 bg-surface-100 dark:bg-white/[0.06] px-3 py-1.5 rounded-full">
+          <span className="text-[11px] font-bold text-navy-500 dark:text-navy-400 bg-surface-100 dark:bg-white/[0.06] px-3 py-1.5 rounded-full">
             {upcoming.length} visit{upcoming.length !== 1 ? 's' : ''}
           </span>
         )}
@@ -70,7 +83,7 @@ export default function OverviewUpcoming({ loading, upcoming }: Props): React.Re
             <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 9v7.5" />
           </svg>
           <p className="text-sm font-semibold text-navy-500 dark:text-navy-400">No upcoming visits</p>
-          <p className="text-xs text-navy-400 mt-1">Scheduled and pre-approved visits will appear here.</p>
+          <p className="text-xs text-navy-500 dark:text-navy-400 mt-1">Scheduled and pre-approved visits will appear here.</p>
         </div>
       ) : (
         <div className="divide-y divide-surface-100 dark:divide-white/[0.04]">
@@ -83,7 +96,7 @@ export default function OverviewUpcoming({ loading, upcoming }: Props): React.Re
               <div key={v.id} className="flex items-stretch hover:bg-surface-50/80 dark:hover:bg-white/[0.02] transition-colors">
                 <div className="shrink-0 w-[72px] flex flex-col items-center justify-center py-4 px-2">
                   <span className="font-display font-bold text-[15px] text-navy-900 dark:text-white tabular-nums leading-none">{timeStr}</span>
-                  <span className="text-[11px] text-navy-400 mt-0.5 tabular-nums">{dateStr}</span>
+                  <span className="text-[11px] text-navy-500 dark:text-navy-400 mt-0.5 tabular-nums">{dateStr}</span>
                 </div>
                 <div className="w-px bg-surface-200/70 dark:bg-white/[0.07] self-stretch my-3 shrink-0" />
                 <div className="flex-1 min-w-0 py-4 px-4">
@@ -91,13 +104,13 @@ export default function OverviewUpcoming({ loading, upcoming }: Props): React.Re
                     <div className="min-w-0 flex-1">
                       <p className="font-semibold text-sm text-navy-900 dark:text-white leading-snug">
                         {PURPOSE_LABELS[v.purpose] ?? v.purpose}
-                        {v.visitor?.vendor_name && <span className="text-navy-400 font-normal"> — {v.visitor.vendor_name}</span>}
+                        {v.visitor?.vendor_name && <span className="text-navy-500 dark:text-navy-400 font-normal"> — {v.visitor.vendor_name}</span>}
                       </p>
-                      <p className="text-xs text-navy-400 mt-0.5">
+                      <p className="text-xs text-navy-500 dark:text-navy-400 mt-0.5">
                         {v.host?.full_name ? `Person to Meet: ${v.host.full_name}` : 'Person to Meet: —'}
                       </p>
                       {v.host?.full_name && v.department?.name && (
-                        <p className="text-xs text-navy-400 truncate">{v.department.name}</p>
+                        <p className="text-xs text-navy-500 dark:text-navy-400 truncate">{v.department.name}</p>
                       )}
                     </div>
                     <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
@@ -109,9 +122,12 @@ export default function OverviewUpcoming({ loading, upcoming }: Props): React.Re
                           Awaiting gate check
                         </span>
                       )}
-                      <Link to="/approvals" className="text-[11px] font-semibold text-navy-600 dark:text-navy-300 bg-surface-100 dark:bg-white/[0.06] hover:bg-surface-200 dark:hover:bg-white/[0.10] border border-surface-200 dark:border-white/[0.08] px-3 py-1 rounded-lg transition-colors whitespace-nowrap">
+                      <button
+                        type="button"
+                        onClick={() => setDetailVisit(v)}
+                        className="text-[11px] font-semibold text-navy-600 dark:text-navy-300 bg-surface-100 dark:bg-white/[0.06] hover:bg-surface-200 dark:hover:bg-white/[0.10] border border-surface-200 dark:border-white/[0.08] px-3 py-1 rounded-lg transition-colors whitespace-nowrap">
                         Open details
-                      </Link>
+                      </button>
                     </div>
                   </div>
                   {v.visitor && (

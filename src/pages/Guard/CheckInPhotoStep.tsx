@@ -104,7 +104,7 @@ export default function CheckInPhotoStep({
           <img src={URL.createObjectURL(photoBlob)} alt="" className="w-14 h-[72px] object-cover rounded-xl ring-2 ring-success-200" />
           <div className="flex-1 min-w-0">
             <p className="font-bold text-navy-900">{selectedMatch.visitorName}</p>
-            <p className="text-sm text-navy-400 truncate">{selectedMatch.departmentName}</p>
+            <p className="text-sm text-navy-500 dark:text-navy-400 truncate">{selectedMatch.departmentName}</p>
             <p className="text-xs text-success-600 font-semibold mt-1">Photo captured</p>
           </div>
           <button onClick={onRetake} className="text-danger-600 hover:text-danger-700 text-sm font-semibold shrink-0">Retake</button>
@@ -128,7 +128,7 @@ export default function CheckInPhotoStep({
             />
             <span className="min-w-0">
               <span className="block text-sm font-bold text-navy-800 dark:text-white">Carrying material</span>
-              <span className="block text-[11px] text-navy-400 mt-0.5">
+              <span className="block text-[11px] text-navy-500 dark:text-navy-400 mt-0.5">
                 Tick if the visitor is bringing anything in that has to be checked back out.
               </span>
             </span>

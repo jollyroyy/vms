@@ -217,7 +217,7 @@ export default function VisitorForm({ onRegistered }: Props): React.ReactElement
     <form onSubmit={handleSubmit} className="card p-6 sm:p-8 space-y-6 max-w-2xl animate-fade-in">
       <div>
         <h2 className="text-lg font-bold text-navy-950">Register New Visitor</h2>
-        <p className="text-sm text-navy-400 mt-1">
+        <p className="text-sm text-navy-500 dark:text-navy-400 mt-1">
           {new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })} · {new Date().toLocaleDateString('en-IN')}
         </p>
       </div>

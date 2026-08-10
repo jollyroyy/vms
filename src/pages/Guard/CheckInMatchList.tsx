@@ -72,7 +72,7 @@ export default function CheckInMatchList({
       ) : search || deptFilter ? (
         <div className="text-center py-12 bg-surface-50 rounded-2xl space-y-3">
           <p className="text-lg font-bold text-navy-600">No match found</p>
-          <p className="text-sm text-navy-400">No pre-approved or regular visitor matches your search.</p>
+          <p className="text-sm text-navy-500 dark:text-navy-400">No pre-approved or regular visitor matches your search.</p>
           {!showWalkIn ? (
             <button onClick={onShowWalkIn}
               className="inline-flex items-center gap-2 bg-brand-600 hover:bg-brand-700 text-white font-bold px-6 py-3 rounded-xl text-sm transition-all">
@@ -94,7 +94,7 @@ export default function CheckInMatchList({
             <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
           </svg>
           <p className="text-lg font-bold text-navy-600">Search for a visitor</p>
-          <p className="text-sm text-navy-400 mt-1">Type name or phone number above</p>
+          <p className="text-sm text-navy-500 dark:text-navy-400 mt-1">Type name or phone number above</p>
         </div>
       )}
     </div>

@@ -110,7 +110,7 @@ export async function deleteDepartment(id: string): Promise<void> {
 /** Turns a raw Postgres error into something an admin can act on. */
 export function describeDeleteError(message: string): string {
   if (/foreign key|violates foreign/i.test(message)) {
-    return 'Cannot delete: visits, gate passes or users are still linked to this department. Reassign them first.';
+    return 'Cannot delete: visits, visitor passes or users are still linked to this department. Reassign them first.';
   }
   if (/infinite recursion/i.test(message)) {
     return 'Database access rules for profiles are misconfigured (policy recursion). '

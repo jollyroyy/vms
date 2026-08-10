@@ -36,7 +36,7 @@ describe('ModalCloseButton', () => {
 
   it('defaults to the light-surface tone', () => {
     render(<ModalCloseButton onClose={vi.fn()} />);
-    expect(screen.getByRole('button', { name: 'Close' }).className).toContain('text-navy-400');
+    expect(screen.getByRole('button', { name: 'Close' }).className).toContain('text-navy-500');
   });
 
   it('renders the dark-header tone when requested', () => {

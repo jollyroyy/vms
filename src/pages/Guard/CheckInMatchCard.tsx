@@ -44,7 +44,7 @@ export default function CheckInMatchCard({ match: m, disabled, isCheckedIn, expi
           {expired && !isCheckedIn && <span className="status-badge bg-danger-50 text-danger-700 border border-danger-500/20">Expired</span>}
         </div>
 
-        <p className="text-caption text-navy-400 mt-1 truncate">{m.purpose}</p>
+        <p className="text-caption text-navy-500 dark:text-navy-400 mt-1 truncate">{m.purpose}</p>
 
         <div className="flex flex-col gap-1 mt-2 text-caption text-navy-500">
           {m.hostName && (
@@ -57,7 +57,7 @@ export default function CheckInMatchCard({ match: m, disabled, isCheckedIn, expi
                   duplicated the same department value on this card. */}
               <span className="truncate">
                 Person to Meet: <span className="font-semibold text-navy-700">{m.hostName}</span>
-                {m.departmentName && <span className="block text-[11px] text-navy-400">{m.departmentName}</span>}
+                {m.departmentName && <span className="block text-[11px] text-navy-500 dark:text-navy-400">{m.departmentName}</span>}
               </span>
             </span>
           )}

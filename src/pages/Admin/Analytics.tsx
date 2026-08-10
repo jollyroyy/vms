@@ -198,7 +198,7 @@ export default function Analytics(): React.ReactElement {
                     style={{ height: `${(d.count / maxDaily) * 100}%` }}
                     title={`${d.date}: ${d.count}`}
                   />
-                  <span className="text-[8px] text-navy-400 rotate-45 origin-left whitespace-nowrap">
+                  <span className="text-[8px] text-navy-500 dark:text-navy-400 rotate-45 origin-left whitespace-nowrap">
                     {d.date.slice(5)}
                   </span>
                 </div>
@@ -233,7 +233,7 @@ export default function Analytics(): React.ReactElement {
                     style={{ height: `${(h.count / maxHourly) * 100}%` }}
                     title={`${h.hour}:00 - ${h.count}`}
                   />
-                  <span className="text-[7px] text-navy-400">{h.hour}</span>
+                  <span className="text-[7px] text-navy-500 dark:text-navy-400">{h.hour}</span>
                 </div>
               ))}
             </div>

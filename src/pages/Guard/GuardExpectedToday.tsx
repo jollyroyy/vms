@@ -28,7 +28,7 @@ export default function GuardExpectedToday({ loading, visits }: Props): React.Re
       ) : visits.length === 0 ? (
         <div className="card empty-state !py-12">
           <p className="text-sm font-semibold text-navy-500">No one expected today.</p>
-          <p className="text-xs text-navy-400 mt-1">Pre-approved visitors will appear here.</p>
+          <p className="text-xs text-navy-500 dark:text-navy-400 mt-1">Pre-approved visitors will appear here.</p>
         </div>
       ) : (
         <div className="space-y-2">

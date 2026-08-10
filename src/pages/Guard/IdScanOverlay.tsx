@@ -114,7 +114,7 @@ export default function IdScanOverlay({ onScanned, onClose }: Props): React.Reac
           <ModalCloseButton onClose={close} />
           <div className="animate-spin h-10 w-10 border-4 border-brand-600 border-t-transparent rounded-full mx-auto" />
           <p className="font-bold text-navy-900">Reading card…</p>
-          <p className="text-sm text-navy-400">On-device OCR — nothing leaves this machine</p>
+          <p className="text-sm text-navy-500 dark:text-navy-400">On-device OCR — nothing leaves this machine</p>
         </div>
       </div>
     );
@@ -139,10 +139,10 @@ export default function IdScanOverlay({ onScanned, onClose }: Props): React.Reac
           <ModalCloseButton onClose={close} />
           <h3 className="font-bold text-navy-900 pr-8">Review scanned details</h3>
           <div className="space-y-2 text-sm">
-            <div className="flex justify-between"><span className="text-navy-400">Document</span><span className="font-semibold text-navy-900">{parsed.typeLabel}</span></div>
-            <div className="flex justify-between"><span className="text-navy-400">ID number</span><span className="font-mono font-semibold text-navy-900">{parsed.masked}</span></div>
-            <div className="flex justify-between"><span className="text-navy-400">Visitor Name</span><span className="font-semibold text-navy-900">{parsed.name ?? '—'}</span></div>
-            <div className="flex justify-between"><span className="text-navy-400">Date of birth</span><span className="font-semibold text-navy-900">{parsed.dob ?? '—'}</span></div>
+            <div className="flex justify-between"><span className="text-navy-500 dark:text-navy-400">Document</span><span className="font-semibold text-navy-900">{parsed.typeLabel}</span></div>
+            <div className="flex justify-between"><span className="text-navy-500 dark:text-navy-400">ID number</span><span className="font-mono font-semibold text-navy-900">{parsed.masked}</span></div>
+            <div className="flex justify-between"><span className="text-navy-500 dark:text-navy-400">Visitor Name</span><span className="font-semibold text-navy-900">{parsed.name ?? '—'}</span></div>
+            <div className="flex justify-between"><span className="text-navy-500 dark:text-navy-400">Date of birth</span><span className="font-semibold text-navy-900">{parsed.dob ?? '—'}</span></div>
           </div>
           <div className="flex gap-3">
             <button onClick={apply} className="flex-1 bg-brand-600 hover:bg-brand-700 text-white font-bold rounded-xl py-2.5 text-sm">Use Details</button>
@@ -191,7 +191,7 @@ export default function IdScanOverlay({ onScanned, onClose }: Props): React.Reac
                 </span>
               </button>
             )}
-            <label className="block text-center text-xs text-navy-400 cursor-pointer hover:text-brand-600 transition-colors">
+            <label className="block text-center text-xs text-navy-500 dark:text-navy-400 cursor-pointer hover:text-brand-600 transition-colors">
               <input type="file" accept="image/*" data-testid="scan-file-input" onChange={handleFileInput} className="hidden" />
               Or upload from device
             </label>

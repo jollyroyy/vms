@@ -55,7 +55,7 @@ export default function ApprovalsPendingList({ visits, loading, error, acting, r
             <svg className="w-7 h-7 text-success-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
           </div>
           <p className="text-base font-semibold text-navy-700">All caught up</p>
-          <p className="text-sm text-navy-400 mt-1">No pending approvals right now</p>
+          <p className="text-sm text-navy-500 dark:text-navy-400 mt-1">No pending approvals right now</p>
         </div>
       )}
 
@@ -79,16 +79,16 @@ export default function ApprovalsPendingList({ visits, loading, error, acting, r
                     <span className="ml-auto text-[10px] text-navy-300 font-mono">{v.ref_number}</span>
                   </div>
                   {v.visitor?.vendor_name && (
-                    <p className="text-xs text-navy-400 truncate mt-0.5">{v.visitor.vendor_name}</p>
+                    <p className="text-xs text-navy-500 dark:text-navy-400 truncate mt-0.5">{v.visitor.vendor_name}</p>
                   )}
                   {v.host?.full_name && (
-                    <p className="text-xs text-navy-400 truncate mt-0.5">Person to Meet: {v.host.full_name}</p>
+                    <p className="text-xs text-navy-500 dark:text-navy-400 truncate mt-0.5">Person to Meet: {v.host.full_name}</p>
                   )}
                   {v.host?.full_name && v.department?.name && (
-                    <p className="text-xs text-navy-400 truncate">{v.department.name}</p>
+                    <p className="text-xs text-navy-500 dark:text-navy-400 truncate">{v.department.name}</p>
                   )}
                   {v.visitor?.phone && (
-                    <p className="text-xs text-navy-400 truncate mt-0.5 flex items-center gap-1">
+                    <p className="text-xs text-navy-500 dark:text-navy-400 truncate mt-0.5 flex items-center gap-1">
                       <svg className="w-3 h-3 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z" /></svg>
                       {v.visitor.phone}
                     </p>

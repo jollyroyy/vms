@@ -12,7 +12,7 @@ export default function OverviewOnSite({ loading, onSite }: Props): React.ReactE
     <div className="bg-white dark:bg-white/[0.04] rounded-2xl border border-surface-200/70 dark:border-white/[0.06] overflow-hidden">
       <div className="px-6 pt-5 pb-4 border-b border-surface-100 dark:border-white/[0.05]">
         <h2 className="font-display text-sm font-bold text-navy-950 dark:text-white">On-site now</h2>
-        <p className="text-xs text-navy-400 mt-0.5">Checked-in visitors for your department</p>
+        <p className="text-xs text-navy-500 dark:text-navy-400 mt-0.5">Checked-in visitors for your department</p>
       </div>
 
       {loading ? (
@@ -35,18 +35,18 @@ export default function OverviewOnSite({ loading, onSite }: Props): React.ReactE
                 <div className="min-w-0">
                   <p className="font-semibold text-sm text-navy-900 dark:text-white truncate">
                     {v.visitor?.full_name ?? '—'}
-                    {v.visitor?.vendor_name && <span className="text-navy-400 font-normal"> — {v.visitor.vendor_name}</span>}
+                    {v.visitor?.vendor_name && <span className="text-navy-500 dark:text-navy-400 font-normal"> — {v.visitor.vendor_name}</span>}
                   </p>
-                  <p className="text-xs text-navy-400 mt-0.5 truncate">
+                  <p className="text-xs text-navy-500 dark:text-navy-400 mt-0.5 truncate">
                     {v.host?.full_name ? `Person to Meet: ${v.host.full_name}` : 'Person to Meet: —'}
                   </p>
                   {v.host?.full_name && v.department?.name && (
-                    <p className="text-xs text-navy-400 truncate">{v.department.name}</p>
+                    <p className="text-xs text-navy-500 dark:text-navy-400 truncate">{v.department.name}</p>
                   )}
                 </div>
                 <div className="text-right shrink-0">
                   <p className="text-xs font-semibold text-navy-700 dark:text-navy-200 tabular-nums">{formatTime(v.checked_in_at)}</p>
-                  {dur && <p className="text-[11px] text-navy-400">{dur.text}</p>}
+                  {dur && <p className="text-[11px] text-navy-500 dark:text-navy-400">{dur.text}</p>}
                 </div>
               </div>
             );

@@ -28,14 +28,14 @@ export default function DashboardDrilldown({
           <h2 className="font-display text-base font-bold text-navy-950 dark:text-white tracking-tight">
             {copy.title}
           </h2>
-          <p className="text-xs text-navy-400 mt-0.5 truncate">{copy.subtitle}</p>
+          <p className="text-xs text-navy-500 dark:text-navy-400 mt-0.5 truncate">{copy.subtitle}</p>
         </div>
         <div className="flex items-center gap-2 shrink-0">
           <span className="glass-chip !py-1.5 !px-3 text-[11px] font-bold tabular-nums">
             {loading ? '—' : `${rows.length} ${copy.countLabel}`}
           </span>
           <button type="button" onClick={onClose} aria-label={`Collapse ${copy.title}`}
-            className="p-1.5 rounded-lg text-navy-400 hover:text-navy-700 hover:bg-surface-100 dark:hover:bg-white/[0.06] transition-colors">
+            className="p-1.5 rounded-lg text-navy-500 dark:text-navy-400 hover:text-navy-700 hover:bg-surface-100 dark:hover:bg-white/[0.06] transition-colors">
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
             </svg>

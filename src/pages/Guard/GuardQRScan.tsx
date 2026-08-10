@@ -106,7 +106,7 @@ export default function GuardQRScan({ onResolved, onCancel }: Props): React.Reac
       <div className="bg-white rounded-2xl p-5 shadow-sm border border-surface-100 space-y-4">
         <div>
           <h2 className="text-xl font-bold text-navy-900">Scan QR</h2>
-          <p className="text-sm text-navy-400">
+          <p className="text-sm text-navy-500 dark:text-navy-400">
             Hold the visitor's QR code up to the camera, or upload an image of it
             (PNG or JPG — a PDF pass must be screenshotted first).
           </p>

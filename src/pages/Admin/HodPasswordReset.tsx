@@ -119,10 +119,10 @@ export default function HodPasswordReset({ userId, userName }: Props): React.Rea
             {copied ? 'Copied' : 'Copy'}
           </button>
         </div>
-        <p className="text-xs text-navy-400">
+        <p className="text-xs text-navy-500 dark:text-navy-400">
           This password will not be shown again — copy it or hand it to {userName} now.
         </p>
-        <p className="text-xs text-navy-400">
+        <p className="text-xs text-navy-500 dark:text-navy-400">
           {userName} will be required to choose their own password on their next sign-in, and all
           of their existing sessions have been signed out.
         </p>
@@ -138,7 +138,7 @@ export default function HodPasswordReset({ userId, userName }: Props): React.Rea
       className="mt-3 rounded-2xl border border-brand-500/20 bg-gradient-to-br from-brand-500/[0.06] to-accent-500/[0.03] p-4 space-y-3 animate-fade-in"
     >
       <p className="text-sm font-semibold text-navy-800">Reset password for {userName}</p>
-      <p className="text-xs text-navy-400">
+      <p className="text-xs text-navy-500 dark:text-navy-400">
         Sets their password immediately, forces them to choose a new one on their next sign-in, and
         signs them out everywhere else.
       </p>
@@ -183,7 +183,7 @@ export default function HodPasswordReset({ userId, userName }: Props): React.Rea
           </button>
         </div>
         {password.length > 0 && password.length < MIN_LENGTH && !error && (
-          <p className="text-xs text-navy-400 mt-1.5">
+          <p className="text-xs text-navy-500 dark:text-navy-400 mt-1.5">
             {MIN_LENGTH - password.length} more character{MIN_LENGTH - password.length === 1 ? '' : 's'} needed.
           </p>
         )}

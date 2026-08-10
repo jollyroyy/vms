@@ -105,7 +105,7 @@ export default function ReportsPage(): React.ReactElement {
     return (
       <>
         <span className="block">{d.toLocaleDateString('en-IN')}</span>
-        <span className="block text-navy-400">{d.toLocaleTimeString('en-IN')}</span>
+        <span className="block text-navy-500 dark:text-navy-400">{d.toLocaleTimeString('en-IN')}</span>
       </>
     );
   };
@@ -156,7 +156,7 @@ export default function ReportsPage(): React.ReactElement {
       <section>
         <div className="flex items-center gap-3 mb-4 no-print">
           <h2 className="section-title">Register — {rangeLabel}</h2>
-          <span className="glass-chip text-navy-400 tabular-nums">({shown.length} entries)</span>
+          <span className="glass-chip text-navy-500 dark:text-navy-400 tabular-nums">({shown.length} entries)</span>
           {activeDept && (
             <span className="glass-chip text-navy-500">
               Filtered to {activeDept.name} · {visits.length - shown.length} hidden
@@ -172,7 +172,7 @@ export default function ReportsPage(): React.ReactElement {
                 <thead>
                   <tr className="bg-surface-50/80 border-b border-surface-200/60 dark:border-white/[0.06]">
                     {['#', 'Ref', 'Photo', 'Visitor Name', 'Vendor', 'Phone', 'Dept', 'Person to Meet', 'ID Proof', 'Purpose', 'Carrying', 'Carrying Remarks', 'Approved', 'Check-in', 'Check-out', 'Status'].map((h) => (
-                      <th key={h} className="px-3.5 py-3.5 text-left text-micro uppercase text-navy-400 whitespace-nowrap">{h}</th>
+                      <th key={h} className="px-3.5 py-3.5 text-left text-micro uppercase text-navy-500 dark:text-navy-400 whitespace-nowrap">{h}</th>
                     ))}
                   </tr>
                 </thead>
@@ -180,7 +180,7 @@ export default function ReportsPage(): React.ReactElement {
                   {shown.map((v, i) => (
                     <tr key={v.id} className="hover:bg-surface-100/60 dark:hover:bg-white/[0.03] transition-colors">
                       <td className="px-3.5 py-3 text-navy-300 tabular-nums">{i + 1}</td>
-                      <td className="px-3.5 py-3 text-[11px] font-mono text-navy-400">{v.ref_number}</td>
+                      <td className="px-3.5 py-3 text-[11px] font-mono text-navy-500 dark:text-navy-400">{v.ref_number}</td>
                       <td className="px-3.5 py-3">
                         {v.photo_url ? (
                           <img src={v.photo_url} alt="Visitor photo" className="w-10 h-10 rounded-lg object-cover ring-1 ring-black/5" />
@@ -198,7 +198,7 @@ export default function ReportsPage(): React.ReactElement {
                       <td className="px-3.5 py-3 text-navy-500 font-mono text-xs whitespace-nowrap">{maskIdProof(v.visitor?.id_type, v.visitor?.id_last4)}</td>
                       <td className="px-3.5 py-3 text-navy-500 capitalize">{v.purpose}</td>
                       <td className="px-3.5 py-3 text-xs whitespace-nowrap">
-                        <span className={v.carrying_material ? 'font-bold text-accent-700 dark:text-accent-300' : 'text-navy-400'}>
+                        <span className={v.carrying_material ? 'font-bold text-accent-700 dark:text-accent-300' : 'text-navy-500 dark:text-navy-400'}>
                           {carryingFlag(v)}
                         </span>
                       </td>

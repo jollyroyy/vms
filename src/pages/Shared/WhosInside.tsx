@@ -207,7 +207,7 @@ export default function WhosInside(): React.ReactElement {
       {/* Print header */}
       <div className="print-only mb-4">
         <h1 className="text-2xl font-bold">EVACUATION LIST</h1>
-        <p className="text-sm text-navy-400">Generated: {new Date().toLocaleString('en-IN')} · Total inside: {checkedIn.length}</p>
+        <p className="text-sm text-navy-500 dark:text-navy-400">Generated: {new Date().toLocaleString('en-IN')} · Total inside: {checkedIn.length}</p>
       </div>
 
       {clearError && (

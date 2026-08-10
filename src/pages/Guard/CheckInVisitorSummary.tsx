@@ -40,7 +40,7 @@ export default function CheckInVisitorSummary({ match }: Props): React.ReactElem
           {label}
         </span>
         {match.refNumber && (
-          <span className="text-[11px] font-mono text-navy-400">{match.refNumber}</span>
+          <span className="text-[11px] font-mono text-navy-500 dark:text-navy-400">{match.refNumber}</span>
         )}
       </div>
 
@@ -62,10 +62,10 @@ export default function CheckInVisitorSummary({ match }: Props): React.ReactElem
 function Row({ term, value, capitalize, sub }: { term: string; value: string; capitalize?: boolean; sub?: string }): React.ReactElement {
   return (
     <div className="flex justify-between gap-3">
-      <dt className="text-navy-400 shrink-0">{term}</dt>
+      <dt className="text-navy-500 dark:text-navy-400 shrink-0">{term}</dt>
       <dd className={`font-semibold text-navy-700 text-right truncate ${capitalize ? 'capitalize' : ''}`}>
         {value || '—'}
-        {value && sub && <span className="block text-[10px] font-normal text-navy-400 truncate">{sub}</span>}
+        {value && sub && <span className="block text-[10px] font-normal text-navy-500 dark:text-navy-400 truncate">{sub}</span>}
       </dd>
     </div>
   );

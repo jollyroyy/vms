@@ -47,12 +47,12 @@ function InfoRow({ icon, label, value, sub }: { icon: React.ReactNode; label: st
     <div className="flex items-start gap-2.5">
       <span className="text-navy-300 mt-0.5 shrink-0">{icon}</span>
       <div className="min-w-0">
-        <p className="text-micro text-navy-400 uppercase leading-none mb-0.5">{label}</p>
+        <p className="text-micro text-navy-500 dark:text-navy-400 uppercase leading-none mb-0.5">{label}</p>
         <p className="text-body font-medium text-navy-800 truncate">{value}</p>
         {/* The department the host belongs to — folded under their name rather
             than kept as its own row, so it is never rendered twice on the
             same card. */}
-        {sub && <p className="text-caption text-navy-400 truncate mt-0.5">{sub}</p>}
+        {sub && <p className="text-caption text-navy-500 dark:text-navy-400 truncate mt-0.5">{sub}</p>}
       </div>
     </div>
   );
@@ -120,7 +120,7 @@ export default function VisitorDetails({
             )}
             <div className="min-w-0 flex-1">
               <p className="text-h3 text-navy-950 truncate">{v.visitor?.full_name ?? '—'}</p>
-              {v.visitor?.vendor_name && <p className="text-caption text-navy-400 truncate mt-0.5">{v.visitor.vendor_name}</p>}
+              {v.visitor?.vendor_name && <p className="text-caption text-navy-500 dark:text-navy-400 truncate mt-0.5">{v.visitor.vendor_name}</p>}
               <div className="mt-1.5">
                 <span className={`status-badge capitalize ${s.bg} ${s.text}`}>
                   <span className={`h-1.5 w-1.5 rounded-full ${s.dot} ${v.status === 'checked_in' ? 'animate-pulse' : ''}`} />
@@ -206,7 +206,7 @@ export default function VisitorDetails({
 
         {/* Timeline */}
         <div className="mx-5 mt-1 mb-5 rounded-xl bg-surface-50 dark:bg-white/[0.03] border border-surface-200/60 dark:border-white/[0.06] p-4">
-          <p className="text-[10px] font-bold text-navy-400 uppercase tracking-wider mb-3">Timeline</p>
+          <p className="text-[10px] font-bold text-navy-500 dark:text-navy-400 uppercase tracking-wider mb-3">Timeline</p>
           <div className="space-y-3 relative">
             <div className="absolute left-[5px] top-2 bottom-2 w-px bg-surface-200 dark:bg-white/10" />
 

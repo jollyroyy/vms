@@ -1,6 +1,6 @@
 import React from 'react';
 import { describe, it, expect, afterEach } from 'vitest';
-import { render, screen, cleanup } from '@testing-library/react';
+import { render, screen, cleanup, fireEvent } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import type { Visit } from '../../../src/types/index';
 import OverviewUpcoming from '../../../src/pages/HOD/OverviewUpcoming';
@@ -129,5 +129,41 @@ describe('OverviewUpcoming', () => {
     const upcoming = [upcomingVisit({ id: 'no-sched', scheduled_for: null, created_at: createdAt })];
     expect(() => renderWithRouter(<OverviewUpcoming loading={false} upcoming={upcoming} />)).not.toThrow();
     expect(screen.getByText('Upcoming Visitor')).toBeInTheDocument();
+  });
+
+  // Bug report, 2026-08-10: clicking "Open details" navigated to /approvals
+  // (the pre-approve FORM) instead of showing the clicked visitor's details —
+  // for an HOD with nothing pending, /approvals renders an empty form, which
+  // read as "the button does nothing". "Open details" must now open the
+  // clicked row's own VisitorDetails popup, in place, without navigating.
+  describe('"Open details" opens the clicked visitor, without navigating', () => {
+    it('opens VisitorDetails for the SPECIFIC visitor whose row was clicked, not the first row', () => {
+      const upcoming = [
+        upcomingVisit({ id: 'a', visitor: { id: 'vis-a', phone: '9111111111', full_name: 'Visitor A', vendor_name: 'Vendor A', id_type: null, id_last4: null, vehicle_number: null, is_blacklisted: false, blacklist_reason: null, created_at: new Date().toISOString() } }),
+        upcomingVisit({ id: 'b', visitor: { id: 'vis-b', phone: '9222222222', full_name: 'Visitor B', vendor_name: 'Vendor B', id_type: null, id_last4: null, vehicle_number: null, is_blacklisted: false, blacklist_reason: null, created_at: new Date().toISOString() } }),
+      ];
+      renderWithRouter(<OverviewUpcoming loading={false} upcoming={upcoming} />);
+      const buttons = screen.getAllByText('Open details');
+      fireEvent.click(buttons[1]);
+      // The modal's header profile card renders the name once — assert the
+      // SECOND visitor's name is now showing in the popup (h3-sized name).
+      expect(screen.getByText('Visitor B', { selector: 'p.text-h3' })).toBeInTheDocument();
+    });
+
+    it('does not navigate away — the dashboard list is still rendered after clicking', () => {
+      const upcoming = [upcomingVisit()];
+      renderWithRouter(<OverviewUpcoming loading={false} upcoming={upcoming} />);
+      fireEvent.click(screen.getByText('Open details'));
+      // The list heading (part of THIS page, not /approvals) must still be there.
+      expect(screen.getByRole('heading', { name: /Upcoming visits/i })).toBeInTheDocument();
+    });
+
+    it('closes the details popup on the close button', () => {
+      const upcoming = [upcomingVisit()];
+      renderWithRouter(<OverviewUpcoming loading={false} upcoming={upcoming} />);
+      fireEvent.click(screen.getByText('Open details'));
+      fireEvent.click(screen.getByLabelText('Close'));
+      expect(screen.queryByLabelText('Close')).not.toBeInTheDocument();
+    });
   });
 });

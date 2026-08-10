@@ -52,10 +52,10 @@ export default function OverviewFilteredView({
       <div className="flex items-center justify-between">
         <div>
           <h2 className="font-display text-sm font-bold text-navy-950 dark:text-white">{MODE_META[mode].title}</h2>
-          <p className="text-xs text-navy-400 mt-0.5">{MODE_META[mode].subtitle}</p>
+          <p className="text-xs text-navy-500 dark:text-navy-400 mt-0.5">{MODE_META[mode].subtitle}</p>
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-[11px] font-bold text-navy-400 bg-surface-100 dark:bg-white/[0.06] px-3 py-1.5 rounded-full">
+          <span className="text-[11px] font-bold text-navy-500 dark:text-navy-400 bg-surface-100 dark:bg-white/[0.06] px-3 py-1.5 rounded-full">
             {loading ? '—' : visits.length} {visits.length === 1 ? 'visitor' : 'visitors'}
           </span>
           {/* No "Clear All" on the approved list, and no per-visit cancel in

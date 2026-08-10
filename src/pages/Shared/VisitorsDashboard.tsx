@@ -60,7 +60,7 @@ export default function VisitorsDashboard(): React.ReactElement {
       {/* Page heading */}
       <div>
         <h1 className="text-xl font-bold text-navy-900 dark:text-white">Visitors</h1>
-        <p className="text-sm text-navy-400 mt-0.5">Today's activity overview</p>
+        <p className="text-sm text-navy-500 dark:text-navy-400 mt-0.5">Today's activity overview</p>
       </div>
 
       {/* KPI cards */}
@@ -83,7 +83,7 @@ export default function VisitorsDashboard(): React.ReactElement {
       <div>
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-sm font-bold text-navy-800 uppercase tracking-wide">Live Activity</h2>
-          <span className="flex items-center gap-1.5 text-[11px] text-navy-400">
+          <span className="flex items-center gap-1.5 text-[11px] text-navy-500 dark:text-navy-400">
             <span className="relative flex h-2 w-2">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-success-400 opacity-75" />
               <span className="relative inline-flex rounded-full h-2 w-2 bg-success-500" />
@@ -100,7 +100,7 @@ export default function VisitorsDashboard(): React.ReactElement {
           </div>
         ) : visits.length === 0 ? (
           <div className="card p-8 text-center">
-            <p className="text-sm text-navy-400">No activity today</p>
+            <p className="text-sm text-navy-500 dark:text-navy-400">No activity today</p>
           </div>
         ) : (
           <div className="space-y-2">
@@ -116,7 +116,7 @@ export default function VisitorsDashboard(): React.ReactElement {
                     <p className="text-sm font-semibold text-navy-900 dark:text-white truncate">
                       {v.visitor?.full_name ?? 'Unknown'}
                     </p>
-                    <p className="text-xs text-navy-400 truncate">
+                    <p className="text-xs text-navy-500 dark:text-navy-400 truncate">
                       {v.purpose} · {v.department?.name ?? '—'}
                     </p>
                   </div>
@@ -124,7 +124,7 @@ export default function VisitorsDashboard(): React.ReactElement {
                   {/* Host & time */}
                   <div className="hidden sm:block text-right shrink-0">
                     <p className="text-xs font-medium text-navy-600">{v.host?.full_name ?? '—'}</p>
-                    <p className="text-[11px] text-navy-400">{formatTime(v.created_at)}</p>
+                    <p className="text-[11px] text-navy-500 dark:text-navy-400">{formatTime(v.created_at)}</p>
                   </div>
 
                   {/* Status badge */}

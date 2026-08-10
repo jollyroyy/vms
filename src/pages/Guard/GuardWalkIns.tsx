@@ -35,7 +35,7 @@ export default function GuardWalkIns({ loading, pending, onSubmitted }: Props): 
           </span>
           <span className="min-w-0 text-left">
             <span className="block text-[15px] font-bold text-navy-950">Register a walk-in</span>
-            <span className="block text-xs text-navy-400 mt-0.5">
+            <span className="block text-xs text-navy-500 dark:text-navy-400 mt-0.5">
               Capture details and send the person to meet an approval request
             </span>
           </span>
@@ -56,7 +56,7 @@ export default function GuardWalkIns({ loading, pending, onSubmitted }: Props): 
         ) : pending.length === 0 ? (
           <div className="card empty-state !py-12">
             <p className="text-sm font-semibold text-navy-500">Nothing waiting on a person to meet.</p>
-            <p className="text-xs text-navy-400 mt-1">
+            <p className="text-xs text-navy-500 dark:text-navy-400 mt-1">
               Walk-ins you register will appear here until the person to meet responds.
             </p>
           </div>

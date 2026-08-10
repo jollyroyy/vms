@@ -4,7 +4,7 @@
 // VisitorDetails' "View Pass" toggle for reopening an already-approved visit.
 // Deliberately NOT components/Badge: that component is print-only (base.css
 // `.print-only { display: none }` outside @media print) and built for the
-// physical gate pass, so reusing it here would render invisibly on screen.
+// physical visitor pass, so reusing it here would render invisibly on screen.
 import React, { useEffect, useState } from 'react';
 import QRCode from 'qrcode';
 import type { Visit } from '../types/index';
@@ -20,9 +20,19 @@ type Props = {
   /** Forwarded to PassIdentity. Defaults to true; VisitorDetails turns it off
    * for an HOD viewer, who approves on who/why and never checks the ID itself. */
   showIdProof?: boolean;
+  /** True when the caller already renders the visitor's photo, name and
+   * company above this component (VisitorDetails' own header card does,
+   * right before its "View Pass" toggle). 2026-08-10 client report: opening
+   * a pass from inside VisitorDetails showed the name and company TWICE —
+   * once in the header, once again here. When true, this component omits its
+   * own identity block (and the Person-to-Meet fact, which VisitorDetails
+   * already shows as its own row) and keeps only what is unique to the pass:
+   * ref/status, the scheduled time, and the QR. Defaults to false for the
+   * other caller, PreApproveForm's success popup, which shows nothing else. */
+  identityShownElsewhere?: boolean;
 };
 
-export default function PreApprovalPass({ visit, showIdProof = true }: Props): React.ReactElement {
+export default function PreApprovalPass({ visit, showIdProof = true, identityShownElsewhere = false }: Props): React.ReactElement {
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
   // The PDF has to load and re-encode the photo before it can be written, so
   // the button would otherwise sit there looking inert on a slow photo fetch.
@@ -57,7 +67,7 @@ export default function PreApprovalPass({ visit, showIdProof = true }: Props): R
           app's own STATUS_STYLES tokens — never a parallel palette. */}
       <div className="w-full flex items-center justify-between gap-2">
         <div>
-          <p className="text-[10px] font-bold text-navy-400 uppercase tracking-wide">Entry Pass</p>
+          <p className="text-[10px] font-bold text-navy-500 dark:text-navy-400 uppercase tracking-wide">Entry Pass</p>
           <p className="text-xs text-navy-500 font-mono">{visit.ref_number}</p>
         </div>
         <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold shrink-0 ${statusStyle.bg} ${statusStyle.text}`}>
@@ -149,9 +159,9 @@ export default function PreApprovalPass({ visit, showIdProof = true }: Props): R
 function PassField({ label, value, sub }: { label: string; value?: string | null; sub?: string | null }) {
   return (
     <div className="min-w-0">
-      <p className="text-[9px] text-navy-400 uppercase tracking-wider font-semibold leading-none mb-1">{label}</p>
+      <p className="text-[9px] text-navy-500 dark:text-navy-400 uppercase tracking-wider font-semibold leading-none mb-1">{label}</p>
       <p className="text-xs font-semibold text-navy-800 truncate">{value || '—'}</p>
-      {sub && <p className="text-[10px] text-navy-400 truncate">{sub}</p>}
+      {sub && <p className="text-[10px] text-navy-500 dark:text-navy-400 truncate">{sub}</p>}
     </div>
   );
 }

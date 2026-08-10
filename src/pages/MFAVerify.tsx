@@ -67,7 +67,7 @@ export default function MFAVerifyPage(): React.ReactElement {
             </svg>
           </div>
           <h1 className="text-xl font-bold text-navy-950 font-display">Two-Factor Authentication</h1>
-          <p className="text-sm text-navy-400">Enter the 6-digit code from your authenticator app</p>
+          <p className="text-sm text-navy-500 dark:text-navy-400">Enter the 6-digit code from your authenticator app</p>
         </div>
 
         <div className="space-y-4">
@@ -107,7 +107,7 @@ export default function MFAVerifyPage(): React.ReactElement {
           <svg className="w-3.5 h-3.5 text-success-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
           </svg>
-          <p className="text-xs text-navy-400">Two-factor authentication is required for your role</p>
+          <p className="text-xs text-navy-500 dark:text-navy-400">Two-factor authentication is required for your role</p>
         </div>
       </div>
     </div>

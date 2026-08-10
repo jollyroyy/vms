@@ -131,7 +131,7 @@ export default function PhotoCapture({ onCapture }: Props): React.ReactElement {
               Capture Photo
             </span>
           </button>
-          <label className="text-xs text-navy-400 cursor-pointer hover:text-brand-600 transition-colors">
+          <label className="text-xs text-navy-500 dark:text-navy-400 cursor-pointer hover:text-brand-600 transition-colors">
             <input type="file" accept="image/*" onChange={handleFileInput} className="hidden" />
             Or upload from device
           </label>

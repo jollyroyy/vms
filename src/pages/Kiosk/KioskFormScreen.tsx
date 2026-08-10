@@ -53,7 +53,7 @@ export default function KioskFormScreen({
           </button>
           <div>
             <h1 className="text-lg font-bold text-navy-950 dark:text-white font-display">Visitor Registration</h1>
-            <p className="text-sm text-navy-400">Complete the form to register your visit</p>
+            <p className="text-sm text-navy-500 dark:text-navy-400">Complete the form to register your visit</p>
           </div>
         </div>
 
@@ -116,7 +116,7 @@ export default function KioskFormScreen({
                 <img src={URL.createObjectURL(photoBlob)} alt="" className="w-14 h-[72px] object-cover rounded-xl" />
                 <div className="flex-1">
                   <p className="text-sm font-medium text-navy-700">Photo captured</p>
-                  <p className="text-xs text-navy-400">Ready to submit</p>
+                  <p className="text-xs text-navy-500 dark:text-navy-400">Ready to submit</p>
                 </div>
                 <button type="button" onClick={onRetakePhoto} className="btn-ghost text-danger-600 text-sm">Retake</button>
               </div>

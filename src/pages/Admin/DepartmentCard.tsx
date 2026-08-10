@@ -56,7 +56,7 @@ export default function DepartmentCard({
             </div>
             <div className="min-w-0">
               <h3 className="card-title truncate">{d.name}</h3>
-              <span className="glass-chip !px-2 !py-0.5 !text-[11px] font-mono tracking-wider text-navy-400 mt-1.5">
+              <span className="glass-chip !px-2 !py-0.5 !text-[11px] font-mono tracking-wider text-navy-500 dark:text-navy-400 mt-1.5">
                 {d.code}
               </span>
             </div>

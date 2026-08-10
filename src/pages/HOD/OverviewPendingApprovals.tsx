@@ -49,7 +49,7 @@ export default function OverviewPendingApprovals({
       <div className="flex items-center justify-between">
         <div>
           <h2 className="font-display text-sm font-bold text-navy-950 dark:text-white">Pending Walk-in Approvals</h2>
-          <p className="text-xs text-navy-400 mt-0.5">Visitors waiting at the gate for your decision</p>
+          <p className="text-xs text-navy-500 dark:text-navy-400 mt-0.5">Visitors waiting at the gate for your decision</p>
         </div>
         {!loading && (
           <span className="text-[11px] font-bold text-white bg-gradient-to-r from-brand-500 to-accent-500 px-3 py-1.5 rounded-full shadow-glow-sm">

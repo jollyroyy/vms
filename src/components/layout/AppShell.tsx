@@ -99,7 +99,7 @@ export default function AppShell({ session, role, children }: Props): React.Reac
                   onFocus={() => setSearchFocused(true)}
                   onBlur={() => setSearchFocused(false)}
                   placeholder="Search visitors, passes..."
-                  className="w-full h-9 pl-9 pr-9 bg-transparent border-0 text-sm text-navy-700 placeholder:text-navy-400 focus:outline-none"
+                  className="w-full h-9 pl-9 pr-9 bg-transparent border-0 text-sm text-navy-700 placeholder:text-navy-500 dark:text-navy-400 focus:outline-none"
                 />
                 {searchQuery ? (
                   <button
@@ -139,7 +139,7 @@ export default function AppShell({ session, role, children }: Props): React.Reac
                   {profileName ? `Welcome, ${profileName}` : 'Welcome'}
                   {role ? ` — ${role === 'hod' ? 'HOD' : role === 'guard' ? 'Guard' : role === 'admin' ? 'Admin' : 'Staff'}` : ''}
                 </p>
-                <p className="text-xs text-navy-400 mt-0.5">
+                <p className="text-xs text-navy-500 dark:text-navy-400 mt-0.5">
                   {deptName}{deptName ? ' · ' : ''}{(() => {
                     const taglines: Record<string, string> = {
                       'information technology': 'Powering digital transformation',

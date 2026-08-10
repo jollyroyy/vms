@@ -57,7 +57,7 @@ export default function UnassignedDepartments({
             <div className="flex items-center justify-between gap-3">
               <div className="min-w-0">
                 <p className="text-[15px] font-bold text-navy-900 dark:text-white tracking-tight truncate">{d.name}</p>
-                {d.code && <p className="text-xs font-mono tracking-wider text-navy-400 truncate mt-0.5">{d.code}</p>}
+                {d.code && <p className="text-xs font-mono tracking-wider text-navy-500 dark:text-navy-400 truncate mt-0.5">{d.code}</p>}
               </div>
               <div className="shrink-0 flex items-center gap-2">
                 <span className="status-badge bg-warning-500/12 text-warning-600 dark:text-warning-300 border border-warning-500/25">

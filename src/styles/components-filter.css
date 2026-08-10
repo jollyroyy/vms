@@ -42,7 +42,10 @@
   }
 
   .dept-trigger-eyebrow {
-    @apply block text-[9.5px] font-bold uppercase tracking-[0.14em] text-navy-400 leading-none mb-0.5;
+    @apply block text-[9.5px] font-bold uppercase tracking-[0.14em] text-navy-500 leading-none mb-0.5;
+  }
+  .dark .dept-trigger-eyebrow {
+    @apply text-navy-400;
   }
   .dept-trigger-label {
     @apply block truncate font-semibold text-navy-900 leading-tight;
@@ -60,10 +63,13 @@
 
   .dept-clear {
     @apply absolute right-2.5 top-1/2 -translate-y-1/2 h-5 w-5 rounded-full
-           flex items-center justify-center text-navy-400
+           flex items-center justify-center text-navy-500
            hover:text-navy-800 hover:bg-surface-200
            focus:outline-none focus:ring-2 focus:ring-brand-500/30
            transition-colors duration-200;
+  }
+  .dark .dept-clear {
+    @apply text-navy-400;
   }
   .dark .dept-clear:hover {
     background: rgb(255 255 255 / 0.12);
@@ -91,7 +97,10 @@
     @apply flex items-center justify-between px-3.5 pt-3 pb-2;
   }
   .dept-panel-eyebrow {
-    @apply text-[10px] font-bold uppercase tracking-[0.14em] text-navy-400;
+    @apply text-[10px] font-bold uppercase tracking-[0.14em] text-navy-500;
+  }
+  .dark .dept-panel-eyebrow {
+    @apply text-navy-400;
   }
   .dept-panel-total {
     @apply text-[10px] font-semibold tabular-nums text-navy-300;
@@ -136,6 +145,9 @@
     @apply text-white;
   }
   .dept-mark-all {
+    @apply text-navy-500;
+  }
+  .dark .dept-mark-all {
     @apply text-navy-400;
   }
 
@@ -143,10 +155,16 @@
     @apply flex-1 truncate;
   }
   .dept-code {
-    @apply text-[10px] font-semibold uppercase tracking-wider text-navy-400 shrink-0;
+    @apply text-[10px] font-semibold uppercase tracking-wider text-navy-500 shrink-0;
+  }
+  .dark .dept-code {
+    @apply text-navy-400;
   }
   .dept-option-count {
-    @apply text-xs tabular-nums text-navy-400 shrink-0;
+    @apply text-xs tabular-nums text-navy-500 shrink-0;
+  }
+  .dark .dept-option-count {
+    @apply text-navy-400;
   }
 
   .dept-divider {

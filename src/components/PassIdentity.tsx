@@ -68,16 +68,21 @@ export default function PassIdentity({
         {/* Name */}
         <p className="font-bold text-navy-900">{name || '—'}</p>
 
-        {/* Vendor Name */}
+        {/* Company — labelled like every other fact on the pass. A bare value
+            with no caption ("Acme Corp" floating under a name with nothing
+            saying what it is) reads as a stray word, not a fact. */}
         {vendorName && (
-          <p className="text-sm text-navy-400">{vendorName}</p>
+          <div>
+            <p className="text-micro text-navy-500 dark:text-navy-400 uppercase leading-none mb-0.5">Company</p>
+            <p className="text-sm font-medium text-navy-700 dark:text-navy-200">{vendorName}</p>
+          </div>
         )}
 
         {/* ID Proof — omitted entirely (not blanked) for a viewer whose job is
             deciding on who and why, not checking a document against a face. */}
         {showIdProof && (
           <div className="flex items-baseline gap-2 text-xs">
-            <span className="text-navy-400 font-medium uppercase tracking-wide">ID Proof</span>
+            <span className="text-navy-500 dark:text-navy-400 font-medium uppercase tracking-wide">ID Proof</span>
             <span className="font-mono text-navy-600">{maskIdProof(idType, idLast4)}</span>
           </div>
         )}

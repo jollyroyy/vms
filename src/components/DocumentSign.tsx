@@ -104,7 +104,7 @@ export default function DocumentSign({ documentTitle, documentText, onSign, onSk
               Sign & Accept
             </button>
             {!required && onSkip && (
-              <button onClick={onSkip} className="btn-ghost text-sm px-4 py-2 text-navy-400 ml-auto">
+              <button onClick={onSkip} className="btn-ghost text-sm px-4 py-2 text-navy-500 dark:text-navy-400 ml-auto">
                 Skip
               </button>
             )}

@@ -96,4 +96,31 @@ describe('OverviewNotifications', () => {
     expect(() => renderWithRouter(<OverviewNotifications loading={false} notifs={notifs} onMarkRead={vi.fn()} onDismiss={vi.fn()} />)).not.toThrow();
     expect(screen.getByText(longBody)).toBeInTheDocument();
   });
+
+  // Bug report, 2026-08-10: "More information" used to be a blanket
+  // <Link to="/approvals">, carrying no identity — it never opened the
+  // notification's own visit. It is now a callback that hands the caller
+  // (HODOverview) the notification's related_id to resolve, and does not
+  // navigate anywhere itself.
+  describe('"More information" resolves via callback, not a bare navigation', () => {
+    it('calls onOpenDetails with the related_id of the clicked notification', () => {
+      const onOpenDetails = vi.fn();
+      const notifs = [makeNotif({ id: 'n1', related_id: 'visit-42' })];
+      renderWithRouter(<OverviewNotifications loading={false} notifs={notifs} onMarkRead={vi.fn()} onDismiss={vi.fn()} onOpenDetails={onOpenDetails} />);
+      fireEvent.click(screen.getByText('More information →'));
+      expect(onOpenDetails).toHaveBeenCalledWith('visit-42');
+    });
+
+    it('does not render a "More information" control when related_id is null', () => {
+      const notifs = [makeNotif({ id: 'n1', related_id: null })];
+      renderWithRouter(<OverviewNotifications loading={false} notifs={notifs} onMarkRead={vi.fn()} onDismiss={vi.fn()} onOpenDetails={vi.fn()} />);
+      expect(screen.queryByText('More information →')).not.toBeInTheDocument();
+    });
+
+    it('does not render a "More information" control when onOpenDetails is not provided', () => {
+      const notifs = [makeNotif({ id: 'n1', related_id: 'visit-42' })];
+      renderWithRouter(<OverviewNotifications loading={false} notifs={notifs} onMarkRead={vi.fn()} onDismiss={vi.fn()} />);
+      expect(screen.queryByText('More information →')).not.toBeInTheDocument();
+    });
+  });
 });

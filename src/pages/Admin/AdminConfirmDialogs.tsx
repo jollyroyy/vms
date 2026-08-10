@@ -31,7 +31,7 @@ export default function AdminConfirmDialogs({
     return (
       <ConfirmDialog
         title="Delete Department?"
-        message={`Are you sure you want to delete "${pendingDelete.name}"? It will be removed permanently. Its members are unlinked and any head of department is demoted to staff. Linked visits or gate passes will block the deletion.`}
+        message={`Are you sure you want to delete "${pendingDelete.name}"? It will be removed permanently. Its members are unlinked and any head of department is demoted to staff. Linked visits or visitor passes will block the deletion.`}
         confirmLabel="Delete"
         busyLabel="Deleting…"
         busy={deleteBusy}

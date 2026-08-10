@@ -218,7 +218,7 @@ export default function DepartmentsManager(): React.ReactElement {
         <div className="flex flex-wrap items-baseline justify-between gap-2">
           <div>
             <h2 className="section-title mb-0.5">{ADMIN_OVERVIEW_TITLES[view]}</h2>
-            <p className="text-xs text-navy-400">{ADMIN_OVERVIEW_HINTS[view]}</p>
+            <p className="text-xs text-navy-500 dark:text-navy-400">{ADMIN_OVERVIEW_HINTS[view]}</p>
           </div>
           <button
             type="button"

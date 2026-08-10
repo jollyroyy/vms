@@ -33,7 +33,7 @@ export default function AnalyticsCharts({
           <div className="space-y-1.5">
             {dailyTrend.slice(-14).map(([day, count]) => (
               <div key={day} className="flex items-center gap-3">
-                <span className="text-[10px] text-navy-400 font-mono w-16 shrink-0">{day.slice(5)}</span>
+                <span className="text-[10px] text-navy-500 dark:text-navy-400 font-mono w-16 shrink-0">{day.slice(5)}</span>
                 <div className="flex-1 h-5 bg-surface-100 rounded-md overflow-hidden">
                   <div
                     className="h-full bg-gradient-to-r from-brand-400 to-brand-600 rounded-md transition-all duration-500"
@@ -93,7 +93,7 @@ export default function AnalyticsCharts({
                     <span className="text-sm text-navy-700 capitalize">{purpose}</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="text-xs text-navy-400">{count}</span>
+                    <span className="text-xs text-navy-500 dark:text-navy-400">{count}</span>
                     <span className="text-xs font-semibold text-navy-600 bg-surface-100 px-2 py-0.5 rounded-md">{pct}%</span>
                   </div>
                 </div>
@@ -122,7 +122,7 @@ export default function AnalyticsCharts({
                   </div>
                   <div className="text-right">
                     <p className="text-lg font-bold text-navy-900">{dept.total}</p>
-                    <p className="text-[10px] text-navy-400">visitors</p>
+                    <p className="text-[10px] text-navy-500 dark:text-navy-400">visitors</p>
                   </div>
                 </div>
               ))}

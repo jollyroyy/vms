@@ -79,7 +79,7 @@ export default function MFASetupPage(): React.ReactElement {
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center space-y-3">
           <div className="animate-spin h-8 w-8 border-2 border-brand-500 border-t-transparent rounded-full mx-auto" />
-          <p className="text-sm text-navy-400">Preparing MFA setup...</p>
+          <p className="text-sm text-navy-500 dark:text-navy-400">Preparing MFA setup...</p>
         </div>
       </div>
     );
@@ -114,7 +114,7 @@ export default function MFASetupPage(): React.ReactElement {
             </svg>
           </div>
           <h2 className="text-xl font-bold text-navy-950 font-display">MFA Enabled</h2>
-          <p className="text-navy-400 text-sm">Your account is now protected with two-factor authentication.</p>
+          <p className="text-navy-500 dark:text-navy-400 text-sm">Your account is now protected with two-factor authentication.</p>
           <button onClick={() => { window.location.href = '/'; }} className="btn-primary w-full py-3 text-sm font-semibold">
             Continue to App
           </button>
@@ -145,7 +145,7 @@ export default function MFASetupPage(): React.ReactElement {
               <span className="w-6 h-6 bg-gradient-to-br from-brand-500 to-accent-500 text-white rounded-full text-xs flex items-center justify-center font-bold shadow-glow-sm">1</span>
               <p className="font-semibold text-navy-800 text-sm">Scan with your authenticator app</p>
             </div>
-            <p className="text-xs text-navy-400 ml-8">Use Google Authenticator, Authy, or any TOTP app.</p>
+            <p className="text-xs text-navy-500 dark:text-navy-400 ml-8">Use Google Authenticator, Authy, or any TOTP app.</p>
             {qrCodeUrl && (
               <div className="flex justify-center">
                 <div className="p-3 !bg-white border border-surface-200 rounded-2xl shadow-soft">
@@ -155,7 +155,7 @@ export default function MFASetupPage(): React.ReactElement {
             )}
             {secret && (
               <div className="ml-8">
-                <p className="text-xs text-navy-400 mb-1">Cannot scan? Enter this key manually:</p>
+                <p className="text-xs text-navy-500 dark:text-navy-400 mb-1">Cannot scan? Enter this key manually:</p>
                 <code className="text-xs font-mono bg-surface-100 text-navy-700 px-3 py-2 rounded-lg block border border-surface-200 break-all">{secret}</code>
               </div>
             )}
