@@ -11,7 +11,7 @@ describe('visitStatusLabel', () => {
   it('returns "Walk-in approved by [name] ([role])" for walkin_approved with actor', () => {
     const actor: VisitActor = { name: 'Jane Doe', role: 'hod' };
     const result = visitStatusLabel({ status: 'walkin_approved', actor });
-    expect(result).toBe('Walk-in approved by Jane Doe (Host)');
+    expect(result).toBe('Walk-in approved by Jane Doe (Person to Meet)');
   });
 
   it('returns "Walk-in approved" for walkin_approved without actor', () => {
@@ -71,10 +71,10 @@ describe('visitStatusLabel', () => {
     expect(result).toContain('(Guard)');
   });
 
-  it('maps hod role to "Host"', () => {
+  it('maps hod role to "Person to Meet"', () => {
     const actor: VisitActor = { name: 'Bob', role: 'hod' };
     const result = visitStatusLabel({ status: 'walkin_approved', actor });
-    expect(result).toContain('(Host)');
+    expect(result).toContain('(Person to Meet)');
   });
 
   it('maps admin role to "Admin"', () => {

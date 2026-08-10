@@ -171,7 +171,7 @@ export default function ReportsPage(): React.ReactElement {
               <table className="register-table w-full text-sm tabular-nums">
                 <thead>
                   <tr className="bg-surface-50/80 border-b border-surface-200/60 dark:border-white/[0.06]">
-                    {['#', 'Ref', 'Photo', 'Name', 'Vendor', 'Phone', 'Dept', 'Host', 'ID Proof', 'Purpose', 'Carrying', 'Carrying Remarks', 'Approved', 'Check-in', 'Check-out', 'Status'].map((h) => (
+                    {['#', 'Ref', 'Photo', 'Name', 'Vendor', 'Phone', 'Dept', 'Person to Meet', 'ID Proof', 'Purpose', 'Carrying', 'Carrying Remarks', 'Approved', 'Check-in', 'Check-out', 'Status'].map((h) => (
                       <th key={h} className="px-3.5 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-navy-400 whitespace-nowrap">{h}</th>
                     ))}
                   </tr>

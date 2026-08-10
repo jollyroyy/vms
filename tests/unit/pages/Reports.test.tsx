@@ -127,7 +127,7 @@ describe('M12-REPORTS: Reports', () => {
     );
     render(<MemoryRouter><ReportsPage /></MemoryRouter>);
     await waitFor(() => {
-      expect(screen.getByText('Rejected by Jane HOD (Host)')).toBeInTheDocument();
+      expect(screen.getByText('Rejected by Jane HOD (Person to Meet)')).toBeInTheDocument();
     });
   });
 

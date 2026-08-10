@@ -61,7 +61,7 @@ export const DRILL_COPY: Record<DrillKey, DrillCopy> = {
     // NOT "Denied entry" — `rejected` means an HOD declined the request, usually
     // before the visitor ever reached the gate. See DashboardSummary.
     title: 'Declined requests',
-    subtitle: 'Declined by the host, usually before arrival',
+    subtitle: 'Declined by the person to meet, usually before arrival',
     empty: 'No requests were declined today.',
     countLabel: 'declined',
   },

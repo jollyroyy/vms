@@ -58,7 +58,7 @@ export default function VisitorForm({ onRegistered }: Props): React.ReactElement
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Unknown error';
       console.error('Failed to load hosts:', msg);
-      setHostError('Could not load person-to-meet list.');
+      setHostError('Could not load the person to meet list.');
       setHosts([]);
     }
   }, []);

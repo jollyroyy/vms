@@ -74,12 +74,12 @@ describe('GuardWalkIns', () => {
 
   it('shows the loading skeleton, not the empty state, while loading', () => {
     render(<GuardWalkIns loading pending={[]} onSubmitted={vi.fn()} />);
-    expect(screen.queryByText('Nothing waiting on a host.')).not.toBeInTheDocument();
+    expect(screen.queryByText('Nothing waiting on a person to meet.')).not.toBeInTheDocument();
   });
 
   it('shows the empty state when nothing is pending', () => {
     render(<GuardWalkIns loading={false} pending={[]} onSubmitted={vi.fn()} />);
-    expect(screen.getByText('Nothing waiting on a host.')).toBeInTheDocument();
+    expect(screen.getByText('Nothing waiting on a person to meet.')).toBeInTheDocument();
     expect(screen.getByText('0')).toBeInTheDocument();
   });
 
@@ -89,6 +89,6 @@ describe('GuardWalkIns', () => {
     expect(screen.getByText('Walk-in Person')).toBeInTheDocument();
     expect(screen.getByText('Second Person')).toBeInTheDocument();
     expect(screen.getByText('2')).toBeInTheDocument();
-    expect(screen.queryByText('Nothing waiting on a host.')).not.toBeInTheDocument();
+    expect(screen.queryByText('Nothing waiting on a person to meet.')).not.toBeInTheDocument();
   });
 });

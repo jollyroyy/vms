@@ -133,7 +133,7 @@ describe('GuardConsole', () => {
     fireEvent.click(screen.getByRole('tab', { name: /Walk-ins/i }));
     await waitFor(() => {
       expect(screen.getByText('Register a walk-in')).toBeInTheDocument();
-      expect(screen.getByText('Awaiting host approval')).toBeInTheDocument();
+      expect(screen.getByText('Awaiting approval from person to meet')).toBeInTheDocument();
     });
   });
 

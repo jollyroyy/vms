@@ -45,7 +45,7 @@ const TILES: Record<DrillKey, Tile> = {
     // NOT "Denied Entry" — `rejected` means an HOD declined the request,
     // usually before the visitor ever reached the gate. Calling that "denied
     // entry" on a guard's screen implies the guard turned someone away.
-    label: 'Declined', tone: 'text-danger-600', hint: 'Request declined by host',
+    label: 'Declined', tone: 'text-danger-600', hint: 'Request declined by person to meet',
   },
   noShow: {
     // Same orange used for the `no_show` status badge (statusStyles.ts) so the

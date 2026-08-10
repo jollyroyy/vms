@@ -32,7 +32,7 @@ export function toReportRow(visit: ReportVisit, index: number): ReportRow {
     'Vendor': visit.visitor?.vendor_name ?? '',
     'Phone': maskPhone(visit.visitor?.phone),
     'Department': visit.department?.name ?? '',
-    'Host': visit.host?.full_name ?? '',
+    'Person to Meet': visit.host?.full_name ?? '',
     'ID Proof': maskIdProof(visit.visitor?.id_type, visit.visitor?.id_last4),
     'Purpose': visit.purpose,
     // Resolved here rather than read straight off the row so the CSV and the

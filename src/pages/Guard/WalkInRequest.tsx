@@ -53,7 +53,7 @@ export default function WalkInRequest({ onSubmitted, onCancel }: Props): React.R
       if (error) throw error;
       setHosts((data ?? []) as Profile[]);
     } catch {
-      setHostError('Could not load person-to-meet list.');
+      setHostError('Could not load the person to meet list.');
       setHosts([]);
     }
   }, []);

@@ -36,7 +36,7 @@ export default function GuardWalkIns({ loading, pending, onSubmitted }: Props): 
           <span className="min-w-0 text-left">
             <span className="block text-[15px] font-bold text-navy-950">Register a walk-in</span>
             <span className="block text-xs text-navy-400 mt-0.5">
-              Capture details and send the host an approval request
+              Capture details and send the person to meet an approval request
             </span>
           </span>
         </button>
@@ -45,7 +45,7 @@ export default function GuardWalkIns({ loading, pending, onSubmitted }: Props): 
       {/* Awaiting approval */}
       <div>
         <div className="flex items-center justify-between mb-2.5">
-          <h2 className="gate-section-title">Awaiting host approval</h2>
+          <h2 className="gate-section-title">Awaiting approval from person to meet</h2>
           <span className="glass-chip !py-1 tabular-nums">{pending.length}</span>
         </div>
 
@@ -55,9 +55,9 @@ export default function GuardWalkIns({ loading, pending, onSubmitted }: Props): 
           </div>
         ) : pending.length === 0 ? (
           <div className="card empty-state !py-12">
-            <p className="text-sm font-semibold text-navy-500">Nothing waiting on a host.</p>
+            <p className="text-sm font-semibold text-navy-500">Nothing waiting on a person to meet.</p>
             <p className="text-xs text-navy-400 mt-1">
-              Walk-ins you register will appear here until the host responds.
+              Walk-ins you register will appear here until the person to meet responds.
             </p>
           </div>
         ) : (

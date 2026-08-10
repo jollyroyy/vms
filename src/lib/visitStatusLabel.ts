@@ -3,7 +3,7 @@ import type { VisitActor } from './visitActors';
 
 const ROLE_LABELS: Record<string, string> = {
   guard: 'Guard',
-  hod: 'Host',
+  hod: 'Person to Meet',
   admin: 'Admin',
   super_admin: 'Admin',
   staff: 'Staff',

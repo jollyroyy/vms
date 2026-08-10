@@ -91,7 +91,7 @@ describe('evaluateQrVisit', () => {
     expect(result.reason).toMatch(/already checked in/i);
   });
 
-  it('blocks a visit still awaiting host approval', () => {
+  it('blocks a visit still awaiting person to meet approval', () => {
     const result = evaluateQrVisit({ status: 'pending_approval', qr_expires_at: future }, now);
     expect(result.ok).toBe(false);
     expect(result.reason).toMatch(/approval/i);

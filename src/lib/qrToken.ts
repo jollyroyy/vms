@@ -37,7 +37,7 @@ export function isQrExpired(expiresAt: string | null, now: Date = new Date()): b
 // Direct lookup map, not a fuzzy includes() chain — the compiler enforces
 // exhaustiveness whenever a new VisitStatus is added.
 const STATUS_BLOCK_REASON: Record<VisitStatus, string | null> = {
-  pending_approval: 'This visit is still awaiting host approval.',
+  pending_approval: 'This visit is still awaiting approval from the person to meet.',
   approved: null,
   walkin_approved: null,
   checked_in: 'This visitor is already checked in.',

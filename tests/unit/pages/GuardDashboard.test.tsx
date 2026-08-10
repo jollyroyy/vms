@@ -199,7 +199,7 @@ describe('GuardDashboard', () => {
   // overdue) was removed — that information lives in the console, not here.
   it('renders no queue block', () => {
     renderDashboard();
-    expect(screen.queryByText('Awaiting host approval')).toBeNull();
+    expect(screen.queryByText('Awaiting approval from person to meet')).toBeNull();
     expect(screen.queryByText('Expected to arrive')).toBeNull();
     expect(screen.queryByText('Overdue arrivals')).toBeNull();
   });
