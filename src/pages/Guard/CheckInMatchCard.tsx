@@ -38,10 +38,21 @@ export default function CheckInMatchCard({ match: m, disabled, isCheckedIn, expi
             <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6l4 2m5-2a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            {m.scheduledFor ? formatTime(m.scheduledFor) : 'Anytime today'}
+            {/* A bare time is only safe for a pass due TODAY. On a search hit
+                for another day, "03:30" reads as an arrival that is due now,
+                which is precisely the confusion the today-only board avoids —
+                so a not-due row prints the date too. */}
+            {m.scheduledFor
+              ? (m.dueToday ? formatTime(m.scheduledFor) : formatDateTime(m.scheduledFor))
+              : 'Anytime today'}
           </span>
           {isCheckedIn && <span className="status-badge bg-brand-50 text-brand-700 border border-brand-500/20">Checked In</span>}
           {expired && !isCheckedIn && <span className="status-badge bg-danger-50 text-danger-700 border border-danger-500/20">Expired</span>}
+          {!m.dueToday && !expired && !isCheckedIn && (
+            <span className="status-badge bg-amber-50 text-amber-700 border border-amber-500/20 dark:bg-amber-500/12 dark:text-amber-300 dark:border-amber-500/25">
+              Not due today
+            </span>
+          )}
         </div>
 
         <p className="text-caption text-navy-500 dark:text-navy-400 mt-1 truncate">{m.purpose}</p>

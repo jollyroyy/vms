@@ -5,6 +5,7 @@
 // shape via qrMatchItem.ts; both must keep agreeing on field mapping.
 import type { Department, Profile, RecurringVisit, Visit } from '../../types/index';
 import { approvalTimestamp } from '../../lib/visitApproval';
+import { isDueToday } from '../../lib/visitExpiry';
 import type { MatchItem } from './CheckInPanel';
 
 export interface PreApprovedVisit extends Visit {
@@ -50,18 +51,40 @@ function matches(
   return true;
 }
 
-/** Flattens approved visits and today's recurring visitors into one ordered candidate list. */
+/**
+ * Flattens approved visits and today's recurring visitors into one ordered
+ * candidate list.
+ *
+ * BROWSING and SEARCHING answer two different questions, and conflating them
+ * was a real bug. With no query typed, this is the arrivals board: today's
+ * approvals only, because a future booking sitting in that list reads exactly
+ * like someone due now. But the moment a guard types a name or a phone number
+ * they are asking "does this person have a pass at all?" — and the honest
+ * answer spans every open approval, not just today's. Filtering the searchable
+ * set to today meant that when every booking happened to be for a later day,
+ * the guard searched a visitor who was standing in front of them holding a
+ * valid pass and was told "No match found", then offered a walk-in request.
+ *
+ * A row that is not due today still comes back DISABLED (`dueToday: false`) —
+ * findable, legible, and not checkable-in. Seeing the pass and being able to
+ * honour it early are separate permissions.
+ */
 export function buildMatchItems(
   preApproved: PreApprovedVisit[],
   recurringToday: RecurringWithDept[],
   filters: MatchFilters,
+  now: Date = new Date(),
 ): MatchItem[] {
   const items: MatchItem[] = [];
+  const searching = filters.search.trim().length > 0;
 
   preApproved.forEach((v) => {
     const name = v.visitor?.full_name ?? '';
     const phone = v.visitor?.phone ?? '';
     if (!matches(name, phone, v.department_id, filters, v.ref_number)) return;
+    const due = isDueToday(v, now);
+    // Not due today: shown only when the guard is actively looking for it.
+    if (!due && !searching) return;
     const isWalkin = v.status === 'walkin_approved';
     items.push({
       id: `pre:${v.id}`,
@@ -75,6 +98,7 @@ export function buildMatchItems(
       approvalType: isWalkin ? 'walkin_approved' : 'pre_approved',
       approvedAt: approvalTimestamp(v),
       scheduledFor: v.scheduled_for,
+      dueToday: due,
       visitId: v.id,
       photoUrl: v.photo_url ?? v.photo_data,
       idType: v.visitor?.id_type ?? null,
@@ -102,6 +126,9 @@ export function buildMatchItems(
       approvalType: 'recurring',
       approvedAt: null,
       scheduledFor: null,
+      // recurringToday is already filtered to today by the caller, so a row
+      // that reached here is by construction due now.
+      dueToday: true,
       photoUrl: null,
       idType: null,
       idLast4: null,

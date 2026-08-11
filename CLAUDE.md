@@ -112,10 +112,25 @@
   - `/guard/pre-approvals` is the **pre-booked** desk. `CheckInPanel` (QR gate,
     pre-approved match search, ID scan, photo, Check In) renders there. Everything it
     resolves is a visitor who was booked ahead, which is exactly the population that
-    page already lists. It shows **today only** — the Upcoming and All filters were
+    page already lists. It **lists** today only — the Upcoming and All filters were
     removed, because a guard can only check in someone due today and a future booking
     reads too easily as an arrival that is due now. `usePreApprovals` still accepts
     the other filters for callers that need history.
+  - **BROWSING is today-only; SEARCHING is not.** `CheckInPanel.loadData` used to
+    `.filter(isDueToday)` on the fetch, which silently made "what is listed" and
+    "what is findable" the same set. On 2026-08-11 all four open pre-approvals in the
+    live database were booked for later days, so the candidate list was empty and
+    **every** search returned "No match found" — then offered to raise a walk-in
+    request for a visitor who was standing there holding a valid pass. The fetch is
+    now unfiltered and `buildMatchItems` decides: empty query → due-today rows only;
+    non-empty query → every open approval, with `dueToday: false` on the ones that
+    are not due. Those come back **disabled, not hidden** — `CheckInMatchList`
+    computes `disabled = isCheckedIn || expired || !m.dueToday`, and the card prints
+    `formatDateTime` rather than `formatTime` for them, because a bare "03:30" on a
+    hit for another day reads as an arrival due now. Seeing a pass and being allowed
+    to honour it early are two different permissions. `buildMatchItems` takes an
+    injectable `now` so this stays testable; `visitToMatchItem` computes `dueToday`
+    the same way, so the scan path and the search path cannot disagree.
   - `/visitors` is the **walk-in** lane, titled "Walk-in Visitors". `Mode` is
     `'walkins' | 'walkinApproved' | 'inside'`, defaulting to `walkins` — the three
     stages of a walk-in's life at the gate, in order.

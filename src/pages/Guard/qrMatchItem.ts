@@ -5,6 +5,7 @@
 // only ever sees one MatchItem shape, regardless of how the guard got there.
 import type { Visit } from '../../types/index';
 import { approvalTimestamp } from '../../lib/visitApproval';
+import { isDueToday } from '../../lib/visitExpiry';
 import type { MatchItem } from './CheckInPanel';
 
 export function visitToMatchItem(visit: Visit & { approvedAt?: string | null }): MatchItem {
@@ -21,6 +22,10 @@ export function visitToMatchItem(visit: Visit & { approvedAt?: string | null }):
     approvalType: isWalkin ? 'walkin_approved' : 'pre_approved',
     approvedAt: approvalTimestamp(visit),
     scheduledFor: visit.scheduled_for,
+    // Computed, not hardcoded true. The QR gate rejects an EXPIRED pass, but a
+    // pass booked for next week is perfectly valid and simply not due yet, so
+    // the scan path must report the same fact the search path does.
+    dueToday: isDueToday(visit),
     visitId: visit.id,
     // The QR itself encodes nothing but an opaque token. These come from the
     // visit row the token resolved to, and are what the guard checks the person

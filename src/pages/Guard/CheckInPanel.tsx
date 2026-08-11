@@ -8,7 +8,7 @@ import { attachVisitActors } from '../../lib/visitActors';
 import { buildMatchItems, type PreApprovedVisit, type RecurringWithDept } from './checkInMatches';
 import { useDepartments } from '../../lib/useDepartments';
 import { uploadPhoto } from '../../lib/photoUpload';
-import { isDueToday, isVisitExpired } from '../../lib/visitExpiry';
+import { isVisitExpired } from '../../lib/visitExpiry';
 import {
   findActiveVisitByPhone, findActiveVisitByIdProof, activeVisitMessage,
   isAlreadyInsideError, ALREADY_INSIDE_FALLBACK,
@@ -35,6 +35,10 @@ export interface MatchItem {
   approvalType: ApprovalType;
   approvedAt: string | null;
   scheduledFor: string | null;
+  /** False for a pass booked for a later day, or one whose day has passed.
+   *  Such a row is findable BY SEARCH but never checkable-in — see
+   *  buildMatchItems for why the two differ. */
+  dueToday: boolean;
   visitId?: string;
   // Carried on the pass and shown back to the guard once it is scanned, so
   // they can check the person in front of them against the record. Absent for
@@ -96,7 +100,14 @@ export default function CheckInPanel({ today, onCheckInSuccess }: Props): React.
         .gte('created_at', todayStart),
     ]);
 
-    let rows = ((preRes.data as unknown as Visit[]) ?? []).filter((v) => isDueToday(v));
+    // NOT filtered to today. It used to be `.filter(isDueToday)`, which decided
+    // what was SEARCHABLE, not merely what was listed: with every open
+    // pre-approval booked for a later day, the candidate list was empty and the
+    // guard's search box returned "No match found" for a visitor whose pass was
+    // sitting right there in the database. Which rows are *listed* by default
+    // and which are *findable* are two different questions — buildMatchItems
+    // answers them separately now.
+    let rows = ((preRes.data as unknown as Visit[]) ?? []);
     rows = await attachHostNames(rows);
     const rowsWithActors = await attachVisitActors(rows);
     setPreApproved(rowsWithActors.map((v) => ({ ...v, photo_url: v.photo_data ?? undefined })));

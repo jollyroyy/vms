@@ -1,6 +1,6 @@
 import React from 'react';
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { render, screen, cleanup } from '@testing-library/react';
+import { render, screen, cleanup, fireEvent } from '@testing-library/react';
 import CheckInMatchList from '../../../src/pages/Guard/CheckInMatchList';
 import { formatDateTime, formatTime } from '../../../src/lib/formatDate';
 import type { MatchItem } from '../../../src/pages/Guard/CheckInPanel';
@@ -50,6 +50,10 @@ function match(overrides: Partial<MatchItem> = {}): MatchItem {
     approvalType: 'pre_approved',
     approvedAt: null,
     scheduledFor: null,
+    // Default true so every pre-existing test — written before searching
+    // spanned every open approval — keeps exercising the checkable-in path
+    // it always meant to, without having to name `dueToday` everywhere.
+    dueToday: true,
     visitId: '1',
     ...overrides,
   };
@@ -153,5 +157,63 @@ describe('CheckInMatchList — expected arrival time', () => {
       allMatches: [match({ scheduledFor: null })],
     })} />);
     expect(screen.getByText('Anytime today')).toBeInTheDocument();
+  });
+});
+
+// Searching now spans every open pre-approval, not just today's (see the doc
+// comment above `buildMatchItems` in checkInMatches.ts) — the live database
+// had only future-dated approvals, so the today-only searchable set was
+// empty and a guard searching for a visitor holding a valid pass got "No
+// match found". That means "findable by search" and "checkable-in" are now
+// two different things: a `dueToday: false` row must still render (so the
+// guard can see the pass exists and read its date) but must be disabled,
+// with no Check In button and no click-through to onSelectMatch.
+describe('CheckInMatchList — dueToday disables check-in without hiding the row', () => {
+  it('renders a "Not due today" badge for a match not due today', () => {
+    render(<CheckInMatchList {...baseProps({
+      allMatches: [match({ dueToday: false, scheduledFor: '2026-08-15T09:30:00Z' })],
+    })} />);
+    expect(screen.getByText('Not due today')).toBeInTheDocument();
+  });
+
+  it('renders no Check In button for a match not due today', () => {
+    render(<CheckInMatchList {...baseProps({
+      allMatches: [match({ dueToday: false, scheduledFor: '2026-08-15T09:30:00Z' })],
+    })} />);
+    expect(screen.queryByRole('button', { name: /check in/i })).not.toBeInTheDocument();
+  });
+
+  it('does not call onSelectMatch when clicking a row not due today', () => {
+    const onSelectMatch = vi.fn();
+    const { container } = render(<CheckInMatchList {...baseProps({
+      allMatches: [match({ dueToday: false, scheduledFor: '2026-08-15T09:30:00Z' })],
+      onSelectMatch,
+    })} />);
+    fireEvent.click(container.querySelector('.pointer-events-none')!);
+    expect(onSelectMatch).not.toHaveBeenCalled();
+  });
+
+  it('renders a Check In button for a match due today and calls onSelectMatch when clicked', () => {
+    const onSelectMatch = vi.fn();
+    render(<CheckInMatchList {...baseProps({
+      allMatches: [match({ dueToday: true })],
+      onSelectMatch,
+    })} />);
+    const button = screen.getByRole('button', { name: /check in/i });
+    fireEvent.click(button);
+    expect(onSelectMatch).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows the scheduled DATE, not just a time, for a match not due today', () => {
+    const scheduledFor = '2026-08-15T09:30:00Z';
+    render(<CheckInMatchList {...baseProps({
+      allMatches: [match({ dueToday: false, scheduledFor })],
+    })} />);
+    // formatDateTime includes the day/month/year alongside the time (e.g.
+    // "15 Aug 2026, 03:00 pm") — assert against its real output rather than
+    // a guessed string, and keep the match resilient to locale punctuation.
+    const expected = formatDateTime(scheduledFor);
+    const datePortion = expected.split(',')[0];
+    expect(screen.getByText(new RegExp(datePortion.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')))).toBeInTheDocument();
   });
 });

@@ -62,7 +62,11 @@ export default function CheckInMatchList({
             const isCheckedIn = m.source === 'pre_approved' && checkedInIds.has(preApproved.find((v) => v.id === m.visitId)?.visitor_id ?? '');
             const visitRecord = m.source === 'pre_approved' ? preApproved.find((v) => v.id === m.visitId) : null;
             const expired = visitRecord ? isExpired(visitRecord) : false;
-            const disabled = isCheckedIn || expired;
+            // `!m.dueToday` only ever appears in search results (the default
+            // board is today-only), and it disables rather than hides: the
+            // guard needs to see that the pass exists and read the date on it,
+            // which is the whole reason searching spans every open approval.
+            const disabled = isCheckedIn || expired || !m.dueToday;
             return (
               <CheckInMatchCard key={`${m.id}-${idx}`} match={m} disabled={disabled} isCheckedIn={isCheckedIn}
                 expired={expired} onSelect={() => onSelectMatch(m)} />

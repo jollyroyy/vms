@@ -2,9 +2,25 @@
 // the same MatchItem shape the manual search flow builds. The missing-join
 // cases matter most — a guard must never see the literal string "undefined"
 // rendered on a check-in card.
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { visitToMatchItem } from '../../../src/pages/Guard/qrMatchItem';
 import type { Visit } from '../../../src/types/index';
+
+// `dueToday` comes from `isDueToday(visit)`, which reads the real clock (no
+// injectable `now`). Pin the system time to a fixed instant that is
+// unambiguously mid-day IST on 2026-08-01 — the fixture's scheduled/created
+// day — so these tests never flip as real time passes, and so we sit well
+// clear of the IST day boundary (see istDayStart in lib/visitExpiry.ts).
+const FIXED_NOW = '2026-08-01T08:00:00Z'; // 13:30 IST, 2026-08-01
+
+beforeEach(() => {
+  vi.useFakeTimers();
+  vi.setSystemTime(new Date(FIXED_NOW));
+});
+
+afterEach(() => {
+  vi.useRealTimers();
+});
 
 function makeVisit(overrides: Partial<Visit> = {}): Visit {
   return {
@@ -49,6 +65,7 @@ describe('visitToMatchItem', () => {
       approvalType: 'pre_approved',
       approvedAt: '2026-08-01T08:00:00Z',
       scheduledFor: '2026-08-01T10:00:00Z',
+      dueToday: true,
       visitId: 'visit-1',
       photoUrl: null,
       idType: null,
@@ -130,5 +147,19 @@ describe('visitToMatchItem', () => {
     expect(item.idLast4).toBeNull();
     expect(item.idType).not.toBe(undefined);
     expect(item.idLast4).not.toBe(undefined);
+  });
+
+  // The QR gate rejects an EXPIRED pass, but a pass booked for next week is
+  // perfectly valid and simply not due yet — the scan path must agree with
+  // the manual search path on due-ness, or a guard could scan a QR and get a
+  // different answer than searching the same visit by phone would give.
+  it('a visit scheduled for a later day maps to dueToday: false', () => {
+    const item = visitToMatchItem(makeVisit({ scheduled_for: '2026-08-05T10:00:00Z' }));
+    expect(item.dueToday).toBe(false);
+  });
+
+  it('a visit scheduled for today maps to dueToday: true', () => {
+    const item = visitToMatchItem(makeVisit({ scheduled_for: '2026-08-01T10:00:00Z' }));
+    expect(item.dueToday).toBe(true);
   });
 });
