@@ -110,12 +110,15 @@ function setup(opts?: { deptId?: string | null; deptName?: string | null }) {
 }
 
 describe('M12-HOD: HODOverview', () => {
-  it('renders the visitors-at-a-glance subtitle', async () => {
-    setup();
+  // The page header was removed as pure repetition: an HOD belongs to exactly
+  // one department and every number on the page is already scoped to it, and
+  // "Overview" is the nav item they just clicked. These three assertions guard
+  // the removal rather than the old content.
+  it('does not restate the department the HOD already belongs to', async () => {
+    setup({ deptName: 'Information Technology' });
     render(<MemoryRouter><HODOverview /></MemoryRouter>);
-    await waitFor(() => {
-      expect(screen.getByText('Your visitors at a glance')).toBeInTheDocument();
-    });
+    await waitFor(() => expect(screen.getByText('Inside')).toBeInTheDocument());
+    expect(screen.queryByText('Information Technology Department')).not.toBeInTheDocument();
   });
 
   it('shows all four stat cards with correct counts', async () => {
@@ -163,20 +166,18 @@ describe('M12-HOD: HODOverview', () => {
     });
   });
 
-  it('shows department name at top of dashboard', async () => {
-    setup({ deptName: 'Information Technology' });
-    render(<MemoryRouter><HODOverview /></MemoryRouter>);
-    await waitFor(() => {
-      expect(screen.getByText('Information Technology Department')).toBeInTheDocument();
-    });
-  });
-
-  it('shows catchy subtitle phrase', async () => {
+  it('has no "Overview" page title duplicating the nav item', async () => {
     setup();
     render(<MemoryRouter><HODOverview /></MemoryRouter>);
-    await waitFor(() => {
-      expect(screen.getByText(/Your visitors at a glance/)).toBeInTheDocument();
-    });
+    await waitFor(() => expect(screen.getByText('Inside')).toBeInTheDocument());
+    expect(screen.queryByRole('heading', { name: 'Overview' })).not.toBeInTheDocument();
+  });
+
+  it('opens straight onto the stat cards, with no subtitle above them', async () => {
+    setup();
+    render(<MemoryRouter><HODOverview /></MemoryRouter>);
+    await waitFor(() => expect(screen.getByText('Inside')).toBeInTheDocument());
+    expect(screen.queryByText(/Your visitors at a glance/)).not.toBeInTheDocument();
   });
 
   it('renders OverviewStatCards with activeFilter="" prop initially', async () => {

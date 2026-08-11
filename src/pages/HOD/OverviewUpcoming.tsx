@@ -101,16 +101,24 @@ export default function OverviewUpcoming({ loading, upcoming }: Props): React.Re
                 <div className="w-px bg-surface-200/70 dark:bg-white/[0.07] self-stretch my-3 shrink-0" />
                 <div className="flex-1 min-w-0 py-4 px-4">
                   <div className="flex items-start justify-between gap-3 flex-wrap">
+                    {/* THE VISITOR LEADS. This card used to open with
+                        "{Purpose} — {Vendor}", which read as one compound label
+                        rather than as two separate facts: a live row whose
+                        vendor_name happened to name a kind of pass rendered as
+                        "Delivery — <that text>" and looked like a system label
+                        for the pass itself, not like someone's employer. The
+                        person is the headline; purpose is a chip below. */}
                     <div className="min-w-0 flex-1">
-                      <p className="font-semibold text-sm text-navy-900 dark:text-white leading-snug">
-                        {PURPOSE_LABELS[v.purpose] ?? v.purpose}
-                        {v.visitor?.vendor_name && <span className="text-navy-500 dark:text-navy-400 font-normal"> — {v.visitor.vendor_name}</span>}
+                      <p className="eyebrow !text-[10px] text-navy-400 dark:text-navy-500 mb-1">Visitor Pass</p>
+                      <p className="font-display font-bold text-[15px] text-navy-950 dark:text-white leading-snug truncate">
+                        {v.visitor?.full_name ?? '—'}
                       </p>
-                      <p className="text-xs text-navy-500 dark:text-navy-400 mt-0.5">
-                        {v.host?.full_name ? `Person to Meet: ${v.host.full_name}` : 'Person to Meet: —'}
-                      </p>
-                      {v.host?.full_name && v.department?.name && (
-                        <p className="text-xs text-navy-500 dark:text-navy-400 truncate">{v.department.name}</p>
+                      {/* Vendor appears here and NOWHERE else on the card. It
+                          used to be printed twice — once against the purpose and
+                          again as a chip below, alongside a second copy of the
+                          visitor's name. */}
+                      {v.visitor?.vendor_name && (
+                        <p className="text-xs text-navy-500 dark:text-navy-400 truncate mt-0.5">{v.visitor.vendor_name}</p>
                       )}
                     </div>
                     <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
@@ -130,18 +138,32 @@ export default function OverviewUpcoming({ loading, upcoming }: Props): React.Re
                       </button>
                     </div>
                   </div>
-                  {v.visitor && (
-                    <div className="flex flex-wrap gap-1.5 mt-2.5">
-                      <span className="inline-flex items-center text-[11px] font-medium bg-surface-100 dark:bg-white/[0.06] text-navy-600 dark:text-navy-300 px-2.5 py-0.5 rounded-full border border-surface-200/70 dark:border-white/[0.08]">
-                        {v.visitor.full_name}
-                      </span>
-                      {v.visitor.vendor_name && (
-                        <span className="inline-flex items-center text-[11px] font-medium bg-surface-100 dark:bg-white/[0.06] text-navy-500 dark:text-navy-400 px-2.5 py-0.5 rounded-full border border-surface-200/70 dark:border-white/[0.08]">
-                          {v.visitor.vendor_name}
-                        </span>
+
+                  {/* Person to Meet, promoted out of the muted 12px run-on it
+                      used to share with the department. This is the field that
+                      tells an HOD whether the visit is theirs to care about, so
+                      it gets its own tinted block and the host's name is set at
+                      the same weight as the visitor's. */}
+                  <div className="mt-2.5 flex items-center gap-2.5 rounded-xl border border-surface-200/70 dark:border-white/[0.07] bg-surface-50/80 dark:bg-white/[0.03] px-3 py-2">
+                    <svg className="w-4 h-4 shrink-0 text-brand-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0" />
+                    </svg>
+                    <div className="min-w-0">
+                      <p className="text-[10px] font-bold uppercase tracking-wide text-navy-400 dark:text-navy-500 leading-none">Person to Meet</p>
+                      <p className="font-semibold text-sm text-navy-900 dark:text-white truncate mt-1 leading-none">
+                        {v.host?.full_name ?? '—'}
+                      </p>
+                      {v.department?.name && (
+                        <p className="text-xs text-navy-500 dark:text-navy-400 truncate mt-1 leading-none">{v.department.name}</p>
                       )}
                     </div>
-                  )}
+                  </div>
+
+                  <div className="flex flex-wrap gap-1.5 mt-2.5">
+                    <span className="inline-flex items-center text-[11px] font-medium bg-surface-100 dark:bg-white/[0.06] text-navy-600 dark:text-navy-300 px-2.5 py-0.5 rounded-full border border-surface-200/70 dark:border-white/[0.08]">
+                      {PURPOSE_LABELS[v.purpose] ?? v.purpose}
+                    </span>
+                  </div>
                 </div>
               </div>
             );

@@ -59,9 +59,13 @@ describe('OverviewUpcoming', () => {
     const upcoming = [upcomingVisit()];
     renderWithRouter(<OverviewUpcoming loading={false} upcoming={upcoming} />);
     expect(screen.getByText('Upcoming Visitor')).toBeInTheDocument();
-    // company appears twice: once inline next to purpose, once as a pill — use getAllByText
-    expect(screen.getAllByText(/Acme Co/).length).toBeGreaterThanOrEqual(1);
-    expect(screen.getByText('Person to Meet: Dr. Sharma')).toBeInTheDocument();
+    // The vendor is named ONCE now — it used to print inline next to the
+    // purpose and again as a pill. See OverviewUpcomingCard.test.tsx.
+    expect(screen.getAllByText(/Acme Co/)).toHaveLength(1);
+    // "Person to Meet" is its own labelled block rather than a run-on string,
+    // so the label and the host's name are separate nodes.
+    expect(screen.getByText('Person to Meet')).toBeInTheDocument();
+    expect(screen.getByText('Dr. Sharma')).toBeInTheDocument();
     expect(screen.getByText(/Meeting/)).toBeInTheDocument();
     expect(screen.getByText('1 visit')).toBeInTheDocument();
     // Empty state must not also render once a real row is present.
@@ -113,8 +117,9 @@ describe('OverviewUpcoming', () => {
       upcomingVisit({ id: 'bare', visitor: undefined, host: undefined }),
     ];
     expect(() => renderWithRouter(<OverviewUpcoming loading={false} upcoming={upcoming} />)).not.toThrow();
-    expect(screen.getByText('Person to Meet: —')).toBeInTheDocument();
-    // With no visitor object, the visitor-name pill row must not render at all.
+    expect(screen.getByText('Person to Meet')).toBeInTheDocument();
+    // Both the visitor headline and the host fall back to a dash.
+    expect(screen.getAllByText('—')).toHaveLength(2);
     expect(screen.queryByText('Acme Co')).not.toBeInTheDocument();
   });
 

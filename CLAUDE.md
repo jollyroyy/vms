@@ -282,6 +282,36 @@
   pre-approval with no time is indistinguishable at the gate from one for next month:
   the guard cannot tell whether the visitor is early, expected or overdue, and the
   dashboard's `overdue` count can only be derived from a `scheduled_for` that exists.
+- **The HOD Overview has no page header.** "&lt;Dept&gt; Department" restated the one
+  fact that never varies for this user — an HOD belongs to exactly one department and
+  every number on the page is already scoped to it — and "Overview" repeated the nav item
+  they just clicked. The page opens on `OverviewStatCards`. The department *name* is no
+  longer fetched at all (the id still scopes the queries). `HODOverview.test.tsx` asserts
+  all three absences.
+- **The visitor popup does not repeat the ref number in its header.** It is on the pass
+  itself under **View Pass** — the copy the visitor shows and the guard reads back — and
+  in the header it spent the most prominent line of the modal on a value nobody acts on
+  there. `VisitorDetailsHeader.test.tsx` guards this and the **Expected At** row beside
+  it, which shows `scheduled_for` — the one field the approver chose themselves, and the
+  only thing that says whether a visitor is early, expected or overdue. Omitted (not
+  dashed) for walk-ins, which have no `scheduled_for`.
+- **The Upcoming-visits card leads with the VISITOR.** It used to open with
+  `{Purpose} — {Vendor}`, which reads as one compound label rather than two facts (a live
+  row whose `vendor_name` named a kind of pass rendered as `Delivery — …` and looked like
+  a system label). It also printed the visitor's name and the vendor **twice each** — once
+  on that line and again as chips below. Now: `Visitor Pass` eyebrow → visitor name →
+  vendor (once) → a tinted **Person to Meet** block carrying the host and department →
+  purpose as a chip. `OverviewUpcomingCard.test.tsx` asserts each value appears exactly
+  once.
+- **QR passes expire at the END OF THE SCHEDULED DAY.** Migration **071** (applied live
+  2026-08-11). 057 fixed this on `pre_approve_visitor` — which nothing calls.
+  `PreApproveForm` calls **`pre_approve_visitor_v2`**, which never set `qr_expires_at` at
+  all, so every pass fell to the column default of `now() + 24h`: a booking made three
+  weeks ahead had a QR that died twenty-one days before the visitor arrived
+  (`VIS-20260804-0023`, live). v2 now sets `vms_day_end_ist(scheduled_for)` and the column
+  default is `vms_day_end_ist(now())`, so the sweep, `isVisitExpired` and the QR gate all
+  answer "is this pass live?" the same way. **If you patch a pre-approval RPC, check which
+  one the app actually calls.**
 - **The HOD never sees a visitor's ID proof.** `VisitorDetails` hides the ID Document
   row when `viewerRole === 'hod'` and passes `showIdProof={false}` down through
   `PreApprovalPass` to `PassIdentity`. An approver decides on who is visiting and why;

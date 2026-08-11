@@ -34,7 +34,6 @@ const FILTER_KEYS: Record<string, FilterKey> = {
 export default function HODOverview(): React.ReactElement {
   const [loading, setLoading] = useState(true);
   const [deptId, setDeptId] = useState<string | null>(null);
-  const [deptName, setDeptName] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
   const [stats, setStats] = useState<Stats>({ inside: 0, approvedToday: 0, pending: 0, rejectedToday: 0 });
   const [upcoming, setUpcoming] = useState<Visit[]>([]);
@@ -63,12 +62,10 @@ export default function HODOverview(): React.ReactElement {
       setUserId(uid);
       const jwtDeptId = (data.user?.app_metadata?.department_id as string) ?? '';
       const { data: profile } = await supabase.from('profiles').select('department_id').eq('id', uid).maybeSingle();
-      const resolvedDeptId = jwtDeptId || (profile as any)?.department_id || null;
-      setDeptId(resolvedDeptId);
-      if (resolvedDeptId) {
-        const { data: dept } = await supabase.from('departments').select('name').eq('id', resolvedDeptId).maybeSingle();
-        setDeptName((dept as any)?.name ?? null);
-      }
+      // The department NAME is deliberately not fetched. It existed only for the
+      // page header, and that header restated the one fact that never varies for
+      // this user. The id still scopes every query below.
+      setDeptId(jwtDeptId || (profile as any)?.department_id || null);
     });
   }, []);
 
@@ -223,13 +220,11 @@ export default function HODOverview(): React.ReactElement {
 
   return (
     <div className="space-y-5 animate-fade-in">
-      <div className="page-header !mb-0">
-        {deptName && (
-          <p className="eyebrow mb-1">{deptName} Department</p>
-        )}
-        <h1 className="page-title">Overview</h1>
-        <p className="page-subtitle">Your visitors at a glance</p>
-      </div>
+      {/* No page header. An HOD belongs to exactly one department and every
+          number on this page is already scoped to it, so "<Dept> Department"
+          restated the one fact that never varies for this user. "Overview" is
+          the nav item they just clicked. Both were pure repetition pushing the
+          actual content down the page. The stat cards start the page instead. */}
 
       {successMsg && (
         <div className="alert-success">

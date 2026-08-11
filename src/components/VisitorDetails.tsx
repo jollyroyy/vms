@@ -97,9 +97,11 @@ export default function VisitorDetails({
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
-          <div className="relative z-10">
-            <span className="text-micro text-white/50 font-mono normal-case">{v.ref_number}</span>
-          </div>
+          {/* No ref number here. It is printed on the pass itself, one click
+              away under View Pass, which is the copy that matters — the one the
+              visitor shows and the guard reads back. Repeating it in the modal
+              chrome spent the most prominent line of the popup on a value
+              nobody acts on at this point. */}
         </div>
 
         {/* Profile card overlapping header */}
@@ -151,6 +153,19 @@ export default function VisitorDetails({
               value={v.purpose ?? '—'}
               icon={<svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9.568 3H5.25A2.25 2.25 0 003 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 005.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 009.568 3z" /><path strokeLinecap="round" strokeLinejoin="round" d="M6 6h.008v.008H6V6z" /></svg>}
             />
+            {/* The time the HOD booked the visitor for. It is the one field the
+                approver chose themselves, and it is what tells anyone reading
+                this whether the visitor is early, expected or overdue — none of
+                which is answerable from the status alone. Absent for walk-ins,
+                which have no scheduled_for by construction, so the row is
+                conditional rather than showing a dash on every walk-in. */}
+            {v.scheduled_for && (
+              <InfoRow
+                label="Expected At"
+                value={formatDateTime(v.scheduled_for)}
+                icon={<svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>}
+              />
+            )}
           </div>
 
           {/* An HOD approves on who is visiting and why, never on the ID itself —
