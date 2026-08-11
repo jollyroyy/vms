@@ -148,7 +148,11 @@ describe('PreApproveForm submission', () => {
         p_department_id: 'dept1',
         p_host_id: 'u1',
         p_purpose: 'meeting',
-        p_scheduled_for: '2026-08-05T10:00',
+        // 10:00 typed by an HOD means 10:00 IST, which is 04:30 UTC. The raw
+        // '2026-08-05T10:00' used to go to the RPC untouched, where Postgres
+        // cast it as UTC and the booking landed 5h30m late — 15:30 IST on every
+        // screen that read it back. See lib/istDateTime.ts.
+        p_scheduled_for: '2026-08-05T04:30:00.000Z',
       });
     });
 

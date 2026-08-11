@@ -55,6 +55,10 @@ function match(overrides: Partial<MatchItem> = {}): MatchItem {
     // it always meant to, without having to name `dueToday` everywhere.
     dueToday: true,
     visitId: '1',
+    // Default to a checkable status so every pre-existing test — written
+    // before m.status existed — keeps exercising the checkable-in path it
+    // always meant to, without having to name `status` everywhere.
+    status: 'approved',
     ...overrides,
   };
 }

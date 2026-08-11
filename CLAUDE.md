@@ -131,6 +131,36 @@
     to honour it early are two different permissions. `buildMatchItems` takes an
     injectable `now` so this stays testable; `visitToMatchItem` computes `dueToday`
     the same way, so the scan path and the search path cannot disagree.
+  - **Search spans EVERY status, because "does this pass exist?" is the question.**
+    `buildMatchItems` can only filter rows already fetched, and that fetch is open
+    statuses only — so a pass already used, rejected or swept closed was never in the
+    browser to find. `lib/searchVisits.ts` (`searchAllVisits`) is the server-side half:
+    on a typed query it matches `ref_number`, visitor name and visitor phone with
+    ILIKE across **all nine statuses**, deduped, newest first, capped at
+    `VISIT_SEARCH_LIMIT`. It deliberately does **not** route through
+    `parseSearchQuery` — that requires a *complete* ref and a *valid* phone, so a
+    partial `VIS-20260804` would be classed as a name and find nothing. `%` and `_`
+    are escaped, or a guard typing `%` matches everything.
+    `lib/useVisitHistorySearch.ts` debounces it, drops rows the panel already shows
+    (one pass must never render twice) and guards the response race with a request
+    id. Results are **non-actionable by construction**: `isCheckableStatus`
+    (`lib/checkableStatus.ts`, a full `Record<VisitStatus, boolean>` so a new status
+    forces a decision) gates `disabled` alongside `dueToday`. That second test is not
+    redundant — a `rejected` visit scheduled for today has no `checked_in_at`, so
+    `isDueToday` returns **true** for it. Finding a closed pass tells the guard what
+    became of it; it never offers to reopen it.
+- **A `datetime-local` value is IST and must be converted before it is written.**
+  `lib/istDateTime.ts` — `istLocalToUtcIso` / `utcToIstLocalInput`. The input yields a
+  bare wall-clock string with no timezone; `PreApproveForm` passed it straight to
+  `pre_approve_visitor_v2`, where Postgres cast it in the session timezone (**UTC**,
+  verified live). An HOD booking 10 PM stored `22:00Z` and every IST screen read back
+  03:30 the *next* morning — every booking shifted **+5h30m**, which is why live rows
+  `VIS-20260811-0007`/`-0009` sat on Aug 12. Convert before **validation too**, not
+  just before the write, or `validatePreApproval` compares a different instant than
+  the one stored. It must never use `new Date(localString)`: that reads the *browser's*
+  timezone, and this deployment is IST regardless of where the laptop is. Parse with a
+  regex + `Date.UTC`, then subtract `IST_OFFSET_MS` — now exported from
+  `lib/visitExpiry.ts`, still **the one place** the offset is defined.
   - `/visitors` is the **walk-in** lane, titled "Walk-in Visitors". `Mode` is
     `'walkins' | 'walkinApproved' | 'inside'`, defaulting to `walkins` — the three
     stages of a walk-in's life at the gate, in order.

@@ -3,6 +3,7 @@ import type { Department, Visit } from '../../types/index';
 import WalkInRequest from './WalkInRequest';
 import CheckInMatchCard from './CheckInMatchCard';
 import type { MatchItem } from './CheckInPanel';
+import { isCheckableStatus } from '../../lib/checkableStatus';
 
 type Props = {
   error: string;
@@ -39,7 +40,7 @@ export default function CheckInMatchList({
           <svg className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-navy-300 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
           </svg>
-          <input type="text" placeholder="Search by phone or visitor name..." value={search}
+          <input type="text" placeholder="Search by name, phone or pass number..." value={search}
             onChange={(e) => onSearchChange(e.target.value)}
             className="w-full pl-12 pr-4 py-3.5 bg-surface-50 border border-surface-200 rounded-2xl text-base font-medium text-navy-900 placeholder-navy-300 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all" autoFocus />
         </div>
@@ -66,7 +67,13 @@ export default function CheckInMatchList({
             // board is today-only), and it disables rather than hides: the
             // guard needs to see that the pass exists and read the date on it,
             // which is the whole reason searching spans every open approval.
-            const disabled = isCheckedIn || expired || !m.dueToday;
+            // `!isCheckableStatus(m.status)` closes a second, separate hole:
+            // search now spans EVERY open pass regardless of state, so a hit
+            // can be checked_out / rejected / cancelled / no_show / expired —
+            // none of those are actionable even if dueToday happens to be
+            // true (a rejected visit scheduled for today has no
+            // checked_in_at, so dueToday alone would say it's fine).
+            const disabled = isCheckedIn || expired || !m.dueToday || !isCheckableStatus(m.status);
             return (
               <CheckInMatchCard key={`${m.id}-${idx}`} match={m} disabled={disabled} isCheckedIn={isCheckedIn}
                 expired={expired} onSelect={() => onSelectMatch(m)} />
@@ -76,7 +83,7 @@ export default function CheckInMatchList({
       ) : search || deptFilter ? (
         <div className="text-center py-12 bg-surface-50 rounded-2xl space-y-3">
           <p className="text-lg font-bold text-navy-600">No match found</p>
-          <p className="text-sm text-navy-500 dark:text-navy-400">No pre-approved or regular visitor matches your search.</p>
+          <p className="text-sm text-navy-500 dark:text-navy-400">No pass exists for that name, phone number or pass reference — in any state.</p>
           {!showWalkIn ? (
             <button onClick={onShowWalkIn}
               className="inline-flex items-center gap-2 bg-brand-600 hover:bg-brand-700 text-white font-bold px-6 py-3 rounded-xl text-sm transition-all">
@@ -98,7 +105,7 @@ export default function CheckInMatchList({
             <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
           </svg>
           <p className="text-lg font-bold text-navy-600">Search for a visitor</p>
-          <p className="text-sm text-navy-500 dark:text-navy-400 mt-1">Type name or phone number above</p>
+          <p className="text-sm text-navy-500 dark:text-navy-400 mt-1">Search by name, phone number or pass reference</p>
         </div>
       )}
     </div>

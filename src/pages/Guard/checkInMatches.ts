@@ -92,6 +92,7 @@ export function buildMatchItems(
       visitorName: name,
       visitorPhone: phone,
       departmentName: v.department?.name ?? '',
+      departmentId: v.department_id,
       purpose: v.purpose,
       hostName: v.host?.full_name ?? '',
       vendorName: v.visitor?.vendor_name ?? '',
@@ -99,6 +100,7 @@ export function buildMatchItems(
       approvedAt: approvalTimestamp(v),
       scheduledFor: v.scheduled_for,
       dueToday: due,
+      status: v.status,
       visitId: v.id,
       photoUrl: v.photo_url ?? v.photo_data,
       idType: v.visitor?.id_type ?? null,
@@ -120,6 +122,7 @@ export function buildMatchItems(
       visitorName: name,
       visitorPhone: phone,
       departmentName: r.department?.name ?? '',
+      departmentId: r.department_id,
       purpose: r.purpose,
       hostName: r.host?.full_name ?? '',
       vendorName: r.visitor_vendor_name ?? '',
@@ -129,6 +132,8 @@ export function buildMatchItems(
       // recurringToday is already filtered to today by the caller, so a row
       // that reached here is by construction due now.
       dueToday: true,
+      // No visit row exists yet — one is created at check-in.
+      status: null,
       photoUrl: null,
       idType: null,
       idLast4: null,

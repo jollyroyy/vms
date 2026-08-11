@@ -59,6 +59,8 @@ describe('visitToMatchItem', () => {
       visitorName: 'Asha Rao',
       visitorPhone: '9876543210',
       departmentName: 'Finance',
+      departmentId: 'dept-1',
+      status: 'approved',
       purpose: 'meeting',
       hostName: 'Ravi Kumar',
       vendorName: 'Acme Co',

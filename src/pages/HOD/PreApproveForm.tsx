@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { supabase } from '../../supabaseClient';
 import { normalizePhone, isBlacklisted } from '../../lib/blacklist';
 import { validatePreApproval } from '../../lib/visitLifecycle';
+import { istLocalToUtcIso } from '../../lib/istDateTime';
 import { safeErrorMessage } from '../../lib/errors';
 import { attachHostNames } from '../../lib/hostNames';
 import { useDepartments } from '../../lib/useDepartments';
@@ -73,9 +74,19 @@ export default function PreApproveForm({ onPreApproved }: Props): React.ReactEle
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    // A datetime-local input yields a bare wall-clock string with NO timezone
+    // ("2026-08-11T22:00"). It used to go straight to the RPC, where Postgres
+    // cast it in the session timezone — UTC — so an HOD booking 10 PM tonight
+    // stored 22:00Z and every IST screen read it back as 03:30 the NEXT
+    // morning: every booking shifted by +5h30m. This deployment is IST-only,
+    // so the typed value is IST by definition and is converted here, once,
+    // before validation as well as before the write — validating the raw
+    // string would compare a different instant than the one being stored.
+    const scheduledUtc = istLocalToUtcIso(scheduledFor);
+    const departureUtc = istLocalToUtcIso(expectedDeparture);
     const validationError = validatePreApproval({
-      department_id: deptId, purpose, scheduled_for: scheduledFor,
-      expected_departure: expectedDeparture,
+      department_id: deptId, purpose, scheduled_for: scheduledUtc ?? '',
+      expected_departure: departureUtc ?? '',
     });
     if (validationError) { setError(validationError); return; }
     if (blacklistHit) return;
@@ -104,8 +115,8 @@ export default function PreApproveForm({ onPreApproved }: Props): React.ReactEle
         p_host_id: hostId,
         p_purpose: purpose,
       };
-      if (scheduledFor) params.p_scheduled_for = scheduledFor;
-      if (expectedDeparture) params.p_expected_departure = expectedDeparture;
+      if (scheduledUtc) params.p_scheduled_for = scheduledUtc;
+      if (departureUtc) params.p_expected_departure = departureUtc;
       const { data: result, error: rpcErr } = await (supabase as any)
         .rpc('pre_approve_visitor_v2', params);
       if (rpcErr) throw rpcErr;

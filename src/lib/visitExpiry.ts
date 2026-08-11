@@ -18,7 +18,7 @@ export const OVERDUE_GRACE_MINUTES = 120;
 export const OVERSTAY_HOURS = 12;
 
 /** IST is UTC+5:30 and has no DST, so a fixed offset is exact, not an approximation. */
-const IST_OFFSET_MS = (5 * 60 + 30) * 60_000;
+export const IST_OFFSET_MS = (5 * 60 + 30) * 60_000;
 
 /**
  * Midnight IST of the day containing `now`, as a UTC instant.

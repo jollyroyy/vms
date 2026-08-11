@@ -16,6 +16,7 @@ export function visitToMatchItem(visit: Visit & { approvedAt?: string | null }):
     visitorName: visit.visitor?.full_name ?? '',
     visitorPhone: visit.visitor?.phone ?? '',
     departmentName: visit.department?.name ?? '',
+    departmentId: visit.department_id,
     purpose: visit.purpose,
     hostName: visit.host?.full_name ?? '',
     vendorName: visit.visitor?.vendor_name ?? '',
@@ -26,6 +27,7 @@ export function visitToMatchItem(visit: Visit & { approvedAt?: string | null }):
     // pass booked for next week is perfectly valid and simply not due yet, so
     // the scan path must report the same fact the search path does.
     dueToday: isDueToday(visit),
+    status: visit.status,
     visitId: visit.id,
     // The QR itself encodes nothing but an opaque token. These come from the
     // visit row the token resolved to, and are what the guard checks the person

@@ -3,11 +3,30 @@ import { getInitials } from '../../components/DailyVisitorTypes';
 import { formatDateTime, formatTime } from '../../lib/formatDate';
 import { CRISP_CARD_INTERACTIVE } from '../../lib/cardStyles';
 import type { MatchItem } from './CheckInPanel';
+import type { VisitStatus } from '../../types/index';
 
 const APPROVAL_META: Record<MatchItem['approvalType'], { label: string; badge: string }> = {
   pre_approved:    { label: 'Pre-Approved',    badge: 'bg-success-50 text-success-700 border border-success-500/20' },
   walkin_approved: { label: 'Walk-in Approved', badge: 'bg-amber-50 text-amber-700 border border-amber-500/20 dark:bg-amber-500/12 dark:text-amber-300 dark:border-amber-500/25' },
   recurring:       { label: 'Regular',          badge: 'bg-accent-50 text-accent-700 border border-accent-500/20 dark:bg-accent-500/10 dark:text-accent-300 dark:border-accent-500/25' },
+};
+
+// Closed/non-actionable pass states, surfaced so a search hit that cannot be
+// checked in still tells the guard WHY. `checked_in` and `pending_approval`
+// aren't "closed" exactly, but neither is checkable-in from this list either
+// (checked_in has its own `isCheckedIn` badge below computed from a live
+// checked-in-ids set, not from m.status, which is why it's handled separately
+// rather than through this map — see the render guard below). Statuses left
+// out here (`approved`, `walkin_approved`) are the checkable ones and need no
+// badge at all.
+const STATUS_META: Partial<Record<VisitStatus, { label: string; badge: string }>> = {
+  checked_out:      { label: 'Checked Out',       badge: 'bg-navy-50 text-navy-600 border border-navy-500/15 dark:bg-white/[0.06] dark:text-navy-200' },
+  rejected:         { label: 'Rejected',          badge: 'bg-danger-50 text-danger-700 border border-danger-500/20' },
+  cancelled:        { label: 'Cancelled',         badge: 'bg-navy-50 text-navy-600 border border-navy-500/15 dark:bg-white/[0.06] dark:text-navy-200' },
+  no_show:          { label: 'No Show',           badge: 'bg-danger-50 text-danger-700 border border-danger-500/20' },
+  expired:          { label: 'Expired',           badge: 'bg-danger-50 text-danger-700 border border-danger-500/20' },
+  checked_in:       { label: 'Inside Now',        badge: 'bg-brand-50 text-brand-700 border border-brand-500/20' },
+  pending_approval: { label: 'Awaiting Approval', badge: 'bg-amber-50 text-amber-700 border border-amber-500/20 dark:bg-amber-500/12 dark:text-amber-300 dark:border-amber-500/25' },
 };
 
 type Props = {
@@ -20,6 +39,13 @@ type Props = {
 
 export default function CheckInMatchCard({ match: m, disabled, isCheckedIn, expired, onSelect }: Props): React.ReactElement {
   const approval = APPROVAL_META[m.approvalType];
+  // Mutually exclusive with the three existing badges below: `isCheckedIn`
+  // and `expired` come from the guard's own live computation (checkedInIds /
+  // isExpired), not from m.status, so a row can satisfy one of those AND
+  // have a status that would otherwise map to the same or a conflicting
+  // label. Only fall through to the status badge when none of the other
+  // three already explain why the row can't be acted on.
+  const statusMeta = !isCheckedIn && !expired && m.dueToday && m.status ? STATUS_META[m.status] : undefined;
 
   return (
     <div
@@ -53,6 +79,7 @@ export default function CheckInMatchCard({ match: m, disabled, isCheckedIn, expi
               Not due today
             </span>
           )}
+          {statusMeta && <span className={`status-badge ${statusMeta.badge}`}>{statusMeta.label}</span>}
         </div>
 
         <p className="text-caption text-navy-500 dark:text-navy-400 mt-1 truncate">{m.purpose}</p>

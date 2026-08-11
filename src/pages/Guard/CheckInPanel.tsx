@@ -1,23 +1,20 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { supabase } from '../../supabaseClient';
-import type { Visit, VisitorPurpose } from '../../types/index';
-import { normalizePhone } from '../../lib/blacklist';
+import type { Visit, VisitStatus } from '../../types/index';
 import { safeErrorMessage } from '../../lib/errors';
 import { attachHostNames } from '../../lib/hostNames';
 import { attachVisitActors } from '../../lib/visitActors';
 import { buildMatchItems, type PreApprovedVisit, type RecurringWithDept } from './checkInMatches';
 import { useDepartments } from '../../lib/useDepartments';
-import { uploadPhoto } from '../../lib/photoUpload';
 import { isVisitExpired } from '../../lib/visitExpiry';
-import {
-  findActiveVisitByPhone, findActiveVisitByIdProof, activeVisitMessage,
-  isAlreadyInsideError, ALREADY_INSIDE_FALLBACK,
-} from '../../lib/activeVisit';
+import { isAlreadyInsideError, ALREADY_INSIDE_FALLBACK } from '../../lib/activeVisit';
 import CheckInPhotoStep from './CheckInPhotoStep';
 import CheckInMatchList from './CheckInMatchList';
 import CheckInScanGate from './CheckInScanGate';
 import { visitToMatchItem } from './qrMatchItem';
 import { checkInScannedVisit } from '../../lib/checkInFlow';
+import { checkInRecurringVisitor } from '../../lib/checkInRecurring';
+import { useVisitHistorySearch } from '../../lib/useVisitHistorySearch';
 import type { IdScanResult } from './IdScanOverlay';
 
 type MatchSource = 'pre_approved' | 'recurring';
@@ -29,6 +26,10 @@ export interface MatchItem {
   visitorName: string;
   visitorPhone: string;
   departmentName: string;
+  /** Kept alongside the name so the department picker can narrow server-side
+   *  search hits too — those arrive from lib/searchVisits, not from the
+   *  panel's own fetch, so they have no other way to be filtered. */
+  departmentId: string;
   purpose: string;
   hostName: string;
   vendorName: string;
@@ -39,6 +40,12 @@ export interface MatchItem {
    *  Such a row is findable BY SEARCH but never checkable-in — see
    *  buildMatchItems for why the two differ. */
   dueToday: boolean;
+  /** The visit's own status, so a search hit can say what became of the pass.
+   *  Null only for recurring visitors, who have no visit row until check-in.
+   *  A pass that is closed (checked_out / rejected / cancelled / no_show /
+   *  expired) is still findable — searching answers "does this exist?" — but
+   *  is never checkable-in, which `isCheckableStatus` decides. */
+  status: VisitStatus | null;
   visitId?: string;
   // Carried on the pass and shown back to the guard once it is scanned, so
   // they can check the person in front of them against the record. Absent for
@@ -138,52 +145,21 @@ export default function CheckInPanel({ today, onCheckInSuccess }: Props): React.
 
   useEffect(() => { void loadData(); }, [loadData]);
 
-  const persistIdScan = useCallback(async (visitorId: string) => {
-    if (!idScan?.idType && !idScan?.idLast4) return;
-    await supabase.from('visitors').update({
-      id_type: idScan.idType || null,
-      id_last4: idScan.idLast4 || null,
-    }).eq('id', visitorId);
-  }, [idScan]);
-
+  // Both write paths persist the scanned ID themselves now — checkInFlow.ts for
+  // the pre-approved/walk-in branch, checkInRecurring.ts for the recurring one —
+  // so the panel no longer owns a copy of that update.
   const performCheckIn = async () => {
     if (!selectedMatch || !photoBlob) return;
     setCheckingIn(true); setError('');
     try {
       if (selectedMatch.source === 'recurring') {
-        // The recurring branch builds a fresh visit row and never goes through
-        // checkInScannedVisit, so its own already-inside pre-check stays here.
-        const clash = await findActiveVisitByPhone(selectedMatch.visitorPhone)
-          ?? await findActiveVisitByIdProof(
-            idScan?.idType ?? selectedMatch.idType,
-            idScan?.idLast4 ?? selectedMatch.idLast4,
-          );
-        if (clash) { setError(activeVisitMessage(clash)); return; }
-        const { photoPath, photoData } = await uploadPhoto(photoBlob);
-        let normalized: string;
-        try { normalized = normalizePhone(selectedMatch.visitorPhone); } catch { throw new Error('Invalid phone'); }
-        const { data: vis, error: visErr } = await supabase.from('visitors').upsert(
-          { phone: normalized, full_name: selectedMatch.visitorName, vendor_name: null },
-          { onConflict: 'phone' },
-        ).select().single();
-        if (visErr || !vis) throw visErr ?? new Error('Failed to create visitor');
-        await persistIdScan(vis.id);
-        const deptId = selectedMatch.id.split(':')[0] ?? '';
-        const hostParts = selectedMatch.id.split(':')[1];
-        const remarksTrimmed = carrying ? remarks.trim() : '';
-        const { error: visitErr } = await supabase.from('visits').insert({
-          visitor_id: vis.id,
-          department_id: deptId,
-          host_id: hostParts || vis.id,
-          purpose: (selectedMatch.purpose as VisitorPurpose) || 'other',
-          photo_path: photoPath, photo_data: photoData,
-          status: 'checked_in',
-          checked_in_at: new Date().toISOString(),
-          checked_out_at: null, exit_verified: null, rejection_reason: null,
-          carrying_material: carrying, carrying_remarks: remarksTrimmed || null,
-          scheduled_for: null,
+        // A recurring visitor has no visit row to update, so this path creates
+        // both visitor and visit — a genuinely different write, kept in its own
+        // module (lib/checkInRecurring.ts) rather than inlined here.
+        const outcome = await checkInRecurringVisitor({
+          match: selectedMatch, photoBlob, carrying, remarks, idScan,
         });
-        if (visitErr) throw visitErr;
+        if (!outcome.ok) { setError(outcome.message); return; }
       } else {
         // Everything a QR scan can resolve — pre-approved or walk-in approved —
         // checks in through the shared mutation in lib/checkInFlow.ts, the same
@@ -226,10 +202,28 @@ export default function CheckInPanel({ today, onCheckInSuccess }: Props): React.
   // database; this is the client finally agreeing with it. See lib/visitExpiry.
   const isExpired = useCallback((v: Visit): boolean => isVisitExpired(v), []);
 
-  const allMatches = useMemo(
+  const localMatches = useMemo(
     () => buildMatchItems(preApproved, recurringToday, { search, deptFilter }),
     [preApproved, recurringToday, search, deptFilter],
   );
+
+  // The panel's own fetch is open-statuses-only, so it can never surface a pass
+  // that was already used, rejected or swept closed. useVisitHistorySearch asks
+  // the server for those when — and only when — the guard actually types.
+  const localVisitIds = useMemo(
+    () => new Set(preApproved.map((v) => v.id)),
+    [preApproved],
+  );
+  const { historyMatches } = useVisitHistorySearch(search, localVisitIds);
+
+  const allMatches = useMemo(() => {
+    const extra = deptFilter
+      ? historyMatches.filter((m) => m.departmentId === deptFilter)
+      : historyMatches;
+    // Actionable rows first — a guard scanning the list should reach the pass
+    // they can act on without reading past a month of closed ones.
+    return [...localMatches, ...extra];
+  }, [localMatches, historyMatches, deptFilter]);
 
   if (selectedMatch) {
     return (
