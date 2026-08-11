@@ -114,10 +114,10 @@ describe('Sidebar navigation links per role', () => {
     expect(screen.queryByText('Search')).not.toBeInTheDocument();
   });
 
-  it('guard sidebar has exactly 3 nav links', () => {
+  it('guard sidebar has exactly 4 nav links', () => {
     const { container } = renderSidebar('guard');
     const links = container.querySelectorAll('a.sidebar-link');
-    expect(links.length).toBe(3);
+    expect(links.length).toBe(4);
   });
 
   // Daily Staff and the Self-Service Kiosk are still ROUTABLE (see

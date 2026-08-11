@@ -17,6 +17,7 @@ import CheckInPhotoStep from './CheckInPhotoStep';
 import CheckInMatchList from './CheckInMatchList';
 import CheckInScanGate from './CheckInScanGate';
 import { visitToMatchItem } from './qrMatchItem';
+import { checkInScannedVisit } from '../../lib/checkInFlow';
 import type { IdScanResult } from './IdScanOverlay';
 
 type MatchSource = 'pre_approved' | 'recurring';
@@ -138,39 +139,16 @@ export default function CheckInPanel({ today, onCheckInSuccess }: Props): React.
     if (!selectedMatch || !photoBlob) return;
     setCheckingIn(true); setError('');
     try {
-      // The tick box is the record. Remarks only survive if the box is ticked,
-      // so a guard who types a list and then unticks cannot leave orphaned text
-      // describing material the visit says was never carried.
-      const remarksTrimmed = carrying ? remarks.trim() : '';
-
-      // Nobody who is already inside may check in again — they have to check
-      // out first. Migration 060 enforces this on visits(visitor_id) where
-      // status = 'checked_in'; this pre-check exists to name the person instead
-      // of showing the guard a raw constraint violation. The ID check is the
-      // weaker of the two (only the last four digits are stored) so it runs
-      // second and only when the phone came back clean.
-      const clash = await findActiveVisitByPhone(selectedMatch.visitorPhone)
-        ?? await findActiveVisitByIdProof(
-          idScan?.idType ?? selectedMatch.idType,
-          idScan?.idLast4 ?? selectedMatch.idLast4,
-        );
-      if (clash) {
-        setError(activeVisitMessage(clash));
-        setCheckingIn(false);
-        return;
-      }
-
-      // Block check-in for expired pre-approved visits
-      if (selectedMatch.source === 'pre_approved' && selectedMatch.visitId) {
-        const visit = preApproved.find((v) => v.id === selectedMatch.visitId);
-        if (visit && isExpired(visit)) {
-          setError('Cannot check in — this pass was for an earlier day and has expired. Please request a new approval.');
-          setCheckingIn(false);
-          return;
-        }
-      }
-      const { photoPath, photoData } = await uploadPhoto(photoBlob);
       if (selectedMatch.source === 'recurring') {
+        // The recurring branch builds a fresh visit row and never goes through
+        // checkInScannedVisit, so its own already-inside pre-check stays here.
+        const clash = await findActiveVisitByPhone(selectedMatch.visitorPhone)
+          ?? await findActiveVisitByIdProof(
+            idScan?.idType ?? selectedMatch.idType,
+            idScan?.idLast4 ?? selectedMatch.idLast4,
+          );
+        if (clash) { setError(activeVisitMessage(clash)); return; }
+        const { photoPath, photoData } = await uploadPhoto(photoBlob);
         let normalized: string;
         try { normalized = normalizePhone(selectedMatch.visitorPhone); } catch { throw new Error('Invalid phone'); }
         const { data: vis, error: visErr } = await supabase.from('visitors').upsert(
@@ -181,6 +159,7 @@ export default function CheckInPanel({ today, onCheckInSuccess }: Props): React.
         await persistIdScan(vis.id);
         const deptId = selectedMatch.id.split(':')[0] ?? '';
         const hostParts = selectedMatch.id.split(':')[1];
+        const remarksTrimmed = carrying ? remarks.trim() : '';
         const { error: visitErr } = await supabase.from('visits').insert({
           visitor_id: vis.id,
           department_id: deptId,
@@ -195,25 +174,21 @@ export default function CheckInPanel({ today, onCheckInSuccess }: Props): React.
         });
         if (visitErr) throw visitErr;
       } else {
-        const visitId = selectedMatch.visitId;
-        if (!visitId) throw new Error('Missing visit ID for check-in');
-        const { data: visitRec } = await supabase.from('visits').select('visitor_id').eq('id', visitId).maybeSingle();
-        await persistIdScan((visitRec as { visitor_id: string } | null)?.visitor_id ?? '');
-        const { error: err } = await supabase.from('visits').update({
-          status: 'checked_in',
-          checked_in_at: new Date().toISOString(),
-          carrying_material: carrying, carrying_remarks: remarksTrimmed || null,
-          ...(photoData ? { photo_data: photoData } : {}),
-          ...(photoPath ? { photo_path: photoPath } : {}),
-        } as any).eq('id', visitId);
-        if (err) throw err;
+        // Everything a QR scan can resolve — pre-approved or walk-in approved —
+        // checks in through the shared mutation in lib/checkInFlow.ts, the same
+        // one the Scan Pass camera lane uses. One write path, two surfaces.
+        const visit = preApproved.find((v) => v.id === selectedMatch.visitId) ?? null;
+        const outcome = await checkInScannedVisit({
+          match: selectedMatch, visit, photoBlob, carrying, remarks, idScan,
+        });
+        if (!outcome.ok) { setError(outcome.message); return; }
       }
       setPhotoBlob(null); setSelectedMatch(null); setCarrying(false); setRemarks('');
       onCheckInSuccess(selectedMatch.visitorName);
       void loadData();
     } catch (err) {
-      // The race the pre-check cannot close: a second device checked the same
-      // visitor in between our lookup and our write.
+      // Unplanned failures only — the already-inside race is mapped to its
+      // named message inside checkInScannedVisit.
       setError(isAlreadyInsideError(err)
         ? ALREADY_INSIDE_FALLBACK
         : safeErrorMessage(err, 'Check-in failed.'));

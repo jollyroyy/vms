@@ -19,7 +19,7 @@ export const ROLE_ROUTES: Record<UserRole, string[]> = {
   // revoked. Removing them here would be a regression, not a cleanup.
   // `/guard/watchlist` is gone entirely: the Watchlist & Alerts feature was
   // removed; blacklist enforcement at the gate is unaffected.
-  guard:       ['/guard/dashboard', '/visitors', '/guard', '/guard/pre-approvals',
+  guard:       ['/guard/dashboard', '/guard/scan-pass', '/visitors', '/guard', '/guard/pre-approvals',
                 '/guard/search', '/guard/daily-staff', '/kiosk', '/whos-inside', '/profile', '/search'],
   hod:         ['/overview', '/approvals', '/reports', '/analytics', '/profile', '/search'],
   staff:       ['/visitors', '/whos-inside', '/reports', '/profile', '/search'],

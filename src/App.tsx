@@ -17,6 +17,7 @@ import GuardConsole       from './pages/Guard/Console';
 import GuardDashboard     from './pages/Guard/Dashboard';
 import DailyStaff         from './pages/Guard/DailyStaff';
 import GuardPreApprovals  from './pages/Guard/PreApprovals';
+import GuardScanPass      from './pages/Guard/ScanPass';
 import GuardSearch        from './pages/Guard/Search';
 import HODApprovals       from './pages/HOD/Approvals';
 import HODOverview        from './pages/HOD/HODOverview';
@@ -242,6 +243,7 @@ export default function App(): React.ReactElement {
             <Route path="/visitors"       element={<ProtectedRoute role={role}>{role === 'guard' ? <GuardConsole /> : <VisitorsDashboard />}</ProtectedRoute>} />
             <Route path="/guard"           element={<ProtectedRoute role={role}><GuardConsole /></ProtectedRoute>} />
             <Route path="/guard/dashboard" element={<ProtectedRoute role={role}><GuardDashboard /></ProtectedRoute>} />
+            <Route path="/guard/scan-pass" element={<ProtectedRoute role={role}><GuardScanPass /></ProtectedRoute>} />
             <Route path="/guard/daily-staff" element={<ProtectedRoute role={role}><DailyStaff /></ProtectedRoute>} />
             <Route path="/guard/pre-approvals" element={<ProtectedRoute role={role}><GuardPreApprovals /></ProtectedRoute>} />
             <Route path="/guard/search"    element={<ProtectedRoute role={role}><GuardSearch role={role} /></ProtectedRoute>} />

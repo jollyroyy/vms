@@ -2,14 +2,22 @@ import { describe, it, expect } from 'vitest';
 import { ALL_LINKS, linksForRole } from '../../../src/components/layout/navLinks';
 
 describe('navLinks: linksForRole', () => {
-  it('guard gets exactly 3 links, in order, with the exact labels, and no Search', () => {
+  it('guard gets exactly 4 links, in order, with the exact labels, and no Search', () => {
     const links = linksForRole('guard');
     expect(links.map((l) => l.label)).toEqual([
       'Dashboard',
+      'Scan Pass',
       'Walk-in Visitors',
       'Pre-Approvals',
     ]);
     expect(links.map((l) => l.label)).not.toContain('Search');
+  });
+
+  it('guard Scan Pass link points to /guard/scan-pass and sits second', () => {
+    const links = linksForRole('guard');
+    const scan = links.find((l) => l.label === 'Scan Pass');
+    expect(scan?.to).toBe('/guard/scan-pass');
+    expect(links[1]?.label).toBe('Scan Pass');
   });
 
   it('guard Walk-in Visitors link points to /visitors and carries no sub-nav children', () => {
