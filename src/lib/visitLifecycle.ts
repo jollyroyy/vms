@@ -41,6 +41,8 @@ type PreApprovalInput = {
   department_id: string;
   purpose: string;
   scheduled_for: string;
+  /** Optional. Set for visits spanning a night or several days — see migration 073. */
+  expected_departure?: string;
 };
 
 export function validatePreApproval(input: PreApprovalInput): string | null {
@@ -51,6 +53,12 @@ export function validatePreApproval(input: PreApprovalInput): string | null {
   // is early, expected, or long overdue, and `overdue` on the guard dashboard
   // can only be derived from a scheduled_for that exists.
   if (!input.scheduled_for) return 'Scheduled date and time is required';
+  // Optional, but if given it has to be a duration rather than a contradiction.
+  // Mirrors the visits_departure_after_arrival CHECK (073); the constraint is
+  // the real enforcement, this just says so before the round trip.
+  if (input.expected_departure && input.expected_departure <= input.scheduled_for) {
+    return 'Expected departure must be after the scheduled arrival';
+  }
   return null;
 }
 

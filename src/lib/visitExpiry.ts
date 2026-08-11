@@ -114,10 +114,18 @@ export function isOverdue(
  * default leaves a normal 21:00-to-08:00 stay alone.
  */
 export function isOverstaying(
-  v: Pick<Visit, 'status' | 'checked_in_at'>,
+  v: Pick<Visit, 'status' | 'checked_in_at'> & { expected_departure?: string | null },
   now: Date = new Date(),
   hours: number = OVERSTAY_HOURS,
 ): boolean {
   if (v.status !== 'checked_in' || !v.checked_in_at) return false;
-  return now.getTime() - new Date(v.checked_in_at).getTime() > hours * 3_600_000;
+  // The approver's answer beats the fallback. A contractor booked until Friday
+  // is not overstaying on Tuesday night, and before `expected_departure` existed
+  // there was no way to say so — which is exactly why the sweep in migration 067
+  // was installed unscheduled rather than guessing. Mirrors the same coalesce in
+  // sweep_overstays (073).
+  const deadline = v.expected_departure
+    ? new Date(v.expected_departure).getTime()
+    : new Date(v.checked_in_at).getTime() + hours * 3_600_000;
+  return now.getTime() > deadline;
 }

@@ -131,6 +131,48 @@
     missed; an approval lapsed unused. Every walk-in lands here, as do pre-approvals
     created before `validatePreApproval` made `scheduled_for` mandatory. Filing those as
     no-shows would invent an appointment that never existed and corrupt the metric.
+- **The timezone lives in ONE place: `vms_day_start_ist()`.** 061 put it in the cron
+  schedule (`30 18 * * *` = midnight IST) *and* left the SQL saying `now()`; the rule was
+  only correct because the two happened to agree, with nothing linking them. Since 066's
+  predicate is self-contained and idempotent, the schedule no longer carries the rule, so
+  migration **072** made the job **hourly** (`sweep-no-shows-hourly`, `40 * * * *`). The
+  schedule now decides only how promptly a finished day is swept. The client half is
+  `IST_OFFSET_MS` in `lib/visitExpiry.ts` — that pair is what to keep in step; there is no
+  third copy. The function still bears the name `sweep_no_shows_daily()`; renaming a live
+  function means re-granting and re-pointing the job for no gain.
+- **`visits.expected_departure` is what makes a multi-day visit legible.** Migration
+  **073**. 067's overstay sweep shipped unscheduled precisely because nothing could
+  distinguish a contractor legitimately on site for two days from a check-out somebody
+  forgot — any fixed threshold is wrong for one of them, and guessing is not a design. The
+  rule is now a deadline, not an interval:
+  `coalesce(expected_departure, checked_in_at + N hours)`, mirrored exactly in
+  `isOverstaying`. **Optional on purpose** — requiring it would put a second mandatory
+  datetime in front of every routine meeting, and an approver who does not know would type
+  something false, which is worse than null. `visits_departure_after_arrival` CHECK plus
+  `validatePreApproval` reject a departure at or before the arrival. The QR is anchored to
+  the **departure** day (`vms_day_end_ist(coalesce(expected_departure, scheduled_for))`),
+  or a three-day contractor's pass dies on night one — 071's bug with a longer fuse.
+- **`pre_approve_visitor_v2` had to be DROPped to gain a parameter**, since adding one
+  creates an overload rather than replacing, and PostgREST then refuses the call as
+  ambiguous. The ACL does not survive a drop, and `CREATE FUNCTION` grants EXECUTE to
+  **PUBLIC** by default — which the original did not carry. 073 re-grants the original four
+  roles and revokes PUBLIC explicitly. Check `\df+` after any RPC signature change.
+- **A check-out can be undone for 15 minutes, by the guard who made it.** Migration
+  **074**. `checked_in -> checked_out` was a one-way door: a guard clicking the wrong row
+  left a visitor who is still in the building recorded as gone, with no route back, and
+  migration 060 then makes the obvious fix (check them in again) create a *second* visit
+  row for one continuous presence. The window is the restriction — an admin-only undo was
+  rejected because admins have no route to visitor records at all, so the capability would
+  have had nowhere to be invoked. The undo nulls `checked_out_at`/`exit_verified` rather
+  than annotating them (the visitor never left), and deliberately does **not** re-stamp
+  `checked_in_at`. The sweep's auto-closed rows get no exemption — revisit that only when
+  067's sweep is actually scheduled.
+- **The visitor popup's close button is OUTSIDE the scroll container.** `.modal-content`
+  is the scroller; with the cross inside it, the guard's copy of the popup — the tallest,
+  since a guard also sees the ID document, timeline and pass — scrolled the cross out of
+  reach, and at rest its right edge sat under the scrollbar gutter. `VisitorDetails` now
+  sets `!overflow-hidden` on the modal, puts the button directly on it, and scrolls an
+  inner `flex-1 min-h-0 overflow-y-auto` child. `min-h-0` is load-bearing.
 - **The day boundary is `public.vms_day_start_ist()`, not `now()`.** 061 put the
   timezone in the cron schedule and left the SQL saying `scheduled_for < now()` — correct
   only if the job fires at exactly the right instant. `mark_no_shows()`, the HOD-callable

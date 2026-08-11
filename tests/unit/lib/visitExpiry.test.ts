@@ -195,4 +195,35 @@ describe('isOverstaying', () => {
   it('is false when there is no check-in time to measure from', () => {
     expect(isOverstaying(visit({ status: 'checked_in', checked_in_at: null }), at('2026-08-11T04:00:00Z'))).toBe(false);
   });
+
+  // The whole reason migration 067's sweep shipped unscheduled: without this
+  // fact, a genuine multi-day contractor and a forgotten check-out look identical.
+  describe('when the approver said when they leave', () => {
+    const contractor = visit({
+      status: 'checked_in',
+      checked_in_at: '2026-08-10T03:00:00Z',
+      expected_departure: '2026-08-13T12:00:00Z',
+    } as Partial<Visit>);
+
+    it('stays quiet well past the fixed threshold', () => {
+      // Three days in — far beyond OVERSTAY_HOURS, but before the booked departure.
+      expect(isOverstaying(contractor, at('2026-08-12T12:00:00Z'))).toBe(false);
+    });
+
+    it('reports once the booked departure has passed', () => {
+      expect(isOverstaying(contractor, at('2026-08-13T12:00:01Z'))).toBe(true);
+    });
+
+    // The deadline replaces the interval rather than extending it, so a SHORT
+    // booked departure tightens the rule instead of being ignored.
+    it('honours a departure earlier than the fixed threshold', () => {
+      const shortVisit = visit({
+        status: 'checked_in',
+        checked_in_at: '2026-08-11T03:00:00Z',
+        expected_departure: '2026-08-11T05:00:00Z',
+      } as Partial<Visit>);
+      expect(isOverstaying(shortVisit, at('2026-08-11T06:00:00Z'))).toBe(true);
+      expect(isOverstaying(shortVisit, at('2026-08-11T04:00:00Z'))).toBe(false);
+    });
+  });
 });

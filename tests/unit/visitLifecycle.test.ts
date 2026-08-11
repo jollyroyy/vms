@@ -74,6 +74,32 @@ describe('HOD pre-approval', () => {
     expect(validatePreApproval({ department_id: '', purpose: '', scheduled_for: '' })).toBe('Department is required');
     expect(validatePreApproval({ department_id: 'dept-1', purpose: '', scheduled_for: '' })).toBe('Purpose is required');
   });
+
+  // expected_departure is what makes a multi-day contractor distinguishable
+  // from a check-out somebody forgot — see migration 073.
+  const base = { department_id: 'dept-1', purpose: 'meeting', scheduled_for: '2026-08-05T10:00' };
+
+  it('accepts a pre-approval with no expected departure — it is optional', () => {
+    expect(validatePreApproval(base)).toBeNull();
+    expect(validatePreApproval({ ...base, expected_departure: '' })).toBeNull();
+  });
+
+  it('accepts a departure after the arrival, including days later', () => {
+    expect(validatePreApproval({ ...base, expected_departure: '2026-08-05T17:00' })).toBeNull();
+    expect(validatePreApproval({ ...base, expected_departure: '2026-08-08T17:00' })).toBeNull();
+  });
+
+  // Mirrors the visits_departure_after_arrival CHECK. A departure before the
+  // arrival is not a long visit, it is a typo.
+  it('rejects a departure before the arrival', () => {
+    expect(validatePreApproval({ ...base, expected_departure: '2026-08-05T09:00' }))
+      .toBe('Expected departure must be after the scheduled arrival');
+  });
+
+  it('rejects a departure equal to the arrival', () => {
+    expect(validatePreApproval({ ...base, expected_departure: '2026-08-05T10:00' }))
+      .toBe('Expected departure must be after the scheduled arrival');
+  });
 });
 
 describe('M2-VISIT: edge cases', () => {

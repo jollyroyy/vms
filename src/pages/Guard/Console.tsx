@@ -58,6 +58,8 @@ export default function GuardConsole(): React.ReactElement {
   const [loading, setLoading] = useState(true);
   const [today] = useState(() => new Date().toISOString().slice(0, 10));
   const [successMsg, setSuccessMsg] = useState('');
+  /** The visit the last check-out closed, while it is still reversible. */
+  const [undoTarget, setUndoTarget] = useState<Visit | null>(null);
   const [actionErr, setActionErr] = useState('');
   const [busyId, setBusyId] = useState<string | null>(null);
 
@@ -114,9 +116,30 @@ export default function GuardConsole(): React.ReactElement {
         .eq('id', visit.id);
       if (error) { setActionErr(safeErrorMessage(error, 'Failed to log exit.')); return; }
       setSuccessMsg(`"${visit.visitor?.full_name ?? 'Visitor'}" checked out.`);
-      setTimeout(() => setSuccessMsg(''), 4000);
+      // The banner stays until dismissed rather than vanishing after 4s, because
+      // it now carries the only route to Undo. A mis-clicked check-out is noticed
+      // within seconds — the visitor is standing there — and before this there
+      // was no way back at all: the visit closes, and migration 060 then lets a
+      // re-check-in create a SECOND row for one continuous presence.
+      setUndoTarget(visit);
       void loadVisits(true);
     } catch (err) { setActionErr(safeErrorMessage(err, 'Failed to log exit.')); }
+  };
+
+  // Reverses the check-out just logged. The 15-minute limit is enforced in the
+  // database (migration 074), not here — this button simply disappears with the
+  // banner, and a stale attempt comes back as the trigger's own message.
+  const undoExit = async (visit: Visit) => {
+    setActionErr('');
+    try {
+      const { error } = await supabase.from('visits')
+        .update({ status: 'checked_in', checked_out_at: null, exit_verified: null })
+        .eq('id', visit.id);
+      if (error) { setActionErr(safeErrorMessage(error, 'Could not undo the check-out.')); return; }
+      setSuccessMsg(`"${visit.visitor?.full_name ?? 'Visitor'}" is back on the inside list.`);
+      setUndoTarget(null);
+      void loadVisits(true);
+    } catch (err) { setActionErr(safeErrorMessage(err, 'Could not undo the check-out.')); }
   };
 
   const checkedIn = useMemo(() => visits.filter((v) => v.status === 'checked_in'), [visits]);
@@ -170,7 +193,16 @@ export default function GuardConsole(): React.ReactElement {
         <div className="alert-success">
           <svg className="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
           <span className="flex-1 font-semibold">{successMsg}</span>
-          <button onClick={() => setSuccessMsg('')} className="text-xs font-bold opacity-70 hover:opacity-100">Dismiss</button>
+          {undoTarget && (
+            <button
+              type="button"
+              onClick={() => void undoExit(undoTarget)}
+              className="text-xs font-bold underline underline-offset-2 hover:opacity-80"
+            >
+              Undo check-out
+            </button>
+          )}
+          <button onClick={() => { setSuccessMsg(''); setUndoTarget(null); }} className="text-xs font-bold opacity-70 hover:opacity-100">Dismiss</button>
         </div>
       )}
       {actionErr && (

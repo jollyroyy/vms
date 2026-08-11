@@ -70,3 +70,55 @@ describe('VisitorDetails — expected time of visit', () => {
     expect(screen.queryByText('Expected At')).not.toBeInTheDocument();
   });
 });
+
+// The cross used to live INSIDE the scrolling box, which cost it twice on the
+// guard's copy of this popup — the tallest one, since a guard also sees the ID
+// document, the timeline and the pass. It scrolled out of reach as soon as the
+// content moved, and at rest its right edge sat under the scrollbar gutter.
+describe('VisitorDetails — the close button does not scroll away', () => {
+  it('is not a descendant of the scrolling region', () => {
+    const { container } = render(<VisitorDetails visit={visit} onClose={vi.fn()} viewerRole="guard" />);
+    const close = screen.getByRole('button', { name: 'Close' });
+    const scroller = container.querySelector('.overflow-y-auto');
+    expect(scroller).not.toBeNull();
+    expect(scroller!.contains(close)).toBe(false);
+  });
+
+  it('sits directly on the modal, which does not scroll itself', () => {
+    const { container } = render(<VisitorDetails visit={visit} onClose={vi.fn()} viewerRole="guard" />);
+    const modal = container.querySelector('.modal-content')!;
+    expect(modal.className).toContain('!overflow-hidden');
+    expect(screen.getByRole('button', { name: 'Close' }).parentElement).toBe(modal);
+  });
+
+  it('still closes when clicked', () => {
+    const onClose = vi.fn();
+    render(<VisitorDetails visit={visit} onClose={onClose} viewerRole="guard" />);
+    screen.getByRole('button', { name: 'Close' }).click();
+    expect(onClose).toHaveBeenCalled();
+  });
+});
+
+// The fact that lets a multi-day contractor be told apart from a check-out
+// somebody forgot — migration 073. Absent on an ordinary visit, and its absence
+// means "no answer given", not "leaves immediately".
+describe('VisitorDetails — expected departure', () => {
+  it('is not shown when the approver did not name one', () => {
+    render(<VisitorDetails visit={visit} onClose={vi.fn()} viewerRole="hod" />);
+    expect(screen.queryByText('Expected Departure')).not.toBeInTheDocument();
+  });
+
+  it('is shown when the approver booked a departure', () => {
+    const multiDay = { ...visit, expected_departure: '2026-08-14T12:00:00Z' } as unknown as Visit;
+    render(<VisitorDetails visit={multiDay} onClose={vi.fn()} viewerRole="hod" />);
+    expect(screen.getByText('Expected Departure')).toBeInTheDocument();
+    expect(screen.getByText('formatted:2026-08-14T12:00:00Z')).toBeInTheDocument();
+  });
+
+  it('shows arrival and departure as two separate rows', () => {
+    const multiDay = { ...visit, expected_departure: '2026-08-14T12:00:00Z' } as unknown as Visit;
+    render(<VisitorDetails visit={multiDay} onClose={vi.fn()} viewerRole="guard" />);
+    expect(screen.getByText('Expected At')).toBeInTheDocument();
+    expect(screen.getByText('Expected Departure')).toBeInTheDocument();
+  });
+});

@@ -8,6 +8,7 @@ import type { ReportVisit } from '../lib/reportRow';
 import type { UserRole } from '../types/index';
 import VisitorDetailsActions from './VisitorDetailsActions';
 import PreApprovalPass from './PreApprovalPass';
+import TimelineEntry from './VisitorDetailsTimeline';
 
 interface Props {
   // Widened from `Visit` so callers that have already attached the audit-log
@@ -76,27 +77,43 @@ export default function VisitorDetails({
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content sm:max-w-lg" onClick={(e) => e.stopPropagation()}>
+      {/* `!overflow-hidden` + an inner scroller, rather than letting
+          .modal-content scroll itself. The close button used to sit inside that
+          scrolling box, which cost it twice on the guard's copy of this popup —
+          the tallest one, since a guard also sees the ID document, the timeline
+          and the pass. It scrolled out of reach as soon as the content moved,
+          and at rest its right edge sat under the scrollbar gutter, so the cross
+          was never fully visible. Outside the scroller it is fixed to the modal
+          and always whole. */}
+      <div
+        className="modal-content sm:max-w-lg !overflow-hidden relative flex flex-col"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Sibling of the scroll area, not a child of it. z-30 keeps it above
+            the profile card, which is pulled up with -mt-10 at z-10 and would
+            otherwise swallow the click. */}
+        <button
+          type="button"
+          aria-label="Close"
+          onClick={(e) => { e.stopPropagation(); onClose(); }}
+          className="absolute top-4 right-4 w-9 h-9 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white/80 hover:text-white backdrop-blur-sm transition-all z-30"
+        >
+          <svg className="pointer-events-none w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+
+        {/* min-h-0 is load-bearing: without it a flex child refuses to shrink
+            below its content and the scrollbar never appears. */}
+        <div className="flex-1 min-h-0 overflow-y-auto">
 
         {/* Header with gradient. The navy scale is INVERTED in dark mode, so
             plain `navy-900/800` — chosen here because they are dark in light
-            mode — turn into near-white and swallow the white ref number and
-            the white close button. The dark: overrides pin the header to the
-            low end of the flipped scale so it stays dark in both themes. */}
+            mode — turn into near-white and swallow the white close button. The
+            dark: overrides pin the header to the low end of the flipped scale
+            so it stays dark in both themes. */}
         <div className="relative bg-gradient-to-br from-navy-900 via-navy-800 to-brand-900 dark:from-navy-100 dark:via-navy-200 dark:to-brand-950 px-6 pt-5 pb-14">
           <div aria-hidden="true" className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(51,150,255,0.2),transparent_70%)]" />
-          {/* z-30 so the profile card below (a later sibling at z-10, pulled up
-              with -mt-10) can never overlap and swallow this click. */}
-          <button
-            type="button"
-            aria-label="Close"
-            onClick={(e) => { e.stopPropagation(); onClose(); }}
-            className="absolute top-4 right-4 w-9 h-9 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white/80 hover:text-white transition-all z-30"
-          >
-            <svg className="pointer-events-none w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
           {/* No ref number here. It is printed on the pass itself, one click
               away under View Pass, which is the copy that matters — the one the
               visitor shows and the guard reads back. Repeating it in the modal
@@ -164,6 +181,17 @@ export default function VisitorDetails({
                 label="Expected At"
                 value={formatDateTime(v.scheduled_for)}
                 icon={<svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>}
+              />
+            )}
+            {/* Only when the approver actually named a departure. Its absence is
+                the ordinary case and means "no answer given", not "leaves
+                immediately" — so no row rather than a dash. When present it is
+                the deadline the overstay rule uses. */}
+            {v.expected_departure && (
+              <InfoRow
+                label="Expected Departure"
+                value={formatDateTime(v.expected_departure)}
+                icon={<svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M8.25 9V5.25A2.25 2.25 0 0110.5 3h6a2.25 2.25 0 012.25 2.25v13.5A2.25 2.25 0 0116.5 21h-6a2.25 2.25 0 01-2.25-2.25V15m-3 0l-3-3m0 0l3-3m-3 3H15" /></svg>}
               />
             )}
           </div>
@@ -261,21 +289,7 @@ export default function VisitorDetails({
           onApprove={onApprove}
           onReject={onReject}
         />
-      </div>
-    </div>
-  );
-}
-
-function TimelineEntry({ color, label, time, highlight, strong }: { color: string; label: string; time: string; highlight?: boolean; strong?: boolean }) {
-  return (
-    <div className="flex items-start gap-3 relative">
-      {/* The ring separates the dot from the timeline spine behind it, so it
-          has to match the panel, not be white — `navy-50` is the darkest end
-          of the flipped scale and reads as the panel in dark mode. */}
-      <div className={`w-[11px] h-[11px] rounded-full ${color} border-2 border-white dark:border-navy-50 shrink-0 mt-0.5 z-10`} />
-      <div className={`flex-1 flex justify-between items-baseline gap-2 min-w-0 ${highlight ? 'text-danger-600 font-bold' : ''}`}>
-        <span className="text-micro uppercase text-navy-500 shrink-0">{label}</span>
-        <span className={`truncate tabular-nums ${strong ? 'text-body-lg font-bold' : 'text-body font-semibold'} ${highlight ? 'text-danger-600' : 'text-navy-800'}`}>{time}</span>
+        </div>
       </div>
     </div>
   );

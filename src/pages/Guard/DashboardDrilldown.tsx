@@ -54,7 +54,7 @@ export default function DashboardDrilldown({
       ) : (
         // A full-width vertical stack, not a 2-up grid — the client's core
         // complaint (2026-08-10) was exactly this doubling of scan travel.
-        <div data-card-list className="p-4 flex flex-col gap-4">
+        <div data-card-list className="p-5 flex flex-col gap-5">
           {rows.map((v, i) => (
             <WhosInsideVisitorCard key={v.id} visit={v} index={i} onClick={() => onSelect(v)} />
           ))}

@@ -2,8 +2,9 @@
 // cards a guard/HOD scans in a list (WhosInsideVisitorCard, SearchResultCard,
 // CheckInMatchCard). Current premium practice has moved from blurred drop
 // shadows to sharp geometry: a single-pixel inset ring is the primary edge
-// treatment, and the shadow drops to a tight contact layer at most. Hover
-// strengthens the ring rather than blooming a shadow.
+// treatment, with a tight contact layer plus a thin ambient layer beneath —
+// deliberate depth, never a blur-heavy glow. Hover strengthens the ring
+// rather than blooming a shadow.
 //
 // Deliberately NOT applied to `.card` / `.card-hover` in
 // components-surfaces.css — those are a separate, deliberate, well-tested
@@ -14,9 +15,9 @@
 // variant — no JS/matchMedia call needed, so there is nothing to feature-detect
 // or that can crash under jsdom.
 const BASE =
-  'rounded-2xl bg-white dark:bg-white/[0.045] ' +
-  'ring-1 ring-inset ring-black/[0.06] dark:ring-white/[0.07] ' +
-  'shadow-xs transition-[box-shadow] duration-200';
+  'rounded-2xl bg-white dark:bg-white/[0.07] ' +
+  'ring-1 ring-inset ring-black/[0.09] dark:ring-white/[0.12] ' +
+  'shadow-[0_1px_2px_rgba(15,23,42,0.05),0_8px_20px_-12px_rgba(15,23,42,0.18)] transition-[box-shadow] duration-200';
 
 /** Static card — no click affordance (e.g. a card inside a modal or a non-interactive row). */
 export const CRISP_CARD = BASE;
@@ -28,4 +29,4 @@ export const CRISP_CARD_INTERACTIVE =
 
 /** The muted footer band — shadcn's CardFooter: a distinct surface, not a nested bordered box. */
 export const CARD_FOOTER_BAND =
-  'bg-surface-100/60 dark:bg-white/[0.03] border-t border-surface-200 dark:border-white/[0.06]';
+  'bg-surface-100/60 dark:bg-white/[0.05] border-t border-surface-200 dark:border-white/[0.08]';

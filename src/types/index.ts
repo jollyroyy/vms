@@ -70,6 +70,11 @@ export type Visit = {
   // carrying_remarks, which describes material only — see migration 068.
   remarks?: string | null;
   scheduled_for: string | null;
+  // When the approver expects them to leave. Null = ordinary visit, and the
+  // overstay rule falls back to a fixed interval from check-in. Set = this IS
+  // the deadline, which is what makes a multi-day contractor distinguishable
+  // from a forgotten check-out. See migration 073.
+  expected_departure?: string | null;
   grace_period_minutes?: number;
   qr_token: string;
   qr_expires_at: string | null;

@@ -39,7 +39,8 @@ export default function PreApproveForm({ onPreApproved }: Props): React.ReactEle
   const [userRole,        setUserRole]        = useState<string>('');
   const [userDept,        setUserDept]        = useState<string>('');
   const [scheduledFor,    setScheduledFor]    = useState<string>('');
-  const [successPopup,    setSuccessPopup]    = useState<{ title: string; message: string; refNumber: string } | null>(null);
+  const [expectedDeparture, setExpectedDeparture] = useState<string>('');
+  const [successPopup,    setSuccessPopup]    = useState<{ title: string; refNumber: string } | null>(null);
   const [passVisit,       setPassVisit]       = useState<Visit | null>(null);
   const [activeVisitCheck, setActiveVisitCheck] = useState<{ checking: boolean; message: string | null }>({ checking: false, message: null });
 
@@ -72,7 +73,10 @@ export default function PreApproveForm({ onPreApproved }: Props): React.ReactEle
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    const validationError = validatePreApproval({ department_id: deptId, purpose, scheduled_for: scheduledFor });
+    const validationError = validatePreApproval({
+      department_id: deptId, purpose, scheduled_for: scheduledFor,
+      expected_departure: expectedDeparture,
+    });
     if (validationError) { setError(validationError); return; }
     if (blacklistHit) return;
     const { data: { session } } = await supabase.auth.getSession();
@@ -101,6 +105,7 @@ export default function PreApproveForm({ onPreApproved }: Props): React.ReactEle
         p_purpose: purpose,
       };
       if (scheduledFor) params.p_scheduled_for = scheduledFor;
+      if (expectedDeparture) params.p_expected_departure = expectedDeparture;
       const { data: result, error: rpcErr } = await (supabase as any)
         .rpc('pre_approve_visitor_v2', params);
       if (rpcErr) throw rpcErr;
@@ -119,7 +124,7 @@ export default function PreApproveForm({ onPreApproved }: Props): React.ReactEle
           setPassVisit(withHost ?? (visitRow as unknown as Visit));
         }
       } catch { setPassVisit(null); }
-      setSuccessPopup({ title: 'Visitor Pre-Approved', message: `${fullName} has been pre-approved — Ref: ${result.ref_number}`, refNumber: result.ref_number });
+      setSuccessPopup({ title: 'Visitor Pre-Approved', refNumber: result.ref_number });
     } catch (err) { setError(safeErrorMessage(err, 'Pre-approval failed. Please try again.')); }
     finally { setSubmitting(false); }
   };
@@ -188,11 +193,32 @@ export default function PreApproveForm({ onPreApproved }: Props): React.ReactEle
           <label className="label">Schedule for *</label>
           <input type="datetime-local" required value={scheduledFor} onChange={(e) => setScheduledFor(e.target.value)} className="input" />
         </div>
+        {/* Optional, and it must stay optional. Requiring it would put a second
+            mandatory datetime in front of every routine meeting to serve the
+            minority case, and an approver who does not know would type something
+            false — worse than null, which is at least honest about not knowing.
+            Left blank, the overstay rule falls back to a fixed interval from
+            check-in; filled in, this IS the deadline. */}
+        <div className="sm:col-span-2">
+          <label className="label" htmlFor="expected-departure">Expected departure (optional)</label>
+          <input
+            id="expected-departure"
+            type="datetime-local"
+            value={expectedDeparture}
+            min={scheduledFor || undefined}
+            onChange={(e) => setExpectedDeparture(e.target.value)}
+            className="input"
+          />
+          <p className="text-xs text-navy-500 dark:text-navy-400 mt-1">
+            Set this for visits running overnight or across several days, so the visitor is not
+            flagged as overstaying while they are still expected on site.
+          </p>
+        </div>
       </div>
 
       {successPopup && (
-        <SuccessPopup title={successPopup.title} message={successPopup.message} onClose={handlePopupClose}>
-          {passVisit && <PreApprovalPass visit={passVisit} />}
+        <SuccessPopup title={successPopup.title} onClose={handlePopupClose}>
+          {passVisit && <PreApprovalPass visit={passVisit} showIdProof={false} />}
         </SuccessPopup>
       )}
 
