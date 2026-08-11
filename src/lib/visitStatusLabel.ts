@@ -39,6 +39,7 @@ export function visitStatusLabel(visit: { status: VisitStatus; actor?: VisitActo
     case 'checked_out':
     case 'cancelled':
     case 'no_show':
+    case 'expired':
       return status.replace(/_/g, ' ');
 
     default:

@@ -34,6 +34,10 @@ const IMPLIES_PRIOR_APPROVAL: Record<VisitStatus, boolean> = {
   // guard in migration 044).
   cancelled: true,
   no_show: true,
+  // Same reasoning: only an approved visit can lapse. Reports shows the
+  // approval instant for an expired pass, which is the interesting part —
+  // somebody approved this and it was never used.
+  expired: true,
 };
 
 export type ApprovableVisit = {

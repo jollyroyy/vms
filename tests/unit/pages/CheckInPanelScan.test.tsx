@@ -40,7 +40,7 @@ const visit = {
   visitor_id: 'vis1',
   status: 'approved',
   purpose: 'meeting',
-  created_at: '2026-08-01T08:00:00Z',
+  created_at: new Date().toISOString(),
   scheduled_for: null,
   host_id: 'h1',
   photo_data: null,
@@ -100,7 +100,7 @@ beforeEach(() => {
             return chain;
           }
           return {
-            in: () => ({ gte: () => ({ lte: () => ({ order: () => Promise.resolve({ data: [visit], error: null }) }) }) }),
+            in: () => ({ order: () => Promise.resolve({ data: [visit], error: null }) }),
           };
         },
         update: visitsUpdate,

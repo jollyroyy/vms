@@ -7,6 +7,11 @@ import { isFeatureEnabled } from '../../lib/featureFlags';
 import IdScanOverlay, { type IdScanResult } from './IdScanOverlay';
 import type { Profile, VisitorPurpose } from '../../types/index';
 
+// Mirrors the visits_remarks_length CHECK in migration 068. The input caps the
+// text so the guard sees the limit while typing; the constraint is what actually
+// enforces it, since any token can POST to PostgREST directly.
+const REMARKS_MAX = 500;
+
 const PURPOSES: { value: VisitorPurpose; label: string }[] = [
   { value: 'meeting',     label: 'Meeting' },
   { value: 'vendor',      label: 'Vendor / Contractor' },
@@ -33,6 +38,7 @@ export default function WalkInRequest({ onSubmitted, onCancel }: Props): React.R
   const [idLast4, setIdLast4] = useState('');
   const [scanOpen, setScanOpen] = useState(false);
   const [purpose, setPurpose] = useState<VisitorPurpose>('meeting');
+  const [remarks, setRemarks] = useState('');
   const [deptId, setDeptId] = useState('');
   const [hostId, setHostId] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -101,6 +107,9 @@ export default function WalkInRequest({ onSubmitted, onCancel }: Props): React.R
       const { error: visitErr } = await supabase.from('visits').insert({
         visitor_id: vis.id, department_id: deptId, host_id: hostId, purpose,
         status: 'pending_approval', carrying_material: false,
+        // Trimmed to null rather than stored as '': an empty note and no note
+        // are the same fact, and only one of them should be in the column.
+        remarks: remarks.trim() || null,
         photo_path: null, photo_data: null,
         scheduled_for: null,
         checked_in_at: null, checked_out_at: null, exit_verified: null, rejection_reason: null,
@@ -179,6 +188,27 @@ export default function WalkInRequest({ onSubmitted, onCancel }: Props): React.R
             </select>
             {hostError && <p className="text-xs text-danger-500 mt-0.5">{hostError}</p>}
           </div>
+        </div>
+
+        {/* The HOD approves a walk-in blind — they get a name, a vendor and a
+            purpose off a seven-item list. This is where the guard passes on what
+            they can actually see and hear at the gate, and it is the difference
+            between an informed approval and a guess. Optional on purpose: never
+            hold up a queue for a text box. */}
+        <div>
+          <label htmlFor="walkin-remarks" className="text-xs font-semibold text-navy-600 mb-1 block">
+            Remarks <span className="font-normal text-navy-400">(optional — shown to the person approving)</span>
+          </label>
+          <textarea
+            id="walkin-remarks"
+            value={remarks}
+            onChange={(e) => setRemarks(e.target.value)}
+            maxLength={REMARKS_MAX}
+            rows={2}
+            placeholder="Anything the approver should know — e.g. &ldquo;says he has a 3pm with you&rdquo;, &ldquo;van waiting at gate 2&rdquo;"
+            className="w-full px-4 py-2.5 bg-surface-50 border border-surface-200 rounded-xl text-sm text-navy-900 focus:outline-none focus:ring-2 focus:ring-brand-500 transition-all resize-y"
+          />
+          <p className="text-[10px] text-navy-400 mt-0.5 text-right tabular-nums">{remarks.length}/{REMARKS_MAX}</p>
         </div>
       </div>
 

@@ -27,6 +27,10 @@ const PASS_AVAILABLE: Record<VisitStatus, boolean> = {
   rejected: false,
   cancelled: false,
   no_show: false,
+  // The approval lapsed, so the pass it authorised is void. Showing it would
+  // hand out a badge for entry that is no longer granted — the sweep closed
+  // this visit precisely so it stops being usable.
+  expired: false,
 };
 
 /** True when this visit should still offer its entry pass. */

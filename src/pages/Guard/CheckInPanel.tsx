@@ -8,6 +8,7 @@ import { attachVisitActors } from '../../lib/visitActors';
 import { buildMatchItems, type PreApprovedVisit, type RecurringWithDept } from './checkInMatches';
 import { useDepartments } from '../../lib/useDepartments';
 import { uploadPhoto } from '../../lib/photoUpload';
+import { isDueToday, isVisitExpired } from '../../lib/visitExpiry';
 import {
   findActiveVisitByPhone, findActiveVisitByIdProof, activeVisitMessage,
   isAlreadyInsideError, ALREADY_INSIDE_FALLBACK,
@@ -69,15 +70,19 @@ export default function CheckInPanel({ today, onCheckInSuccess }: Props): React.
   const loadData = useCallback(async () => {
     setLoading(true);
     const todayStart = `${today}T00:00:00Z`;
-    const todayEnd = `${today}T23:59:59Z`;
 
     const [preRes, recurringRes, checkedRes] = await Promise.all([
+      // No date bound on the fetch. Filtering on `created_at` being today meant
+      // the ordinary case — booked yesterday, arriving today — never appeared in
+      // this list at all. Rather than swap one date column for another, fetch the
+      // open approvals and let lib/visitExpiry decide which are due: that is the
+      // same predicate the nightly sweep uses, so the list and the sweep cannot
+      // disagree about what is still good. The set stays small precisely because
+      // the sweep closes stale rows every night (migration 066).
       supabase
         .from('visits')
         .select(`*, visitor:visitors(*), department:departments(id, name, code, created_at)`)
         .in('status', ['approved', 'walkin_approved'])
-        .gte('created_at', todayStart)
-        .lte('created_at', todayEnd)
         .order('created_at', { ascending: true }),
       supabase
         .from('recurring_visits')
@@ -90,7 +95,7 @@ export default function CheckInPanel({ today, onCheckInSuccess }: Props): React.
         .gte('created_at', todayStart),
     ]);
 
-    let rows = ((preRes.data as unknown as Visit[]) ?? []);
+    let rows = ((preRes.data as unknown as Visit[]) ?? []).filter((v) => isDueToday(v));
     rows = await attachHostNames(rows);
     const rowsWithActors = await attachVisitActors(rows);
     setPreApproved(rowsWithActors.map((v) => ({ ...v, photo_url: v.photo_data ?? undefined })));
@@ -159,7 +164,7 @@ export default function CheckInPanel({ today, onCheckInSuccess }: Props): React.
       if (selectedMatch.source === 'pre_approved' && selectedMatch.visitId) {
         const visit = preApproved.find((v) => v.id === selectedMatch.visitId);
         if (visit && isExpired(visit)) {
-          setError('Cannot check in — the scheduled time has passed. Please request a new approval.');
+          setError('Cannot check in — this pass was for an earlier day and has expired. Please request a new approval.');
           setCheckingIn(false);
           return;
         }
@@ -228,13 +233,12 @@ export default function CheckInPanel({ today, onCheckInSuccess }: Props): React.
     setError('');
   }, []);
 
-  const isExpired = useCallback((v: Visit): boolean => {
-    if (!v.scheduled_for) return false;
-    const scheduled = new Date(v.scheduled_for).getTime();
-    const now = Date.now();
-    // Expired if scheduled time was more than 30 minutes ago
-    return now - scheduled > 30 * 60 * 1000;
-  }, []);
+  // Expiry is end-of-day, never a countdown from the slot. This used to be
+  // "more than 30 minutes past scheduled_for", which turned away a visitor stuck
+  // in traffic — the pass died mid-morning while they were on their way, and the
+  // guard had no way to revive it. Migration 061 removed that rule from the
+  // database; this is the client finally agreeing with it. See lib/visitExpiry.
+  const isExpired = useCallback((v: Visit): boolean => isVisitExpired(v), []);
 
   const allMatches = useMemo(
     () => buildMatchItems(preApproved, recurringToday, { search, deptFilter }),

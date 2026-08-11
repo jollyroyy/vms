@@ -45,6 +45,10 @@ const STATUS_BLOCK_REASON: Record<VisitStatus, string | null> = {
   rejected: 'This visit was rejected.',
   cancelled: 'This visit was cancelled.',
   no_show: 'This visit was marked as a no-show.',
+  // Names the day rather than the clock, because that is the actual rule: the
+  // pass was good for its day and that day has ended. "The time has passed"
+  // would invite the guard to wave through someone who is merely late.
+  expired: 'This pass was for an earlier day and has expired.',
 };
 
 /** Gates a QR check-in: expiry is checked before status, so an expired QR always reports as expired first. */

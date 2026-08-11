@@ -1,0 +1,29 @@
+-- 065 — `expired` joins visit_status.
+--
+-- Split out from 066 because Postgres will not let a new enum value be USED in
+-- the same transaction that adds it. This migration adds the label and nothing
+-- else; 066 is the first thing allowed to write it.
+--
+-- WHY A NEW STATUS RATHER THAN REUSING no_show
+--
+-- `no_show` means "an appointment was made and it was missed". That is a real
+-- fact about a visitor and about the host who booked them, and it is the number
+-- an admin would put in a report.
+--
+-- A walk-in has no appointment. The person was physically standing at the gate
+-- when the HOD approved them; `visits.scheduled_for` is null by construction on
+-- that path (WalkInRequest never sets it). If they then never enter, nothing was
+-- missed — an approval simply lapsed. Filing that as `no_show` inflates the
+-- no-show metric with a different phenomenon and makes the metric useless.
+--
+-- So the rule is drawn on the presence of an appointment, not on the route in:
+--
+--   no_show  — scheduled_for was set, its day has ended, nobody arrived.
+--   expired  — no scheduled_for to miss; the approval lapsed unused.
+--
+-- `expired` therefore also absorbs the legacy pre-approvals created before
+-- validatePreApproval made scheduled_for mandatory (four such rows are live,
+-- oldest 2026-08-01). Calling those no-shows would be inventing an appointment
+-- that never existed.
+
+alter type public.visit_status add value if not exists 'expired';

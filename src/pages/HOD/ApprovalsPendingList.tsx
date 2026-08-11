@@ -99,6 +99,16 @@ export default function ApprovalsPendingList({ visits, loading, error, acting, r
                     </span>
                     <span className="text-[10px] text-navy-300 ml-auto">{timeAgo(v.created_at)}</span>
                   </div>
+                  {/* The guard's note from the gate. This card is the whole
+                      basis for the decision, so the note belongs ON it — an
+                      approver should never have to open Details to find the one
+                      sentence explaining who is standing downstairs. */}
+                  {v.remarks && (
+                    <p className="mt-2 text-xs text-navy-600 dark:text-navy-300 bg-surface-50 dark:bg-white/[0.04] border border-surface-200/60 dark:border-white/[0.06] rounded-lg px-2.5 py-1.5 whitespace-pre-wrap break-words">
+                      <span className="font-semibold text-navy-500 dark:text-navy-400">Guard&rsquo;s note: </span>
+                      {v.remarks}
+                    </p>
+                  )}
                 </div>
               </div>
               <div className="mt-3 pt-3 border-t border-surface-200/60 dark:border-white/[0.06]" onClick={(e) => e.stopPropagation()}>

@@ -43,7 +43,12 @@ export type Visitor = {
   created_at: string;
 };
 
-export type VisitStatus = 'pending_approval' | 'approved' | 'walkin_approved' | 'checked_in' | 'checked_out' | 'rejected' | 'cancelled' | 'no_show';
+// `no_show` and `expired` are both "approved, never arrived", split on whether
+// an appointment existed to be missed — see migration 065. no_show means a
+// booked slot went unused (a fact about the visitor and the host who booked
+// them); expired means an approval with no slot simply lapsed, which is every
+// walk-in, since that path never sets scheduled_for.
+export type VisitStatus = 'pending_approval' | 'approved' | 'walkin_approved' | 'checked_in' | 'checked_out' | 'rejected' | 'cancelled' | 'no_show' | 'expired';
 
 export type Visit = {
   id: string;
@@ -61,6 +66,9 @@ export type Visit = {
   rejection_reason: string | null;
   carrying_material: boolean;
   carrying_remarks?: string | null;
+  // General context captured when the visit was raised. Distinct from
+  // carrying_remarks, which describes material only — see migration 068.
+  remarks?: string | null;
   scheduled_for: string | null;
   grace_period_minutes?: number;
   qr_token: string;
@@ -145,6 +153,10 @@ export type NotificationType =
   | 'visit_approved'
   | 'visit_rejected'
   | 'visitor_checked_in'
+  // Booked visitor is past their slot by the grace period and still has not
+  // arrived. A message to the host and NOTHING else — the visit stays valid and
+  // checkable-in all day. See migration 070.
+  | 'visit_overdue'
   | 'gate_pass_pending'
   | 'gate_pass_approved'
   | 'rgp_due_soon'

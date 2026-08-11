@@ -38,7 +38,7 @@ const mockDepts = [{ id: 'dept-it', name: 'Information Technology', code: 'IT', 
 
 const visit = {
   id: 'v1', visitor_id: 'vis1', status: 'approved', purpose: 'meeting',
-  created_at: '2026-08-01T08:00:00Z', scheduled_for: null, host_id: 'h1', photo_data: null,
+  created_at: new Date().toISOString(), scheduled_for: null, host_id: 'h1', photo_data: null,
   visitor: { id: 'vis1', full_name: 'Rahul Verma', phone: '9876543210', vendor_name: null },
   department: mockDepts[0],
 };
@@ -76,7 +76,7 @@ beforeEach(() => {
             };
             return chain;
           }
-          return { in: () => ({ gte: () => ({ lte: () => ({ order: () => Promise.resolve({ data: [visit], error: null }) }) }) }) };
+          return { in: () => ({ order: () => Promise.resolve({ data: [visit], error: null }) }) };
         },
         update: visitsUpdate,
       };

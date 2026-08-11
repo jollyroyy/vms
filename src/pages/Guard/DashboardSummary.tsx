@@ -9,7 +9,7 @@ type Props = {
   onDrill: (key: DrillKey) => void;
 };
 
-// Today's summary. Seven tiles, each answering a different question — see the
+// Today's summary. Eight tiles, each answering a different question — see the
 // `entered` vs `inside` note in lib/useGateStats.ts for why those two are not
 // the same filter. `entered = inside + checkedOut` always holds.
 //
@@ -34,6 +34,12 @@ const TILES: Record<DrillKey, Tile> = {
   },
   inside: {
     label: 'Inside Now', tone: 'text-success-600', hint: 'Currently on the premises',
+  },
+  overstaying: {
+    // Amber, not red. This is nearly always a check-out somebody forgot, not a
+    // person refusing to leave — a red tile would have the guard hunting for an
+    // intruder when the fix is to close a record.
+    label: 'Overstaying', tone: 'text-amber-600 dark:text-amber-300', hint: 'Inside far longer than expected',
   },
   entered: {
     label: 'Entered Today', tone: 'text-navy-800', hint: 'Everyone who came through the gate',
@@ -60,7 +66,7 @@ export default function DashboardSummary({ stats, loading, activeKey, onDrill }:
   return (
     <section>
       <h2 className="section-title mb-3">Today&rsquo;s Summary</h2>
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-8 gap-3">
         {DRILL_KEYS.map((key, i) => {
           const t = TILES[key];
           const expanded = activeKey === key;

@@ -114,6 +114,66 @@
   so it cannot leak. Remove that line and the nightly job fails silently on every row.
   It is `revoke`d from anon/authenticated: `mark_no_shows()` (role- and
   department-scoped) stays the human entry point.
+- **`no_show` and `expired` are two outcomes, split on whether an appointment
+  existed.** Migrations **065**–**066** (applied live 2026-08-11). 061's sweep had two
+  holes that made it unreachable for most rows: `and scheduled_for is not null` skipped
+  every walk-in (that path never sets `scheduled_for`), and `status = 'approved'` alone
+  skipped `walkin_approved` entirely. Seven approvals were live and un-sweepable, the
+  oldest from 2026-08-01, still offering themselves for check-in ten days later — three
+  of them visible forever in the guard's "Approved, waiting to enter" list, because
+  `Console.loadVisits` is deliberately unbounded for open statuses. **An open-ended list
+  and a sweep that cannot close it are two halves of one design; never ship one alone.**
+  The rule now:
+  - `scheduled_for IS NOT NULL` and its day has ended → **`no_show`**. An appointment
+    was missed. This is a fact about the visitor and the host who booked them, and it is
+    the number a report should show.
+  - `scheduled_for IS NULL` and its creation day has ended → **`expired`**. Nothing was
+    missed; an approval lapsed unused. Every walk-in lands here, as do pre-approvals
+    created before `validatePreApproval` made `scheduled_for` mandatory. Filing those as
+    no-shows would invent an appointment that never existed and corrupt the metric.
+- **The day boundary is `public.vms_day_start_ist()`, not `now()`.** 061 put the
+  timezone in the cron schedule and left the SQL saying `scheduled_for < now()` — correct
+  only if the job fires at exactly the right instant. `mark_no_shows()`, the HOD-callable
+  entry point, therefore still had 052's bug: run by hand at 14:00 it killed a 10:00
+  visit whose visitor was mid-journey. Both paths now share `close_stale_approvals()`,
+  whose predicate means "the day containing this visit's moment has ENDED" — true
+  whenever evaluated, so it is safe to run at any hour and is idempotent (verified live:
+  second run returns 0). `src/lib/visitExpiry.ts` is the client mirror; keep the two in
+  step, every rule there has a test.
+- **A grace period may write a NOTIFICATION and never a status.** Migration **070**
+  schedules `nudge_overdue_visits(120)` hourly: a booked visitor 2h past their slot gets
+  the *host* a `visit_overdue` notification, and the visit stays fully checkable-in all
+  day. This is what 052 should have been. In-app rather than email because **`pg_net` is
+  not installed**, so no scheduled job on this project can make an HTTP call — the
+  `notify-host` edge function is unreachable from SQL. It inserts once per visit
+  (`not exists` on `related_id`) and stops at the day boundary, since past that the
+  nightly sweep has already filed the absence and a second message is noise.
+- **Overstays: `sweep_overstays()` is installed but DELIBERATELY NOT SCHEDULED.**
+  Migration **067**. Nothing closed a visit the guard forgot to check out, so
+  `status = 'checked_in'` — the list you hand a fire marshal — drifts wrong in one
+  direction only, and migration 060's unique index means one uncleared row blocks that
+  phone number from ever checking in again. The live mechanism is the guard dashboard's
+  **Overstaying** tile (`isOverstaying`, default 12h from entry, measured from entry
+  rather than a wall clock so a normal 21:00→08:00 stay does not trip it). A guard who
+  acts on the tile records `exit_verified = true` — a witnessed exit. The sweep can only
+  ever record `exit_verified = false`, which is an admission, not an observation: prefer
+  it last. To enable, uncomment the one-line `cron.schedule` in 067.
+- **`exit_verified` means "did a human witness this exit".** `Console.logExit` sets it
+  true; `sweep_overstays` sets it false. Never auto-close a visit in a way that reads
+  identically to a real check-out — that launders "we lost track of this person" into a
+  claim about where they went. `checked_out_at` on an auto-closed row is the moment we
+  gave up, not the moment they left.
+- **Expiry is END OF DAY on the client too.** `CheckInPanel.isExpired` used
+  "more than 30 minutes past `scheduled_for`", which turned away a visitor stuck in
+  traffic — the pass died mid-morning while they were on their way and the guard could
+  not revive it. It now calls `isVisitExpired`. `CheckInPanel.loadData` also filtered on
+  `created_at` being today, so the *ordinary* case — booked yesterday, arriving today —
+  never appeared in the check-in list at all; it now fetches open approvals unbounded and
+  filters with `isDueToday`, the same predicate the sweep uses.
+- **"Today" is an IST day, not a UTC one.** `new Date().toISOString().slice(0, 10)` is
+  the UTC date, so between 00:00 and 05:30 IST the app thought today was yesterday: a
+  visit booked for 01:00 IST was filed under the previous day and was invisible on the
+  morning it was due. Use `istDateKey` / `istDayStart` from `lib/visitExpiry.ts`.
 - **Open visits are never date-bounded.** `Console.loadVisits`, `useGateStats` and
   `useTodayVisits` all used a bare `created_at >= today` window, which silently dropped
   unfinished work at midnight: a walk-in registered at 23:50 and approved at 00:05 was
@@ -121,7 +181,10 @@
   not be checked out, and a pre-approval booked last week for today never appeared.
   The console now ORs in `status.in.(pending_approval,walkin_approved,checked_in)`, and
   the two dashboard hooks OR in `scheduled_for` within today. Keep the hooks in step —
-  the count and the drill-down list must come from the same window.
+  the count and the drill-down list must come from the same window. `useGateStats` also
+  ORs in the open statuses unbounded, so a visitor still inside from last night is
+  counted in "Inside Now"; the invariant survives, because every row with
+  `checked_in_at` is either `checked_in` or `checked_out`.
 - **A photo is mandatory on every check-in path.** `CheckInPanel` gates it structurally
   (the confirm step does not render until a photo exists), `GuardWalkInApproved`
   disables Confirm without one, and `VisitorForm.checkInPreApproved` — which used to
@@ -270,6 +333,16 @@
   the text so no orphaned description survives on a visit flagged as carrying nothing.
   Reports carries **two** columns — `Carrying` (Yes/No, scannable) and
   `Carrying Remarks` (the guard's words) — on screen and in the CSV. Never merge them back.
+- **`visits.remarks` is NOT `carrying_remarks`.** Migration **068** added a general-purpose
+  note captured on the walk-in registration form (`WalkInRequest`), shown to the HOD on
+  the `ApprovalsPendingList` card. It exists because a walk-in is the one visit an HOD
+  approves blind — they get a name, a vendor and a purpose off a seven-item enum and are
+  asked to decide. `carrying_remarks` describes *material only* and is gated by the
+  `carrying_material` tick box; overloading it would resurrect the ambiguity 058 removed
+  and make Reports' "Carrying Remarks" column print unrelated prose. Length-capped at 500
+  (CHECK constraint, mirrored by `maxLength`), not character-allowlisted — this is prose
+  typed at a gate, and `inputRules.ts`'s allowlist is for short structured identifiers.
+  Empty is stored as `null`, never `''`.
 
 ### Live shared data
 - `src/lib/useDepartments.ts` and `src/lib/useHods.ts` fetch **and** subscribe to

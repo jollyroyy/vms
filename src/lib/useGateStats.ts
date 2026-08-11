@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '../supabaseClient';
+import { isOverstaying } from './visitExpiry';
+import type { VisitStatus } from '../types/index';
 
 // Today's gate numbers, in the shape the guard dashboard reads them.
 //
@@ -28,16 +30,17 @@ export type GateStats = {
   // Queue counts — what still needs a human to do something
   awaitingApproval: number; // raised at the gate, waiting on an HOD decision
   overdue: number;          // approved, scheduled arrival already passed
+  overstaying: number;      // checked in, still inside well past any plausible visit
 };
 
 const EMPTY: GateStats = {
   preApproved: 0, walkInApproved: 0, entered: 0, inside: 0, checkedOut: 0, declined: 0,
-  noShow: 0, awaitingApproval: 0, overdue: 0,
+  noShow: 0, awaitingApproval: 0, overdue: 0, overstaying: 0,
 };
 
 type Row = {
   id: string;
-  status: string;
+  status: VisitStatus;
   checked_in_at: string | null;
   scheduled_for: string | null;
 };
@@ -72,7 +75,15 @@ export function useGateStats(today: string): { stats: GateStats; loading: boolea
       .select('id, status, checked_in_at, scheduled_for')
       .or(
         `and(created_at.gte.${start},created_at.lte.${end}),` +
-        `and(scheduled_for.gte.${start},scheduled_for.lte.${end})`,
+        `and(scheduled_for.gte.${start},scheduled_for.lte.${end}),` +
+        // Open statuses, unbounded — the same window Console.loadVisits uses,
+        // and for the same reason. A visitor who came in at 21:00 yesterday and
+        // has not left is on the premises NOW; a day-bounded query drops them at
+        // midnight and the "Inside Now" tile quietly under-counts the building.
+        // The invariant survives: every row with checked_in_at is either
+        // checked_in or checked_out, so entered === inside + checkedOut still
+        // holds over whatever set is in view.
+        `status.in.(pending_approval,walkin_approved,checked_in)`,
       );
 
     const rows = (data ?? []) as Row[];
@@ -94,6 +105,12 @@ export function useGateStats(today: string): { stats: GateStats; loading: boolea
         r.scheduled_for !== null &&
         new Date(r.scheduled_for).getTime() < now,
       ).length,
+      // Inside for longer than anyone plausibly is. Almost always a check-out
+      // the gate forgot rather than a visitor who is genuinely still here, and
+      // it is worth a guard's attention BEFORE the nightly sweep closes it:
+      // a guard who checks them out records a verified exit, where the sweep
+      // can only record that we stopped believing the row (migration 067).
+      overstaying: rows.filter((r) => isOverstaying(r)).length,
     });
     if (!silent) setLoading(false);
   }, [today]);

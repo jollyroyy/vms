@@ -1,4 +1,5 @@
 import type { Visit } from '../types/index';
+import { isOverstaying } from './visitExpiry';
 
 // The guard dashboard's KPI tiles are drill-downs, not links. Clicking a count
 // expands the visits behind it *on the same page* — a guard reading the board
@@ -10,14 +11,17 @@ import type { Visit } from '../types/index';
 // the card list disagree on screen. The `entered` vs `inside` distinction is the
 // one that bites — see the long note in useGateStats.ts. `entered` is derived
 // from checked_in_at (cumulative), `inside` from status (live).
-export type DrillKey = 'preApproved' | 'walkInApproved' | 'inside' | 'entered' | 'checkedOut' | 'declined' | 'noShow';
+export type DrillKey = 'preApproved' | 'walkInApproved' | 'inside' | 'overstaying' | 'entered' | 'checkedOut' | 'declined' | 'noShow';
 
-export const DRILL_KEYS: DrillKey[] = ['preApproved', 'walkInApproved', 'inside', 'entered', 'checkedOut', 'declined', 'noShow'];
+// `overstaying` sits next to `inside` because it is a subset of it — the rows
+// that make "Inside Now" untrustworthy. Reading them apart is the point.
+export const DRILL_KEYS: DrillKey[] = ['preApproved', 'walkInApproved', 'inside', 'overstaying', 'entered', 'checkedOut', 'declined', 'noShow'];
 
 export const DRILL_FILTER: Record<DrillKey, (v: Visit) => boolean> = {
   preApproved: (v) => v.status === 'approved',
   walkInApproved: (v) => v.status === 'walkin_approved',
   inside: (v) => v.status === 'checked_in',
+  overstaying: (v) => isOverstaying(v),
   entered: (v) => v.checked_in_at !== null,
   checkedOut: (v) => v.status === 'checked_out',
   declined: (v) => v.status === 'rejected',
@@ -44,6 +48,12 @@ export const DRILL_COPY: Record<DrillKey, DrillCopy> = {
     subtitle: 'Visitors currently on site',
     empty: 'No one is inside right now.',
     countLabel: 'on site',
+  },
+  overstaying: {
+    title: 'Overstaying',
+    subtitle: 'Still showing as inside long after they arrived — check them out if they have gone',
+    empty: 'Nobody has been inside unusually long.',
+    countLabel: 'overstaying',
   },
   entered: {
     title: 'Entered today',

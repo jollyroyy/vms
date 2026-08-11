@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '../supabaseClient';
 import type { Visit } from '../types/index';
 import { attachHostNames } from './hostNames';
+import { isDueToday, istDateKey } from './visitExpiry';
 
 export type PreApprovalFilter = 'today' | 'upcoming' | 'all';
 
@@ -10,18 +11,18 @@ export type UsePreApprovals = {
   loading: boolean;
 };
 
-function todayIso(): string {
-  return new Date().toISOString().slice(0, 10);
-}
-
 // Keyed predicates, not string matching — see CLAUDE.md "No fuzzy string
 // matching for known enums".
+//
+// `today` used to be `new Date().toISOString().slice(0, 10)` — the UTC date —
+// compared against a UTC slice of scheduled_for. This is an IST deployment, so
+// between 00:00 and 05:30 IST the app thought today was yesterday: a visit
+// booked for 01:00 IST was filed under the previous day and was invisible on the
+// morning it was due. istDateKey does the comparison in the deployment's own
+// timezone, and isDueToday folds in "not expired, not already arrived".
 const FILTER_PREDICATES: Record<PreApprovalFilter, (v: Visit, today: string) => boolean> = {
-  today: (v, today) => {
-    if (v.scheduled_for) return v.scheduled_for.slice(0, 10) === today;
-    return v.created_at.slice(0, 10) === today;
-  },
-  upcoming: (v, today) => !!v.scheduled_for && v.scheduled_for.slice(0, 10) > today,
+  today: (v) => isDueToday(v),
+  upcoming: (v, today) => !!v.scheduled_for && istDateKey(v.scheduled_for) > today,
   all: () => true,
 };
 
@@ -40,7 +41,7 @@ export function usePreApprovals(filter: PreApprovalFilter): UsePreApprovals {
     let rows = ((data as unknown as Visit[]) ?? []);
     rows = await attachHostNames(rows);
 
-    const today = todayIso();
+    const today = istDateKey(new Date());
     const predicate = FILTER_PREDICATES[filter];
     rows = rows.filter((v) => predicate(v, today));
 
