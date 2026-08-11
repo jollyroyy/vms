@@ -75,11 +75,38 @@
   `sync_profile_role_to_auth` trigger (migration 010) mirrors it into JWT `app_metadata`.
 
 ### Guard console (visitor-only deployment)
-- The guard **sidebar is four items** — Dashboard, Walk-in Visitors, Pre-Approvals,
-  Watchlist & Alerts. Defined in `src/components/layout/navLinks.tsx` (extracted out of
-  `Sidebar.tsx`). `Walk-in Visitors` carries **no sub-nav children**. The `/visitors`
-  entry is declared **twice** on purpose — guards see "Walk-in Visitors", staff see
-  "Visitors" — because the two roles land on different components at that route.
+- The guard **sidebar is five items** — Dashboard, Scan Pass, Walk-in Visitors,
+  Pre-Approvals, Watchlist & Alerts. Defined in `src/components/layout/navLinks.tsx`
+  (extracted out of `Sidebar.tsx`). `Walk-in Visitors` carries **no sub-nav children**.
+  The `/visitors` entry is declared **twice** on purpose — guards see "Walk-in
+  Visitors", staff see "Visitors" — because the two roles land on different components
+  at that route.
+- **QR scanning is UNCONDITIONAL — there is no `qr` feature flag, and adding one back
+  is forbidden.** `/guard/scan-pass` is the guard's dedicated scan desk: a visitor
+  holds up their pass, it resolves straight to their record and the check-in completes
+  on that page. It shipped in `7c2554b` gated behind `isFeatureEnabled('qr')` and was
+  moved to its own page and nav item in `bf8172f`, still gated. That gate was a trap,
+  not a safeguard: **Vite inlines `import.meta.env.*` at BUILD time and `.env` is
+  git-ignored**, so no deployed build ever had `VITE_FEATURE_QR` defined and every
+  guard on the live site saw a dead "QR scanning is unavailable on this deployment"
+  card, unfixable from the running app. The flag was deleted from `FeatureFlag`
+  entirely rather than defaulted to on, so it cannot be re-gated by accident. Both
+  `ScanPass.tsx` and `CheckInScanGate.tsx` render their scanner with no flag check,
+  and each has a test asserting the absence of an off-state. The other flags (`ocr`,
+  `faceVerify`, …) still exist and carry the same build-time caveat — an unset flag on
+  Vercel is not "off pending a decision", it is off permanently.
+- **The scanner accepts a PDF or an image of the pass, not just the live camera.**
+  `lib/pdfQrPage.ts` renders page 1 of a PDF to a PNG via `pdfjs-dist` (its worker
+  **must** stay a bundled same-origin asset — the app's CSP is `worker-src 'self'
+  blob:`, so a CDN workerSrc silently kills every decode), and `decodeQrFile()` in
+  `lib/decodeQrImage.ts` dispatches PDFs to it and images straight to `decodeQrImage`.
+  This exists because HODs hand visitors the PDF pass that `lib/qrPassPdf.ts`
+  generates; the old copy told the guard to screenshot it first, which is not a
+  workflow. A PDF that fails to render reports as `engine`, never as `no_code` — the
+  same rule the QR decoder already follows, so a guard is never sent chasing a better
+  photo for a fault that is ours. The upload path is also the ONLY way in on a machine
+  with no webcam or served over plain HTTP (`mediaDevices` is hidden on insecure
+  origins), which is why it gets primary button styling whenever the camera is down.
 - **The two arrival routes are two destinations.** A visitor either was booked in
   advance or was not, and a guard is doing one or the other:
   - `/guard/pre-approvals` is the **pre-booked** desk. `CheckInPanel` (QR gate,

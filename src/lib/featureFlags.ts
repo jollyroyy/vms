@@ -5,7 +5,12 @@
 // Fail-closed: anything other than the exact string 'true' is off, so a typo
 // in a .env file can never silently enable an unfinished feature in front of
 // a guard.
-export type FeatureFlag = 'qr' | 'ocr' | 'faceVerify' | 'aiRecommendation' | 'deviceReg';
+// 'qr' was removed, not defaulted to on. Vite inlines these at BUILD time and
+// .env is git-ignored, so a flag is only ever true in a build that had the var
+// present — which no deployment did. QR scanning is core guard workflow, so it
+// is now unconditional (see src/pages/Guard/ScanPass.tsx). Do not add it back:
+// a flag whose off-state ships a dead page is a liability, not a safeguard.
+export type FeatureFlag = 'ocr' | 'faceVerify' | 'aiRecommendation' | 'deviceReg';
 
 // Direct lookup map, not a fuzzy includes() chain — the compiler enforces
 // exhaustiveness whenever a new FeatureFlag is added.
@@ -22,7 +27,6 @@ export type FeatureFlag = 'qr' | 'ocr' | 'faceVerify' | 'aiRecommendation' | 'de
 //  * Reading inside a thunk keeps the lookup at call time, so tests can stub the
 //    environment after this module has been imported.
 const FLAG_ENV_VALUE: Record<FeatureFlag, () => unknown> = {
-  qr: () => import.meta.env.VITE_FEATURE_QR,
   ocr: () => import.meta.env.VITE_FEATURE_OCR,
   faceVerify: () => import.meta.env.VITE_FEATURE_FACE_VERIFY,
   aiRecommendation: () => import.meta.env.VITE_FEATURE_AI_RECOMMENDATION,

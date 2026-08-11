@@ -1,3 +1,11 @@
+// Scanning is UNCONDITIONAL — there is no feature flag on this page. It used
+// to sit behind `isFeatureEnabled('qr')`, which was a trap rather than a
+// safeguard: Vite inlines env vars at BUILD time and .env is git-ignored, so
+// every deployed build had the flag compiled to false and the guard was shown
+// "QR scanning is unavailable on this deployment" forever, with no way to fix
+// it from the running app. A scanner the deployment cannot turn on is not a
+// feature behind a flag, it is a broken page. Do not re-gate this.
+//
 // The camera lane of the two arrival routes. /guard/pre-approvals is the
 // list-and-search desk; this page is scan-first: a pass held up to the camera
 // resolves straight to the visitor and the whole check-in happens here. The
@@ -8,7 +16,6 @@
 import React, { useCallback, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { Visit } from '../../types/index';
-import { isFeatureEnabled } from '../../lib/featureFlags';
 import { attachHostNames } from '../../lib/hostNames';
 import { checkInScannedVisit } from '../../lib/checkInFlow';
 import GuardQRScan from './GuardQRScan';
@@ -86,17 +93,8 @@ export default function GuardScanPass(): React.ReactElement {
           onConfirm={handleConfirm}
           onScanResult={setIdScan}
         />
-      ) : isFeatureEnabled('qr') ? (
-        <GuardQRScan onResolved={(v) => void handleResolved(v)} onCancel={() => navigate('/guard/pre-approvals')} />
       ) : (
-        <div className="card p-5 max-w-lg">
-          <p className="text-sm font-semibold text-navy-700">QR scanning is unavailable on this deployment.</p>
-          <p className="text-sm text-navy-500 dark:text-navy-400 mt-1">Find the visitor by phone number on the Pre-Approvals desk instead.</p>
-          <button type="button" onClick={() => navigate('/guard/pre-approvals')}
-            className="mt-4 inline-flex items-center gap-2 bg-brand-600 hover:bg-brand-700 text-white font-bold px-5 py-2.5 rounded-xl text-sm transition-all">
-            Open Pre-Approvals
-          </button>
-        </div>
+        <GuardQRScan onResolved={(v) => void handleResolved(v)} onCancel={() => navigate('/guard/pre-approvals')} />
       )}
     </div>
   );

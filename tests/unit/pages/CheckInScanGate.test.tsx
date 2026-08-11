@@ -1,16 +1,7 @@
-// Covers CheckInScanGate: the QR-scan toggle wrapper around GuardQRScan. The
-// flag-off case is the most important test here — it guarantees the existing
-// manual check-in flow renders byte-for-byte the same (nothing at all from
-// this component) while the 'qr' feature flag is disabled.
+// Covers CheckInScanGate: the QR-scan toggle wrapper around GuardQRScan.
 import React from 'react';
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 import { render, screen, cleanup, fireEvent } from '@testing-library/react';
-
-const { mockIsEnabled } = vi.hoisted(() => ({
-  mockIsEnabled: vi.fn(),
-}));
-
-vi.mock('../../../src/lib/featureFlags', () => ({ isFeatureEnabled: mockIsEnabled }));
 
 const STUB_VISIT = { id: 'v-1', status: 'approved' };
 
@@ -29,32 +20,22 @@ import CheckInScanGate from '../../../src/pages/Guard/CheckInScanGate';
 describe('S-QR-GATE: CheckInScanGate', () => {
   afterEach(cleanup);
 
-  beforeEach(() => {
-    mockIsEnabled.mockReset();
-  });
-
-  it('renders nothing at all when the qr flag is off', () => {
-    mockIsEnabled.mockReturnValue(false);
-    const { container } = render(<CheckInScanGate onResolved={vi.fn()} />);
-    expect(container).toBeEmptyDOMElement();
-    expect(screen.queryByRole('button', { name: /scan qr/i })).not.toBeInTheDocument();
-  });
-
-  it('renders the Scan QR button when the flag is on', () => {
-    mockIsEnabled.mockReturnValue(true);
+  // The 'qr' feature flag was removed: Vite inlines env vars at build time and
+  // .env is git-ignored, so VITE_FEATURE_QR was permanently false in every
+  // deployed build and the scan entry point never appeared for any guard.
+  // There is no flag left to check here — this button must always be there.
+  it('always offers the scan entry point — there is no feature flag to switch it off', () => {
     render(<CheckInScanGate onResolved={vi.fn()} />);
     expect(screen.getByRole('button', { name: /scan qr/i })).toBeInTheDocument();
   });
 
   it('mounts the scanner when Scan QR is clicked', () => {
-    mockIsEnabled.mockReturnValue(true);
     render(<CheckInScanGate onResolved={vi.fn()} />);
     fireEvent.click(screen.getByRole('button', { name: /scan qr/i }));
     expect(screen.getByText('QR SCANNER STUB')).toBeInTheDocument();
   });
 
   it('bubbles the resolved visit up to the parent and leaves scan mode', () => {
-    mockIsEnabled.mockReturnValue(true);
     const onResolved = vi.fn();
     render(<CheckInScanGate onResolved={onResolved} />);
     fireEvent.click(screen.getByRole('button', { name: /scan qr/i }));
@@ -66,7 +47,6 @@ describe('S-QR-GATE: CheckInScanGate', () => {
   });
 
   it('returns to the button on cancel without calling onResolved', () => {
-    mockIsEnabled.mockReturnValue(true);
     const onResolved = vi.fn();
     render(<CheckInScanGate onResolved={onResolved} />);
     fireEvent.click(screen.getByRole('button', { name: /scan qr/i }));

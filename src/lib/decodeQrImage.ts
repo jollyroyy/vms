@@ -47,3 +47,24 @@ export async function decodeQrImage(file: File): Promise<QrImageDecode> {
     return { ok: false, reason: 'engine', detail };
   }
 }
+
+// HODs hand visitors a PDF pass (src/lib/qrPassPdf.ts), so "upload the pass"
+// must accept a PDF as well as a photo of one. Rendering a PDF page is a
+// different failure surface than decoding a QR (a corrupt PDF, a missing
+// worker, a pdfjs bug), and none of that is the guard's fault the way a bad
+// photo is — so a render failure is reported as our own 'engine' fault, same
+// bucket as a broken decoder, never folded into "bad image". Import
+// pdfQrPage lazily so pdfjs never loads on the (overwhelmingly common) plain
+// image path.
+export async function decodeQrFile(file: File): Promise<QrImageDecode> {
+  const { isPdfFile, renderPdfFirstPage } = await import('./pdfQrPage');
+  if (!isPdfFile(file)) {
+    return decodeQrImage(file);
+  }
+  const rendered = await renderPdfFirstPage(file);
+  if (!rendered.ok) {
+    return { ok: false, reason: 'engine', detail: rendered.detail };
+  }
+  const page = new File([rendered.blob], 'pass-page-1.png', { type: 'image/png' });
+  return decodeQrImage(page);
+}

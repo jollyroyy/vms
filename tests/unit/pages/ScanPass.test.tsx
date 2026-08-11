@@ -5,12 +5,10 @@ import { MemoryRouter, useLocation } from 'react-router-dom';
 import ScanPass from '../../../src/pages/Guard/ScanPass';
 import type { Visit } from '../../../src/types/index';
 
-const { mockCheckInScannedVisit, mockIsEnabled } = vi.hoisted(() => ({
+const { mockCheckInScannedVisit } = vi.hoisted(() => ({
   mockCheckInScannedVisit: vi.fn(),
-  mockIsEnabled: vi.fn(),
 }));
 
-vi.mock('../../../src/lib/featureFlags', () => ({ isFeatureEnabled: mockIsEnabled }));
 vi.mock('../../../src/lib/checkInFlow', () => ({ checkInScannedVisit: mockCheckInScannedVisit }));
 vi.mock('../../../src/lib/hostNames', () => ({ attachHostNames: (rows: any[]) => Promise.resolve(rows) }));
 
@@ -79,10 +77,8 @@ function renderPage() {
 }
 
 beforeEach(() => {
-  mockIsEnabled.mockReset();
   mockCheckInScannedVisit.mockReset();
   mockCheckInScannedVisit.mockResolvedValue({ ok: true, visitorName: 'Alice Johnson' });
-  mockIsEnabled.mockReturnValue(true);
   vi.stubGlobal('URL', { createObjectURL: vi.fn(() => 'blob:mock'), revokeObjectURL: vi.fn() });
 });
 
@@ -137,13 +133,15 @@ describe('S-SCAN-PASS: ScanPass', () => {
     expect(screen.getByRole('button', { name: /check in/i })).toBeInTheDocument();
   });
 
-  it('shows the unavailable state and a route to pre-approvals when the qr flag is off', async () => {
-    mockIsEnabled.mockReturnValue(false);
+  // The `qr` feature flag was removed: VITE_FEATURE_QR was permanently false in
+  // every deployed build (Vite inlines env vars at build time and .env is
+  // git-ignored), so this page used to always show a dead "unavailable" card
+  // with no way to enable scanning. The scanner must never be re-gated behind
+  // a flag again — assert both that it renders and that the old dead-end copy
+  // is gone.
+  it('always renders the scanner — there is no feature flag to switch it off', () => {
     renderPage();
-    expect(screen.getByText(/scanning is unavailable/i)).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: /open pre-approvals/i }));
-    await waitFor(() => {
-      expect(screen.getByTestId('location')).toHaveTextContent('/guard/pre-approvals');
-    });
+    expect(screen.getByText('QR SCANNER STUB')).toBeInTheDocument();
+    expect(screen.queryByText(/unavailable on this deployment/i)).not.toBeInTheDocument();
   });
 });

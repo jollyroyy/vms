@@ -26,6 +26,7 @@
     "date-fns": "^3.6.0",
     "jspdf": "^4.2.1",
     "onnxruntime-web": "^1.27.0",
+    "pdfjs-dist": "^6.2.108",
     "ppu-paddle-ocr": "^6.2.0",
     "qr-scanner": "^1.4.2",
     "qrcode": "^1.5.4",

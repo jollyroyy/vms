@@ -3,10 +3,13 @@
 // tap away: if the camera is unavailable, a lookup fails, or the guard simply
 // prefers it, `onCancel` hands control back to the phone-number search flow.
 // A photo of a pass held up to the live camera often fails to focus/decode
-// (glare, distance), so "Upload QR Image" runs the same payload through a
-// still-image decode instead of the live video stream.
+// (glare, distance), so "Upload Pass Image or PDF" runs the same payload
+// through a still-file decode instead of the live video stream. Visitors are
+// handed a PDF pass (see lib/qrPassPdf.ts), so the upload path must accept
+// that PDF directly rather than making the guard screenshot it first —
+// decodeQrFile handles both images and PDFs behind one call.
 import React, { useCallback, useRef, useState } from 'react';
-import { decodeQrImage } from '../../lib/decodeQrImage';
+import { decodeQrFile } from '../../lib/decodeQrImage';
 import { lookupVisitByQr } from '../../lib/qrLookup';
 import { useQrScanner } from '../../lib/useQrScanner';
 import type { Visit } from '../../types/index';
@@ -32,8 +35,10 @@ const STATUS_TEXT: Record<'invalid' | 'not_found', string> = {
 
 // Split by fault: `no_code` is something the guard can act on, `engine` is ours.
 const UPLOAD_FAIL_TEXT: Record<'no_code' | 'engine', string> = {
-  no_code: 'No QR code found in that image. Ask for the pass image (not the PDF), try a clearer photo, or search manually.',
-  engine: 'The QR reader failed to start on this device. Search manually and report this — a clearer photo will not help.',
+  no_code: 'No QR code found in that file. Try a clearer photo, upload the full pass page, or search manually.',
+  // Covers both a dead QR decoder and a PDF that would not render. Either way
+  // the fault is ours, not the file's, so it must never read as "bad photo".
+  engine: 'We could not read that file on this device — this is a fault in the app, not the pass. Search manually and report it; a clearer photo will not help.',
 };
 
 export default function GuardQRScan({ onResolved, onCancel }: Props): React.ReactElement {
@@ -89,7 +94,7 @@ export default function GuardQRScan({ onResolved, onCancel }: Props): React.Reac
     if (!file || inFlightRef.current) return;
 
     setUploading(true);
-    decodeQrImage(file).then((decoded) => {
+    decodeQrFile(file).then((decoded) => {
       setUploading(false);
       if (decoded.ok) {
         handleDecode(decoded.payload);
@@ -107,16 +112,16 @@ export default function GuardQRScan({ onResolved, onCancel }: Props): React.Reac
         <div>
           <h2 className="text-xl font-bold text-navy-900">Scan QR</h2>
           <p className="text-sm text-navy-500 dark:text-navy-400">
-            Hold the visitor's QR code up to the camera, or upload an image of it
-            (PNG or JPG — a PDF pass must be screenshotted first).
+            Hold the visitor's QR code up to the camera, or upload the pass as
+            an image or a PDF.
           </p>
         </div>
 
         {state === 'unavailable' || state === 'error' ? (
           <p className="text-sm font-semibold text-navy-600">
             {state === 'error'
-              ? 'The QR scanner failed to start on this device. Upload an image of the pass, or search for the visitor instead.'
-              : 'Camera unavailable — search for the visitor instead.'}
+              ? 'The QR scanner failed to start on this device. Upload the pass file below, or search for the visitor instead.'
+              : 'Camera unavailable on this device. Upload the pass file below, or search for the visitor instead.'}
           </p>
         ) : (
           <div className="relative w-full max-w-xs mx-auto">
@@ -154,7 +159,7 @@ export default function GuardQRScan({ onResolved, onCancel }: Props): React.Reac
           <input
             ref={fileInputRef}
             type="file"
-            accept="image/*"
+            accept="image/*,application/pdf,.pdf"
             onChange={handleFileChange}
             className="hidden"
             aria-hidden="true"
@@ -163,9 +168,16 @@ export default function GuardQRScan({ onResolved, onCancel }: Props): React.Reac
           <button
             onClick={() => fileInputRef.current?.click()}
             disabled={uploading}
-            className="btn-secondary text-sm px-5 py-2.5 disabled:opacity-60"
+            className={
+              // Camera down/broken: uploading the pass file is the only way
+              // forward on this device, so it gets primary emphasis instead
+              // of sitting as a quiet secondary option below a dead camera.
+              state === 'unavailable' || state === 'error'
+                ? 'bg-brand-600 hover:bg-brand-700 text-white font-bold px-5 py-2.5 rounded-xl text-sm transition-all disabled:opacity-60'
+                : 'btn-secondary text-sm px-5 py-2.5 disabled:opacity-60'
+            }
           >
-            {uploading ? 'Reading Image...' : 'Upload QR Image'}
+            {uploading ? 'Reading Pass...' : 'Upload Pass Image or PDF'}
           </button>
           <button onClick={onCancel} className="btn-secondary text-sm px-5 py-2.5">
             Search Manually
