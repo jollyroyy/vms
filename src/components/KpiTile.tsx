@@ -10,7 +10,12 @@ export type KpiTileSpec = {
   tone: string;
   /** rgb triple driving the icon plate. */
   tint: string;
-  icon: React.ReactNode;
+  /** Optional. Omitted where a glyph would only restate the label — the
+   *  Visitors board's "All Visitors" tile is the board itself with no filter
+   *  applied, and a list glyph there says nothing the words do not while
+   *  reading as a menu affordance the tile does not have. The plate is not
+   *  rendered at all in that case, rather than left empty and tinted. */
+  icon?: React.ReactNode;
 };
 
 type Props = {
@@ -67,7 +72,7 @@ export default function KpiTile({
       style={{ animationDelay: `${index * 0.04}s`, ['--kpi-tint' as string]: spec.tint }}
       className={`gate-tile kpi-tile ${active ? 'gate-tile-active' : ''} animate-slide-up`}
     >
-      <span className={`kpi-plate ${spec.tone}`}>{spec.icon}</span>
+      {spec.icon && <span className={`kpi-plate ${spec.tone}`}>{spec.icon}</span>}
 
       <span className="min-w-0 flex-1">
         {value !== null && (

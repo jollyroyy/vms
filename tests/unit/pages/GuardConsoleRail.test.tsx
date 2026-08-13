@@ -101,19 +101,59 @@ describe('GuardConsole â€” KPI rail', () => {
     renderAt('/visitors');
     await waitFor(() => expect(screen.getAllByText('Alice Johnson')).toHaveLength(3));
 
-    expect(within(screen.getByRole('button', { name: /Currently Inside/i })).getByText('1')).toBeInTheDocument();
     expect(within(screen.getByRole('button', { name: /Checked Out/i })).getByText('1')).toBeInTheDocument();
     expect(within(screen.getByRole('button', { name: /Booked ahead, not yet arrived/i })).getByText('1')).toBeInTheDocument();
     expect(within(screen.getByRole('button', { name: /All Visitors/i })).getByText('3')).toBeInTheDocument();
   });
 
-  it('marks the tile of the current segment as expanded', async () => {
+  // The board carries no Currently Inside tile (client instruction,
+  // 2026-08-13). The SEGMENT is untouched — /visitors/inside still routes, still
+  // lists and is still the only place a guard can check a visitor out (the
+  // check-out suite below renders there) — it is the tile that went.
+  it('has no Currently Inside tile on the board', async () => {
     mockVisitData.current = [visit()];
-    renderAt('/visitors/inside');
+    renderAt('/visitors');
     await waitFor(() => expect(screen.getByText('Alice Johnson')).toBeInTheDocument());
 
-    expect(screen.getByRole('button', { name: /Currently Inside/i })).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.queryByRole('button', { name: /Currently Inside/i })).toBeNull();
+  });
+
+  it('still lists and checks out the Inside segment with no tile for it', async () => {
+    mockVisitData.current = [visit()];
+    renderAt('/visitors/inside');
+    await waitFor(() => expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Inside'));
+
+    expect(screen.getByText('Alice Johnson')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Check Out/i })).toBeInTheDocument();
+  });
+
+  it('marks the tile of the current segment as expanded', async () => {
+    mockVisitData.current = [
+      visit({ status: 'approved', checked_in_at: null, scheduled_for: `${istToday()}T05:00:00Z` }),
+    ];
+    renderAt('/visitors/expected');
+    await waitFor(() => expect(screen.getByText('Alice Johnson')).toBeInTheDocument());
+
+    expect(screen.getByRole('button', { name: /Booked ahead, not yet arrived/i }))
+      .toHaveAttribute('aria-expanded', 'true');
     expect(screen.getByRole('button', { name: /All Visitors/i })).toHaveAttribute('aria-expanded', 'false');
+  });
+
+  // All Visitors carries no icon plate (client instruction, 2026-08-13). It is
+  // the board's "no filter" tile — the glyph was a list icon standing for
+  // "everything", which is what the label already says, and it read as a menu
+  // affordance the tile does not have. Every other tile keeps its plate: those
+  // glyphs distinguish one lane from another.
+  it('renders the All Visitors tile with no icon plate, while the others keep theirs', async () => {
+    mockVisitData.current = [visit()];
+    renderAt('/visitors');
+    await waitFor(() => expect(screen.getByText('Alice Johnson')).toBeInTheDocument());
+
+    const all = screen.getByRole('button', { name: /All Visitors/i });
+    expect(all.querySelector('.kpi-plate')).toBeNull();
+
+    const expected = screen.getByRole('button', { name: /Booked ahead, not yet arrived/i });
+    expect(expected.querySelector('.kpi-plate')).not.toBeNull();
   });
 
   it('renders the walk-in register tile without a numeral â€” it is an action, not a count', async () => {

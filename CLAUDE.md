@@ -182,6 +182,19 @@
   same card in two sizes on two screens, which made a guard re-learn it on each. The
   rule that survives from the old layout: a filter must never render BELOW the content
   it filters, which is why the board is above the list and not beside it.
+  - **There is no Currently Inside tile** (removed 2026-08-13, client instruction). Only
+    the TILE went: `/visitors/inside` still routes, still lists, and is still the sole
+    place in the guard surface that checks a visitor out — delete the segment and nobody
+    can ever leave. `VisitorKpiSegment = Exclude<VisitorSegment, 'inside'>` in
+    `visitorKpis.tsx` enforces it, so re-adding the tile is a compile error rather than a
+    silent edit. The guard DASHBOARD keeps its own Currently Inside tile; that board is
+    situational awareness and answers a different question.
+  - **The All Visitors tile has NO icon.** `KpiTileSpec.icon` is optional and `KpiTile`
+    drops the whole `.kpi-plate` when it is absent — not an empty tinted square. The glyph
+    was a three-line list mark standing for "everything", which is what the label already
+    says, and it read as a menu affordance the tile does not have. Every other tile keeps
+    its plate: those glyphs distinguish one lane from another, and this one distinguished
+    nothing. Guarded by `GuardConsoleRail.test.tsx`.
 - **The guard dashboard has no page heading.** `<h1>Dashboard</h1>` was removed
   2026-08-13 (client instruction) — the sidebar item the guard just clicked already
   says it, and the page restating its own name spent the widest line on screen on the

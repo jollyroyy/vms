@@ -1,7 +1,7 @@
 import React from 'react';
 import type { VisitorSegment } from '../../lib/visitorSegments';
 import type { KpiTileSpec } from '../../components/KpiTile';
-import { glyph, USERS, WALKING, CALENDAR_CHECK, DOOR_OUT, HOURGLASS } from './dashboardTiles';
+import { glyph, WALKING, CALENDAR_CHECK, DOOR_OUT, HOURGLASS } from './dashboardTiles';
 
 // Look and copy for the Visitors page KPI rail, in one place so VisitorKpiRail
 // stays a layout file and KpiTile stays a card.
@@ -11,8 +11,6 @@ import { glyph, USERS, WALKING, CALENDAR_CHECK, DOOR_OUT, HOURGLASS } from './da
 // orange for something owed a human's attention. A hue only means something if
 // it means the same thing on every screen.
 
-// A list: everything on the board, no filter.
-const LIST = ['M3.75 6.75h16.5M3.75 12h16.5M3.75 17.25h16.5'];
 const PLUS = ['M12 4.5v15m7.5-7.5h-15'];
 
 // No Overstaying tile (removed 2026-08-13, client instruction). It lives on
@@ -20,22 +18,32 @@ const PLUS = ['M12 4.5v15m7.5-7.5h-15'];
 // was a second door into a subset of Inside. The dashboard tile is still the
 // only live mechanism for catching a forgotten check-out, so do not remove
 // that one too.
-export const VISITOR_KPI_ORDER: VisitorSegment[] = [
-  'all', 'expected', 'inside', 'pending', 'walkinApproved', 'checkedOut', 'walkin',
+//
+// No **Currently Inside** tile either (removed 2026-08-13, client instruction).
+// Only the TILE went: `/visitors/inside` still routes, still lists and is still
+// the sole place in the guard surface that checks a visitor out, so the segment
+// itself must not follow it — delete that and nobody can ever leave. The type
+// below is what enforces the removal: `inside` is excluded from the record, so
+// re-adding the tile is a compile error rather than a silent edit.
+export type VisitorKpiSegment = Exclude<VisitorSegment, 'inside'>;
+
+export const VISITOR_KPI_ORDER: VisitorKpiSegment[] = [
+  'all', 'expected', 'pending', 'walkinApproved', 'checkedOut', 'walkin',
 ];
 
-export const VISITOR_KPIS: Record<VisitorSegment, KpiTileSpec> = {
+export const VISITOR_KPIS: Record<VisitorKpiSegment, KpiTileSpec> = {
   all: {
+    // NO ICON, by instruction. This is the board with no filter applied, and a
+    // list glyph only restated the label while reading as a menu affordance the
+    // tile does not have. `KpiTile` drops the plate entirely when `icon` is
+    // absent — it is not left empty and tinted. Every other tile keeps its
+    // glyph, because those distinguish one lane from another.
     label: 'All Visitors', hint: 'Everyone on this board',
-    tone: 'text-navy-800', tint: 'var(--c-navy-200)', icon: glyph(...LIST),
+    tone: 'text-navy-800', tint: 'var(--c-navy-200)',
   },
   expected: {
     label: 'Expected', hint: 'Booked ahead, not yet arrived',
     tone: 'text-brand-600', tint: 'var(--c-brand-100)', icon: glyph(...CALENDAR_CHECK),
-  },
-  inside: {
-    label: 'Currently Inside', hint: 'Right now',
-    tone: 'text-success-600', tint: 'var(--c-success-100)', icon: glyph(...USERS),
   },
   pending: {
     // Orange, matching the no-show tile's "owed a human's attention" colour —
