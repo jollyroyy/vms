@@ -208,21 +208,8 @@
     @apply flex flex-col gap-3;
   }
 
-  /* --- Toolbar ------------------------------------------------------------
-     Sort only. The search box that lived here was removed — the top bar's
-     global search already answers that question, and across every visit
-     rather than only the rows this segment happened to load. */
-  .stack-toolbar {
-    @apply flex items-center gap-3 flex-wrap;
-  }
-  .stack-sort {
-    @apply relative flex items-center gap-2 shrink-0;
-  }
-  .stack-sort-select {
-    @apply pl-9 pr-8 w-auto;
-    min-height: 44px;
-  }
-  .stack-sort svg {
-    @apply absolute left-3 pointer-events-none;
-  }
+  /* There is no toolbar above the list. `.stack-toolbar`, `.stack-sort` and
+     `.stack-sort-select` were deleted along with the search box and then the
+     sort dropdown (2026-08-13) — see the note at the top of
+     VisitorStackList.tsx. Nothing sits between the heading and the cards. */
 }
