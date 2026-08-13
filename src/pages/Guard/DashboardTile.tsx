@@ -21,10 +21,12 @@ type Props = {
 // were reading to answer a question about it. Reading the board should never
 // cost you the board.
 //
-// The qualifier line ("Today" / "Right now") is doing real work, not decorating:
-// half these tiles are cumulative counts of the day and half are live counts of
-// this instant, and a guard glancing at two numbers side by side has no other
-// way to tell which is which.
+// The qualifier line is optional and several tiles do without it. Entries and
+// Exits used to read "Today", which the section heading directly above the grid
+// already says — the same word twice in one glance, buying nothing. Where a
+// hint survives it is drawing a distinction the label cannot ("Right now" on a
+// live count, "Booked ahead, not yet arrived" on a population that has not
+// shown up yet), which is the only reason for it to be there.
 export default function DashboardTile({
   drillKey, value, loading, expanded, index, onDrill,
 }: Props): React.ReactElement {
@@ -43,9 +45,11 @@ export default function DashboardTile({
       <span className="min-w-0 flex-1">
         <span className={`gate-tile-value block ${t.tone}`}>{loading ? '—' : value}</span>
         <span className="gate-tile-label block">{t.label}</span>
-        <span className="block text-[10px] text-navy-400 dark:text-navy-400 mt-0.5 leading-snug">
-          {t.hint}
-        </span>
+        {t.hint && (
+          <span className="block text-[10px] text-navy-400 dark:text-navy-400 mt-0.5 leading-snug">
+            {t.hint}
+          </span>
+        )}
       </span>
 
       <svg className="kpi-chevron" fill="none" viewBox="0 0 24 24" stroke="currentColor"

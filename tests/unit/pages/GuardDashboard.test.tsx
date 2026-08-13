@@ -210,6 +210,17 @@ describe('GuardDashboard', () => {
     expect(screen.getByTestId('activity-panel')).toHaveAttribute('data-count', '2');
   });
 
+  // The section heading above the grid already says "Today". A tile repeating
+  // it underneath is the same word twice in one glance — removed 2026-08-13.
+  // Asserted on the tile's own text, not the page's, so the heading itself is
+  // free to keep saying it.
+  it('does not repeat "Today" as a subtext under any tile', () => {
+    renderDashboard();
+    for (const label of TILE_LABELS) {
+      expect(tileFor(label).textContent).not.toMatch(/Today/);
+    }
+  });
+
   // Regression guard: the Queue block (awaiting approval / expected /
   // overdue) was removed — that information lives in the console, not here.
   it('renders no queue block', () => {

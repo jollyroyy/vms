@@ -19,7 +19,10 @@ import type { DrillKey } from '../../lib/dashboardDrill';
 
 type Tile = {
   label: string;
-  hint: string;
+  /** Optional qualifier under the label. Omitted where it would only repeat
+   *  the section heading — the grid already sits under "Today", so a tile
+   *  reading "Today" underneath it says nothing the guard has not just read. */
+  hint?: string;
   /** Text colour of the numeral. */
   tone: string;
   /** rgb triple driving the icon plate. */
@@ -59,11 +62,11 @@ const CLOCK = ['M12 6.75v5.25l3.25 2', 'M21 12a9 9 0 11-18 0 9 9 0 0118 0z'];
 // things still owed a human's attention.
 export const TILES: Record<DrillKey, Tile> = {
   entered: {
-    label: 'Entries', hint: 'Today', tone: 'text-navy-800', tint: 'var(--c-navy-200)',
+    label: 'Entries', tone: 'text-navy-800', tint: 'var(--c-navy-200)',
     icon: glyph(...DOOR_IN),
   },
   checkedOut: {
-    label: 'Exits', hint: 'Today', tone: 'text-navy-500', tint: 'var(--c-navy-200)',
+    label: 'Exits', tone: 'text-navy-500', tint: 'var(--c-navy-200)',
     icon: glyph(...DOOR_OUT),
   },
   inside: {
