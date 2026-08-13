@@ -8,8 +8,6 @@ import SidebarAnalytics from './SidebarAnalytics';
 import SidebarProfile from './SidebarProfile';
 import Logo from '../Logo';
 import { linksForRole } from './navLinks';
-import SidebarNavGroup from './SidebarNavGroup';
-import { useVisitorCounts } from '../../lib/useVisitorCounts';
 import ModalCloseButton from '../ModalCloseButton';
 import { useEscapeKey } from '../../lib/useEscapeKey';
 
@@ -35,17 +33,9 @@ export default function Sidebar({ session, role, collapsed: collapsedProp, onCol
   const [collapsedInternal, setCollapsedInternal] = useState<boolean>(() => {
     try { return window.localStorage.getItem(COLLAPSE_KEY) === '1'; } catch { return false; }
   });
-  // Which nav group is expanded, keyed by its route. One at a time: two open
-  // groups would push the rest of the nav below the fold on a gate terminal.
-  // Seeded open when the current route is already inside a group, so a guard
-  // who lands on /visitors/inside can see where they are without hunting.
-  const [openGroup, setOpenGroup] = useState<string | null>(() => {
-    const group = links.find((l) => l.children?.length && loc.pathname.startsWith(l.to));
-    return group?.to ?? null;
-  });
-  // Only the guard has a counted sub-nav, so nobody else pays for the query or
-  // the extra realtime subscription.
-  const visitorCounts = useVisitorCounts(role === 'guard');
+  // Which nav item is active is decided per-link below; there are no groups
+  // any more (the Visitors segments moved onto the page as KPI tiles), so
+  // there is no expand/collapse state to hold.
   useEscapeKey(() => setMobileOpen(false), mobileOpen);
   const collapsed = collapsedProp ?? collapsedInternal;
   const setCollapsed = (next: boolean | ((c: boolean) => boolean)) => {
@@ -107,19 +97,6 @@ export default function Sidebar({ session, role, collapsed: collapsedProp, onCol
       <div className="flex-1 overflow-y-auto px-3 space-y-1.5 pb-4">
         {links.map((link) => {
           const { to, label, icon } = link;
-          if (link.children?.length) {
-            return (
-              <SidebarNavGroup
-                key={`${to}-group`}
-                link={link}
-                pathname={loc.pathname}
-                isCollapsed={isCollapsed}
-                open={openGroup === to}
-                onToggle={() => setOpenGroup((g) => (g === to ? null : to))}
-                counts={visitorCounts}
-              />
-            );
-          }
           const active = loc.pathname === to || (to !== '/' && loc.pathname.startsWith(to));
           return (
             <Link key={to} to={to} title={isCollapsed ? label : undefined}

@@ -16,45 +16,9 @@ import { checkInScannedVisit } from '../../lib/checkInFlow';
 import { checkInRecurringVisitor } from '../../lib/checkInRecurring';
 import { useVisitHistorySearch } from '../../lib/useVisitHistorySearch';
 import type { IdScanResult } from './IdScanOverlay';
+import { type MatchItem, type MatchSource, type ApprovalType } from './checkInTypes';
 
-type MatchSource = 'pre_approved' | 'recurring';
-export type ApprovalType = 'pre_approved' | 'walkin_approved' | 'recurring';
-
-export interface MatchItem {
-  id: string;
-  source: MatchSource;
-  visitorName: string;
-  visitorPhone: string;
-  departmentName: string;
-  /** Kept alongside the name so the department picker can narrow server-side
-   *  search hits too — those arrive from lib/searchVisits, not from the
-   *  panel's own fetch, so they have no other way to be filtered. */
-  departmentId: string;
-  purpose: string;
-  hostName: string;
-  vendorName: string;
-  approvalType: ApprovalType;
-  approvedAt: string | null;
-  scheduledFor: string | null;
-  /** False for a pass booked for a later day, or one whose day has passed.
-   *  Such a row is findable BY SEARCH but never checkable-in — see
-   *  buildMatchItems for why the two differ. */
-  dueToday: boolean;
-  /** The visit's own status, so a search hit can say what became of the pass.
-   *  Null only for recurring visitors, who have no visit row until check-in.
-   *  A pass that is closed (checked_out / rejected / cancelled / no_show /
-   *  expired) is still findable — searching answers "does this exist?" — but
-   *  is never checkable-in, which `isCheckableStatus` decides. */
-  status: VisitStatus | null;
-  visitId?: string;
-  // Carried on the pass and shown back to the guard once it is scanned, so
-  // they can check the person in front of them against the record. Absent for
-  // recurring visitors, who have no visit row until they are checked in.
-  photoUrl?: string | null;
-  idType?: string | null;
-  idLast4?: string | null;
-  refNumber?: string | null;
-}
+export type { MatchItem, ApprovalType } from './checkInTypes';
 
 type Props = {
   today: string;
@@ -73,6 +37,7 @@ export default function CheckInPanel({ today, onCheckInSuccess }: Props): React.
   const [selectedMatch, setSelectedMatch] = useState<MatchItem | null>(null);
   const [photoBlob, setPhotoBlob] = useState<Blob | null>(null);
   const [idScan, setIdScan] = useState<IdScanResult | null>(null);
+  const [cardNumber, setCardNumber] = useState('');
   const [carrying, setCarrying] = useState(false);
   const [remarks, setRemarks] = useState('');
   const [checkingIn, setCheckingIn] = useState(false);
@@ -157,7 +122,7 @@ export default function CheckInPanel({ today, onCheckInSuccess }: Props): React.
         // both visitor and visit — a genuinely different write, kept in its own
         // module (lib/checkInRecurring.ts) rather than inlined here.
         const outcome = await checkInRecurringVisitor({
-          match: selectedMatch, photoBlob, carrying, remarks, idScan,
+          match: selectedMatch, photoBlob, carrying, remarks, idScan, cardNumber,
         });
         if (!outcome.ok) { setError(outcome.message); return; }
       } else {
@@ -166,11 +131,11 @@ export default function CheckInPanel({ today, onCheckInSuccess }: Props): React.
         // one the Scan Pass camera lane uses. One write path, two surfaces.
         const visit = preApproved.find((v) => v.id === selectedMatch.visitId) ?? null;
         const outcome = await checkInScannedVisit({
-          match: selectedMatch, visit, photoBlob, carrying, remarks, idScan,
+          match: selectedMatch, visit, photoBlob, carrying, remarks, idScan, cardNumber,
         });
         if (!outcome.ok) { setError(outcome.message); return; }
       }
-      setPhotoBlob(null); setSelectedMatch(null); setCarrying(false); setRemarks('');
+      setPhotoBlob(null); setSelectedMatch(null); setCardNumber(''); setCarrying(false); setRemarks('');
       onCheckInSuccess(selectedMatch.visitorName);
       void loadData();
     } catch (err) {
@@ -190,6 +155,7 @@ export default function CheckInPanel({ today, onCheckInSuccess }: Props): React.
     const [withHost] = await attachHostNames([visit]);
     setSelectedMatch(visitToMatchItem(withHost ?? visit));
     setPhotoBlob(null);
+    setCardNumber('');
     setCarrying(false);
     setRemarks('');
     setError('');
@@ -236,10 +202,12 @@ export default function CheckInPanel({ today, onCheckInSuccess }: Props): React.
         onCarryingChange={setCarrying}
         remarks={remarks}
         onRemarksChange={setRemarks}
+        cardNumber={cardNumber}
+        onCardNumberChange={setCardNumber}
         onBack={() => { setSelectedMatch(null); setError(''); }}
         onCapture={(blob) => setPhotoBlob(blob)}
         onRetake={() => setPhotoBlob(null)}
-        onCancel={() => { setSelectedMatch(null); setPhotoBlob(null); setIdScan(null); setCarrying(false); setRemarks(''); }}
+        onCancel={() => { setSelectedMatch(null); setPhotoBlob(null); setIdScan(null); setCardNumber(''); setCarrying(false); setRemarks(''); }}
         onConfirm={performCheckIn}
         onScanResult={setIdScan}
       />
@@ -261,7 +229,7 @@ export default function CheckInPanel({ today, onCheckInSuccess }: Props): React.
         preApproved={preApproved}
         checkedInIds={checkedInIds}
         isExpired={isExpired}
-        onSelectMatch={(m) => { setSelectedMatch(m); setPhotoBlob(null); setIdScan(null); setCarrying(false); setRemarks(''); setError(''); }}
+        onSelectMatch={(m) => { setSelectedMatch(m); setPhotoBlob(null); setIdScan(null); setCardNumber(''); setCarrying(false); setRemarks(''); setError(''); }}
         showWalkIn={showWalkIn}
         onShowWalkIn={() => setShowWalkIn(true)}
         onWalkInSubmitted={(name) => { onCheckInSuccess(name); setShowWalkIn(false); setSearch(''); void loadData(); }}

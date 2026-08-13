@@ -1,11 +1,8 @@
 import React from 'react';
 import type { UserRole } from '../../types/index';
-import {
-  SEGMENT_META, VISITOR_SEGMENTS, segmentPath, type VisitorSegment,
-} from '../../lib/visitorSegments';
 
 // Single source of truth for sidebar navigation. Extracted out of Sidebar.tsx
-// so that file stays under the 300-line cap once guard sub-navigation landed.
+// so that file stays under the 300-line cap.
 //
 // Guard nav is deliberately three items — this is a visitor-only deployment and
 // every entry has to earn its place on a screen someone stares at all shift.
@@ -15,27 +12,21 @@ import {
 // Kiosk and Search are intentionally NOT here:
 // all three are still routable (see ROLE_ROUTES in lib/roleRoutes.ts) — the
 // kiosk runs on its own device, Daily Staff isn't visitor check-in, and Search
-// duplicated lookups the Visitors tabs already cover — but none of that
+// duplicated lookups the Visitors page already covers — but none of that
 // revokes access. Do not re-add them without re-reading that decision.
-
-/** A second-level nav entry. Has no icon of its own — the parent carries the
- *  glyph and the children are read as a list under it. `segment` is what the
- *  live count badge is looked up by (lib/useVisitorCounts.ts); a child with no
- *  segment simply renders no badge. */
-export type NavChild = {
-  to: string;
-  label: string;
-  segment?: VisitorSegment;
-};
+//
+// Visitors is a single link, not a group (since 2026-08-13): the segments that
+// used to expand under it — Expected, Inside, Pending, … — now live as KPI
+// tiles on the page itself (src/pages/Guard/VisitorKpiRail.tsx), counted from
+// the page's own data. The sidebar naming them was the old answer to "where
+// can I go"; the page carrying the counts and the filters is the same answer
+// one click closer.
 
 export type NavLink = {
   to: string;
   label: string;
   icon: React.ReactNode;
   roles: UserRole[];
-  /** Present on a nav GROUP. The item expands in place rather than navigating
-   *  somewhere that hides its own contents. */
-  children?: NavChild[];
 };
 
 const icon = (d: string): React.ReactNode => (
@@ -59,27 +50,10 @@ export const ALL_LINKS: NavLink[] = [
   // visitor and the check-in happens on this page. Listed second because it is
   // the fastest way to start the pre-booked flow.
   { to: '/guard/scan-pass', label: 'Scan Pass', roles: ['guard'], icon: icon(ICON_SCAN) },
-  // The Visitors GROUP. It expands into the segments defined in
-  // lib/visitorSegments.ts rather than listing them here, so the nav cannot
-  // offer a segment the page has no case for, and the labels are written once.
-  //
-  // This absorbed two former top-level items. "Walk-in Visitors" was this same
-  // route with a tab bar hidden inside it — the nav named one of its three tabs
-  // and gave no hint the others existed. "Pre-Approvals" is now the Expected
-  // segment, which is the same population under the name a guard uses for it.
-  // Both old routes stay reachable (see ROLE_ROUTES.guard); only the nav
-  // changed.
-  {
-    to: '/visitors',
-    label: 'Visitors',
-    roles: ['guard'],
-    icon: icon(ICON_USERS),
-    children: VISITOR_SEGMENTS.map((s) => ({
-      to: segmentPath(s),
-      label: SEGMENT_META[s].navLabel,
-      segment: s,
-    })),
-  },
+  // A single link, not a group: the eight segments live on the page as KPI
+  // tiles (VisitorKpiRail). This route is also the walk-in lane — the tile
+  // rail holds the register behind the same URL.
+  { to: '/visitors', label: 'Visitors', roles: ['guard'], icon: icon(ICON_USERS) },
   // Staff see a different component at this route (VisitorsDashboard, not the
   // guard console), so they get the unqualified label and no sub-nav.
   { to: '/visitors', label: 'Visitors', roles: ['staff'], icon: icon(ICON_USERS) },

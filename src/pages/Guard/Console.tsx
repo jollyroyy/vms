@@ -8,6 +8,8 @@ import { istDateKey } from '../../lib/visitExpiry';
 import { segmentFromSlug, visitorLoadFilter } from '../../lib/visitorSegments';
 import VisitorSegmentContent from './VisitorSegmentContent';
 import VisitorCheckInFlow from './VisitorCheckInFlow';
+import VisitorKpiRail from './VisitorKpiRail';
+import CardReturnConfirm from './CardReturnConfirm';
 import VisitorDetails from '../../components/VisitorDetails';
 import { type WalkInCheckIn } from './GuardWalkInApproved';
 import { uploadPhoto } from '../../lib/photoUpload';
@@ -47,6 +49,8 @@ export default function GuardConsole(): React.ReactElement {
   /** The expected visitor being checked in, if the flow is open. */
   const [checkingIn, setCheckingIn] = useState<Visit | null>(null);
   const [detailsOf, setDetailsOf] = useState<Visit | null>(null);
+  /** The inside visitor whose check-out is waiting on the card-return gate. */
+  const [exitTarget, setExitTarget] = useState<Visit | null>(null);
 
   // Today's visits PLUS every visit still open, whatever day it was raised on.
   //
@@ -83,15 +87,28 @@ export default function GuardConsole(): React.ReactElement {
   // for a visitor the new segment does not even list.
   useEffect(() => { setCheckingIn(null); setDetailsOf(null); }, [segment]);
 
+  // The check-out WRITE. It is reached only through the card-return confirm
+  // (CardReturnConfirm) — the dialog shows the card number the guard must
+  // collect and its confirm button stays disabled until the card is ticked
+  // back, so `cardReturned` here is the record of a witnessed handover.
   const logExit = async (visit: Visit) => {
     if (visit.status !== 'checked_in') { setActionErr('Visitor is not checked in.'); return; }
     setActionErr('');
     try {
       const now = new Date().toISOString();
+      // A card is returned only when one was issued. `visitor_card_returned_at`
+      // is the "did the card come back" answer (migration 076), distinct from
+      // checked_out_at, which says the visitor left.
       const { error } = await supabase.from('visits')
-        .update({ status: 'checked_out', checked_out_at: now, exit_verified: true })
+        .update({
+          status: 'checked_out',
+          checked_out_at: now,
+          exit_verified: true,
+          visitor_card_returned_at: visit.visitor_card_number ? now : null,
+        })
         .eq('id', visit.id);
       if (error) { setActionErr(safeErrorMessage(error, 'Failed to log exit.')); return; }
+      setExitTarget(null);
       setSuccessMsg(`"${visit.visitor?.full_name ?? 'Visitor'}" checked out.`);
       // The banner stays until dismissed rather than vanishing after 4s, because
       // it now carries the only route to Undo. A mis-clicked check-out is noticed
@@ -106,11 +123,14 @@ export default function GuardConsole(): React.ReactElement {
   // Reverses the check-out just logged. The 15-minute limit is enforced in the
   // database (migration 074), not here — this button simply disappears with the
   // banner, and a stale attempt comes back as the trigger's own message.
+  // `visitor_card_returned_at` is cleared too: the card is no longer "returned"
+  // when its visitor is back inside (076's consistency CHECK says a returned
+  // card belongs to a closed visit).
   const undoExit = async (visit: Visit) => {
     setActionErr('');
     try {
       const { error } = await supabase.from('visits')
-        .update({ status: 'checked_in', checked_out_at: null, exit_verified: null })
+        .update({ status: 'checked_in', checked_out_at: null, exit_verified: null, visitor_card_returned_at: null })
         .eq('id', visit.id);
       if (error) { setActionErr(safeErrorMessage(error, 'Could not undo the check-out.')); return; }
       setSuccessMsg(`"${visit.visitor?.full_name ?? 'Visitor'}" is back on the inside list.`);
@@ -128,11 +148,21 @@ export default function GuardConsole(): React.ReactElement {
     try {
       const { photoPath, photoData } = await uploadPhoto(details.photoBlob);
       const remarks = details.remarks.trim();
+      // The ID read at the gate belongs on the visitor row, the same way
+      // checkInScannedVisit persists it for the pre-approved lane — one
+      // identity record whatever the arrival route.
+      if (details.idScan?.idType || details.idScan?.idLast4) {
+        await supabase.from('visitors').update({
+          id_type: details.idScan.idType || null,
+          id_last4: details.idScan.idLast4 || null,
+        }).eq('id', visit.visitor_id);
+      }
       const { error } = await supabase.from('visits').update({
         status: 'checked_in',
         checked_in_at: new Date().toISOString(),
         carrying_material: details.carrying,
         carrying_remarks: details.carrying && remarks ? remarks : null,
+        visitor_card_number: details.cardNumber.trim(),
         ...(photoData ? { photo_data: photoData } : {}),
         ...(photoPath ? { photo_path: photoPath } : {}),
       } as never).eq('id', visit.id);
@@ -197,20 +227,45 @@ export default function GuardConsole(): React.ReactElement {
         </div>
       )}
 
-      <VisitorSegmentContent
-        segment={segment}
-        visits={visits}
-        loading={loading}
-        busyId={busyId}
-        onCheckIn={setCheckingIn}
-        onCheckOut={logExit}
-        onWalkInCheckIn={(v, details) => { void checkInWalkIn(v, details); }}
-        onWalkInSubmitted={onCheckInSuccess}
-        onSelect={setDetailsOf}
-      />
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-5 items-start">
+        {/* The list. Order swaps so the rail sits on the RIGHT on desktop and
+            on TOP of the list on phones — a filter that renders below the
+            content it filters is a filter nobody reaches. */}
+        <div className="order-2 lg:order-1 min-w-0">
+          <VisitorSegmentContent
+            segment={segment}
+            visits={visits}
+            loading={loading}
+            busyId={busyId}
+            onCheckIn={setCheckingIn}
+            onCheckOut={(v) => setExitTarget(v)}
+            onWalkInCheckIn={(v, details) => { void checkInWalkIn(v, details); }}
+            onWalkInSubmitted={onCheckInSuccess}
+            onSelect={setDetailsOf}
+          />
+        </div>
+
+        {/* The KPI rail: every segment as a count tile, counted from the same
+            array the list renders (never its own query or filter). Clicking a
+            tile navigates to the segment's URL. */}
+        <div className="order-1 lg:order-2">
+          <VisitorKpiRail segment={segment} visits={visits} loading={loading} />
+        </div>
+      </div>
 
       {detailsOf && (
         <VisitorDetails visit={detailsOf} viewerRole="guard" onClose={() => setDetailsOf(null)} />
+      )}
+
+      {/* Every check-out passes through the card-return gate: the guard is
+          shown the card number to collect and the confirm stays disabled until
+          the card is ticked back (no card on record = nothing to collect). */}
+      {exitTarget && (
+        <CardReturnConfirm
+          visit={exitTarget}
+          onConfirm={() => { void logExit(exitTarget); }}
+          onClose={() => setExitTarget(null)}
+        />
       )}
     </div>
   );

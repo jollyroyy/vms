@@ -157,6 +157,22 @@ describe('VisitorStackCard', () => {
     expect(screen.getByText('ID Proof: not captured')).toBeInTheDocument();
   });
 
+  // The card is a check-in record with one purpose: coming back at check-out.
+  // It is shown only while the visitor is inside — the one moment the guard
+  // needs to know which card to collect at the door.
+  it('shows the card number only while inside and only when one is on record', () => {
+    const { unmount } = render(<VisitorStackCard visit={visit({
+      status: 'checked_in', checked_in_at: '2026-08-13T04:35:00Z', visitor_card_number: 'C-104',
+    })} />);
+    expect(screen.getByText('Card: C-104')).toBeInTheDocument();
+    unmount();
+
+    render(<VisitorStackCard visit={visit({
+      status: 'checked_in', checked_in_at: '2026-08-13T04:35:00Z',
+    })} />);
+    expect(screen.queryByText(/^Card:/)).not.toBeInTheDocument();
+  });
+
   it('renders the primary action and fires it on click', () => {
     const onClick = vi.fn();
     render(<VisitorStackCard visit={visit()} action={{ label: 'Check In', onClick }} />);

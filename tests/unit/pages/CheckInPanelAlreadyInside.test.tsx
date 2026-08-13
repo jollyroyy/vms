@@ -113,6 +113,7 @@ async function reachConfirmStep() {
   fireEvent.click(await screen.findByText('Rahul Verma'));
   fireEvent.click(await screen.findByText('Capture Photo'));
   fireEvent.click(await screen.findByText('Use Photo'));
+  fireEvent.change(screen.getByLabelText(/Visitor card number/i), { target: { value: 'C-104' } });
 }
 
 describe('CheckInPanel — already inside', () => {

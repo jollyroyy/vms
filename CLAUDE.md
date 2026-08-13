@@ -75,13 +75,16 @@
   `sync_profile_role_to_auth` trigger (migration 010) mirrors it into JWT `app_metadata`.
 
 ### Guard console (visitor-only deployment)
-- The guard **sidebar is three items** — Dashboard, Scan Pass, and a **Visitors
-  group that expands in place**. Defined in `src/components/layout/navLinks.tsx`
-  (extracted out of `Sidebar.tsx`); the group renders through
-  `components/layout/SidebarNavGroup.tsx`. The `/visitors` entry is declared
-  **twice** on purpose — guards get the group, staff get a plain link — because
-  the two roles land on different components at that route, and staff have no
-  sub-nav.
+- **The guard sidebar is three items — Dashboard, Scan Pass, and Visitors** as
+  plain links. Defined in `src/components/layout/navLinks.tsx` (extracted out of
+  `Sidebar.tsx`). The `/visitors` entry is declared **twice** — once for `guard`,
+  once for `staff` — because the two roles land on different components at that
+  route and the staff label carries no sub-nav either. There is **no group and no
+  `SidebarNavGroup.tsx` since 2026-08-13**: the eight segments that used to expand
+  under the guard's Visitors item now live on the page itself as KPI tiles
+  (`VisitorKpiRail`), counted from the page's own data. The sidebar naming the
+  segments was the old answer to "where can I go"; the page carrying the counts
+  and the filters is the same answer one click closer.
 - **`src/lib/visitorSegments.ts` is the single source of truth for the Visitors
   surface.** The sidebar children, the page content, the page copy and the live
   count badges are all derived from `VISITOR_SEGMENTS` / `SEGMENT_META` /
@@ -181,8 +184,9 @@
   card, unfixable from the running app. The flag was deleted from `FeatureFlag`
   entirely rather than defaulted to on, so it cannot be re-gated by accident. Both
   `ScanPass.tsx` and `CheckInScanGate.tsx` render their scanner with no flag check,
-  and each has a test asserting the absence of an off-state. The other flags (`ocr`,
-  `faceVerify`, …) still exist and carry the same build-time caveat — an unset flag on
+  and each has a test asserting the absence of an off-state. The same removal was
+  applied to `ocr` (2026-08-13) — ID scanning is unconditional too — so the flags
+  that remain (`faceVerify`, …) carry the same build-time caveat: an unset flag on
   Vercel is not "off pending a decision", it is off permanently.
 - **The scanner accepts a PDF or an image of the pass, not just the live camera.**
   `lib/pdfQrPage.ts` renders page 1 of a PDF to a PNG via `pdfjs-dist` (its worker
@@ -481,6 +485,19 @@
     day**, not the mockup's "all statistics are for today only". Open visits are never
     date-bounded (see below); the mockup's wording would have a guard mistrust the one
     number they must not.
+- **One KPI card design everywhere (2026-08-13).** `src/components/KpiTile.tsx` is the
+  only clickable KPI card, used by the guard dashboard (`DashboardTile`), the Visitors
+  rail (`VisitorKpiRail`), the HOD Overview (`OverviewStatCards`) and the Admin Panel
+  (`AdminStats`) and `WhosInside` — same layout, same border, same hover lift, only the
+  number colour varies. Active/expanded state is `gate-tile-active` = gold ring shadow
+  only, **never** a border or cap change (client instruction). `KpiTile` exposes
+  `pressed`/`controlsId`/`caption` for the aria contract; a tile's accessible name joins
+  its block spans without spaces (e.g. "0ExpectedBooked ahead…"), so tests must query
+  unanchored unique substrings, never `^` anchors. Plain stat numbers that open nothing
+  (Analytics, VisitorsDashboard) stay `stat-card` divs — they get the same 3px cap and
+  hover via CSS only, no chevron. The unified rules live in `components-surfaces.css`:
+  `.stat-card::after, .gate-tile::after` = 3px gold cap, `:hover` = lift + gold ring,
+  `:active` = squash.
 - **`entered` is NOT `inside`.** `visits.status` holds one value, so a visitor who came
   and left is `checked_out`, not `checked_in`. Counting `status === 'checked_in'` answers
   "who is still here", never "how many came through today". `useGateStats` derives
@@ -626,6 +643,15 @@
   (CHECK constraint, mirrored by `maxLength`), not character-allowlisted — this is prose
   typed at a gate, and `inputRules.ts`'s allowlist is for short structured identifiers.
   Empty is stored as `null`, never `''`.
+- **A visitor card is minted at check-in and demanded back at check-out.** Migration
+  **076** (live 2026-08-10) adds `visitor_card_number` + `visitor_card_returned_at`; the
+  CHECKs enforce format `^[A-Za-z0-9-]{1,20}$` and that a card marked returned must have
+  a return timestamp. The number is **required at the app level, not the DB**: the card
+  field gates the Check In button on every check-in path (`CheckInPhotoStep` renders it
+  for pre-approvals, scans, walk-in approvals and recurring), so a guard cannot reach
+  confirm without one, while the format CHECK stays a backstop. Check-out records the
+  return (074's undo nulls it again — the visitor never left). `lib/cardNumber.ts`
+  mirrors the CHECK.
 
 ### Live shared data
 - `src/lib/useDepartments.ts` and `src/lib/useHods.ts` fetch **and** subscribe to
@@ -694,11 +720,34 @@ actual password write. Probe user deleted; `profiles` has 0 rows flagged.
   no-shows at 10 PM…". Nothing is marked yet. Dedupe = one per HOD per IST day
   (`created_at >= vms_day_start_ist()`); `p_force` skips it, for verification only.
 - The first hourly sweep run after 22:00 (~22:40 IST) marks every un-arrived approval
-  whose moment fell before close (`close_stale_approvals` with boundary
-  `vms_day_end_ist(now())` — safe at any hour, idempotent), and the per-visit trigger
-  writes `visit_no_show`: "The pass is now void — if the visitor is still expected,
-  raise a new pre-approval request." No reactivation is surfaced anywhere; the DB-only
-  `no_show -> approved` route stays as a safety net.
+  whose moment fell before close, and the per-visit trigger writes `visit_no_show`:
+  "The pass is now void — if the visitor is still expected, raise a new pre-approval
+  request." No reactivation is surfaced anywhere; the DB-only `no_show -> approved`
+  route stays as a safety net.
+
+### `077` — the sweep compares each VISIT's day end, not today's (2026-08-13, applied live)
+
+075 shipped with the boundary wrong: `close_stale_approvals()`'s predicate ended the
+day containing **now()** instead of the day containing the **visit's moment**, so an
+approval whose slot was still hours away was filed `no_show` the moment the job ran
+any time after 22:00 IST. This actually bit live data (2026-08-12: Raju,
+`VIS-20260813-0001`, booked 18:30, swept before his slot); 077 re-applied and verified.
+The rule is now exact, and it makes the sweep safe to run at ANY hour, not just after
+close:
+
+- `scheduled_for IS NOT NULL` → no_show when `now() >= vms_day_end_ist(scheduled_for)`
+  (the day containing the VISIT's moment has ended).
+- `scheduled_for IS NULL` → expired when `now() >= vms_day_end_ist(created_at)`.
+- `nudge_overdue_visits`'s "before 10 PM" guard is `now() < vms_day_end_ist(now())` —
+  it was passing no args (matching the OLD zero-arg default) so the nudge and the
+  sweep could fire for the same visit; both are one-sided now.
+- Both functions were re-`revoke`d from anon/authenticated after the fix (the 073
+  lesson: CREATE OR REPLACE keeps the ACL, but a DROP/re-CREATE resets it to PUBLIC).
+- Verified live: `close_stale_approvals(true, null)` = 0, `nudge_overdue_visits()` = 0,
+  `send_no_show_summary(false)` = 0, and the wrongly-swept row restored to `approved`.
+- The 13:10–16:10 IST "1 row" sweeps seen on 2026-08-12 were security-test fixtures
+  (noShowWorkflow.test.ts deletes its rows); the 17:44 IST `visit_no_show_summary` row
+  was the 075 `p_force` verification run, not the cron.
 - **`nudge_overdue_visits` stops at the day boundary too** (`now() < vms_day_end_ist()`,
   body "before 10 PM"), so the overdue notice and the no-show notice can never both
   fire for the same visit.
@@ -780,7 +829,10 @@ src/
   pages/Kiosk/       # Kiosk (state machine) + KioskIdleScreen, KioskPhoneScreen,
                      # KioskFormScreen, KioskBadgeScreen, KioskAuroraBackdrop,
                      # useKioskAutoReset (idle timeout + badge countdown)
-  components/layout/ # AppShell, Sidebar, SidebarAnalytics, SidebarProfile
+  components/layout/ # AppShell, Sidebar, navLinks (ALL_LINKS — the one
+                     #   source of truth; SidebarNavGroup.tsx was deleted
+                     #   2026-08-13, there are no nav groups),
+                     # SidebarAnalytics, SidebarProfile
   lib/               # roleRoutes, theme, errors, mfa,
                      # useGateStats (guard KPIs — read the entered/inside note above),
                      # dashboardDrill (KPI → predicate + copy), useTodayVisits

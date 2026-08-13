@@ -28,6 +28,7 @@ type Props = {
 export default function VisitorCheckInFlow({ visit, onDone, onCancel }: Props): React.ReactElement {
   const [photoBlob, setPhotoBlob] = useState<Blob | null>(null);
   const [idScan, setIdScan] = useState<IdScanResult | null>(null);
+  const [cardNumber, setCardNumber] = useState('');
   const [carrying, setCarrying] = useState(false);
   const [remarks, setRemarks] = useState('');
   const [checkingIn, setCheckingIn] = useState(false);
@@ -39,7 +40,7 @@ export default function VisitorCheckInFlow({ visit, onDone, onCancel }: Props): 
     if (!photoBlob) return;
     setCheckingIn(true); setError('');
     try {
-      const outcome = await checkInScannedVisit({ match, visit, photoBlob, carrying, remarks, idScan });
+      const outcome = await checkInScannedVisit({ match, visit, photoBlob, carrying, remarks, idScan, cardNumber });
       if (!outcome.ok) { setError(outcome.message); return; }
       onDone(outcome.visitorName);
     } catch (err) {
@@ -61,6 +62,8 @@ export default function VisitorCheckInFlow({ visit, onDone, onCancel }: Props): 
       onCarryingChange={setCarrying}
       remarks={remarks}
       onRemarksChange={setRemarks}
+      cardNumber={cardNumber}
+      onCardNumberChange={setCardNumber}
       onBack={onCancel}
       onCapture={setPhotoBlob}
       onRetake={() => setPhotoBlob(null)}

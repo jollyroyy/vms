@@ -43,11 +43,14 @@ type Opts = {
   carrying: boolean;
   remarks: string;
   idScan: IdScanResult | null;
+  /** The physical visitor card number (migration 076). Required on every
+      guard check-in — the confirm step is gated on it. */
+  cardNumber: string;
 };
 
 const EXPIRED_MESSAGE = 'Cannot check in — this pass was for an earlier day and has expired. Please request a new approval.';
 
-export async function checkInScannedVisit({ match, visit, photoBlob, carrying, remarks, idScan }: Opts): Promise<CheckInOutcome> {
+export async function checkInScannedVisit({ match, visit, photoBlob, carrying, remarks, idScan, cardNumber }: Opts): Promise<CheckInOutcome> {
   // The tick box is the record. Remarks only survive if the box is ticked,
   // so a guard who types a list and then unticks cannot leave orphaned text
   // describing material the visit says was never carried.
@@ -84,6 +87,7 @@ export async function checkInScannedVisit({ match, visit, photoBlob, carrying, r
     checked_in_at: new Date().toISOString(),
     carrying_material: carrying,
     carrying_remarks: remarksTrimmed || null,
+    visitor_card_number: cardNumber.trim(),
     ...(photoData ? { photo_data: photoData } : {}),
     ...(photoPath ? { photo_path: photoPath } : {}),
   } as any).eq('id', match.visitId);

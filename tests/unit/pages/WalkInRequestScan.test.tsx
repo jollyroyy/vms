@@ -36,7 +36,6 @@ const PAN_TEXT = [
 ].join('\n');
 
 beforeEach(() => {
-  vi.stubEnv('VITE_FEATURE_OCR', 'true');
   mockUseCameraStream.mockReturnValue({ status: 'streaming', errorMessage: '', start: vi.fn(), stop: vi.fn() });
   mockGetEngine.mockReturnValue({
     id: 'browser-wasm',
@@ -80,18 +79,21 @@ afterEach(() => {
 });
 
 describe('M-AI-OCR-UI: WalkInRequest scan wiring', () => {
-  it('shows the Scan ID card button when the OCR flag is on', async () => {
+  it('shows the Scan ID card button', async () => {
     render(<WalkInRequest onSubmitted={vi.fn()} onCancel={vi.fn()} />);
     await waitFor(() => {
       expect(screen.getByText('Scan ID card')).toBeInTheDocument();
     });
   });
 
-  it('hides the Scan ID card button when the OCR flag is off', async () => {
+  // Same rule as the QR flag: scanning is UNCONDITIONAL (the flag was removed
+  // 2026-08-13 — Vite inlines env at build time, so an off-state would ship a
+  // permanently dead button). The env var must have no effect whatsoever.
+  it('shows the Scan ID card button even when VITE_FEATURE_OCR is "false"', async () => {
     vi.stubEnv('VITE_FEATURE_OCR', 'false');
     render(<WalkInRequest onSubmitted={vi.fn()} onCancel={vi.fn()} />);
     await waitFor(() => {
-      expect(screen.queryByText('Scan ID card')).not.toBeInTheDocument();
+      expect(screen.getByText('Scan ID card')).toBeInTheDocument();
     });
   });
 

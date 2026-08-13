@@ -128,14 +128,15 @@ describe('Sidebar navigation links per role', () => {
     expect(screen.queryByText('Search')).not.toBeInTheDocument();
   });
 
-  // The Visitors group renders as a <button>, not an <a>, so it does not add
-  // to the anchor count — only Dashboard and Scan Pass do.
-  it('guard sidebar has exactly 2 top-level nav <a> links, plus the Visitors group button', () => {
+  // The Visitors entry is a single <a> now (2026-08-13): the segments that
+  // used to expand under a group button live on the page as KPI tiles
+  // (VisitorKpiRail), so the guard nav is exactly three links, all the same
+  // shape.
+  it('guard sidebar has exactly 3 nav links and no group button', () => {
     const { container } = renderSidebar('guard');
     const links = container.querySelectorAll('a.sidebar-link');
-    expect(links.length).toBe(2);
-    const group = screen.getByRole('button', { name: /Visitors/ });
-    expect(group).toBeInTheDocument();
+    expect(links.length).toBe(3);
+    expect(screen.queryByRole('button', { name: /Visitors/ })).not.toBeInTheDocument();
   });
 
   // Daily Staff and the Self-Service Kiosk are still ROUTABLE (see
@@ -150,48 +151,28 @@ describe('Sidebar navigation links per role', () => {
     expect(screen.queryByText('Self-Service Kiosk')).not.toBeInTheDocument();
   });
 
-  // The Visitors group parent is a BUTTON, not a Link — clicking it opens the
-  // list of where you can go, it does not navigate somewhere that then hides
-  // its own contents. Collapsed, the children are still nowhere on screen
-  // until it is clicked.
-  it('the Visitors group is collapsed by default off /visitors, and clicking it reveals its children', () => {
+  // Visitors is a plain link, not a group: there is no expand/collapse state to
+  // hold, and the segments (Expected, Inside, …) never render inside the nav —
+  // they live on the page as KPI tiles under /visitors.
+  it('Visitors is a plain link — no group button, no segment children in the nav', () => {
     renderSidebar('guard', ['/guard/dashboard']);
-    const group = screen.getByRole('button', { name: /Visitors/ });
-    expect(group).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.queryByRole('button', { name: /Visitors/ })).not.toBeInTheDocument();
     expect(screen.queryByText('Expected')).not.toBeInTheDocument();
     expect(screen.queryByText('Inside')).not.toBeInTheDocument();
-
-    fireEvent.click(group);
-    expect(group).toHaveAttribute('aria-expanded', 'true');
-    expect(screen.getByText('Expected')).toBeInTheDocument();
-    expect(screen.getByText('Inside')).toBeInTheDocument();
-
-    // Toggling again collapses it back — one click opens, the next closes.
-    fireEvent.click(group);
-    expect(group).toHaveAttribute('aria-expanded', 'false');
-    expect(screen.queryByText('Expected')).not.toBeInTheDocument();
+    const link = screen.getByRole('link', { name: /Visitors/ });
+    expect(link).toHaveAttribute('href', '/visitors');
   });
 
-  // Seeded open on mount when the route already lives under /visitors, so a
-  // guard who lands on a segment page can see where they are without hunting
-  // for the group first.
-  it('the Visitors group is already expanded on mount when the route is /visitors/inside', () => {
+  // Being ON a segment page does not change the nav's shape — there is no
+  // group to open. The Visitors link reads as active for every /visitors/*
+  // path, exactly like any other section link.
+  it('on /visitors/inside the Visitors link is active and nothing else is', () => {
     renderSidebar('guard', ['/visitors/inside']);
-    const group = screen.getByRole('button', { name: /Visitors/ });
-    expect(group).toHaveAttribute('aria-expanded', 'true');
-    expect(screen.getByText('Expected')).toBeInTheDocument();
-    expect(screen.getByText('Inside')).toBeInTheDocument();
-  });
-
-  // Exact-match only: /visitors is a prefix of every segment path, so a
-  // startsWith test on the active class would light up "All Visitors" on
-  // every single segment page and tell the guard nothing about where they are.
-  it('on /visitors/inside, Inside is the active sub-link and All Visitors is not', () => {
-    renderSidebar('guard', ['/visitors/inside']);
-    const insideLink = screen.getByText('Inside').closest('a');
-    const allLink = screen.getByText('All Visitors').closest('a');
-    expect(insideLink?.className).toContain('sidebar-sublink-active');
-    expect(allLink?.className).not.toContain('sidebar-sublink-active');
+    const visitorsLink = screen.getByRole('link', { name: /Visitors/ });
+    expect(visitorsLink.className).toContain('sidebar-link-active');
+    const dashboardLink = screen.getByRole('link', { name: /Dashboard/ });
+    expect(dashboardLink.className).not.toContain('sidebar-link-active');
+    expect(screen.queryByRole('button', { name: /Visitors/ })).not.toBeInTheDocument();
   });
 
   // Only the guard's Visitors entry is a group. Every other role's sidebar

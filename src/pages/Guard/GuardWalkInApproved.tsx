@@ -10,13 +10,27 @@
 // inserts photo_path/photo_data as null. Capturing it at the moment of entry is
 // also what the pre-approved lane does, so every checked-in visit carries a
 // photo taken at the gate, however the visitor got approved.
+//
+// The ID scan and the visitor card number are UNCONDITIONAL here, exactly as on
+// the pre-approved photo step (CheckInPhotoStep): a walk-in is the one arrival
+// the guard has never seen a pass for, so reading the document at the gate is
+// not optional polish, it is the identity check.
 import React, { useState } from 'react';
 import type { Visit } from '../../types/index';
 import VisitorCard from './VisitorCard';
 import PhotoCapture from '../../components/PhotoCapture';
 import { formatDateTime } from '../../lib/formatDate';
+import { namesMatch } from '../../lib/ai/nameMatch';
+import { isValidCardNumber } from '../../lib/cardNumber';
+import IdScanOverlay, { type IdScanResult } from './IdScanOverlay';
 
-export type WalkInCheckIn = { photoBlob: Blob; carrying: boolean; remarks: string };
+export type WalkInCheckIn = {
+  photoBlob: Blob;
+  carrying: boolean;
+  remarks: string;
+  idScan: IdScanResult | null;
+  cardNumber: string;
+};
 
 type Props = {
   loading: boolean;
@@ -29,10 +43,63 @@ type Props = {
 export default function GuardWalkInApproved({ loading, approved, busyId, onCheckIn }: Props): React.ReactElement {
   const [openId, setOpenId] = useState<string | null>(null);
   const [photoBlob, setPhotoBlob] = useState<Blob | null>(null);
+  const [scanOpen, setScanOpen] = useState(false);
+  const [scanResult, setScanResult] = useState<IdScanResult | null>(null);
+  const [cardNumber, setCardNumber] = useState('');
   const [carrying, setCarrying] = useState(false);
   const [remarks, setRemarks] = useState('');
 
-  const reset = () => { setOpenId(null); setPhotoBlob(null); setCarrying(false); setRemarks(''); };
+  const reset = () => {
+    setOpenId(null); setPhotoBlob(null); setScanResult(null); setCardNumber(''); setCarrying(false); setRemarks('');
+  };
+
+  const cardBad = !isValidCardNumber(cardNumber);
+  const canConfirm = (v: Visit): boolean => {
+    if (!photoBlob || cardBad || busyId === v.id) return false;
+    if (!scanResult?.name) return true;
+    return namesMatch(scanResult.name, v.visitor?.full_name ?? '');
+  };
+
+  const scanSection = (v: Visit) => {
+    const status = scanResult
+      ? scanResult.name
+        ? namesMatch(scanResult.name, v.visitor?.full_name ?? '') ? 'match' : 'mismatch'
+        : 'no-name'
+      : null;
+    if (!scanResult) {
+      return (
+        <button type="button" onClick={() => setScanOpen(true)}
+          className="w-full flex items-center justify-center gap-2 bg-surface-50 hover:bg-surface-100 border border-surface-200 rounded-xl px-4 py-2.5 text-sm font-semibold text-brand-700 transition-all">
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7zm13 5h.01M10 12a2.5 2.5 0 115 0 2.5 2.5 0 01-5 0z" /></svg>
+          Scan ID card
+        </button>
+      );
+    }
+    if (status === 'match') {
+      return (
+        <div className="rounded-xl bg-success-50 border border-success-200 dark:border-success-500/25 px-4 py-2.5 text-sm flex items-center justify-between gap-2">
+          <span className="font-bold text-success-700">Identity verified</span>
+          <span className="text-xs text-success-700/80">{scanResult.idType} •••• {scanResult.idLast4}</span>
+        </div>
+      );
+    }
+    if (status === 'mismatch') {
+      return (
+        <div className="rounded-xl bg-danger-50 border border-danger-200 dark:border-danger-500/25 px-4 py-2.5 text-sm space-y-1.5">
+          <p className="font-bold text-danger-700">Name doesn't match the approved visitor</p>
+          <p className="text-xs text-danger-700/80">Card shows {scanResult.name} — approved as {v.visitor?.full_name}</p>
+          <button type="button" onClick={() => setScanResult(null)}
+            className="text-xs font-bold text-danger-700 underline underline-offset-2">Discard scan</button>
+        </div>
+      );
+    }
+    return (
+      <div className="rounded-xl bg-accent-50 border border-accent-200 dark:bg-accent-500/10 dark:border-accent-500/25 px-4 py-2.5 text-sm flex items-center justify-between gap-2">
+        <span className="font-bold text-accent-700 dark:text-accent-300">ID recorded — no name could be read</span>
+        <span className="text-xs text-accent-700/80">{scanResult.idType} •••• {scanResult.idLast4}</span>
+      </div>
+    );
+  };
 
   return (
     <div>
@@ -64,8 +131,42 @@ export default function GuardWalkInApproved({ loading, approved, busyId, onCheck
 
               {openId === v.id && (
                 <div className="bg-white dark:bg-white/[0.06] rounded-2xl p-5 mt-2 shadow-sm border border-surface-100 dark:border-white/[0.07] space-y-4">
+                  {scanOpen && (
+                    <IdScanOverlay
+                      onScanned={(r) => { setScanResult(r); setScanOpen(false); }}
+                      onClose={() => setScanOpen(false)}
+                    />
+                  )}
                   <p className="text-sm font-semibold text-navy-700">Take a photo to check in</p>
                   <PhotoCapture onCapture={setPhotoBlob} />
+                  {scanSection(v)}
+
+                  <div className="rounded-xl border border-surface-200 dark:border-white/[0.07] p-3.5 space-y-2">
+                    <label htmlFor="walkin-card" className="block">
+                      <span className="block text-sm font-bold text-navy-800 dark:text-white">Visitor card number *</span>
+                      <span className="block text-[11px] text-navy-500 dark:text-navy-400 mt-0.5">
+                        The number printed on the physical card handed to the visitor. It must be returned at check-out.
+                      </span>
+                    </label>
+                    <input
+                      id="walkin-card"
+                      type="text"
+                      value={cardNumber}
+                      onChange={(e) => setCardNumber(e.target.value)}
+                      placeholder="e.g. C-104"
+                      maxLength={20}
+                      aria-invalid={cardBad}
+                      aria-describedby="walkin-card-hint"
+                      className="input w-full"
+                    />
+                    {cardBad && (
+                      <p id="walkin-card-hint" className="text-[11px] text-danger-600 font-semibold">
+                        {cardNumber.trim() === ''
+                          ? 'Enter the card number before checking in.'
+                          : 'Letters, digits and hyphens only — e.g. C-104.'}
+                      </p>
+                    )}
+                  </div>
 
                   {/* A tick box, never inferred from whether remarks were typed —
                       an empty box must mean "carrying nothing", not "the guard
@@ -98,8 +199,8 @@ export default function GuardWalkInApproved({ loading, approved, busyId, onCheck
                     </button>
                     <button
                       type="button"
-                      disabled={!photoBlob || busyId === v.id}
-                      onClick={() => { if (photoBlob) { onCheckIn(v, { photoBlob, carrying, remarks }); reset(); } }}
+                      disabled={!canConfirm(v)}
+                      onClick={() => { if (photoBlob) { onCheckIn(v, { photoBlob, carrying, remarks, idScan: scanResult, cardNumber }); reset(); } }}
                       className="btn-accent flex-1 !py-2.5 disabled:opacity-50"
                     >
                       {busyId === v.id ? 'Checking in…' : 'Confirm Check In'}

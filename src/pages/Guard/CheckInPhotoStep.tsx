@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import PhotoCapture from '../../components/PhotoCapture';
-import { isFeatureEnabled } from '../../lib/featureFlags';
 import { namesMatch } from '../../lib/ai/nameMatch';
+import { isValidCardNumber } from '../../lib/cardNumber';
 import IdScanOverlay, { type IdScanResult } from './IdScanOverlay';
 import CheckInVisitorSummary from './CheckInVisitorSummary';
-import type { MatchItem } from './CheckInPanel';
+import type { MatchItem } from './checkInTypes';
 
 type Props = {
   selectedMatch: MatchItem;
@@ -15,6 +15,8 @@ type Props = {
   onCarryingChange: (value: boolean) => void;
   remarks: string;
   onRemarksChange: (value: string) => void;
+  cardNumber: string;
+  onCardNumberChange: (value: string) => void;
   onBack: () => void;
   onCapture: (blob: Blob) => void;
   onRetake: () => void;
@@ -25,7 +27,8 @@ type Props = {
 
 export default function CheckInPhotoStep({
   selectedMatch, photoBlob, error, checkingIn, carrying, onCarryingChange,
-  remarks, onRemarksChange, onBack, onCapture, onRetake, onCancel, onConfirm, onScanResult,
+  remarks, onRemarksChange, cardNumber, onCardNumberChange, onBack, onCapture,
+  onRetake, onCancel, onConfirm, onScanResult,
 }: Props): React.ReactElement {
   const [scanOpen, setScanOpen] = useState(false);
   const [scanResult, setScanResult] = useState<IdScanResult | null>(null);
@@ -38,7 +41,11 @@ export default function CheckInPhotoStep({
       : 'no-name'
     : null;
 
-  const scanSection = isFeatureEnabled('ocr') && (
+  // ID scanning is UNCONDITIONAL — there is no `ocr` flag (removed 2026-08-13,
+  // same trap as `qr`: Vite inlines env vars at build time, so a flag whose
+  // off-state ships a dead button is a liability, not a safeguard). A scanned
+  // result is checked against the approved name before it is allowed to count.
+  const scanSection = (
     <div className="space-y-2">
       {!scanResult ? (
         <button type="button" onClick={() => setScanOpen(true)}
@@ -63,6 +70,39 @@ export default function CheckInPhotoStep({
           <span className="font-bold text-accent-700 dark:text-accent-300">ID recorded — no name could be read</span>
           <span className="text-xs text-accent-700/80">{scanResult.idType} •••• {scanResult.idLast4}</span>
         </div>
+      )}
+    </div>
+  );
+
+  // The card the visitor must give back at check-out. Required, and format-
+  // constrained (migration 076's CHECK + lib/cardNumber.ts mirror each other),
+  // so a guard is told what is wrong before the write, not by the write.
+  const cardInvalid = cardNumber.trim() !== '' && !isValidCardNumber(cardNumber);
+  const cardMissing = cardNumber.trim() === '';
+  const cardBad = cardInvalid || cardMissing;
+  const cardSection = (
+    <div className="rounded-xl border border-surface-200 dark:border-white/[0.07] p-3.5 space-y-2">
+      <label htmlFor="visitor-card" className="block">
+        <span className="block text-sm font-bold text-navy-800 dark:text-white">Visitor card number *</span>
+        <span className="block text-[11px] text-navy-500 dark:text-navy-400 mt-0.5">
+          The number printed on the physical card handed to the visitor. It must be returned at check-out.
+        </span>
+      </label>
+      <input
+        id="visitor-card"
+        type="text"
+        value={cardNumber}
+        onChange={(e) => onCardNumberChange(e.target.value)}
+        placeholder="e.g. C-104"
+        maxLength={20}
+        aria-invalid={cardBad}
+        aria-describedby="visitor-card-hint"
+        className="input w-full"
+      />
+      {cardBad && (
+        <p id="visitor-card-hint" className="text-[11px] text-danger-600 font-semibold">
+          {cardMissing ? 'Enter the card number before checking in.' : 'Letters, digits and hyphens only — e.g. C-104.'}
+        </p>
       )}
     </div>
   );
@@ -110,6 +150,7 @@ export default function CheckInPhotoStep({
           <button onClick={onRetake} className="text-danger-600 hover:text-danger-700 text-sm font-semibold shrink-0">Retake</button>
         </div>
         {scanSection}
+        {cardSection}
         {/* The tick box is the record, the textarea only describes it.
             `carrying_material` used to be inferred from "did the guard type
             anything?", which silently made an empty box mean "carrying
@@ -158,7 +199,7 @@ export default function CheckInPhotoStep({
         </div>
         <div className="flex gap-3">
           <button onClick={onCancel} className="flex-1 bg-surface-50 hover:bg-surface-100 text-navy-700 font-bold rounded-xl py-3 text-sm transition-all">Cancel</button>
-          <button onClick={onConfirm} disabled={checkingIn || matchStatus === 'mismatch'}
+          <button onClick={onConfirm} disabled={checkingIn || matchStatus === 'mismatch' || cardBad}
             className="flex-1 bg-brand-600 hover:bg-brand-700 text-white font-bold rounded-xl py-3 text-sm transition-all disabled:opacity-50 flex items-center justify-center gap-2">
             {checkingIn ? (
               <><svg className="animate-spin h-4 w-4" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg> Checking in...</>

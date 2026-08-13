@@ -9,7 +9,6 @@ describe('M-FEATURE-FLAGS: isFeatureEnabled', () => {
   // .env happens to leave the flag off, and flip to failing the moment someone
   // turns a feature on locally.
   beforeEach(() => {
-    vi.stubEnv('VITE_FEATURE_OCR', undefined);
     vi.stubEnv('VITE_FEATURE_FACE_VERIFY', undefined);
     vi.stubEnv('VITE_FEATURE_AI_RECOMMENDATION', undefined);
     vi.stubEnv('VITE_FEATURE_DEVICE_REG', undefined);
@@ -17,10 +16,6 @@ describe('M-FEATURE-FLAGS: isFeatureEnabled', () => {
 
   afterEach(() => {
     vi.unstubAllEnvs();
-  });
-
-  it('returns false for ocr when VITE_FEATURE_OCR is unset', () => {
-    expect(isFeatureEnabled('ocr')).toBe(false);
   });
 
   it('returns false for faceVerify when VITE_FEATURE_FACE_VERIFY is unset', () => {
@@ -41,8 +36,8 @@ describe('M-FEATURE-FLAGS: isFeatureEnabled', () => {
   });
 
   it('returns true for "TRUE" (case-insensitive)', () => {
-    vi.stubEnv('VITE_FEATURE_OCR', 'TRUE');
-    expect(isFeatureEnabled('ocr')).toBe(true);
+    vi.stubEnv('VITE_FEATURE_FACE_VERIFY', 'TRUE');
+    expect(isFeatureEnabled('faceVerify')).toBe(true);
   });
 
   it('returns true for " true " (trimmed)', () => {
@@ -84,7 +79,6 @@ describe('M-FEATURE-FLAGS: isFeatureEnabled', () => {
   it('reads import.meta.env literally so Vite injects the env object', () => {
     const src = readFileSync(resolve(process.cwd(), 'src/lib/featureFlags.ts'), 'utf8');
     expect(src).not.toMatch(/import\.meta\s*\?\./);
-    expect(src).toContain('import.meta.env.VITE_FEATURE_OCR');
     expect(src).toContain('import.meta.env.VITE_FEATURE_FACE_VERIFY');
     expect(src).toContain('import.meta.env.VITE_FEATURE_AI_RECOMMENDATION');
     expect(src).toContain('import.meta.env.VITE_FEATURE_DEVICE_REG');
@@ -93,7 +87,6 @@ describe('M-FEATURE-FLAGS: isFeatureEnabled', () => {
   it('enabling one flag does not enable any other flag', () => {
     vi.stubEnv('VITE_FEATURE_DEVICE_REG', 'true');
     expect(isFeatureEnabled('deviceReg')).toBe(true);
-    expect(isFeatureEnabled('ocr')).toBe(false);
     expect(isFeatureEnabled('faceVerify')).toBe(false);
     expect(isFeatureEnabled('aiRecommendation')).toBe(false);
   });

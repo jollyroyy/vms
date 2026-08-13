@@ -1,4 +1,4 @@
-// TDD: Admin Panel — the delete-a-department flow, end to end through the UI.
+﻿// TDD: Admin Panel â€” the delete-a-department flow, end to end through the UI.
 //
 // The three steps an admin must get, in order:
 //   1. clicking Delete opens a confirmation dialog and deletes nothing yet;
@@ -14,7 +14,7 @@ import { MemoryRouter } from 'react-router-dom';
 import AdminPanel from '../../../src/pages/Admin/AdminPanel';
 import type { Department } from '../../../src/types/index';
 
-/* ─── Mocks ─────────────────────────────────────────────── */
+/* â”€â”€â”€ Mocks â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 const h = vi.hoisted(() => ({
   departments: [] as any[],
@@ -97,14 +97,14 @@ const renderPanel = () => render(<MemoryRouter><AdminPanel /></MemoryRouter>);
 async function openConfirm() {
   // The admin overview starts collapsed; open the Departments view so the
   // roster under test is on screen.
-  fireEvent.click(screen.getByTitle('Show Departments'));
+  fireEvent.click(screen.getByRole('button', { name: /departments/i }));
   fireEvent.click(screen.getByRole('button', { name: /delete human resources/i }));
   return screen.findByRole('dialog');
 }
 
-/* ─── Step 1: confirmation ──────────────────────────────── */
+/* â”€â”€â”€ Step 1: confirmation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
-describe('delete department — confirmation step', () => {
+describe('delete department â€” confirmation step', () => {
   it('opens a confirmation dialog naming the department and deletes nothing yet', async () => {
     renderPanel();
     const modal = await openConfirm();
@@ -126,9 +126,9 @@ describe('delete department — confirmation step', () => {
   });
 });
 
-/* ─── Step 2 + 3: success banner and refresh ────────────── */
+/* â”€â”€â”€ Step 2 + 3: success banner and refresh â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
-describe('delete department — confirmed', () => {
+describe('delete department â€” confirmed', () => {
   it('deletes the department that was clicked', async () => {
     h.departments = [dept(), dept({ id: 'd2', name: 'Finance', code: 'FIN' })];
     renderPanel();
@@ -181,9 +181,9 @@ describe('delete department — confirmed', () => {
   });
 });
 
-/* ─── Load failures must never look like empty data ─────── */
+/* â”€â”€â”€ Load failures must never look like empty data â”€â”€â”€â”€â”€â”€â”€ */
 
-describe('admin panel — load errors', () => {
+describe('admin panel â€” load errors', () => {
   it('shows a department read failure rather than an empty list', async () => {
     h.departments = [];
     h.deptError = 'infinite recursion detected in policy for relation "departments"';

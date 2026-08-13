@@ -6,8 +6,9 @@ import { lastFourOf, maskIdNumber } from '../../lib/ai/redact';
 import { safeErrorMessage } from '../../lib/errors';
 import ModalCloseButton from '../../components/ModalCloseButton';
 import { useEscapeKey } from '../../lib/useEscapeKey';
+import { type IdScanResult } from './idScanTypes';
 
-export type IdScanResult = { idType: string; idLast4: string; name: string | null };
+export type { IdScanResult } from './idScanTypes';
 
 type Props = {
   onScanned: (result: IdScanResult) => void;

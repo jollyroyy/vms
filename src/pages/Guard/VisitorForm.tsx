@@ -12,7 +12,6 @@ import VisitorFormAlerts from './VisitorFormAlerts';
 import VisitorFormPreApproved from './VisitorFormPreApproved';
 import VisitorFormFields from './VisitorFormFields';
 import IdScanOverlay, { type IdScanResult } from './IdScanOverlay';
-import { isFeatureEnabled } from '../../lib/featureFlags';
 
 type Props = { onRegistered: (visitorName: string) => void };
 
@@ -265,7 +264,7 @@ export default function VisitorForm({ onRegistered }: Props): React.ReactElement
           onIdTypeChange={setIdType}
           idLast4={idLast4}
           onIdLast4Change={setIdLast4}
-          onScanId={isFeatureEnabled('ocr') ? () => setScanOpen(true) : undefined}
+          onScanId={() => setScanOpen(true)}
           vehicle={vehicle}
           onVehicleChange={setVehicle}
           carryingMaterial={carryingMaterial}

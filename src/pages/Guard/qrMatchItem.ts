@@ -1,4 +1,4 @@
-// Maps a Visit resolved by a QR scan into the same MatchItem shape the manual
+﻿// Maps a Visit resolved by a QR scan into the same MatchItem shape the manual
 // search flow builds in CheckInPanel's `allMatches` (see the `preApproved`
 // mapping there). Keeping this in one pure function means the QR path and the
 // manual path can never quietly drift apart on field mapping — CheckInPhotoStep
@@ -6,7 +6,7 @@
 import type { Visit } from '../../types/index';
 import { approvalTimestamp } from '../../lib/visitApproval';
 import { isDueToday } from '../../lib/visitExpiry';
-import type { MatchItem } from './CheckInPanel';
+import type { MatchItem } from './checkInTypes';
 
 export function visitToMatchItem(visit: Visit & { approvedAt?: string | null }): MatchItem {
   const isWalkin = visit.status === 'walkin_approved';

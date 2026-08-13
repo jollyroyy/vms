@@ -110,7 +110,7 @@ describe('Sidebar: navigation links', () => {
   it('renders correct nav links for guard role', () => {
     renderWithRouter(<Sidebar session={guardSession} role="guard" />);
     // The three-item visitor console. Walk-in Visitors and Pre-Approvals were
-    // absorbed into the Visitors GROUP — see components/layout/navLinks.tsx.
+    // absorbed into the Visitors page — see components/layout/navLinks.tsx.
     expect(screen.getByText('Dashboard')).toBeInTheDocument();
     expect(screen.getByText('Scan Pass')).toBeInTheDocument();
     expect(screen.getByText('Visitors')).toBeInTheDocument();
@@ -171,18 +171,19 @@ describe('Sidebar: navigation links', () => {
     expect(screen.queryByText('Settings')).not.toBeInTheDocument();
   });
 
-  // Visitors is a GROUP now: its parent renders as a <button>, so "active" is
-  // read off the button's own class, not an <a>.
+  // Visitors is a single <a> now (2026-08-13): the segments that used to expand
+  // under a group button live on the page as KPI tiles, so "active" is read
+  // off the link's own class like every other nav item.
   it('highlights active link based on current route', () => {
     renderWithRouter(<Sidebar session={guardSession} role="guard" />, { route: '/visitors' });
-    const group = screen.getByRole('button', { name: /Visitors/ });
-    expect(group.className).toContain('sidebar-link-active');
+    const link = screen.getByRole('link', { name: /Visitors/ });
+    expect(link.className).toContain('sidebar-link-active');
   });
 
   it('does not highlight inactive links', () => {
     renderWithRouter(<Sidebar session={guardSession} role="guard" />, { route: '/whos-inside' });
-    const group = screen.getByRole('button', { name: /Visitors/ });
-    expect(group.className).not.toContain('sidebar-link-active');
+    const link = screen.getByRole('link', { name: /Visitors/ });
+    expect(link.className).not.toContain('sidebar-link-active');
   });
 });
 

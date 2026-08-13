@@ -1,4 +1,4 @@
-// Builds the guard's check-in candidate list: today's approved visits plus the
+﻿// Builds the guard's check-in candidate list: today's approved visits plus the
 // recurring visitors due today, filtered by the search box and department
 // picker. Pure — extracted from CheckInPanel so the panel stays a state shell
 // and this stays directly testable. The QR path builds the same MatchItem
@@ -6,7 +6,7 @@
 import type { Department, Profile, RecurringVisit, Visit } from '../../types/index';
 import { approvalTimestamp } from '../../lib/visitApproval';
 import { isDueToday } from '../../lib/visitExpiry';
-import type { MatchItem } from './CheckInPanel';
+import type { MatchItem } from './checkInTypes';
 
 export interface PreApprovedVisit extends Visit {
   actor?: { name: string; role: string } | null;

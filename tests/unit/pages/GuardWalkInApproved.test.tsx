@@ -15,6 +15,15 @@ vi.mock('../../../src/components/PhotoCapture', () => ({
   ),
 }));
 
+// Same for the ID scanner: a button that fires onScanned with a canned result.
+vi.mock('../../../src/pages/Guard/IdScanOverlay', () => ({
+  default: ({ onScanned }: { onScanned: (r: any) => void }) => (
+    <button type="button" onClick={() => onScanned({ idType: 'PAN', idLast4: '234F', name: 'Rahul Verma' })}>
+      Mock Scan
+    </button>
+  ),
+}));
+
 afterEach(() => cleanup());
 
 function visit(overrides: Partial<Visit> = {}): Visit {
@@ -39,6 +48,13 @@ function baseProps(overrides: Record<string, any> = {}) {
     onCheckIn: vi.fn(),
     ...overrides,
   };
+}
+
+// Opens the check-in panel and fills the mandatory fields (photo + card).
+function openAndFillCard(value = 'C-104') {
+  fireEvent.click(screen.getByText('Check In'));
+  fireEvent.click(screen.getByText('Mock Capture'));
+  fireEvent.change(screen.getByLabelText(/Visitor card number/i), { target: { value } });
 }
 
 describe('GuardWalkInApproved', () => {
@@ -73,7 +89,7 @@ describe('GuardWalkInApproved', () => {
   });
 
   // The bug this flow exists to prevent: a check-in recorded with no photo.
-  it('disables Confirm Check In until a photo has been captured', () => {
+  it('disables Confirm Check In until a photo AND a card number are present', () => {
     render(<GuardWalkInApproved {...baseProps({ approved: [visit()] })} />);
     fireEvent.click(screen.getByText('Check In'));
 
@@ -81,23 +97,49 @@ describe('GuardWalkInApproved', () => {
     expect(confirm).toBeDisabled();
 
     fireEvent.click(screen.getByText('Mock Capture'));
+    expect(confirm).toBeDisabled();
+    expect(screen.getByText('Enter the card number before checking in.')).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText(/Visitor card number/i), { target: { value: 'C-104' } });
     expect(confirm).not.toBeDisabled();
   });
 
-  it('calls onCheckIn with the captured photo once confirmed', () => {
+  it('rejects a card number with characters outside the allowlist', () => {
+    render(<GuardWalkInApproved {...baseProps({ approved: [visit()] })} />);
+    fireEvent.click(screen.getByText('Check In'));
+    fireEvent.click(screen.getByText('Mock Capture'));
+    fireEvent.change(screen.getByLabelText(/Visitor card number/i), { target: { value: 'C 104' } });
+
+    expect(screen.getByText('Confirm Check In')).toBeDisabled();
+    expect(
+      screen.getByText('Letters, digits and hyphens only — e.g. C-104.')
+    ).toBeInTheDocument();
+  });
+
+  it('calls onCheckIn with the captured photo, card number and scan once confirmed', () => {
     const onCheckIn = vi.fn();
     const v = visit();
     render(<GuardWalkInApproved {...baseProps({ approved: [v], onCheckIn })} />);
-    fireEvent.click(screen.getByText('Check In'));
-    fireEvent.click(screen.getByText('Mock Capture'));
+    openAndFillCard();
+    fireEvent.click(screen.getByText('Scan ID card'));
+    fireEvent.click(screen.getByText('Mock Scan'));
     fireEvent.click(screen.getByText('Confirm Check In'));
 
     expect(onCheckIn).toHaveBeenCalledTimes(1);
     const [calledVisit, details] = onCheckIn.mock.calls[0];
     expect(calledVisit).toBe(v);
     expect(details.photoBlob).toBeInstanceOf(Blob);
+    expect(details.cardNumber).toBe('C-104');
+    expect(details.idScan).toEqual({ idType: 'PAN', idLast4: '234F', name: 'Rahul Verma' });
     expect(details.carrying).toBe(false);
     expect(details.remarks).toBe('');
+  });
+
+  it('flushes the captured photo and card after confirm', () => {
+    render(<GuardWalkInApproved {...baseProps({ approved: [visit()] })} />);
+    openAndFillCard();
+    fireEvent.click(screen.getByText('Confirm Check In'));
+    expect(screen.queryByText('Take a photo to check in')).not.toBeInTheDocument();
   });
 
   // Mirrors the documented carrying_material rule: the box gates the textarea,

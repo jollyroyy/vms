@@ -75,6 +75,12 @@ export type Visit = {
   // the deadline, which is what makes a multi-day contractor distinguishable
   // from a forgotten check-out. See migration 073.
   expected_departure?: string | null;
+  // The physical visitor card handed over at check-in (guard-typed free text,
+  // format-constrained — migration 076) and the moment a guard confirmed the
+  // card was collected at check-out. Null card = no card on record; the kiosk
+  // path never issues one.
+  visitor_card_number?: string | null;
+  visitor_card_returned_at?: string | null;
   grace_period_minutes?: number;
   qr_token: string;
   qr_expires_at: string | null;

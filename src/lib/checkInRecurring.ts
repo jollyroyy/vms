@@ -1,4 +1,4 @@
-// The recurring-visitor check-in write, lifted out of CheckInPanel.
+﻿// The recurring-visitor check-in write, lifted out of CheckInPanel.
 //
 // This is the one arrival path that does NOT go through checkInScannedVisit: a
 // recurring visitor has no visit row until they turn up (see the comment in
@@ -16,8 +16,8 @@ import {
   isAlreadyInsideError, ALREADY_INSIDE_FALLBACK,
 } from './activeVisit';
 import type { VisitorPurpose } from '../types/index';
-import type { MatchItem } from '../pages/Guard/CheckInPanel';
-import type { IdScanResult } from '../pages/Guard/IdScanOverlay';
+import type { MatchItem } from '../pages/Guard/checkInTypes';
+import type { IdScanResult } from '../pages/Guard/idScanTypes';
 
 export type RecurringCheckInInput = {
   match: MatchItem;
@@ -25,6 +25,9 @@ export type RecurringCheckInInput = {
   carrying: boolean;
   remarks: string;
   idScan: IdScanResult | null;
+  /** Physical visitor card number (migration 076) — required, as on every
+      guard check-in path. */
+  cardNumber: string;
 };
 
 export type RecurringCheckInOutcome = { ok: true } | { ok: false; message: string };
@@ -41,7 +44,7 @@ export type RecurringCheckInOutcome = { ok: true } | { ok: false; message: strin
 export async function checkInRecurringVisitor(
   input: RecurringCheckInInput,
 ): Promise<RecurringCheckInOutcome> {
-  const { match, photoBlob, carrying, remarks, idScan } = input;
+  const { match, photoBlob, carrying, remarks, idScan, cardNumber } = input;
   try {
     const clash = await findActiveVisitByPhone(match.visitorPhone)
       ?? await findActiveVisitByIdProof(
@@ -85,6 +88,7 @@ export async function checkInRecurringVisitor(
       checked_in_at: new Date().toISOString(),
       checked_out_at: null, exit_verified: null, rejection_reason: null,
       carrying_material: carrying, carrying_remarks: remarksTrimmed || null,
+      visitor_card_number: cardNumber.trim(),
       scheduled_for: null,
     });
     if (visitErr) throw visitErr;

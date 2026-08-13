@@ -1,4 +1,4 @@
-// What the guard sees the moment a pass is scanned (or a search result picked):
+﻿// What the guard sees the moment a pass is scanned (or a search result picked):
 // the record behind the QR, laid out so it can be checked against the person
 // standing at the gate. The QR encodes only an opaque token — every detail here
 // was fetched from the visit row it resolved to, which is why the ID number can
@@ -6,7 +6,7 @@
 import React from 'react';
 import PassIdentity from '../../components/PassIdentity';
 import { formatDateTime, formatTime } from '../../lib/formatDate';
-import type { MatchItem } from './CheckInPanel';
+import type { MatchItem } from './checkInTypes';
 
 const APPROVAL_LABEL: Record<MatchItem['approvalType'], string> = {
   pre_approved: 'Pre-approved',

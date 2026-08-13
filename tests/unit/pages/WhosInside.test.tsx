@@ -255,7 +255,7 @@ describe('M12-GUARD: WhosInside', () => {
     });
     const allButtons = screen.getAllByRole('button');
     const approvedStatCard = allButtons.find(btn =>
-      btn.classList.contains('stat-card') &&
+      btn.classList.contains('gate-tile') &&
       btn.textContent?.includes('Approved') &&
       !btn.textContent?.includes('Pre-Approved')
     );

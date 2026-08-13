@@ -65,22 +65,26 @@ describe('OverviewStatCards', () => {
     render(<OverviewStatCards loading={false} stats={stats} activeFilter="inside" onSelect={vi.fn()} />);
 
     const insideBtn = screen.getByText('Inside').closest('button')!;
-    expect(insideBtn.className).toContain('ring-2');
-    expect(insideBtn.className).toContain('ring-brand-500/20');
+    expect(insideBtn).toHaveAttribute('aria-expanded', 'true');
+    expect(insideBtn.className).toContain('gate-tile-active');
+
+    const approvedBtn = screen.getByText('Approved').closest('button')!;
+    expect(approvedBtn).toHaveAttribute('aria-expanded', 'false');
   });
 
   // Premium type-scale pass (2026-08-10): the number is the one thing each
-  // card exists for, so it must render at the kpi scale (`.stat-value`,
+  // card exists for, so it must render at the kpi scale (`.gate-tile-value`,
   // 36px/800/tabular) with its label two steps down at the micro scale
-  // (`.stat-label`, 11px/600 uppercase) — never the old ad hoc
-  // `text-3xl font-bold` / `text-xs` utility pair.
+  // (`.gate-tile-label`, 11px/600 uppercase) — never the old ad hoc
+  // `text-3xl font-bold` / `text-xs` utility pair. The unified KPI card
+  // (2026-08-13) keeps that scale under the gate-tile class names.
   it('renders each number at the kpi scale and its label at the micro scale', () => {
     render(<OverviewStatCards loading={false} stats={stats} activeFilter={null} onSelect={vi.fn()} />);
 
     const value = screen.getByText('5');
-    expect(value.className).toContain('stat-value');
+    expect(value.className).toContain('gate-tile-value');
 
     const label = screen.getByText('Inside');
-    expect(label.className).toContain('stat-label');
+    expect(label.className).toContain('gate-tile-label');
   });
 });

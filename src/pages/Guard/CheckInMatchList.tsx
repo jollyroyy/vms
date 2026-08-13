@@ -1,8 +1,8 @@
-import React from 'react';
+﻿import React from 'react';
 import type { Department, Visit } from '../../types/index';
 import WalkInRequest from './WalkInRequest';
 import CheckInMatchCard from './CheckInMatchCard';
-import type { MatchItem } from './CheckInPanel';
+import type { MatchItem } from './checkInTypes';
 import { isCheckableStatus } from '../../lib/checkableStatus';
 
 type Props = {

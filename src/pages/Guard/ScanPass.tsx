@@ -1,4 +1,4 @@
-// Scanning is UNCONDITIONAL — there is no feature flag on this page. It used
+﻿// Scanning is UNCONDITIONAL — there is no feature flag on this page. It used
 // to sit behind `isFeatureEnabled('qr')`, which was a trap rather than a
 // safeguard: Vite inlines env vars at BUILD time and .env is git-ignored, so
 // every deployed build had the flag compiled to false and the guard was shown
@@ -21,7 +21,7 @@ import { checkInScannedVisit } from '../../lib/checkInFlow';
 import GuardQRScan from './GuardQRScan';
 import CheckInPhotoStep from './CheckInPhotoStep';
 import { visitToMatchItem } from './qrMatchItem';
-import type { MatchItem } from './CheckInPanel';
+import type { MatchItem } from './checkInTypes';
 import type { IdScanResult } from './IdScanOverlay';
 
 export default function GuardScanPass(): React.ReactElement {
@@ -29,6 +29,7 @@ export default function GuardScanPass(): React.ReactElement {
   const [match, setMatch] = useState<MatchItem | null>(null);
   const [photoBlob, setPhotoBlob] = useState<Blob | null>(null);
   const [idScan, setIdScan] = useState<IdScanResult | null>(null);
+  const [cardNumber, setCardNumber] = useState('');
   const [carrying, setCarrying] = useState(false);
   const [remarks, setRemarks] = useState('');
   const [checkingIn, setCheckingIn] = useState(false);
@@ -36,7 +37,7 @@ export default function GuardScanPass(): React.ReactElement {
   const [successMsg, setSuccessMsg] = useState('');
 
   const backToScanner = useCallback(() => {
-    setMatch(null); setPhotoBlob(null); setIdScan(null); setCarrying(false); setRemarks(''); setError('');
+    setMatch(null); setPhotoBlob(null); setIdScan(null); setCardNumber(''); setCarrying(false); setRemarks(''); setError('');
   }, []);
 
   const handleResolved = useCallback(async (visit: Visit) => {
@@ -45,21 +46,21 @@ export default function GuardScanPass(): React.ReactElement {
     // needs the person they are here to meet.
     const [withHost] = await attachHostNames([visit]);
     setMatch(visitToMatchItem(withHost ?? visit));
-    setPhotoBlob(null); setIdScan(null); setCarrying(false); setRemarks(''); setError('');
+    setPhotoBlob(null); setIdScan(null); setCardNumber(''); setCarrying(false); setRemarks(''); setError('');
   }, []);
 
   const handleConfirm = useCallback(async () => {
     if (!match || !photoBlob) return;
     setCheckingIn(true); setError('');
     const outcome = await checkInScannedVisit({
-      match, visit: null, photoBlob, carrying, remarks, idScan,
+      match, visit: null, photoBlob, carrying, remarks, idScan, cardNumber,
     });
     if (!outcome.ok) { setError(outcome.message); setCheckingIn(false); return; }
     setSuccessMsg(`"${outcome.visitorName}" checked in successfully.`);
     backToScanner();
     setTimeout(() => setSuccessMsg(''), 6000);
     setCheckingIn(false);
-  }, [match, photoBlob, carrying, remarks, idScan, backToScanner]);
+  }, [match, photoBlob, carrying, remarks, idScan, cardNumber, backToScanner]);
 
   return (
     <div className="space-y-5">
@@ -86,6 +87,8 @@ export default function GuardScanPass(): React.ReactElement {
           onCarryingChange={setCarrying}
           remarks={remarks}
           onRemarksChange={setRemarks}
+          cardNumber={cardNumber}
+          onCardNumberChange={setCardNumber}
           onBack={backToScanner}
           onCapture={setPhotoBlob}
           onRetake={() => setPhotoBlob(null)}

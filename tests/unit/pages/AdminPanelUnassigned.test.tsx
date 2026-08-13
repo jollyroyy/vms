@@ -1,4 +1,4 @@
-// Admin Panel — the "Awaiting an HOD" drill-down.
+﻿// Admin Panel â€” the "Awaiting an HOD" drill-down.
 //
 // This view exists to answer one question: which departments still have no head
 // of department? Two things it must never do: list departments that already
@@ -69,7 +69,7 @@ const hod = (over: Partial<Profile> = {}): Profile => ({
   department_id: 'd1', delegate_id: null, avatar_url: null, created_at: 'now', ...over,
 });
 
-// Two departments covered, two bare — so "shows only the gaps" is a real
+// Two departments covered, two bare â€” so "shows only the gaps" is a real
 // assertion rather than a tautology over a list that happens to be all gaps.
 beforeEach(() => {
   h.departments = [
@@ -90,9 +90,9 @@ beforeEach(() => {
 afterEach(cleanup);
 
 const renderPanel = () => render(<MemoryRouter><AdminPanel /></MemoryRouter>);
-const openGaps = () => fireEvent.click(screen.getByTitle('Show Awaiting an HOD'));
+const openGaps = () => fireEvent.click(screen.getByRole('button', { name: /awaiting an hod/i }));
 
-describe('AdminPanel — Awaiting an HOD', () => {
+describe('AdminPanel â€” Awaiting an HOD', () => {
   it('lists only the departments with no HOD', () => {
     renderPanel();
     openGaps();
@@ -112,7 +112,7 @@ describe('AdminPanel — Awaiting an HOD', () => {
 
   it('counts the gaps on the tile, not the whole department list', () => {
     renderPanel();
-    const tile = screen.getByTitle('Show Awaiting an HOD');
+    const tile = screen.getByRole('button', { name: /awaiting an hod/i });
     expect(tile.textContent).toContain('2');
   });
 

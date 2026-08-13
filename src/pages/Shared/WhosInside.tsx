@@ -7,6 +7,8 @@ import { safeErrorMessage } from '../../lib/errors';
 import { exportToCsv } from '../../lib/exportUtils';
 import { toReportRows, type ReportVisit } from '../../lib/reportRow';
 import VisitorDetails from '../../components/VisitorDetails';
+import KpiTile from '../../components/KpiTile';
+import { glyph, USERS, CALENDAR_CHECK, WALKING, HOURGLASS } from '../Guard/dashboardTiles';
 import WhosInsideVisitorCard from './WhosInsideVisitorCard';
 
 type ActiveTab = 'checked_in' | 'pre_approved' | 'walkin_approved' | 'pending_approval';
@@ -129,28 +131,42 @@ export default function WhosInside(): React.ReactElement {
         </div>
       </div>
 
-      {/* Stat summary */}
+      {/* Stat summary — the same KPI card as every other count board, with the
+          same tone meanings (success = on site, brand = pre-booked, accent =
+          the walk-in lane, orange = owed a human's attention). */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <button onClick={() => { setTab('checked_in'); setActiveFilter(activeFilter === 'checked_in' ? null : 'checked_in'); }}
-          className={`stat-card items-center text-center cursor-pointer card-hover animate-slide-up stagger-1 bg-gradient-to-b from-brand-50/60 to-transparent ${activeFilter === 'checked_in' ? 'ring-2 ring-brand-500 shadow-glow-sm' : ''}`}>
-          <p className="stat-value text-brand-600">{checkedIn.length}</p>
-          <p className="stat-label">Inside</p>
-        </button>
-        <button onClick={() => { setTab('pre_approved'); setActiveFilter(activeFilter === 'pre_approved' ? null : 'pre_approved'); }}
-          className={`stat-card items-center text-center cursor-pointer card-hover animate-slide-up stagger-2 bg-gradient-to-b from-success-50/60 to-transparent ${activeFilter === 'pre_approved' ? 'ring-2 ring-brand-500 shadow-glow-sm' : ''}`}>
-          <p className="stat-value text-success-600">{preApproved.length}</p>
-          <p className="stat-label">Pre-Approved</p>
-        </button>
-        <button onClick={() => { setTab('walkin_approved'); setActiveFilter(activeFilter === 'walkin_approved' ? null : 'walkin_approved'); }}
-          className={`stat-card items-center text-center cursor-pointer card-hover animate-slide-up stagger-3 bg-gradient-to-b from-brand-50/40 to-transparent ${activeFilter === 'walkin_approved' ? 'ring-2 ring-brand-500 shadow-glow-sm' : ''}`}>
-          <p className="stat-value text-brand-600">{walkinApproved.length}</p>
-          <p className="stat-label">Approved</p>
-        </button>
-        <button onClick={() => { setTab('checked_in'); setActiveFilter(activeFilter === 'pending_approval' ? null : 'pending_approval'); }}
-          className={`stat-card items-center text-center cursor-pointer card-hover animate-slide-up stagger-4 bg-gradient-to-b from-warning-50/60 to-transparent ${activeFilter === 'pending_approval' ? 'ring-2 ring-brand-500 shadow-glow-sm' : ''}`}>
-          <p className="stat-value text-warning-600">{pending.length}</p>
-          <p className="stat-label">Pending</p>
-        </button>
+        <KpiTile
+          spec={{ label: 'Inside', hint: 'Right now', tone: 'text-success-600 dark:text-success-700', tint: 'var(--c-success-100)', icon: glyph(...USERS) }}
+          value={checkedIn.length}
+          loading={loading}
+          expanded={activeFilter === 'checked_in'}
+          index={0}
+          onDrill={() => { setTab('checked_in'); setActiveFilter(activeFilter === 'checked_in' ? null : 'checked_in'); }}
+        />
+        <KpiTile
+          spec={{ label: 'Pre-Approved', hint: 'Booked ahead, not yet arrived', tone: 'text-brand-600 dark:text-brand-300', tint: 'var(--c-brand-100)', icon: glyph(...CALENDAR_CHECK) }}
+          value={preApproved.length}
+          loading={loading}
+          expanded={activeFilter === 'pre_approved'}
+          index={1}
+          onDrill={() => { setTab('pre_approved'); setActiveFilter(activeFilter === 'pre_approved' ? null : 'pre_approved'); }}
+        />
+        <KpiTile
+          spec={{ label: 'Approved', hint: 'Approved at the gate, not yet in', tone: 'text-accent-600 dark:text-accent-300', tint: '250 232 217', icon: glyph(...WALKING) }}
+          value={walkinApproved.length}
+          loading={loading}
+          expanded={activeFilter === 'walkin_approved'}
+          index={2}
+          onDrill={() => { setTab('walkin_approved'); setActiveFilter(activeFilter === 'walkin_approved' ? null : 'walkin_approved'); }}
+        />
+        <KpiTile
+          spec={{ label: 'Pending', hint: 'Walk-ins waiting on a host', tone: 'text-orange-600 dark:text-orange-300', tint: '255 237 213', icon: glyph(...HOURGLASS) }}
+          value={pending.length}
+          loading={loading}
+          expanded={activeFilter === 'pending_approval'}
+          index={3}
+          onDrill={() => { setTab('checked_in'); setActiveFilter(activeFilter === 'pending_approval' ? null : 'pending_approval'); }}
+        />
       </div>
 
       {/* Active filter indicator */}

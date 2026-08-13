@@ -110,12 +110,14 @@ describe('S-SCAN-PASS: ScanPass', () => {
     renderPage();
     fireEvent.click(screen.getByRole('button', { name: 'scan-resolved' }));
     fireEvent.click(await screen.findByText('PHOTO CAPTURE STUB'));
+    fireEvent.change(screen.getByLabelText(/Visitor card number/i), { target: { value: 'C-104' } });
     fireEvent.click(await screen.findByRole('button', { name: /check in/i }));
 
     await waitFor(() => {
       expect(mockCheckInScannedVisit).toHaveBeenCalledWith(expect.objectContaining({
         match: expect.objectContaining({ visitorName: 'Alice Johnson' }),
         photoBlob: expect.any(Blob),
+        cardNumber: 'C-104',
       }));
     });
     expect(await screen.findByText(/checked in successfully/i)).toBeInTheDocument();
@@ -127,6 +129,7 @@ describe('S-SCAN-PASS: ScanPass', () => {
     renderPage();
     fireEvent.click(screen.getByRole('button', { name: 'scan-resolved' }));
     fireEvent.click(await screen.findByText('PHOTO CAPTURE STUB'));
+    fireEvent.change(screen.getByLabelText(/Visitor card number/i), { target: { value: 'C-104' } });
     fireEvent.click(await screen.findByRole('button', { name: /check in/i }));
 
     expect(await screen.findByText('blocked')).toBeInTheDocument();

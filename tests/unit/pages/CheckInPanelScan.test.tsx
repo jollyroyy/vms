@@ -157,6 +157,7 @@ describe('M-AI-OCR-UI: CheckInPanel — ID scan at pre-approved check-in', () =>
 
     fireEvent.click(await screen.findByText('Capture Photo'));
     fireEvent.click(await screen.findByText('Use Photo'));
+    fireEvent.change(screen.getByLabelText(/Visitor card number/i), { target: { value: 'C-104' } });
     fireEvent.click(await screen.findByText('Check In'));
 
     await waitFor(() => {
@@ -179,6 +180,7 @@ describe('M-AI-OCR-UI: CheckInPanel — ID scan at pre-approved check-in', () =>
     fireEvent.change(screen.getByPlaceholderText(/laptop/i), {
       target: { value: 'Dell XPS laptop, black briefcase' },
     });
+    fireEvent.change(screen.getByLabelText(/Visitor card number/i), { target: { value: 'C-104' } });
 
     fireEvent.click(await screen.findByText('Check In'));
 
@@ -197,6 +199,7 @@ describe('M-AI-OCR-UI: CheckInPanel — ID scan at pre-approved check-in', () =>
     fireEvent.click(await screen.findByText('Rahul Verma'));
     fireEvent.click(await screen.findByText('Capture Photo'));
     fireEvent.click(await screen.findByText('Use Photo'));
+    fireEvent.change(screen.getByLabelText(/Visitor card number/i), { target: { value: 'C-104' } });
     fireEvent.click(await screen.findByText('Check In'));
 
     await waitFor(() => {
@@ -221,6 +224,7 @@ describe('M-AI-OCR-UI: CheckInPanel — ID scan at pre-approved check-in', () =>
     fireEvent.click(box);
     fireEvent.change(screen.getByPlaceholderText(/laptop/i), { target: { value: 'Toolbox' } });
     fireEvent.click(box);
+    fireEvent.change(screen.getByLabelText(/Visitor card number/i), { target: { value: 'C-104' } });
 
     fireEvent.click(await screen.findByText('Check In'));
 

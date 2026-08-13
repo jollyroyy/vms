@@ -1,4 +1,4 @@
-// The second half of "searching means it would come up if it exists".
+﻿// The second half of "searching means it would come up if it exists".
 //
 // buildMatchItems can only ever filter rows the panel already fetched, and that
 // fetch is deliberately narrow: open statuses only, because it feeds the
@@ -15,7 +15,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { searchAllVisits } from './searchVisits';
 import { visitToMatchItem } from '../pages/Guard/qrMatchItem';
-import type { MatchItem } from '../pages/Guard/CheckInPanel';
+import type { MatchItem } from '../pages/Guard/checkInTypes';
 
 /** Typing pause before the query goes to the server. Long enough that a guard
  *  keying a 10-digit phone number spends one request, not ten. */

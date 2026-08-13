@@ -27,14 +27,12 @@ const match: MatchItem = {
 };
 
 beforeEach(() => {
-  vi.stubEnv('VITE_FEATURE_OCR', 'false');
   vi.stubGlobal('URL', { createObjectURL: vi.fn(() => 'blob:mock'), revokeObjectURL: vi.fn() });
 });
 
 afterEach(() => {
   cleanup();
   vi.restoreAllMocks();
-  vi.unstubAllEnvs();
   vi.unstubAllGlobals();
 });
 
@@ -50,6 +48,10 @@ function renderStep(overrides: Record<string, any> = {}) {
     onCarryingChange: vi.fn(),
     remarks: '',
     onRemarksChange: vi.fn(),
+    // A valid card by default so the carrying tests exercise the carrying
+    // control, not the card gate (card behaviour has its own file).
+    cardNumber: 'C-104',
+    onCardNumberChange: vi.fn(),
     onBack: vi.fn(),
     onCapture: vi.fn(),
     onRetake: vi.fn(),

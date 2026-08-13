@@ -1,8 +1,8 @@
-import React from 'react';
+﻿import React from 'react';
 import { getInitials } from '../../components/DailyVisitorTypes';
 import { formatDateTime, formatTime } from '../../lib/formatDate';
 import { CRISP_CARD_INTERACTIVE } from '../../lib/cardStyles';
-import type { MatchItem } from './CheckInPanel';
+import type { MatchItem } from './checkInTypes';
 import type { VisitStatus } from '../../types/index';
 
 const APPROVAL_META: Record<MatchItem['approvalType'], { label: string; badge: string }> = {

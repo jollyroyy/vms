@@ -118,6 +118,12 @@ export default function VisitorStackCard({ visit: v, action, onSelect }: Props):
               ? `ID Proof: ${v.visitor.id_type}${v.visitor.id_last4 ? ` ••${v.visitor.id_last4}` : ''}`
               : 'ID Proof: not captured'}
           </StackCheck>
+          {/* The physical card they hold. Only shown while inside — that is the
+              one moment the guard needs to know which card to collect at the
+              door (migration 076). The tick means "issued". */}
+          {inside && v.visitor_card_number && (
+            <StackCheck ok>Card: {v.visitor_card_number}</StackCheck>
+          )}
         </div>
 
         <div className="mt-auto pt-3 flex items-center gap-2">

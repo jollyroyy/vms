@@ -1,5 +1,5 @@
-// Feature flags for optional AI/automation features (QR, OCR, face verify,
-// AI recommendation). Read from Vite env vars, NOT the database: an env-var
+// Feature flags for optional AI/automation features (face verify, AI
+// recommendation). Read from Vite env vars, NOT the database: an env-var
 // flag needs no migration, so "everything off" is provably identical to
 // today's behaviour even against a database that has not been migrated yet.
 // Fail-closed: anything other than the exact string 'true' is off, so a typo
@@ -10,7 +10,10 @@
 // present — which no deployment did. QR scanning is core guard workflow, so it
 // is now unconditional (see src/pages/Guard/ScanPass.tsx). Do not add it back:
 // a flag whose off-state ships a dead page is a liability, not a safeguard.
-export type FeatureFlag = 'ocr' | 'faceVerify' | 'aiRecommendation' | 'deviceReg';
+// 'ocr' was removed the same way on 2026-08-13: ID scanning is now part of
+// every check-in (see CheckInPhotoStep and GuardWalkInApproved), not an
+// optional extra a deployment might or might not turn on.
+export type FeatureFlag = 'faceVerify' | 'aiRecommendation' | 'deviceReg';
 
 // Direct lookup map, not a fuzzy includes() chain — the compiler enforces
 // exhaustiveness whenever a new FeatureFlag is added.
@@ -27,7 +30,6 @@ export type FeatureFlag = 'ocr' | 'faceVerify' | 'aiRecommendation' | 'deviceReg
 //  * Reading inside a thunk keeps the lookup at call time, so tests can stub the
 //    environment after this module has been imported.
 const FLAG_ENV_VALUE: Record<FeatureFlag, () => unknown> = {
-  ocr: () => import.meta.env.VITE_FEATURE_OCR,
   faceVerify: () => import.meta.env.VITE_FEATURE_FACE_VERIFY,
   aiRecommendation: () => import.meta.env.VITE_FEATURE_AI_RECOMMENDATION,
   deviceReg: () => import.meta.env.VITE_FEATURE_DEVICE_REG,

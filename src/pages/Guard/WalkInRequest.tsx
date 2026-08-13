@@ -3,7 +3,6 @@ import { supabase } from '../../supabaseClient';
 import { normalizePhone, isBlacklisted } from '../../lib/blacklist';
 import { safeErrorMessage } from '../../lib/errors';
 import { useDepartments } from '../../lib/useDepartments';
-import { isFeatureEnabled } from '../../lib/featureFlags';
 import IdScanOverlay, { type IdScanResult } from './IdScanOverlay';
 import type { Profile, VisitorPurpose } from '../../types/index';
 
@@ -155,13 +154,11 @@ export default function WalkInRequest({ onSubmitted, onCancel }: Props): React.R
           <div>
             <label className="text-xs font-semibold text-navy-600 mb-1 block">Visitor Name *</label>
             <input type="text" required value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Visitor name" className="w-full px-4 py-2.5 bg-surface-50 border border-surface-200 rounded-xl text-sm text-navy-900 placeholder-navy-300 focus:outline-none focus:ring-2 focus:ring-brand-500 transition-all" />
-            {isFeatureEnabled('ocr') && (
-              <button type="button" onClick={() => setScanOpen(true)}
-                className="mt-1.5 w-full flex items-center justify-center gap-2 bg-surface-50 hover:bg-surface-100 border border-surface-200 rounded-xl px-4 py-2.5 text-sm font-semibold text-brand-700 transition-all">
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7zm13 5h.01M10 12a2.5 2.5 0 115 0 2.5 2.5 0 01-5 0z" /></svg>
-                Scan ID card
-              </button>
-            )}
+            <button type="button" onClick={() => setScanOpen(true)}
+              className="mt-1.5 w-full flex items-center justify-center gap-2 bg-surface-50 hover:bg-surface-100 border border-surface-200 rounded-xl px-4 py-2.5 text-sm font-semibold text-brand-700 transition-all">
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7zm13 5h.01M10 12a2.5 2.5 0 115 0 2.5 2.5 0 01-5 0z" /></svg>
+              Scan ID card
+            </button>
           </div>
           <div>
             <label className="text-xs font-semibold text-navy-600 mb-1 block">Vendor Name</label>

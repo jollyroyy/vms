@@ -147,16 +147,44 @@
     position: relative;
     overflow: hidden;
   }
-  .stat-card::after {
+  /* --- KPI card — ONE design for every count card in the app ---
+     Guard dashboard + Visitors rail (.gate-tile), HOD overview, admin
+     overview, who's-inside and the Analytics stat-cards (.stat-card) share
+     one surface: same glass, same 1px hairline border, same 3px gold cap,
+     same hover lift and press. The ONLY thing that varies per card is the
+     numeral's colour (the tile spec's tone). Active/drill state is a gold
+     ring shadow — never a border or cap change (client instruction
+     2026-08-13: no card may carry a different border treatment). */
+  .stat-card::after, .gate-tile::after {
     content: '';
     position: absolute;
     top: 0;
     left: 0;
     right: 0;
-    height: 2px;
+    height: 3px;
     /* Seasoning, not sauce: a thin, faded gold cap rather than a bright bar. */
-    background: linear-gradient(90deg, rgb(201 165 88 / 0.35), rgb(168 98 58 / 0.14), transparent);
+    background: linear-gradient(90deg, rgb(201 165 88 / 0.45), rgb(168 98 58 / 0.20), transparent);
     border-radius: 2px 2px 0 0;
+  }
+  .stat-card:hover, .gate-tile:hover {
+    @apply -translate-y-0.5;
+    box-shadow: var(--shadow-contact-hover), var(--shadow-ambient-hover), var(--shadow-wide-hover),
+                var(--ring-gold), var(--edge-highlight-hover);
+  }
+  .dark .stat-card:hover, .dark .gate-tile:hover {
+    box-shadow: var(--shadow-contact-hover), var(--shadow-ambient-hover), var(--shadow-wide-hover),
+                var(--ring-gold-hover), var(--edge-highlight-hover);
+  }
+  /* Press: a quick squash under the finger, then the hover lift returns. */
+  .stat-card:active, .gate-tile:active {
+    transform: translateY(-1px) scale(0.97);
+  }
+  /* The tile whose drill-down is open below. It has to read as pressed even
+     while another tile is hovered, so it sits on a ring rather than a lift —
+     and it is never the only cue: the panel underneath carries the tile's
+     title, and the tile itself carries aria-expanded. */
+  .gate-tile-active {
+    box-shadow: var(--shadow-contact), var(--shadow-ambient), var(--ring-gold-hover), var(--edge-highlight);
   }
   /* KPI numeral: text-kpi, deliberately NOT font-display — a serif numeral
      cannot carry tabular figures or a true 800 weight the way Inter can, and
