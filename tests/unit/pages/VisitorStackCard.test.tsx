@@ -46,6 +46,14 @@ describe('VisitorStackCard', () => {
     expect(screen.getAllByText('Priya Menon')).toHaveLength(1);
   });
 
+  // CLAUDE.md forbids rendering the same value twice in one card. The
+  // department used to trail the host's name in brackets AND own a row below.
+  it('renders the department exactly once, not beside the host name', () => {
+    render(<VisitorStackCard visit={visit()} />);
+    expect(screen.getAllByText('HR')).toHaveLength(1);
+    expect(screen.queryByText(/\(HR\)/)).not.toBeInTheDocument();
+  });
+
   it('shows the contact number and the vehicle', () => {
     render(<VisitorStackCard visit={visit()} />);
     expect(screen.getByText('9876543210')).toBeInTheDocument();

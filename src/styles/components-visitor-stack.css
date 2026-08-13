@@ -80,11 +80,16 @@
   .stack-name {
     @apply text-[17px] font-bold text-navy-950 leading-tight truncate;
   }
+  /* Bold, and a step up in size from ordinary meta text. The vendor is the
+     second thing a guard reads off a pass ("Rahul Sharma, Acme") and it was
+     sitting at the same weight as the attribute rows below it, which buried
+     it among facts nobody scans for. It stays a shade quieter than the name
+     via colour, not weight — the name is still the one loud line. */
   .stack-vendor {
-    @apply text-xs text-navy-500 truncate mt-0.5;
+    @apply text-[13px] font-bold text-navy-700 truncate mt-0.5;
   }
   .dark .stack-vendor {
-    @apply text-navy-400;
+    @apply text-navy-300;
   }
 
   .stack-attrs {
@@ -107,12 +112,6 @@
   }
   .dark .stack-attr-value {
     @apply text-navy-300;
-  }
-  .stack-attr-sub {
-    @apply text-navy-500 font-normal;
-  }
-  .dark .stack-attr-sub {
-    @apply text-navy-400;
   }
 
   /* --- Facts column --------------------------------------------------------
@@ -200,20 +199,12 @@
     @apply flex flex-col gap-3;
   }
 
-  /* --- Toolbar ------------------------------------------------------------ */
+  /* --- Toolbar ------------------------------------------------------------
+     Sort only. The search box that lived here was removed — the top bar's
+     global search already answers that question, and across every visit
+     rather than only the rows this segment happened to load. */
   .stack-toolbar {
     @apply flex items-center gap-3 flex-wrap;
-  }
-  .stack-search {
-    @apply relative flex-1;
-    min-width: 220px;
-  }
-  .stack-search-icon {
-    @apply pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-navy-400;
-  }
-  .stack-search-input {
-    @apply pl-10;
-    min-height: 44px;
   }
   .stack-sort {
     @apply relative flex items-center gap-2 shrink-0;
@@ -224,11 +215,5 @@
   }
   .stack-sort svg {
     @apply absolute left-3 pointer-events-none;
-  }
-  .stack-toolbar-note {
-    @apply text-xs text-navy-500 basis-full sm:basis-auto;
-  }
-  .dark .stack-toolbar-note {
-    @apply text-navy-400;
   }
 }

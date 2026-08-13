@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import type { Visit } from '../../types/index';
 import VisitorStackCard, { type StackAction } from './VisitorStackCard';
 import VisitorStackToolbar from './VisitorStackToolbar';
-import { matchesQuery, sortVisits, type StackSort } from '../../lib/visitorStackFilter';
+import { sortVisits, type StackSort } from '../../lib/visitorStackFilter';
 import { SEGMENT_META, type ListSegment } from '../../lib/visitorSegments';
 
 type Props = {
@@ -24,13 +24,13 @@ export default function VisitorStackList({
   segment, visits, loading, actionFor, onSelect,
 }: Props): React.ReactElement {
   const meta = SEGMENT_META[segment];
-  const [query, setQuery] = useState('');
   const [sort, setSort] = useState<StackSort>('recent');
 
-  const shown = useMemo(
-    () => sortVisits(visits.filter((v) => matchesQuery(v, query)), sort),
-    [visits, query, sort],
-  );
+  // No search box. The top bar already carries a global search that reaches
+  // every visit in any state (lib/searchVisits.ts); a second box here searched
+  // only the rows already on screen, so the same query gave two different
+  // answers depending on which field the guard happened to type into.
+  const shown = useMemo(() => sortVisits(visits, sort), [visits, sort]);
 
   return (
     <section className="space-y-4">
@@ -44,11 +44,7 @@ export default function VisitorStackList({
         </div>
       </header>
 
-      <VisitorStackToolbar
-        query={query} onQueryChange={setQuery}
-        sort={sort} onSortChange={setSort}
-        shown={shown.length} total={visits.length}
-      />
+      <VisitorStackToolbar sort={sort} onSortChange={setSort} />
 
       {loading ? (
         <div className="space-y-3" aria-busy="true">
@@ -56,20 +52,8 @@ export default function VisitorStackList({
         </div>
       ) : shown.length === 0 ? (
         <div className="card empty-state !py-14">
-          {query.trim() !== '' && visits.length > 0 ? (
-            <>
-              <p className="text-sm font-semibold text-navy-500">No visitor here matches “{query.trim()}”.</p>
-              <p className="text-xs text-navy-500 dark:text-navy-400 mt-1">
-                This searches the {visits.length} visitor{visits.length === 1 ? '' : 's'} in this list only.
-                Use Scan Pass or global search to look up a pass from another day.
-              </p>
-            </>
-          ) : (
-            <>
-              <p className="text-sm font-semibold text-navy-500">{meta.empty}</p>
-              <p className="text-xs text-navy-500 dark:text-navy-400 mt-1">{meta.emptyHint}</p>
-            </>
-          )}
+          <p className="text-sm font-semibold text-navy-500">{meta.empty}</p>
+          <p className="text-xs text-navy-500 dark:text-navy-400 mt-1">{meta.emptyHint}</p>
         </div>
       ) : (
         <div className="stack-list">

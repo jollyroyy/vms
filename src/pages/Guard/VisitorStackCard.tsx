@@ -54,9 +54,12 @@ export default function VisitorStackCard({ visit: v, action, onSelect }: Props):
           {v.visitor?.vendor_name && <p className="stack-vendor">{v.visitor.vendor_name}</p>}
 
           <dl className="stack-attrs">
+            {/* The host's name only. The department used to trail it in
+                brackets AND have its own row below — the same value twice on
+                one card, which CLAUDE.md forbids and which made the eye check
+                whether the two agreed. */}
             <StackAttr icon={ICON_PERSON} term="Visiting">
               {v.host?.full_name ?? '—'}
-              {v.department?.name && <span className="stack-attr-sub"> ({v.department.name})</span>}
             </StackAttr>
             <StackAttr icon={ICON_CLIPBOARD} term="Purpose">{v.purpose ?? '—'}</StackAttr>
             {v.department?.name && (

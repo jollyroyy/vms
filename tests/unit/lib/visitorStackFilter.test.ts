@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
-  matchesQuery, sortVisits, SORT_LABELS, SORT_OPTIONS,
+  sortVisits, SORT_LABELS, SORT_OPTIONS,
 } from '../../../src/lib/visitorStackFilter';
 import type { Visit, Visitor } from '../../../src/types/index';
 
@@ -23,98 +23,6 @@ function visitor(overrides: Partial<Visitor> = {}): Visitor {
     ...overrides,
   };
 }
-
-describe('matchesQuery', () => {
-  it('matches everything on an empty query', () => {
-    expect(matchesQuery(visit({ visitor: visitor() }), '')).toBe(true);
-  });
-
-  it('matches everything on a whitespace-only query', () => {
-    expect(matchesQuery(visit({ visitor: visitor() }), '   ')).toBe(true);
-  });
-
-  describe('digits-only query matches phone digits-only', () => {
-    const v = visit({ visitor: visitor({ phone: '9876543210' }) });
-
-    it('matches a bare digit string', () => {
-      expect(matchesQuery(v, '9876543210')).toBe(true);
-    });
-
-    it('matches the same number typed with a space', () => {
-      expect(matchesQuery(v, '98765 43210')).toBe(true);
-    });
-
-    // SOURCE BUG (reported, not fixed here): the doc comment on matchesQuery
-    // claims "+919876543210" finds the same visitor as the bare 10-digit
-    // number, but the code checks `digits(phone).includes(qDigits)` — phone is
-    // stored normalized to 10 digits (see lib/blacklist.ts normalizePhone), so
-    // a query carrying the +91 prefix produces a 12-digit qDigits that can
-    // never be a substring of a 10-digit haystack. This assertion documents
-    // the actual (broken) behavior; see the report for the intended fix.
-    it('does NOT match a +91-prefixed query against a normalized 10-digit phone (documents a source bug)', () => {
-      expect(matchesQuery(v, '+919876543210')).toBe(false);
-    });
-
-    it('matches a partial phone number of at least 3 digits', () => {
-      expect(matchesQuery(v, '98765')).toBe(true);
-    });
-
-    // Guarded so a single stray digit does not match every phone in the list.
-    it('does NOT match on fewer than 3 digits', () => {
-      expect(matchesQuery(v, '98')).toBe(false);
-      expect(matchesQuery(v, '9')).toBe(false);
-    });
-
-    it('does not match an unrelated phone number', () => {
-      expect(matchesQuery(v, '1112223334')).toBe(false);
-    });
-  });
-
-  describe('text query matches across fields, case-insensitively', () => {
-    const v = visit({
-      visitor: visitor({ full_name: 'Asha Rao', vendor_name: 'Acme Corp' }),
-      ref_number: 'VIS-20260811-0007',
-      host: { id: 'h1', full_name: 'Rahul Sen' },
-      department: { id: 'd1', name: 'Engineering', code: 'ENG', created_at: '2026-01-01T00:00:00Z' },
-      purpose: 'vendor',
-    });
-
-    it('matches the visitor name', () => {
-      expect(matchesQuery(v, 'asha')).toBe(true);
-      expect(matchesQuery(v, 'ASHA')).toBe(true);
-    });
-
-    it('matches the vendor name', () => {
-      expect(matchesQuery(v, 'acme')).toBe(true);
-    });
-
-    it('matches the reference number', () => {
-      expect(matchesQuery(v, 'vis-20260811-0007')).toBe(true);
-    });
-
-    it('matches the host name', () => {
-      expect(matchesQuery(v, 'rahul')).toBe(true);
-    });
-
-    it('matches the department name', () => {
-      expect(matchesQuery(v, 'engineering')).toBe(true);
-    });
-
-    it('matches the purpose', () => {
-      expect(matchesQuery(v, 'vendor')).toBe(true);
-    });
-
-    it('does not match unrelated text', () => {
-      expect(matchesQuery(v, 'zzz-not-present')).toBe(false);
-    });
-  });
-
-  it('tolerates missing joined fields without throwing', () => {
-    const bare = visit({ visitor: undefined, host: undefined, department: undefined });
-    expect(() => matchesQuery(bare, 'anything')).not.toThrow();
-    expect(matchesQuery(bare, 'anything')).toBe(false);
-  });
-});
 
 describe('sortVisits', () => {
   const a = visit({ id: 'a', visitor: visitor({ full_name: 'Zara' }) });

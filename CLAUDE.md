@@ -128,12 +128,18 @@
   ordinary case — booked yesterday, arriving today — never loads at all. The
   Expected segment then narrows with `isDueToday`, so a booking for next month is
   fetched but never listed as an arrival due now.
-- **Toolbar search is client-side and only narrows what is loaded**
-  (`lib/visitorStackFilter.ts`). Finding a pass *outside* that window — used,
-  rejected, swept closed — is a different question with a different answer
-  (`lib/searchVisits.ts`, reached from Scan Pass and `/search`); the empty state
-  says so. Phone matching normalises a leading `91` because `visitors.phone` is
-  stored as ten digits — comparing a raw `+91…` query against it can never match.
+- **The stacked list has NO search box — sort only.** It briefly had one, backed by a
+  `matchesQuery` in `lib/visitorStackFilter.ts`; both are deleted. The top bar already
+  carries a global search that reaches every visit in any state
+  (`lib/searchVisits.ts`), and the two answered the same question differently: the
+  in-list box could only narrow the rows the current segment had loaded, so a visitor
+  who had checked out was findable in one box and not the other. One search, one
+  answer. `visitorStackFilter.ts` now holds `sortVisits` and nothing else.
+- **The department appears ONCE per card.** It used to trail the host's name in
+  brackets *and* own an attribute row below it — the same value twice on one card,
+  which the no-duplicate-renders rule forbids and which made the eye check whether the
+  two agreed. `VisitorStackCard.test.tsx` guards this, along with the vendor and host
+  each appearing exactly once.
 - **QR scanning is UNCONDITIONAL — there is no `qr` feature flag, and adding one back
   is forbidden.** `/guard/scan-pass` is the guard's dedicated scan desk: a visitor
   holds up their pass, it resolves straight to their record and the check-in completes

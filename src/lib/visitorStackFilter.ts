@@ -1,50 +1,12 @@
-// Client-side narrowing for the Visitors list toolbar.
+// Sort order for the Visitors stacked list.
 //
-// Deliberately NOT a server search. The Visitors page has already loaded the
-// rows it lists, so typing filters what is on screen — instant, and it can
-// never contradict the count beside the heading. Finding a pass that is NOT in
-// that window (used, rejected, swept closed) is a different question with a
-// different answer: lib/searchVisits.ts, reached from Scan Pass and /search.
+// This file used to also hold `matchesQuery`, a client-side search backing a
+// box in the list toolbar. Both are gone: the top bar already carries a global
+// search, and the two answered the same question differently — this one could
+// only narrow the rows already loaded for the current segment, so a visitor who
+// had checked out was findable in one box and not the other. Searching every
+// visit in any state lives in lib/searchVisits.ts.
 import type { Visit } from '../types/index';
-
-/** Digits only, so a guard can type a phone with or without spaces or +91. */
-function digits(s: string): string {
-  return s.replace(/\D/g, '');
-}
-
-/** Drops an Indian country code the way lib/blacklist.normalizePhone does.
- *  `visitors.phone` is STORED normalized to ten digits, so a guard typing
- *  `+919876543210` was asking whether a 10-digit haystack contains a 12-digit
- *  needle — impossible, and it silently returned no match while the bare
- *  number worked. Any comparison against that column has to normalize first. */
-function normalizeQueryDigits(d: string): string {
-  return d.length === 12 && d.startsWith('91') ? d.slice(2) : d;
-}
-
-/** Matches name, vendor, phone or reference number. Case-insensitive. */
-export function matchesQuery(v: Visit, query: string): boolean {
-  const q = query.trim().toLowerCase();
-  if (!q) return true;
-
-  const qDigits = normalizeQueryDigits(digits(q));
-  // A query that is only digits is a phone number, not a name — comparing it
-  // digits-only lets "98765 43210", "9876543210" and "+919876543210" all find
-  // the same visitor. Guarded on length so a single stray digit typed into the
-  // box does not match every phone in the list.
-  if (qDigits.length >= 3 && qDigits.length === q.replace(/[\s+()-]/g, '').length) {
-    if (digits(v.visitor?.phone ?? '').includes(qDigits)) return true;
-  }
-
-  const haystack = [
-    v.visitor?.full_name,
-    v.visitor?.vendor_name,
-    v.ref_number,
-    v.host?.full_name,
-    v.department?.name,
-    v.purpose,
-  ];
-  return haystack.some((f) => (f ?? '').toLowerCase().includes(q));
-}
 
 export type StackSort = 'recent' | 'name' | 'time';
 

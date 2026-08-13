@@ -2,36 +2,24 @@ import React from 'react';
 import { SORT_LABELS, SORT_OPTIONS, type StackSort } from '../../lib/visitorStackFilter';
 
 type Props = {
-  query: string;
-  onQueryChange: (q: string) => void;
   sort: StackSort;
   onSortChange: (s: StackSort) => void;
-  /** Rows currently shown, so the toolbar can say when a query is hiding some. */
-  shown: number;
-  total: number;
 };
 
-// Search and sort for the stacked list. Both narrow what is already loaded —
-// there is no "Filter" button that opens a panel of controls nothing reads.
-export default function VisitorStackToolbar({
-  query, onQueryChange, sort, onSortChange, shown, total,
-}: Props): React.ReactElement {
+// Sort only.
+//
+// There was a search box here. It is gone because the top bar already carries a
+// global search, and the two answered the same question differently: this one
+// could only narrow the rows already loaded for the current segment, so a
+// visitor who had checked out was findable in one box and not the other. One
+// search, one answer — see lib/searchVisits.ts, which reaches every visit in
+// any state.
+//
+// There is no "Filter" button either. A control that opens a panel of options
+// nothing reads is worse than no control.
+export default function VisitorStackToolbar({ sort, onSortChange }: Props): React.ReactElement {
   return (
     <div className="stack-toolbar">
-      <div className="stack-search">
-        <svg className="stack-search-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8} aria-hidden="true">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
-        </svg>
-        <input
-          type="search"
-          className="input stack-search-input"
-          placeholder="Search by name, vendor, phone or reference…"
-          aria-label="Search visitors"
-          value={query}
-          onChange={(e) => onQueryChange(e.target.value)}
-        />
-      </div>
-
       <label className="stack-sort">
         <span className="sr-only">Sort visitors</span>
         <svg className="w-4 h-4 shrink-0 text-navy-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8} aria-hidden="true">
@@ -42,12 +30,6 @@ export default function VisitorStackToolbar({
           {SORT_OPTIONS.map((s) => <option key={s} value={s}>{SORT_LABELS[s]}</option>)}
         </select>
       </label>
-
-      {query.trim() !== '' && (
-        <p className="stack-toolbar-note" role="status">
-          {shown} of {total} shown
-        </p>
-      )}
     </div>
   );
 }
