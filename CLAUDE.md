@@ -75,12 +75,65 @@
   `sync_profile_role_to_auth` trigger (migration 010) mirrors it into JWT `app_metadata`.
 
 ### Guard console (visitor-only deployment)
-- The guard **sidebar is five items** — Dashboard, Scan Pass, Walk-in Visitors,
-  Pre-Approvals, Watchlist & Alerts. Defined in `src/components/layout/navLinks.tsx`
-  (extracted out of `Sidebar.tsx`). `Walk-in Visitors` carries **no sub-nav children**.
-  The `/visitors` entry is declared **twice** on purpose — guards see "Walk-in
-  Visitors", staff see "Visitors" — because the two roles land on different components
-  at that route.
+- The guard **sidebar is three items** — Dashboard, Scan Pass, and a **Visitors
+  group that expands in place**. Defined in `src/components/layout/navLinks.tsx`
+  (extracted out of `Sidebar.tsx`); the group renders through
+  `components/layout/SidebarNavGroup.tsx`. The `/visitors` entry is declared
+  **twice** on purpose — guards get the group, staff get a plain link — because
+  the two roles land on different components at that route, and staff have no
+  sub-nav.
+- **`src/lib/visitorSegments.ts` is the single source of truth for the Visitors
+  surface.** The sidebar children, the page content, the page copy and the live
+  count badges are all derived from `VISITOR_SEGMENTS` / `SEGMENT_META` /
+  `SEGMENT_FILTER` there, so a segment cannot exist in the nav without existing
+  on the page, and "what Expected means" is defined once. Adding a segment is one
+  edit in that file. The eight are: All Visitors, Expected, Inside, Pending
+  Approval, Approved Walk-ins, Overstayed, Checked Out, Walk-in Register.
+- **Each segment is a real URL** (`/visitors`, `/visitors/expected`,
+  `/visitors/inside`, …), routed in `App.tsx` via `/visitors/:segment`. This
+  replaced a three-tab bar buried inside the page: the tabs were invisible from
+  the nav, unbookmarkable, and the back button did nothing between them. Every
+  legacy `?tab=` value is mapped by `segmentFromSlug`, and an unknown slug
+  degrades onto `all` rather than 404-ing into a blank page — those values live
+  in old bookmarks. `GuardConsoleModeTabs.tsx` and `GuardConsoleModeContent.tsx`
+  were deleted; `pages/Guard/VisitorSegmentContent.tsx` superseded them.
+- **The stacked card is the one visitor layout.** `VisitorStackCard.tsx` (+
+  `VisitorStackFacts.tsx`) renders three columns — identity, contact facts,
+  verification and action — because a guard reads the name and the host, glances
+  at the time and the phone to confirm it is the right person, then acts. The
+  older single-row `VisitorCard.tsx` **still exists** and is used by
+  `GuardWalkIns` and `GuardWalkInApproved`; do not delete it. Styles are in
+  `styles/components-visitor-stack.css`, and `.stack-card` deliberately declares
+  **no background on its `::before`** so the bare `.rail-*::before` selectors in
+  `components-guard.css` colour it — do not give it a fallback background or the
+  status rail stops working.
+- **Which action a row offers depends on the VISIT, not on the segment heading.**
+  `actionFor` in `VisitorSegmentContent.tsx`: `approved` → Check In,
+  `checked_in` → Check Out, everything else → no button. "All Visitors" mixes an
+  expected arrival and a departed one on one screen, and a button the guard
+  cannot honour is worse than no button.
+- **The walk-in register is untouched by all of this.** `/visitors/walk-in`
+  renders `GuardWalkIns` exactly as before, with its own pending list, because
+  registering an unannounced arrival is the one thing on this surface that
+  *creates* a visit rather than advancing one, and registering then watching for
+  the host's answer is one continuous job. `/visitors/approved` likewise still
+  renders `GuardWalkInApproved` unchanged — it captures a photo before it can
+  act, so it is a flow, not a row with a button.
+- **The sidebar count badges must be computed from the page's own rules.**
+  `lib/useVisitorCounts.ts` loads the SAME window (`visitorLoadFilter`) and
+  slices it with the SAME predicates (`SEGMENT_FILTER`) the page uses. It is
+  gated on `role === 'guard'` so no other role pays for the query or the extra
+  realtime subscription. Never give a badge its own filter.
+- **`approved` is in `OPEN_STATUSES` and that is load-bearing.** Without it the
+  ordinary case — booked yesterday, arriving today — never loads at all. The
+  Expected segment then narrows with `isDueToday`, so a booking for next month is
+  fetched but never listed as an arrival due now.
+- **Toolbar search is client-side and only narrows what is loaded**
+  (`lib/visitorStackFilter.ts`). Finding a pass *outside* that window — used,
+  rejected, swept closed — is a different question with a different answer
+  (`lib/searchVisits.ts`, reached from Scan Pass and `/search`); the empty state
+  says so. Phone matching normalises a leading `91` because `visitors.phone` is
+  stored as ten digits — comparing a raw `+91…` query against it can never match.
 - **QR scanning is UNCONDITIONAL — there is no `qr` feature flag, and adding one back
   is forbidden.** `/guard/scan-pass` is the guard's dedicated scan desk: a visitor
   holds up their pass, it resolves straight to their record and the check-in completes

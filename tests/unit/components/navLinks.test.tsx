@@ -1,14 +1,30 @@
 import { describe, it, expect } from 'vitest';
 import { ALL_LINKS, linksForRole } from '../../../src/components/layout/navLinks';
 
+// The guard's Visitors group children, in the order lib/visitorSegments.ts
+// declares them — a visitor's life at the gate: booked -> arrived -> waiting
+// on a decision -> approved -> on site too long -> gone, with the landing
+// page first and the registration form trailing.
+const EXPECTED_VISITOR_CHILDREN = [
+  { label: 'All Visitors', to: '/visitors' },
+  { label: 'Expected', to: '/visitors/expected' },
+  { label: 'Inside', to: '/visitors/inside' },
+  { label: 'Pending Approval', to: '/visitors/pending' },
+  { label: 'Approved Walk-ins', to: '/visitors/approved' },
+  { label: 'Overstayed', to: '/visitors/overstayed' },
+  { label: 'Checked Out', to: '/visitors/checked-out' },
+  { label: 'Walk-in Register', to: '/visitors/walk-in' },
+];
+
 describe('navLinks: linksForRole', () => {
-  it('guard gets exactly 4 links, in order, with the exact labels, and no Search', () => {
+  // The guard nav shrank from four flat items to three: Walk-in Visitors and
+  // Pre-Approvals were absorbed into the Visitors GROUP (see below).
+  it('guard gets exactly 3 links, in order, with the exact labels, and no Search', () => {
     const links = linksForRole('guard');
     expect(links.map((l) => l.label)).toEqual([
       'Dashboard',
       'Scan Pass',
-      'Walk-in Visitors',
-      'Pre-Approvals',
+      'Visitors',
     ]);
     expect(links.map((l) => l.label)).not.toContain('Search');
   });
@@ -20,9 +36,23 @@ describe('navLinks: linksForRole', () => {
     expect(links[1]?.label).toBe('Scan Pass');
   });
 
-  it('guard Walk-in Visitors link points to /visitors and carries no sub-nav children', () => {
+  // Walk-in Visitors and Pre-Approvals are gone as separate top-level items;
+  // /visitors is now a GROUP whose children come from VISITOR_SEGMENTS, so the
+  // nav can never offer a segment the page has no case for.
+  it('guard Visitors link points to /visitors and carries the full segment list as children, in order', () => {
     const links = linksForRole('guard');
-    const visitors = links.find((l) => l.label === 'Walk-in Visitors');
+    const visitors = links.find((l) => l.label === 'Visitors');
+    expect(visitors?.to).toBe('/visitors');
+    expect(visitors?.children?.map((c) => ({ label: c.label, to: c.to }))).toEqual(
+      EXPECTED_VISITOR_CHILDREN,
+    );
+  });
+
+  // Staff land on a different component at this same route (VisitorsDashboard,
+  // not the guard console) and never get the sub-nav.
+  it('staff Visitors link carries no sub-nav children', () => {
+    const links = linksForRole('staff');
+    const visitors = links.find((l) => l.label === 'Visitors');
     expect(visitors?.to).toBe('/visitors');
     expect((visitors as any)?.children).toBeUndefined();
   });

@@ -42,14 +42,24 @@ vi.mock('../../../src/supabaseClient', () => ({
           }),
         };
       }
+      // visits (and anything else): useVisitorCounts does
+      // select(...).or(...), not select(...).eq(...) — needs its own branch.
       return {
         select: () => ({
           eq: () => ({
             maybeSingle: () => Promise.resolve({ data: null, error: null }),
           }),
+          or: () => Promise.resolve({ data: [], error: null }),
         }),
       };
     },
+    channel: () => {
+      const ch: any = {};
+      ch.on = () => ch;
+      ch.subscribe = () => ch;
+      return ch;
+    },
+    removeChannel: () => {},
   },
 }));
 
@@ -90,9 +100,13 @@ describe('Sidebar navigation links per role', () => {
     expect(links.length).toBe(3);
   });
 
-  it('guard still sees Walk-in Visitors', () => {
+  // The Visitors group absorbed "Walk-in Visitors" and "Pre-Approvals" — the
+  // guard now sees the group's own label, "Visitors", as a top-level item.
+  it('guard sees Visitors as a top-level item (absorbed Walk-in Visitors and Pre-Approvals)', () => {
     renderSidebar('guard');
-    expect(screen.getByText('Walk-in Visitors')).toBeInTheDocument();
+    expect(screen.getByText('Visitors')).toBeInTheDocument();
+    expect(screen.queryByText('Walk-in Visitors')).not.toBeInTheDocument();
+    expect(screen.queryByText('Pre-Approvals')).not.toBeInTheDocument();
   });
 
   it('staff still sees Visitors', () => {
@@ -106,18 +120,22 @@ describe('Sidebar navigation links per role', () => {
     expect(screen.getByText('Pre-Approvals')).toBeInTheDocument();
   });
 
-  it('guard sees all three nav labels, in the visitor-only console, and no Search', () => {
+  it('guard sees all three nav labels of the visitor-only console, and no Search', () => {
     renderSidebar('guard');
     expect(screen.getByText('Dashboard')).toBeInTheDocument();
-    expect(screen.getByText('Walk-in Visitors')).toBeInTheDocument();
-    expect(screen.getByText('Pre-Approvals')).toBeInTheDocument();
+    expect(screen.getByText('Scan Pass')).toBeInTheDocument();
+    expect(screen.getByText('Visitors')).toBeInTheDocument();
     expect(screen.queryByText('Search')).not.toBeInTheDocument();
   });
 
-  it('guard sidebar has exactly 4 nav links', () => {
+  // The Visitors group renders as a <button>, not an <a>, so it does not add
+  // to the anchor count — only Dashboard and Scan Pass do.
+  it('guard sidebar has exactly 2 top-level nav <a> links, plus the Visitors group button', () => {
     const { container } = renderSidebar('guard');
     const links = container.querySelectorAll('a.sidebar-link');
-    expect(links.length).toBe(4);
+    expect(links.length).toBe(2);
+    const group = screen.getByRole('button', { name: /Visitors/ });
+    expect(group).toBeInTheDocument();
   });
 
   // Daily Staff and the Self-Service Kiosk are still ROUTABLE (see
@@ -132,20 +150,55 @@ describe('Sidebar navigation links per role', () => {
     expect(screen.queryByText('Self-Service Kiosk')).not.toBeInTheDocument();
   });
 
-  // The Visitors sidebar link no longer carries sub-nav children (Expected /
-  // Walk-ins / Inside moved to the GuardConsoleModeTabs in the main content
-  // area). It must never render a sub-nav, active or not, collapsed or not.
-  it('Visitors sidebar link renders no sub-nav children, on /visitors or elsewhere', () => {
-    const { unmount } = renderSidebar('guard', ['/guard/dashboard']);
+  // The Visitors group parent is a BUTTON, not a Link — clicking it opens the
+  // list of where you can go, it does not navigate somewhere that then hides
+  // its own contents. Collapsed, the children are still nowhere on screen
+  // until it is clicked.
+  it('the Visitors group is collapsed by default off /visitors, and clicking it reveals its children', () => {
+    renderSidebar('guard', ['/guard/dashboard']);
+    const group = screen.getByRole('button', { name: /Visitors/ });
+    expect(group).toHaveAttribute('aria-expanded', 'false');
     expect(screen.queryByText('Expected')).not.toBeInTheDocument();
-    expect(screen.queryByText('Walk-ins')).not.toBeInTheDocument();
     expect(screen.queryByText('Inside')).not.toBeInTheDocument();
-    unmount();
 
-    renderSidebar('guard', ['/visitors']);
+    fireEvent.click(group);
+    expect(group).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByText('Expected')).toBeInTheDocument();
+    expect(screen.getByText('Inside')).toBeInTheDocument();
+
+    // Toggling again collapses it back — one click opens, the next closes.
+    fireEvent.click(group);
+    expect(group).toHaveAttribute('aria-expanded', 'false');
     expect(screen.queryByText('Expected')).not.toBeInTheDocument();
-    expect(screen.queryByText('Walk-ins')).not.toBeInTheDocument();
-    expect(screen.queryByText('Inside')).not.toBeInTheDocument();
+  });
+
+  // Seeded open on mount when the route already lives under /visitors, so a
+  // guard who lands on a segment page can see where they are without hunting
+  // for the group first.
+  it('the Visitors group is already expanded on mount when the route is /visitors/inside', () => {
+    renderSidebar('guard', ['/visitors/inside']);
+    const group = screen.getByRole('button', { name: /Visitors/ });
+    expect(group).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByText('Expected')).toBeInTheDocument();
+    expect(screen.getByText('Inside')).toBeInTheDocument();
+  });
+
+  // Exact-match only: /visitors is a prefix of every segment path, so a
+  // startsWith test on the active class would light up "All Visitors" on
+  // every single segment page and tell the guard nothing about where they are.
+  it('on /visitors/inside, Inside is the active sub-link and All Visitors is not', () => {
+    renderSidebar('guard', ['/visitors/inside']);
+    const insideLink = screen.getByText('Inside').closest('a');
+    const allLink = screen.getByText('All Visitors').closest('a');
+    expect(insideLink?.className).toContain('sidebar-sublink-active');
+    expect(allLink?.className).not.toContain('sidebar-sublink-active');
+  });
+
+  // Only the guard's Visitors entry is a group. Every other role's sidebar
+  // must never render a sub-nav list at all.
+  it('a non-guard role (hod) renders no sidebar-sub list', () => {
+    const { container } = renderSidebar('hod');
+    expect(container.querySelector('ul.sidebar-sub')).toBeNull();
   });
 });
 

@@ -30,9 +30,14 @@ vi.mock('../../../src/supabaseClient', () => ({
     },
     from: (table: string) => {
       // For visits / gate_passes queries from SidebarAnalytics: select().eq().gte()
+      // The bare .or() is useVisitorCounts (lib/useVisitorCounts.ts), which the
+      // sidebar mounts to badge the Visitors sub-nav. Without it the hook's
+      // promise rejects and vitest fails the run on an unhandled rejection even
+      // though every assertion passes.
       if (table === 'visits' || table === 'gate_passes') {
         return {
           select: () => ({
+            or: () => Promise.resolve({ data: [], error: null }),
             eq: () => ({
               gte: () => Promise.resolve({ data: [], error: null }),
               maybeSingle: () => Promise.resolve({ data: null }),

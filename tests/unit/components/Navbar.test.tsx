@@ -30,6 +30,7 @@ vi.mock('../../../src/supabaseClient', () => ({
     },
     from: (table: string) => {
       // For visits / gate_passes queries from SidebarAnalytics: select().eq().gte()
+      // — and from useVisitorCounts (Visitors sub-nav badges): select().or().
       if (table === 'visits' || table === 'gate_passes') {
         return {
           select: () => ({
@@ -37,6 +38,7 @@ vi.mock('../../../src/supabaseClient', () => ({
               gte: () => Promise.resolve({ data: [], error: null }),
               maybeSingle: () => Promise.resolve({ data: null }),
             }),
+            or: () => Promise.resolve({ data: [], error: null }),
           }),
         };
       }
@@ -107,10 +109,13 @@ describe('Sidebar: navigation links', () => {
 
   it('renders correct nav links for guard role', () => {
     renderWithRouter(<Sidebar session={guardSession} role="guard" />);
-    // The three-item visitor console. See components/layout/navLinks.tsx.
+    // The three-item visitor console. Walk-in Visitors and Pre-Approvals were
+    // absorbed into the Visitors GROUP — see components/layout/navLinks.tsx.
     expect(screen.getByText('Dashboard')).toBeInTheDocument();
-    expect(screen.getByText('Walk-in Visitors')).toBeInTheDocument();
-    expect(screen.getByText('Pre-Approvals')).toBeInTheDocument();
+    expect(screen.getByText('Scan Pass')).toBeInTheDocument();
+    expect(screen.getByText('Visitors')).toBeInTheDocument();
+    expect(screen.queryByText('Walk-in Visitors')).not.toBeInTheDocument();
+    expect(screen.queryByText('Pre-Approvals')).not.toBeInTheDocument();
 
     // Search left the nav but stays routable at /guard/search (see
     // ROLE_ROUTES.guard in roleRoutes.ts) — same reasoning as Daily Staff/Kiosk.
@@ -166,18 +171,18 @@ describe('Sidebar: navigation links', () => {
     expect(screen.queryByText('Settings')).not.toBeInTheDocument();
   });
 
+  // Visitors is a GROUP now: its parent renders as a <button>, so "active" is
+  // read off the button's own class, not an <a>.
   it('highlights active link based on current route', () => {
     renderWithRouter(<Sidebar session={guardSession} role="guard" />, { route: '/visitors' });
-    const visitorsLinks = screen.getAllByText('Walk-in Visitors');
-    const activeLink = visitorsLinks.find((el) => el.closest('a')?.className.includes('sidebar-link-active'));
-    expect(activeLink).toBeTruthy();
+    const group = screen.getByRole('button', { name: /Visitors/ });
+    expect(group.className).toContain('sidebar-link-active');
   });
 
   it('does not highlight inactive links', () => {
     renderWithRouter(<Sidebar session={guardSession} role="guard" />, { route: '/whos-inside' });
-    const visitorsLinks = screen.getAllByText('Walk-in Visitors');
-    const inactiveLink = visitorsLinks.find((el) => !el.closest('a')?.className.includes('sidebar-link-active'));
-    expect(inactiveLink).toBeTruthy();
+    const group = screen.getByRole('button', { name: /Visitors/ });
+    expect(group.className).not.toContain('sidebar-link-active');
   });
 });
 
@@ -201,10 +206,10 @@ describe('Sidebar: sign out', () => {
 describe('Sidebar: mobile menu', () => {
   it('toggles mobile menu on hamburger click', () => {
     renderWithRouter(<Sidebar session={guardSession} role="guard" />);
-    const beforeCount = screen.getAllByText('Walk-in Visitors').length;
+    const beforeCount = screen.getAllByText('Visitors').length;
     const toggleBtn = screen.getByLabelText('Open menu');
     expect(toggleBtn).toBeInTheDocument();
     fireEvent.click(toggleBtn);
-    expect(screen.getAllByText('Walk-in Visitors').length).toBeGreaterThan(beforeCount);
+    expect(screen.getAllByText('Visitors').length).toBeGreaterThan(beforeCount);
   });
 });

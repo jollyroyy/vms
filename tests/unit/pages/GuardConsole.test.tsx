@@ -1,7 +1,7 @@
 import React from 'react';
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { render, screen, cleanup, waitFor, fireEvent } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
+import { render, screen, cleanup, waitFor } from '@testing-library/react';
+import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import GuardConsole from '../../../src/pages/Guard/Console';
 
 const mockVisitData = vi.hoisted(() => ({ current: [] as any[] }));
@@ -47,175 +47,179 @@ afterEach(() => {
   orCalls.current = [];
 });
 
+/** Today in IST, so fixtures land on the day the page considers current. The
+ *  page uses istDateKey, not the UTC date — between 00:00 and 05:30 IST those
+ *  are different days and a UTC-built fixture would silently be "yesterday". */
+function istToday(): string {
+  const ist = new Date(Date.now() + (5 * 60 + 30) * 60_000);
+  return ist.toISOString().slice(0, 10);
+}
+
 function visit(overrides: Record<string, any> = {}) {
   return {
     id: 'v1',
+    ref_number: 'VIS-0001',
     status: 'checked_in',
-    created_at: '2026-08-02T04:00:00Z',
-    checked_in_at: '2026-08-02T04:05:00Z',
+    purpose: 'meeting',
+    created_at: `${istToday()}T04:00:00Z`,
+    checked_in_at: `${istToday()}T04:05:00Z`,
     checked_out_at: null,
+    scheduled_for: null,
     photo_data: null,
-    visitor: { full_name: 'Alice Johnson' },
+    visitor: { full_name: 'Alice Johnson', phone: '9876543210', vendor_name: 'Acme' },
     department: { name: 'Engineering' },
     ...overrides,
   };
 }
 
-function renderConsole(initialEntry = '/visitors') {
+// The page reads its segment from the URL, so every render goes through a real
+// route — rendering the component bare would silently always test "all".
+function renderAt(path: string) {
   return render(
-    <MemoryRouter initialEntries={[initialEntry]}>
-      <GuardConsole />
+    <MemoryRouter initialEntries={[path]}>
+      <Routes>
+        <Route path="/visitors" element={<GuardConsole />} />
+        <Route path="/visitors/:segment" element={<GuardConsole />} />
+      </Routes>
     </MemoryRouter>,
   );
 }
 
-describe('GuardConsole', () => {
-  it('renders the "Visitors" heading', async () => {
-    renderConsole();
-    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Visitors');
-  });
-
-  it('renders the three primary tabs with count badges', async () => {
-    renderConsole();
+describe('GuardConsole segments', () => {
+  it('defaults to All Visitors at the bare /visitors route', async () => {
+    renderAt('/visitors');
     await waitFor(() => {
-      expect(screen.getByRole('tab', { name: /Walk-ins/i })).toBeInTheDocument();
-      expect(screen.getByRole('tab', { name: /Approved/i })).toBeInTheDocument();
-      expect(screen.getByRole('tab', { name: /Inside/i })).toBeInTheDocument();
-    });
-    expect(screen.getAllByRole('tab')).toHaveLength(3);
-  });
-
-  // "Expected" stopped being a tab: check-in is not one of several things a
-  // guard might be doing, it is the thing they are doing. CheckInPanel now sits
-  // permanently above the tab bar instead.
-  it('renders no "Expected" tab', async () => {
-    renderConsole();
-    await waitFor(() => expect(screen.getByRole('tab', { name: /Inside/i })).toBeInTheDocument());
-    expect(screen.queryByRole('tab', { name: /Expected/i })).not.toBeInTheDocument();
-  });
-
-  // CheckInPanel moved to /guard/pre-approvals (see PreApprovals.tsx) — the
-  // console is the walk-in lane and never resolves a booked-in-advance visitor,
-  // so it must not render the panel in any mode.
-  it('never renders CheckInPanel, in any mode', async () => {
-    renderConsole();
-    await waitFor(() => expect(screen.getByRole('tab', { name: /Walk-ins/i })).toBeInTheDocument());
-    expect(screen.queryByText('CheckInPanel')).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole('tab', { name: /Approved/i }));
-    await waitFor(() => expect(screen.getByRole('tab', { name: /Approved/i })).toHaveAttribute('aria-selected', 'true'));
-    expect(screen.queryByText('CheckInPanel')).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole('tab', { name: /Inside/i }));
-    await waitFor(() => expect(screen.getByRole('tab', { name: /Inside/i })).toHaveAttribute('aria-selected', 'true'));
-    expect(screen.queryByText('CheckInPanel')).not.toBeInTheDocument();
-  });
-
-  it('defaults to the "walkins" mode', async () => {
-    renderConsole();
-    await waitFor(() => {
-      expect(screen.getByRole('tab', { name: /Walk-ins/i })).toHaveAttribute('aria-selected', 'true');
+      expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('All Visitors');
     });
   });
 
-  it('clicking Inside switches content and shows a Check Out action', async () => {
+  // Each segment is a real URL now, not a tab hidden inside the page. That is
+  // what makes them bookmarkable and the back button work between them.
+  it.each([
+    ['/visitors/expected', 'Expected Visitors'],
+    ['/visitors/inside', 'Inside'],
+    ['/visitors/pending', 'Pending Approval'],
+    ['/visitors/overstayed', 'Overstayed'],
+    ['/visitors/checked-out', 'Checked Out'],
+  ])('%s renders the %s heading', async (path, heading) => {
+    renderAt(path);
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(heading);
+    });
+  });
+
+  it('lists a checked-in visitor under Inside, with a Check Out action', async () => {
     mockVisitData.current = [visit()];
-    renderConsole();
-    await waitFor(() => expect(screen.getByRole('tab', { name: /Inside/i })).toBeInTheDocument());
-    fireEvent.click(screen.getByRole('tab', { name: /Inside/i }));
+    renderAt('/visitors/inside');
     await waitFor(() => {
       expect(screen.getByText('Alice Johnson')).toBeInTheDocument();
-      expect(screen.getByText('Check Out')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /Check Out/i })).toBeInTheDocument();
     });
   });
 
-  it('clicking Walk-ins shows the walk-in lane', async () => {
-    renderConsole();
-    await waitFor(() => expect(screen.getByRole('tab', { name: /Walk-ins/i })).toBeInTheDocument());
-    fireEvent.click(screen.getByRole('tab', { name: /Walk-ins/i }));
+  // Expected is the pre-booked lane: its action starts a check-in, never ends
+  // one. A Check Out button here would offer to close a visit that never opened.
+  it('offers Check In — not Check Out — on an expected visitor', async () => {
+    mockVisitData.current = [visit({
+      id: 'v2', status: 'approved', checked_in_at: null,
+      scheduled_for: `${istToday()}T05:00:00Z`,
+    })];
+    renderAt('/visitors/expected');
+    await waitFor(() => expect(screen.getByText('Alice Johnson')).toBeInTheDocument());
+    expect(screen.getByRole('button', { name: /Check In/i })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Check Out/i })).not.toBeInTheDocument();
+  });
+
+  // A visit awaiting an HOD's decision has nothing the guard can do to it. A
+  // button they cannot honour is worse than no button.
+  it('offers no action on a visit still pending approval', async () => {
+    mockVisitData.current = [visit({ id: 'v3', status: 'pending_approval', checked_in_at: null })];
+    renderAt('/visitors/pending');
+    await waitFor(() => expect(screen.getByText('Alice Johnson')).toBeInTheDocument());
+    expect(screen.queryByRole('button', { name: /^Check In$/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Check Out/i })).not.toBeInTheDocument();
+  });
+
+  it('shows the segment empty state when nothing matches', async () => {
+    mockVisitData.current = [];
+    renderAt('/visitors/inside');
+    await waitFor(() => {
+      expect(screen.getByText('No one is inside right now.')).toBeInTheDocument();
+    });
+  });
+
+  // The walk-in register is untouched by the nav restructure: a guard still has
+  // to be able to register someone who turned up unannounced, and that flow is
+  // the one thing on this surface that CREATES a visit rather than advancing one.
+  it('the walk-in segment still renders the registration lane', async () => {
+    renderAt('/visitors/walk-in');
     await waitFor(() => {
       expect(screen.getByText('Register a walk-in')).toBeInTheDocument();
       expect(screen.getByText('Awaiting approval from person to meet')).toBeInTheDocument();
     });
   });
 
-  // "Approved" is the gate's only route into checked_in for a walk-in the host
-  // has said yes to — CheckInPanel (the other route) moved to
-  // /guard/pre-approvals and only searches pre-approvals.
-  it('clicking Approved shows walk-ins the host has approved', async () => {
-    mockVisitData.current = [visit({ id: 'v2', status: 'walkin_approved', checked_in_at: null })];
-    renderConsole();
-    await waitFor(() => expect(screen.getByRole('tab', { name: /Approved/i })).toBeInTheDocument());
-    fireEvent.click(screen.getByRole('tab', { name: /Approved/i }));
+  it('the approved segment renders the walk-in check-in flow', async () => {
+    mockVisitData.current = [visit({ id: 'v4', status: 'walkin_approved', checked_in_at: null })];
+    renderAt('/visitors/approved');
     await waitFor(() => {
       expect(screen.getByText('Approved, waiting to enter')).toBeInTheDocument();
       expect(screen.getByText('Alice Johnson')).toBeInTheDocument();
     });
   });
 
-  // Old deep links must degrade onto a live tab rather than 404 into a blank
-  // one. Everything that used to mean "expected" now lands on Inside — the
-  // check-in flow those links were reaching for is on screen unconditionally.
-  describe('legacy tab aliases', () => {
+  // Old bookmarks and old dashboard tiles carry these slugs. None may 404 into
+  // a blank page — segmentFromSlug degrades every one onto a live segment.
+  describe('legacy slugs degrade onto a live segment', () => {
     it.each([
-      ['checkin', /Inside/i],
-      ['expected', /Inside/i],
-      ['no-show', /Inside/i],
-      ['rejected', /Inside/i],
-      ['all', /Inside/i],
-      ['exit', /Inside/i],
-      ['checked-out', /Inside/i],
-      ['walkins', /Walk-ins/i],
-      ['walkin-approved', /Approved/i],
-    ])('?tab=%s selects a live tab', async (tab, label) => {
-      renderConsole(`/visitors?tab=${tab}`);
+      ['walkins', 'Walk-in Visitors'],
+      ['walkin-approved', 'Approved Walk-ins'],
+      ['checkin', 'Expected Visitors'],
+      ['exit', 'Inside'],
+      ['rejected', 'All Visitors'],
+      ['all', 'All Visitors'],
+      ['no-show', 'All Visitors'],
+      ['nonsense-not-a-segment', 'All Visitors'],
+    ])('/visitors/%s renders %s', async (slug, heading) => {
+      renderAt(`/visitors/${slug}`);
       await waitFor(() => {
-        expect(screen.getByRole('tab', { name: label })).toHaveAttribute('aria-selected', 'true');
+        expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(heading);
       });
-      expect(screen.queryByText('CheckInPanel')).not.toBeInTheDocument();
     });
-  });
-
-  it('renders no "Also view" secondary filter row (checked-out/declined/all audit views were removed)', async () => {
-    renderConsole();
-    await waitFor(() => expect(screen.getByRole('tab', { name: /Inside/i })).toBeInTheDocument());
-    expect(screen.queryByText('Also view')).not.toBeInTheDocument();
-    expect(screen.queryByText('Checked out')).not.toBeInTheDocument();
-    expect(screen.queryByText('Declined')).not.toBeInTheDocument();
-    expect(screen.queryByText('All today')).not.toBeInTheDocument();
   });
 
   // Guards against the load window silently narrowing back to "today only",
-  // which used to drop a walk-in registered at 23:50 and approved at 00:05,
-  // and a visitor still inside from the previous evening.
-  it('loads visits with a filter covering both today\'s created_at window and the live statuses', async () => {
-    renderConsole();
+  // which used to drop a walk-in registered at 23:50 and approved at 00:05, and
+  // a visitor still inside from the previous evening. `approved` is in the list
+  // because without it the ordinary case — booked yesterday, arriving today —
+  // never loaded at all.
+  it('loads today\'s window plus every open status, unbounded', async () => {
+    renderAt('/visitors');
     await waitFor(() => expect(orCalls.current.length).toBeGreaterThan(0));
     expect(orCalls.current[0]).toContain('created_at.gte.');
-    expect(orCalls.current[0]).toContain('status.in.(pending_approval,walkin_approved,checked_in)');
+    expect(orCalls.current[0]).toContain('status.in.(pending_approval,approved,walkin_approved,checked_in)');
   });
 
-  it('shows an empty state when nobody is inside', async () => {
-    mockVisitData.current = [];
-    renderConsole();
-    fireEvent.click(screen.getByRole('tab', { name: /Inside/i }));
-    await waitFor(() => {
-      expect(screen.getByText('No one is inside right now.')).toBeInTheDocument();
-    });
+  // CheckInPanel lives on /guard/pre-approvals and the Scan Pass lane. This
+  // page resolves visitors from a list it already loaded, so the panel's search
+  // desk has no job here.
+  it('never renders CheckInPanel, in any segment', async () => {
+    for (const path of ['/visitors', '/visitors/expected', '/visitors/inside', '/visitors/walk-in']) {
+      renderAt(path);
+      await waitFor(() => expect(screen.getByRole('heading', { level: 1 })).toBeInTheDocument());
+      expect(screen.queryByText('CheckInPanel')).not.toBeInTheDocument();
+      cleanup();
+    }
   });
 
   // The console must never let a guard mint an entry pass. See the comment
   // block at the top of Console.tsx and canRoleShowPass in lib/passVisibility.ts.
-  describe('never offers an entry pass', () => {
-    it('renders no badge, QR or print-badge control', async () => {
-      mockVisitData.current = [visit()];
-      const { container } = renderConsole();
-      fireEvent.click(screen.getByRole('tab', { name: /Inside/i }));
-      await waitFor(() => {
-        expect(screen.getByText('Alice Johnson')).toBeInTheDocument();
-      });
-
-      expect(screen.queryByText(/print badge/i)).not.toBeInTheDocument();
-      expect(screen.queryByText(/visitor pass/i)).not.toBeInTheDocument();
-      expect(container.querySelector('img[alt*="QR" i]')).toBeNull();
-    });
+  it('never offers an entry pass, badge or QR', async () => {
+    mockVisitData.current = [visit()];
+    const { container } = renderAt('/visitors/inside');
+    await waitFor(() => expect(screen.getByText('Alice Johnson')).toBeInTheDocument());
+    expect(screen.queryByText(/print badge/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/visitor pass/i)).not.toBeInTheDocument();
+    expect(container.querySelector('img[alt*="QR" i]')).toBeNull();
   });
 });

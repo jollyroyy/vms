@@ -241,6 +241,12 @@ export default function App(): React.ReactElement {
           <Routes>
             <Route path="/" element={<Navigate to={allowed[0] ?? '/visitors'} replace />} />
             <Route path="/visitors"       element={<ProtectedRoute role={role}>{role === 'guard' ? <GuardConsole /> : <VisitorsDashboard />}</ProtectedRoute>} />
+            {/* The guard's Visitors segments — /visitors/expected, /inside, … .
+                Each is a real URL so it can be bookmarked and the back button
+                works between them; segmentFromSlug (lib/visitorSegments.ts)
+                degrades an unknown slug onto "all" rather than 404-ing. Staff
+                have no sub-nav, so they land on their own page either way. */}
+            <Route path="/visitors/:segment" element={<ProtectedRoute role={role}>{role === 'guard' ? <GuardConsole /> : <VisitorsDashboard />}</ProtectedRoute>} />
             <Route path="/guard"           element={<ProtectedRoute role={role}><GuardConsole /></ProtectedRoute>} />
             <Route path="/guard/dashboard" element={<ProtectedRoute role={role}><GuardDashboard /></ProtectedRoute>} />
             <Route path="/guard/scan-pass" element={<ProtectedRoute role={role}><GuardScanPass /></ProtectedRoute>} />

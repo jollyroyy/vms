@@ -76,6 +76,64 @@
     background: linear-gradient(120deg, rgb(184 147 74 / 1), rgb(168 98 58 / 0.95));
   }
 
+  /* --- Sidebar sub-navigation ---
+     Second level, indented under an expanded group. Deliberately quieter than
+     .sidebar-link — no icon, no gold fill when active. A parent and a child
+     lit identically would leave the guard unable to tell which level they are
+     reading; the child gets a leading marker and a tinted text colour instead.
+     The rail on the left ties the whole group together visually. */
+  .sidebar-sub {
+    @apply ml-[1.35rem] pl-3.5;
+    border-left: 1px solid rgb(var(--glass-border) / var(--hairline-opacity));
+  }
+  .sidebar-sublink {
+    /* 40px min — a shade under the 44px primary target because these sit in a
+       tight vertical list, but still a comfortable thumb target. */
+    @apply relative flex items-center gap-2 rounded-lg px-2.5 py-2 min-h-[40px]
+           text-[13px] font-medium text-navy-500 transition-all duration-200;
+  }
+  .sidebar-sublink:hover {
+    @apply text-navy-800;
+    background: rgb(var(--c-surface-100) / 0.8);
+  }
+  .dark .sidebar-sublink:hover {
+    @apply text-navy-200;
+    background: rgb(255 255 255 / 0.05);
+  }
+  .sidebar-sublink-active {
+    @apply font-bold text-brand-700 bg-brand-500/10;
+  }
+  .dark .sidebar-sublink-active {
+    @apply text-brand-300 bg-brand-500/[0.16];
+  }
+  /* The active marker: a short bar bridging back to the group rail. Paired
+     always with the bold weight and tint above, never the sole signal. */
+  .sidebar-sublink-active::before {
+    content: '';
+    position: absolute;
+    left: -0.875rem;
+    top: 50%;
+    transform: translateY(-50%);
+    height: 1.15rem;
+    width: 2px;
+    border-radius: 2px;
+    background: linear-gradient(180deg, rgb(184 147 74), rgb(168 98 58));
+  }
+  .sidebar-subcount {
+    @apply shrink-0 rounded-full px-1.5 py-0.5 text-[11px] font-bold leading-none
+           bg-surface-200/90 text-navy-600;
+  }
+  .dark .sidebar-subcount {
+    @apply text-navy-200;
+    background: rgb(255 255 255 / 0.10);
+  }
+  .sidebar-sublink-active .sidebar-subcount {
+    @apply bg-brand-500/20 text-brand-700;
+  }
+  .dark .sidebar-sublink-active .sidebar-subcount {
+    @apply text-brand-300;
+  }
+
   /* --- Glass chip --- */
   .glass-chip {
     @apply inline-flex items-center gap-1.5 rounded-full text-xs font-medium px-3 py-1;

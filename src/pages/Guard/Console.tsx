@@ -1,94 +1,67 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import React, { useCallback, useEffect, useState } from 'react';
+import { useParams } from 'react-router-dom';
 import { supabase } from '../../supabaseClient';
 import type { Visit } from '../../types/index';
 import { attachHostNames } from '../../lib/hostNames';
 import { safeErrorMessage } from '../../lib/errors';
-import GuardConsoleModeTabs, { type Mode } from './GuardConsoleModeTabs';
-import GuardConsoleModeContent from './GuardConsoleModeContent';
+import { istDateKey } from '../../lib/visitExpiry';
+import { segmentFromSlug, visitorLoadFilter } from '../../lib/visitorSegments';
+import VisitorSegmentContent from './VisitorSegmentContent';
+import VisitorCheckInFlow from './VisitorCheckInFlow';
+import VisitorDetails from '../../components/VisitorDetails';
 import { type WalkInCheckIn } from './GuardWalkInApproved';
 import { uploadPhoto } from '../../lib/photoUpload';
 import { isAlreadyInsideError } from '../../lib/activeVisit';
-// No CheckInPanel import any more — see the header comment below.
 // No Badge import: the guard console must never render an entry pass. See
 // canRoleShowPass in lib/passVisibility.ts for why. Badge draws a live QR
 // straight from visit.qr_token and has no role gate of its own, so wiring it
 // back in here would reintroduce the leak that gate exists to close.
 
-// This page is the WALK-IN lane. CheckInPanel — the QR gate, the pre-approved
-// match search and the check-in that follows — has moved to /guard/pre-approvals,
-// because everything it does concerns a visitor who was booked in advance. A
-// walk-in is by definition someone nobody expected, so pairing the two on one
-// screen meant a guard scanned past the pre-approved half every time. The two
-// arrival routes are now two destinations.
+// The Visitors surface. One page, one fetch, one realtime subscription — and a
+// segment picked off the URL (`/visitors`, `/visitors/expected`, …) deciding
+// which slice of it renders. The segments themselves live in
+// lib/visitorSegments.ts, shared with the sidebar, so the nav and the page can
+// never disagree about what exists or about what counts as "Expected".
 //
-// What stays here is the pair of things a walk-in needs: register the arrival,
-// and — on the Inside tab — let anyone out again. Inside deliberately lists
-// EVERY checked-in visitor, pre-approved ones included: it is the exit lane,
-// and a visitor who cannot be checked out is a visitor who never leaves the
-// system. Only the Walk-ins tab is walk-in-only.
-//
-// URL tab → mode. Kept as a lookup map (CLAUDE.md forbids includes() chains for
-// known enums). Old deep-links (dashboard tiles, bookmarks, the former sidebar
-// sub-nav, the former audit tabs) must not 404 into a blank tab, so every
-// legacy value degrades onto a live one.
-const TAB_MODE_MAP: Record<string, Mode> = {
-  walkins: 'walkins',
-  'walkin-approved': 'walkinApproved',
-  inside: 'inside',
-  // Legacy aliases — old links must not 404 into a blank tab.
-  expected: 'inside',
-  checkin: 'inside',
-  exit: 'inside',
-  'checked-out': 'inside',
-  rejected: 'inside',
-  all: 'inside',
-  'no-show': 'inside',
-};
-
+// This replaced a three-tab bar buried inside the page. The tabs were invisible
+// from the nav, unbookmarkable and unreachable by the back button; the sidebar
+// said "Walk-in Visitors" and gave no hint that Inside or Pending existed. Old
+// `?tab=` links still land somewhere live — segmentFromSlug maps every legacy
+// value onto a real segment rather than 404-ing into a blank page.
 export default function GuardConsole(): React.ReactElement {
-  const [searchParams, setSearchParams] = useSearchParams();
-  const tabParam = searchParams.get('tab');
-  // Defaults to walk-ins: that is what this page is now for. Check-out is a
-  // deliberate second step, one tab away.
-  const initialMode: Mode = (tabParam && TAB_MODE_MAP[tabParam]) ? TAB_MODE_MAP[tabParam]! : 'walkins';
+  const { segment: slug } = useParams();
+  const segment = segmentFromSlug(slug);
 
-  const [mode, setMode] = useState<Mode>(initialMode);
   const [visits, setVisits] = useState<Visit[]>([]);
   const [loading, setLoading] = useState(true);
-  const [today] = useState(() => new Date().toISOString().slice(0, 10));
+  // The IST date, not the UTC one. Between 00:00 and 05:30 IST
+  // `toISOString().slice(0,10)` is still yesterday, which filed a visit booked
+  // for 01:00 under the previous day and made it invisible on the morning it
+  // was due. See lib/visitExpiry.
+  const [today] = useState(() => istDateKey(new Date()));
   const [successMsg, setSuccessMsg] = useState('');
   /** The visit the last check-out closed, while it is still reversible. */
   const [undoTarget, setUndoTarget] = useState<Visit | null>(null);
   const [actionErr, setActionErr] = useState('');
   const [busyId, setBusyId] = useState<string | null>(null);
-
-  // Keep the URL honest so the tab survives a refresh. `replace` so
-  // tab-flipping doesn't fill history.
-  const changeMode = useCallback((next: Mode) => {
-    setMode(next);
-    setSearchParams({ tab: next }, { replace: true });
-  }, [setSearchParams]);
-
-  // A deep link arriving after mount (dashboard tile, bookmark) must move the tab.
-  useEffect(() => {
-    if (tabParam && TAB_MODE_MAP[tabParam]) setMode(TAB_MODE_MAP[tabParam]!);
-  }, [tabParam]);
+  /** The expected visitor being checked in, if the flow is open. */
+  const [checkingIn, setCheckingIn] = useState<Visit | null>(null);
+  const [detailsOf, setDetailsOf] = useState<Visit | null>(null);
 
   // Today's visits PLUS every visit still open, whatever day it was raised on.
   //
-  // This used to be `created_at >= today` alone, which meant an unfinished visit
-  // silently vanished at midnight: a walk-in registered at 23:50 and approved at
-  // 00:05 was approved into an empty list, and a visitor still inside from the
-  // previous evening could not be checked out. Those three statuses are exactly
-  // the ones a guard still has to act on, so they are never date-bounded — the
-  // gate does not stop caring about a queued visitor because the date rolled.
+  // The open statuses are never date-bounded: a walk-in registered at 23:50 and
+  // approved at 00:05 would otherwise be approved into an empty list, a visitor
+  // still inside from the previous evening could not be checked out, and a
+  // pre-approval booked last week for today would never appear. The filter is
+  // shared with the sidebar count hook (visitorLoadFilter) so the badge and the
+  // list are computed from the same window.
   const loadVisits = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
     const { data, error } = await supabase
       .from('visits')
       .select(`*, visitor:visitors(*), department:departments(id, name, code, created_at)`)
-      .or(`created_at.gte.${today}T00:00:00Z,status.in.(pending_approval,walkin_approved,checked_in)`)
+      .or(visitorLoadFilter(today))
       .order('created_at', { ascending: false });
     if (error) { console.error('[Console] loadVisits error:', error.message); }
     let rows = ((data as unknown as Visit[]) ?? []);
@@ -105,6 +78,10 @@ export default function GuardConsole(): React.ReactElement {
       .subscribe();
     return () => { void supabase.removeChannel(channel); };
   }, [loadVisits]);
+
+  // Leaving a segment must not strand the guard inside a half-finished check-in
+  // for a visitor the new segment does not even list.
+  useEffect(() => { setCheckingIn(null); setDetailsOf(null); }, [segment]);
 
   const logExit = async (visit: Visit) => {
     if (visit.status !== 'checked_in') { setActionErr('Visitor is not checked in.'); return; }
@@ -142,10 +119,6 @@ export default function GuardConsole(): React.ReactElement {
     } catch (err) { setActionErr(safeErrorMessage(err, 'Could not undo the check-out.')); }
   };
 
-  const checkedIn = useMemo(() => visits.filter((v) => v.status === 'checked_in'), [visits]);
-  const pendingWalkIns = useMemo(() => visits.filter((v) => v.status === 'pending_approval'), [visits]);
-  const approvedWalkIns = useMemo(() => visits.filter((v) => v.status === 'walkin_approved'), [visits]);
-
   // Check-in for a walk-in the host has approved. The visit row already exists
   // (WalkInRequest created it), so this is an update, not an insert — and the
   // photo is captured now rather than at registration, because at registration
@@ -178,17 +151,28 @@ export default function GuardConsole(): React.ReactElement {
 
   const onCheckInSuccess = useCallback((name: string) => {
     setSuccessMsg(`"${name}" checked in successfully.`);
+    setCheckingIn(null);
     void loadVisits(true);
     setTimeout(() => setSuccessMsg(''), 6000);
   }, [loadVisits]);
 
-  return (
-    <div className="max-w-4xl mx-auto space-y-5 animate-fade-in pb-4">
-      <header>
-        <h1 className="page-title">Walk-in Visitors</h1>
-        <p className="page-subtitle">Register unannounced arrivals and let visitors out</p>
-      </header>
+  // The check-in flow takes the whole page: a guard mid-capture is doing one
+  // thing, and a list of other visitors underneath is a distraction they can
+  // mis-tap.
+  if (checkingIn) {
+    return (
+      <div className="max-w-4xl mx-auto animate-fade-in pb-4">
+        <VisitorCheckInFlow
+          visit={checkingIn}
+          onDone={onCheckInSuccess}
+          onCancel={() => setCheckingIn(null)}
+        />
+      </div>
+    );
+  }
 
+  return (
+    <div className="max-w-6xl mx-auto space-y-5 animate-fade-in pb-4">
       {successMsg && (
         <div className="alert-success">
           <svg className="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
@@ -213,25 +197,21 @@ export default function GuardConsole(): React.ReactElement {
         </div>
       )}
 
-      <GuardConsoleModeTabs
-        mode={mode}
-        onModeChange={changeMode}
-        walkInCount={pendingWalkIns.length}
-        walkInApprovedCount={approvedWalkIns.length}
-        insideCount={checkedIn.length}
+      <VisitorSegmentContent
+        segment={segment}
+        visits={visits}
+        loading={loading}
+        busyId={busyId}
+        onCheckIn={setCheckingIn}
+        onCheckOut={logExit}
+        onWalkInCheckIn={(v, details) => { void checkInWalkIn(v, details); }}
+        onWalkInSubmitted={onCheckInSuccess}
+        onSelect={setDetailsOf}
       />
 
-      <GuardConsoleModeContent
-        mode={mode}
-        onCheckInSuccess={onCheckInSuccess}
-        loading={loading}
-        checkedIn={checkedIn}
-        pendingWalkIns={pendingWalkIns}
-        approvedWalkIns={approvedWalkIns}
-        busyId={busyId}
-        onCheckIn={(v, details) => { void checkInWalkIn(v, details); }}
-        onCheckOut={logExit}
-      />
+      {detailsOf && (
+        <VisitorDetails visit={detailsOf} viewerRole="guard" onClose={() => setDetailsOf(null)} />
+      )}
     </div>
   );
 }

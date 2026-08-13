@@ -30,6 +30,7 @@ vi.mock('../../../src/supabaseClient', () => ({
     },
     from: (table: string) => {
       // For visits / gate_passes queries from SidebarAnalytics: select().eq().gte()
+      // — and from useVisitorCounts (Visitors sub-nav badges): select().or().
       if (table === 'visits' || table === 'gate_passes') {
         return {
           select: () => ({
@@ -37,6 +38,7 @@ vi.mock('../../../src/supabaseClient', () => ({
               gte: () => Promise.resolve({ data: [], error: null }),
               maybeSingle: () => Promise.resolve({ data: null }),
             }),
+            or: () => Promise.resolve({ data: [], error: null }),
           }),
         };
       }
