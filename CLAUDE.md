@@ -103,10 +103,40 @@
   at the time and the phone to confirm it is the right person, then acts. The
   older single-row `VisitorCard.tsx` **still exists** and is used by
   `GuardWalkIns` and `GuardWalkInApproved`; do not delete it. Styles are in
-  `styles/components-visitor-stack.css`, and `.stack-card` deliberately declares
-  **no background on its `::before`** so the bare `.rail-*::before` selectors in
-  `components-guard.css` colour it — do not give it a fallback background or the
-  status rail stops working.
+  `styles/components-visitor-stack.css`.
+  - **It has NO leading colour rail, by instruction (2026-08-13).** `.stack-card`
+    used to declare a `::before` with no background so the bare `.rail-*::before`
+    selectors in `components-guard.css` would colour it. The `::before` is now
+    **deleted**, not made transparent, and the `padding-left` inset that cleared it
+    is back on the normal `p-4` step — nothing is left holding space for something
+    that no longer draws. The rule this does not break: colour must never be the
+    **only** carrier of status. It never was here; the text badge in the third
+    column always said it, and still does. `VisitorStackCard.test.tsx` fails on any
+    `rail-` class. `.visitor-card` keeps its own rail — `lib/statusRail.ts` is still
+    live for it, so do not delete that either.
+  - **The dashboard drill-down uses this same card.** `DashboardDrilldown.tsx`
+    rendered `WhosInsideVisitorCard` until 2026-08-13; the two surfaces now look
+    identical, which is what the client asked for. It passes **`onSelect` only and
+    never an `action`** — "Dashboard reads, Console acts", so a Check In / Check Out
+    button there would let a situational-awareness panel change a visit's state.
+    Tested. `WhosInsideVisitorCard` is untouched and still serves `/whos-inside`.
+  - **The visitor TYPE appears only once the visitor is inside.** Third column,
+    directly above the ID-proof line, because together they are "who this person is
+    on paper" and a guard checks the two as one glance. Before check-in it would be
+    the same fact twice — the status badge already reads "Pre-approved" or
+    "Awaiting approval" — and CLAUDE.md forbids that. For a `checked_in` row the
+    "Approved ✓" tick gives up its place to it, being tautological for someone who
+    is already through the gate.
+- **`lib/visitOrigin.ts` INFERS pre-approved vs walk-in; nothing records it.**
+  `pending_approval` / `walkin_approved` prove a walk-in and `approved` proves a
+  pre-approval, but all routes converge on `checked_in`, which is exactly when the
+  card needs the answer. The fallback is `scheduled_for`: the walk-in path never
+  sets it (the same fact migration 066 splits `no_show` from `expired` on) and
+  `validatePreApproval` makes it mandatory on a pre-approval. **Known gap:** a
+  pre-approval created before that validation landed has a null `scheduled_for` and
+  reads as a walk-in. Acceptable because nothing branches on this — it is a label on
+  an old row, never a permission or an action. If it ever must be exact, add a column
+  to `visits` written at creation; do not write a cleverer guess.
 - **Which action a row offers depends on the VISIT, not on the segment heading.**
   `actionFor` in `VisitorSegmentContent.tsx`: `approved` → Check In,
   `checked_in` → Check Out, everything else → no button. "All Visitors" mixes an
@@ -721,7 +751,9 @@ src/
                      # recentActivity (PURE — derives the feed from the day the
                      #   tiles already loaded; there is no fetching hook),
                      # usePreApprovals, useWatchlist,
-                     # visitorSearch (pure query parsing), statusRail,
+                     # visitorSearch (pure query parsing),
+                     # statusRail (VisitorCard only — the stacked card has no rail),
+                     # visitOrigin (pre-approved vs walk-in, INFERRED — read the note),
                      # adminDepartments, adminHods (admin CRUD + validation),
                      # useDepartments, useHods (live, realtime-subscribed)
   styles/            # tokens, base, components-forms, components-surfaces,

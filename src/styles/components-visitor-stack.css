@@ -7,25 +7,30 @@
    guard actually works — who they are, what to check them against, what to
    do about it. Same rules as the rest of the guard surface:
      - one loud thing per card (the visitor's name)
-     - status carried by a colour rail AND a text badge, never colour alone
+     - status carried by a text badge; colour is never the only carrier
      - every tappable target is at least 44px tall
      - numbers are tabular so a changing count doesn't reflow the layout
    ============================================================ */
 @layer components {
 
   /* --- Card shell --------------------------------------------------------
-     Three flex columns on desktop, stacked on small screens. The colour rail
-     is a leading-edge ::before, same geometry as .visitor-card's — the
-     .rail-*::before rules already declared in components-guard.css are bare
-     class selectors, so they colour this card for free with no override here. */
+     Three flex columns on desktop, stacked on small screens.
+
+     NO leading colour rail. This card used to carry one — a ::before with the
+     same geometry as .visitor-card's, coloured for free by the bare
+     .rail-*::before selectors in components-guard.css — and it was removed on
+     the client's instruction (2026-08-13). The ::before is gone rather than
+     made transparent, and padding-left is back on the normal p-4 step it was
+     inset from to clear the rail, so nothing is left holding space for a thing
+     that no longer draws. Status still reads off the text badge in the third
+     column. Do not restore it here; .visitor-card keeps its rail. */
   .stack-card {
-    @apply relative flex flex-col lg:flex-row gap-4 lg:gap-0 rounded-2xl p-4 lg:py-4 lg:pr-4;
+    @apply relative flex flex-col lg:flex-row gap-4 lg:gap-0 rounded-2xl p-4;
     background: rgb(var(--glass-bg) / 0.62);
     backdrop-filter: blur(18px) saturate(165%);
     -webkit-backdrop-filter: blur(18px) saturate(165%);
     border: 1px solid rgb(var(--glass-border) / var(--hairline-opacity));
     box-shadow: var(--shadow-contact), var(--shadow-ambient), var(--edge-highlight);
-    padding-left: 1.375rem;
     transition: transform var(--dur-premium) var(--ease-premium), box-shadow var(--dur-premium) var(--ease-premium);
   }
   .stack-card:hover {
@@ -37,14 +42,6 @@
     box-shadow: var(--shadow-contact-hover), var(--shadow-ambient-hover),
                 var(--ring-gold-hover), var(--edge-highlight-hover);
   }
-  .stack-card::before {
-    content: '';
-    position: absolute;
-    left: 0; top: 0.75rem; bottom: 0.75rem;
-    width: 4px;
-    border-radius: 0 4px 4px 0;
-  }
-
   /* --- Identity column ---------------------------------------------------- */
   .stack-card-identity {
     @apply flex items-start gap-3 lg:pr-4;
@@ -180,6 +177,18 @@
   }
   .dark .stack-check-missing {
     @apply text-navy-400;
+  }
+
+  /* How the visitor got here (pre-approved vs walk-in), shown only once they
+     are inside. Same metrics as .stack-check so it sits flush in that column,
+     but deliberately NOT green or red: this is a classification, not a check
+     that passed. Neutral navy keeps the eye on the tick below it, which IS a
+     check and is the one a guard has to act on. */
+  .stack-origin {
+    @apply flex items-center gap-1.5 text-xs font-medium text-navy-600;
+  }
+  .dark .stack-origin {
+    @apply text-navy-300;
   }
 
   /* --- List header + count pill ------------------------------------------ */

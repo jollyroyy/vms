@@ -76,11 +76,41 @@ describe('DashboardDrilldown', () => {
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
-  it('clicking a card calls onSelect with that visit', () => {
+  it('clicking Details calls onSelect with that visit', () => {
     const onSelect = vi.fn();
     const inside = visit({ id: 'inside', status: 'checked_in', visitor: { ...visit().visitor!, full_name: 'Inside Person' } });
     render(<DashboardDrilldown drillKey="inside" loading={false} visits={[inside]} onSelect={onSelect} onClose={vi.fn()} />);
-    fireEvent.click(screen.getByText('Inside Person'));
+    fireEvent.click(screen.getByLabelText('Details for Inside Person'));
     expect(onSelect).toHaveBeenCalledWith(inside);
+  });
+
+  it('renders the stacked card, the same one the Visitors surface uses', () => {
+    const inside = visit({ id: 'inside', status: 'checked_in' });
+    const { container } = render(
+      <DashboardDrilldown drillKey="inside" loading={false} visits={[inside]} onSelect={vi.fn()} onClose={vi.fn()} />,
+    );
+    expect(container.querySelector('.stack-card')).toBeInTheDocument();
+  });
+
+  // Regression: "Dashboard reads, Console acts" (CLAUDE.md). This panel is
+  // situational awareness only — everything that changes a visit's state
+  // lives on /visitors. Rendering the stacked card with an `action` here
+  // would put a Check In / Check Out button on the dashboard, so it must
+  // never receive one. "Details" is the card's own always-present control
+  // and is expected.
+  it('never renders a Check In or Check Out action, only Details', () => {
+    const approved = visit({ id: 'approved', status: 'approved' });
+    const checkedIn = visit({ id: 'checked-in', status: 'checked_in', ref_number: 'VIS-2' });
+
+    const { unmount } = render(
+      <DashboardDrilldown drillKey="preApproved" loading={false} visits={[approved]} onSelect={vi.fn()} onClose={vi.fn()} />,
+    );
+    expect(screen.queryByText('Check In')).not.toBeInTheDocument();
+    unmount();
+
+    render(
+      <DashboardDrilldown drillKey="inside" loading={false} visits={[checkedIn]} onSelect={vi.fn()} onClose={vi.fn()} />,
+    );
+    expect(screen.queryByText('Check Out')).not.toBeInTheDocument();
   });
 });

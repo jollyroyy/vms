@@ -1,7 +1,7 @@
 import React from 'react';
 import type { ReportVisit } from '../../lib/reportRow';
 import { DRILL_COPY, drillVisits, type DrillKey } from '../../lib/dashboardDrill';
-import WhosInsideVisitorCard from '../Shared/WhosInsideVisitorCard';
+import VisitorStackCard from './VisitorStackCard';
 
 type Props = {
   drillKey: DrillKey;
@@ -55,8 +55,12 @@ export default function DashboardDrilldown({
         // A full-width vertical stack, not a 2-up grid — the client's core
         // complaint (2026-08-10) was exactly this doubling of scan travel.
         <div data-card-list className="p-5 flex flex-col gap-5">
-          {rows.map((v, i) => (
-            <WhosInsideVisitorCard key={v.id} visit={v} index={i} onClick={() => onSelect(v)} />
+          {/* onSelect only — never an `action`. "Dashboard reads, Console
+              acts": a Check In / Check Out button here would let this
+              situational-awareness panel change a visit's state, which is
+              /visitors' job alone. */}
+          {rows.map((v) => (
+            <VisitorStackCard key={v.id} visit={v} onSelect={onSelect} />
           ))}
         </div>
       )}

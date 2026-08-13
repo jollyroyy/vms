@@ -1,7 +1,7 @@
 import React from 'react';
 import type { Visit } from '../../types/index';
 import { STATUS_STYLES } from '../../lib/statusStyles';
-import { railFor } from '../../lib/statusRail';
+import { visitOrigin, visitOriginLabel } from '../../lib/visitOrigin';
 import VisitorStackFacts from './VisitorStackFacts';
 
 export type StackAction = { label: string; onClick: () => void; disabled?: boolean };
@@ -24,14 +24,27 @@ type Props = {
 // old single-row .visitor-card did — meant the guard re-read the whole row to
 // find any one of them.
 //
-// Exactly one loud line per card (the visitor's name). Status is carried by the
-// leading colour rail AND the text badge, never colour alone: the gate terminal
-// is read in glare, and colour-only encoding fails colour-blind guards too.
+// Exactly one loud line per card (the visitor's name).
+//
+// There is NO colour rail down the leading edge. The card used to carry one,
+// coarsened from the status via lib/statusRail.ts, on the reasoning that a
+// guard could scan a column of cards by colour alone. It was removed on the
+// client's instruction (2026-08-13), and nothing is lost by it: the status is
+// still spelled out in the text badge in the third column, which was always the
+// carrier that survived glare and colour-blindness. The rule the rail existed
+// to satisfy — never encode status in colour ALONE — is satisfied by the badge
+// on its own. Do not re-add a rail here; `.rail-*` still belongs to the older
+// single-row .visitor-card, which keeps it.
 export default function VisitorStackCard({ visit: v, action, onSelect }: Props): React.ReactElement {
   const style = STATUS_STYLES[v.status];
+  // Which desk they came through. Only shown once they are actually inside —
+  // before that the status badge already says it ("Awaiting approval" and
+  // "Approved" are walk-in and pre-approval respectively), so printing it
+  // earlier would be the same fact twice on one card.
+  const inside = v.status === 'checked_in';
 
   return (
-    <article className={`stack-card ${railFor(v.status)}`}>
+    <article className="stack-card">
       {/* ── Identity ─────────────────────────────────────────────── */}
       <div className="stack-card-identity">
         <div className="stack-photo-well">
@@ -80,9 +93,26 @@ export default function VisitorStackCard({ visit: v, action, onSelect }: Props):
         </span>
 
         <div className="space-y-1 mt-2.5">
-          <StackCheck ok={v.status !== 'pending_approval'}>
-            {v.status === 'pending_approval' ? 'Awaiting approval' : 'Approved'}
-          </StackCheck>
+          {/* For someone already inside, "Approved ✓" is tautological — they
+              could not have got through the gate otherwise — so that line gives
+              up its place to the one fact the card could not otherwise answer:
+              which desk they came through. See lib/visitOrigin.ts, including
+              why this is inferred rather than read. */}
+          {inside ? (
+            <p className="stack-origin">
+              <svg className="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                strokeWidth={1.8} aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" d={ICON_TAG} />
+              </svg>
+              <span className="truncate">Type: {visitOriginLabel(visitOrigin(v))}</span>
+            </p>
+          ) : (
+            <StackCheck ok={v.status !== 'pending_approval'}>
+              {v.status === 'pending_approval' ? 'Awaiting approval' : 'Approved'}
+            </StackCheck>
+          )}
+          {/* Directly below the type, on purpose: together they are "who this
+              person is on paper", and a guard checks the two as one glance. */}
           <StackCheck ok={Boolean(v.visitor?.id_type)}>
             {v.visitor?.id_type
               ? `ID Proof: ${v.visitor.id_type}${v.visitor.id_last4 ? ` ••${v.visitor.id_last4}` : ''}`
@@ -115,6 +145,9 @@ export default function VisitorStackCard({ visit: v, action, onSelect }: Props):
 const ICON_PERSON = 'M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z';
 const ICON_CLIPBOARD = 'M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25z';
 const ICON_BUILDING = 'M3.75 21h16.5M4.5 3h15M5.25 3v18m13.5-18v18M9 6.75h1.5m-1.5 3h1.5m-1.5 3h1.5m3-6H15m-1.5 3H15m-1.5 3H15M9 21v-3.375c0-.621.504-1.125 1.125-1.125h3.75c.621 0 1.125.504 1.125 1.125V21';
+// A tag, not a tick: how a visitor arrived is a classification, not something
+// that passed or failed a check.
+const ICON_TAG = 'M9.568 3H5.25A2.25 2.25 0 003 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 005.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 009.568 3z M6 6h.008v.008H6V6z';
 
 function StackAttr({ icon, term, children }: { icon: string; term: string; children: React.ReactNode }) {
   return (

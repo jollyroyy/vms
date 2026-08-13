@@ -95,9 +95,57 @@ describe('VisitorStackCard', () => {
   // terminal is read in glare, and colour-only encoding fails colour-blind
   // guards too — so the words must be present.
   it('carries the status as words, not colour alone', () => {
-    const { container } = render(<VisitorStackCard visit={visit()} />);
+    render(<VisitorStackCard visit={visit()} />);
     expect(screen.getByText('Pre-approved')).toBeInTheDocument();
-    expect(container.querySelector('.rail-expected')).not.toBeNull();
+  });
+
+  // The leading colour rail was removed on the client's instruction
+  // (2026-08-13). The text badge above is what carries the status, and it is
+  // enough on its own — the rule was never "must have a rail", it was "colour
+  // must never be the only carrier". Guard the absence so it does not creep
+  // back in from the older .visitor-card, which keeps its own rail.
+  it('renders no colour rail down the leading edge', () => {
+    const { container } = render(<VisitorStackCard visit={visit({ status: 'checked_in' })} />);
+    const card = container.querySelector('.stack-card') as HTMLElement;
+    expect(card).not.toBeNull();
+    expect(card.className).not.toMatch(/rail-/);
+    expect(container.querySelector('[class*="rail-"]')).toBeNull();
+  });
+
+  // Once someone is inside, the status badge no longer says which desk they
+  // came through — `checked_in` is the same value on both routes — so the card
+  // states it outright. See lib/visitOrigin.ts for why this is inferred.
+  it('names the visitor type once the visitor is inside', () => {
+    const { unmount } = render(<VisitorStackCard visit={visit({
+      status: 'checked_in', checked_in_at: '2026-08-13T04:35:00Z', scheduled_for: '2026-08-13T04:30:00Z',
+    })} />);
+    expect(screen.getByText('Type: Pre-approved')).toBeInTheDocument();
+    unmount();
+
+    render(<VisitorStackCard visit={visit({
+      status: 'checked_in', checked_in_at: '2026-08-13T04:35:00Z', scheduled_for: null,
+    })} />);
+    expect(screen.getByText('Type: Walk-in')).toBeInTheDocument();
+  });
+
+  // Before arrival the badge already says it ("Pre-approved" / "Awaiting
+  // approval"), and CLAUDE.md forbids rendering the same fact twice on a card.
+  it('does not repeat the visitor type before the visitor is inside', () => {
+    render(<VisitorStackCard visit={visit()} />);
+    expect(screen.queryByText(/^Type:/)).toBeNull();
+    expect(screen.getByText('Approved')).toBeInTheDocument();
+  });
+
+  // The type and the ID proof are read as one glance — who this person is on
+  // paper — so the type must sit directly above the ID line, not elsewhere.
+  it('puts the ID proof directly below the visitor type', () => {
+    const { container } = render(<VisitorStackCard visit={visit({
+      status: 'checked_in', checked_in_at: '2026-08-13T04:35:00Z',
+    })} />);
+    const rows = Array.from(container.querySelectorAll('.stack-origin, .stack-check'));
+    expect(rows).toHaveLength(2);
+    expect(rows[0].textContent).toMatch(/^Type:/);
+    expect(rows[1].textContent).toMatch(/^ID Proof:/);
   });
 
   it('states an ID proof when one was captured, and says so when not', () => {
