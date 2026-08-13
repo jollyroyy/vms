@@ -9,14 +9,14 @@ import GuardDashboard from '../../../src/pages/Guard/Dashboard';
 // Defined inside vi.hoisted (not as a sibling const) because vi.hoisted
 // bodies run before the rest of the module, including other top-level consts.
 const EMPTY_STATS = {
-  preApproved: 0, walkInApproved: 0, entered: 0, inside: 0, checkedOut: 0, declined: 0,
+  entered: 0, inside: 0, checkedOut: 0, declined: 0,
   noShow: 0, awaitingApproval: 0, overdue: 0, overstaying: 0,
 };
 
 const mockStats = vi.hoisted(() => ({
   current: {
     stats: {
-      preApproved: 0, walkInApproved: 0, entered: 0, inside: 0, checkedOut: 0, declined: 0,
+      entered: 0, inside: 0, checkedOut: 0, declined: 0,
       noShow: 0, awaitingApproval: 0, overdue: 0, overstaying: 0,
     },
     loading: false,
@@ -69,8 +69,7 @@ function tileFor(label: string): HTMLElement {
 }
 
 const TILE_LABELS = [
-  'Entries', 'Exits', 'Currently Inside', 'Pre-approved',
-  'Walk-ins Approved', 'Overstaying', 'No-shows', 'Declined',
+  'Entries', 'Exits', 'Currently Inside', 'Overstaying', 'No-shows', 'Declined',
 ];
 
 describe('GuardDashboard', () => {
@@ -86,11 +85,20 @@ describe('GuardDashboard', () => {
     expect(heading.textContent).toBe('Dashboard');
   });
 
-  it('renders all eight KPI tile labels', () => {
+  it('renders all six KPI tile labels', () => {
     renderDashboard();
     for (const label of TILE_LABELS) {
       expect(screen.getByText(label)).toBeInTheDocument();
     }
+  });
+
+  // Both approval counts belong to the Visitors surface, which carries its own
+  // tile and its own list for each. A second copy here was one number on two
+  // screens behind two independent queries. Client instruction, 2026-08-13.
+  it('does not carry the Pre-approved or Walk-ins Approved tile', () => {
+    renderDashboard();
+    expect(screen.queryByText('Pre-approved')).toBeNull();
+    expect(screen.queryByText('Walk-ins Approved')).toBeNull();
   });
 
   it('shows zeros for every tile when there is no data (empty state)', () => {
@@ -103,14 +111,12 @@ describe('GuardDashboard', () => {
   it('renders seeded stats on their matching tiles', () => {
     mockStats.current = {
       stats: {
-        preApproved: 5, walkInApproved: 4, inside: 3, entered: 8, checkedOut: 5, declined: 2,
+        inside: 3, entered: 8, checkedOut: 5, declined: 2,
         noShow: 6, awaitingApproval: 1, overdue: 0, overstaying: 7,
       },
       loading: false,
     };
     renderDashboard();
-    expect(tileFor('Pre-approved').textContent).toContain('5');
-    expect(tileFor('Walk-ins Approved').textContent).toContain('4');
     expect(tileFor('Currently Inside').textContent).toContain('3');
     expect(tileFor('Entries').textContent).toContain('8');
     expect(tileFor('Exits').textContent).toContain('5');
@@ -126,7 +132,7 @@ describe('GuardDashboard', () => {
   it('shows Currently Inside and Entries as different, independently correct numbers', () => {
     mockStats.current = {
       stats: {
-        preApproved: 0, walkInApproved: 0, inside: 4, entered: 9, checkedOut: 5, declined: 0,
+        inside: 4, entered: 9, checkedOut: 5, declined: 0,
         noShow: 0, awaitingApproval: 0, overdue: 0, overstaying: 0,
       },
       loading: false,
@@ -146,8 +152,6 @@ describe('GuardDashboard', () => {
     ['Entries', 'entered'],
     ['Exits', 'checkedOut'],
     ['Currently Inside', 'inside'],
-    ['Pre-approved', 'preApproved'],
-    ['Walk-ins Approved', 'walkInApproved'],
     ['Overstaying', 'overstaying'],
     ['No-shows', 'noShow'],
     ['Declined', 'declined'],

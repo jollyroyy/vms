@@ -82,14 +82,6 @@ export const TILES: Record<DrillKey, Tile> = {
     label: 'Currently Inside', hint: 'Right now', tone: 'text-success-600', tint: 'var(--c-success-100)',
     icon: glyph(...USERS),
   },
-  preApproved: {
-    label: 'Pre-approved', hint: 'Booked ahead, not yet arrived', tone: 'text-brand-600',
-    tint: 'var(--c-brand-100)', icon: glyph(...CALENDAR_CHECK),
-  },
-  walkInApproved: {
-    label: 'Walk-ins Approved', hint: 'Approved at the gate, not yet in',
-    tone: 'text-accent-600 dark:text-accent-300', tint: '250 232 217', icon: glyph(...WALKING),
-  },
   overstaying: {
     // Amber, not red. This is nearly always a check-out somebody forgot, not a
     // person refusing to leave — a red tile would have the guard hunting for an

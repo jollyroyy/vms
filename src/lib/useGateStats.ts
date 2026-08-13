@@ -19,9 +19,14 @@ import type { VisitStatus } from '../types/index';
 //     entered === inside + checkedOut
 //
 // If those ever stop reconciling, the data is wrong — which is worth surfacing.
+//
+// There is deliberately NO `preApproved` / `walkInApproved` here (2026-08-13).
+// Both counts moved off the dashboard entirely: they are segments of the
+// Visitors surface, counted there from that page's own array. Keeping a second
+// copy on this hook would put the same number on two screens behind two
+// independent queries, with nothing forcing them to agree. `overdue` still
+// spans both statuses — see IS_EXPECTED below.
 export type GateStats = {
-  preApproved: number;   // status === 'approved' — booked in advance
-  walkInApproved: number; // status === 'walkin_approved' — approved at the gate
   entered: number;     // cumulative — everyone who checked in today
   inside: number;      // live — still on the premises
   checkedOut: number;  // came and left
@@ -34,7 +39,7 @@ export type GateStats = {
 };
 
 const EMPTY: GateStats = {
-  preApproved: 0, walkInApproved: 0, entered: 0, inside: 0, checkedOut: 0, declined: 0,
+  entered: 0, inside: 0, checkedOut: 0, declined: 0,
   noShow: 0, awaitingApproval: 0, overdue: 0, overstaying: 0,
 };
 
@@ -49,9 +54,8 @@ type Row = {
 // INSERTed already `approved`; a walk-in becomes `walkin_approved` when the HOD
 // says yes. Lookup map rather than an includes() chain, per CLAUDE.md.
 //
-// The tile split into `preApproved` / `walkInApproved` below, but `overdue`
-// MUST keep covering both statuses — a visitor is overdue whichever route got
-// them approved, so do not narrow this to one status.
+// `overdue` MUST keep covering BOTH statuses — a visitor is overdue whichever
+// route got them approved, so do not narrow this to one status.
 const IS_EXPECTED: Record<string, boolean> = {
   approved: true,
   walkin_approved: true,
@@ -90,8 +94,6 @@ export function useGateStats(today: string): { stats: GateStats; loading: boolea
     const now = Date.now();
 
     setStats({
-      preApproved: rows.filter((r) => r.status === 'approved').length,
-      walkInApproved: rows.filter((r) => r.status === 'walkin_approved').length,
       // Cumulative, NOT status-derived — see the note above.
       entered: rows.filter((r) => r.checked_in_at !== null).length,
       inside: rows.filter((r) => r.status === 'checked_in').length,

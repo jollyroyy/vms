@@ -58,9 +58,15 @@ export default function DashboardDrilldown({
           {/* onSelect only — never an `action`. "Dashboard reads, Console
               acts": a Check In / Check Out button here would let this
               situational-awareness panel change a visit's state, which is
-              /visitors' job alone. */}
+              /visitors' job alone.
+
+              showApproval={false} for the same reason (client instruction,
+              2026-08-13): the "Type: Pre-approved" line and the
+              "Approved" / "Awaiting approval" tick are off the dashboard's
+              cards. They stay on the identical card under /visitors, where a
+              guard is deciding what to do with the visit. */}
           {rows.map((v) => (
-            <VisitorStackCard key={v.id} visit={v} onSelect={onSelect} />
+            <VisitorStackCard key={v.id} visit={v} onSelect={onSelect} showApproval={false} />
           ))}
         </div>
       )}

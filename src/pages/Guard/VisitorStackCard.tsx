@@ -12,6 +12,16 @@ type Props = {
   action?: StackAction;
   /** Opens the detail sheet. Rendered as the "Details" secondary control. */
   onSelect?: (visit: Visit) => void;
+  /** Show the origin / approval line — "Type: Pre-approved" once the visitor is
+   *  inside, "Approved" / "Awaiting approval" before that.
+   *
+   *  On by default, because /visitors is where a guard decides what to DO with a
+   *  visit and both halves of that line feed the decision. The dashboard passes
+   *  `false` (client instruction, 2026-08-13): it reads rather than acts, its
+   *  panels only ever list visits that already resolved (entered, inside,
+   *  checked out, declined, no-show), and for those the line is history — the
+   *  status badge above it already says where the visit ended up. */
+  showApproval?: boolean;
 };
 
 // The stacked visitor card. Three columns inside one wide card:
@@ -35,7 +45,9 @@ type Props = {
 // to satisfy — never encode status in colour ALONE — is satisfied by the badge
 // on its own. Do not re-add a rail here; `.rail-*` still belongs to the older
 // single-row .visitor-card, which keeps it.
-export default function VisitorStackCard({ visit: v, action, onSelect }: Props): React.ReactElement {
+export default function VisitorStackCard({
+  visit: v, action, onSelect, showApproval = true,
+}: Props): React.ReactElement {
   const style = STATUS_STYLES[v.status];
   // Which desk they came through. Only shown once they are actually inside —
   // before that the status badge already says it ("Awaiting approval" and
@@ -98,7 +110,7 @@ export default function VisitorStackCard({ visit: v, action, onSelect }: Props):
               up its place to the one fact the card could not otherwise answer:
               which desk they came through. See lib/visitOrigin.ts, including
               why this is inferred rather than read. */}
-          {inside ? (
+          {showApproval && (inside ? (
             <p className="stack-origin">
               <svg className="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"
                 strokeWidth={1.8} aria-hidden="true">
@@ -110,7 +122,7 @@ export default function VisitorStackCard({ visit: v, action, onSelect }: Props):
             <StackCheck ok={v.status !== 'pending_approval'}>
               {v.status === 'pending_approval' ? 'Awaiting approval' : 'Approved'}
             </StackCheck>
-          )}
+          ))}
           {/* Directly below the type, on purpose: together they are "who this
               person is on paper", and a guard checks the two as one glance. */}
           <StackCheck ok={Boolean(v.visitor?.id_type)}>

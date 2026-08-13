@@ -8,16 +8,19 @@ import type { ReportVisit } from '../lib/reportRow';
 import type { UserRole } from '../types/index';
 import VisitorDetailsActions from './VisitorDetailsActions';
 import PreApprovalPass from './PreApprovalPass';
-import TimelineEntry from './VisitorDetailsTimeline';
+import { VisitorTimelineCard } from './VisitorDetailsTimeline';
 
 interface Props {
   // Widened from `Visit` so callers that have already attached the audit-log
   // approval time can pass it through; plain `Visit` still satisfies this.
   visit: ReportVisit;
   onClose: () => void;
-  // Who is looking. Gates the entry pass only — every other detail on this
-  // popup is visible to whoever can reach the visit. Omitted means "unknown",
-  // which canRoleShowPass treats as a guard and hides the pass.
+  // Who is looking. Gates the entry pass, the ID proof (hidden from an HOD)
+  // and the Timeline (hidden from a guard, 2026-08-13); every other detail on
+  // this popup is visible to whoever can reach the visit. Omitted means
+  // "unknown", which canRoleShowPass treats as a guard and hides the pass —
+  // but NOT the Timeline, which only an explicit `guard` drops, so a caller
+  // that never states a role keeps the fuller popup.
   viewerRole?: UserRole | null;
   acting?: string | null;
   reason?: string;
@@ -251,35 +254,15 @@ export default function VisitorDetails({
           )}
         </div>
 
-        {/* Timeline */}
-        <div className="mx-5 mt-1 mb-5 rounded-xl bg-surface-50 dark:bg-white/[0.03] border border-surface-200/60 dark:border-white/[0.06] p-4">
-          <p className="text-[10px] font-bold text-navy-500 dark:text-navy-400 uppercase tracking-wider mb-3">Timeline</p>
-          <div className="space-y-3 relative">
-            <div className="absolute left-[5px] top-2 bottom-2 w-px bg-surface-200 dark:bg-white/10" />
-
-            {approvedAt && <TimelineEntry color="bg-success-400" label="Approved" time={formatDateTime(approvedAt)} />}
-            {v.checked_in_at && <TimelineEntry color="bg-brand-500" label="Checked In" time={formatDateTime(v.checked_in_at)} />}
-            {v.checked_out_at && <TimelineEntry color="bg-success-500" label="Checked Out" time={formatDateTime(v.checked_out_at)} />}
-            {v.checked_in_at && v.status === 'checked_in' && (
-              <TimelineEntry
-                color={dur.isOvertime ? 'bg-danger-500' : 'bg-brand-400'}
-                label="Duration"
-                time={`${dur.text}${dur.isOvertime ? ' — Overtime' : ''}`}
-                highlight={dur.isOvertime}
-                strong
-              />
-            )}
-            {v.rejection_reason && (
-              <div className="flex items-start gap-3 relative">
-                <div className="w-[11px] h-[11px] rounded-full bg-danger-500 border-2 border-white dark:border-navy-50 shrink-0 mt-0.5 z-10" />
-                <div className="flex-1 min-w-0">
-                  <span className="text-micro normal-case text-danger-500 font-medium block">Rejection Reason</span>
-                  <span className="text-caption text-danger-700 font-medium">{v.rejection_reason}</span>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
+        {/* Timeline. Hidden from a guard on the client's instruction
+            (2026-08-13) — the rejection reason inside it is not, see
+            VisitorTimelineCard. */}
+        <VisitorTimelineCard
+          visit={v}
+          approvedAt={approvedAt}
+          duration={dur}
+          showTimestamps={viewerRole !== 'guard'}
+        />
 
         <VisitorDetailsActions
           visit={v}

@@ -116,6 +116,24 @@ describe('GuardConsole â€” KPI rail', () => {
     expect(within(register).queryByText(/\d/)).toBeNull();
   });
 
+  // Two-up square tiles, so all eight segments stay in view beside the list
+  // they filter. One-per-row pushed Checked Out and the walk-in register past
+  // the fold of a gate terminal — a filter rail you have to scroll to reach is
+  // not doing its job. The qualifier survives as sr-only rather than being
+  // dropped: "Expected" alone is ambiguous read aloud, and the accessible name
+  // is the only place that context can live once the square cannot print it.
+  it('renders square compact tiles whose qualifier is in the name but not on the face', async () => {
+    mockVisitData.current = [visit()];
+    renderAt('/visitors');
+    await waitFor(() => expect(screen.getByText('Alice Johnson')).toBeInTheDocument());
+
+    const expected = screen.getByRole('button', { name: /Booked ahead, not yet arrived/i });
+    expect(expected).toHaveClass('kpi-tile-compact');
+
+    const qualifier = within(expected).getByText('Booked ahead, not yet arrived');
+    expect(qualifier).toHaveClass('sr-only');
+  });
+
   it('navigates to the segment URL when a tile is clicked', async () => {
     mockVisitData.current = [visit()];
     renderAt('/visitors');

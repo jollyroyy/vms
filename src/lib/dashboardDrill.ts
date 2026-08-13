@@ -11,21 +11,28 @@ import { isOverstaying } from './visitExpiry';
 // the card list disagree on screen. The `entered` vs `inside` distinction is the
 // one that bites — see the long note in useGateStats.ts. `entered` is derived
 // from checked_in_at (cumulative), `inside` from status (live).
-export type DrillKey = 'preApproved' | 'walkInApproved' | 'inside' | 'overstaying' | 'entered' | 'checkedOut' | 'declined' | 'noShow';
+//
+// `preApproved` and `walkInApproved` are deliberately NOT here (2026-08-13).
+// Both populations are already first-class segments of the Visitors surface
+// (`/visitors/expected` and `/visitors/approved`), each with its own KPI tile
+// on that page's rail and its own list underneath. Carrying them a second time
+// on the dashboard put the same two counts on two screens with two independent
+// queries behind them — the duplicate-render rule, and the exact failure mode
+// the derived Recent Activity feed was rebuilt to avoid. The dashboard keeps
+// what only it answers: the day's traffic, and the work still owed attention.
+export type DrillKey = 'inside' | 'overstaying' | 'entered' | 'checkedOut' | 'declined' | 'noShow';
 
 // Grid order, and it is the gate's own order. The first row is the traffic
 // through the door — what came in, what went out, who is therefore still here —
 // and the second is the four things still owed someone's attention. Reading it
 // left to right answers "how did today go?" before "what do I need to do?".
 //
-// `overstaying` follows the two approval tiles rather than sitting beside
-// `inside`, even though it is a subset of it: it belongs with the work queue,
-// because unlike Inside Now it is a number the guard is expected to act on.
-export const DRILL_KEYS: DrillKey[] = ['entered', 'checkedOut', 'inside', 'preApproved', 'walkInApproved', 'overstaying', 'noShow', 'declined'];
+// `overstaying` opens the second row rather than sitting beside `inside`, even
+// though it is a subset of it: it belongs with the work queue, because unlike
+// Inside Now it is a number the guard is expected to act on.
+export const DRILL_KEYS: DrillKey[] = ['entered', 'checkedOut', 'inside', 'overstaying', 'noShow', 'declined'];
 
 export const DRILL_FILTER: Record<DrillKey, (v: Visit) => boolean> = {
-  preApproved: (v) => v.status === 'approved',
-  walkInApproved: (v) => v.status === 'walkin_approved',
   inside: (v) => v.status === 'checked_in',
   overstaying: (v) => isOverstaying(v),
   entered: (v) => v.checked_in_at !== null,
@@ -37,18 +44,6 @@ export const DRILL_FILTER: Record<DrillKey, (v: Visit) => boolean> = {
 export type DrillCopy = { title: string; subtitle: string; empty: string; countLabel: string };
 
 export const DRILL_COPY: Record<DrillKey, DrillCopy> = {
-  preApproved: {
-    title: 'Pre-approved today',
-    subtitle: 'Booked in advance, not yet at the gate',
-    empty: 'No pre-approved visitors are due.',
-    countLabel: 'pre-approved',
-  },
-  walkInApproved: {
-    title: 'Walk-ins approved',
-    subtitle: 'Approved at the gate, not yet checked in',
-    empty: 'No approved walk-ins waiting.',
-    countLabel: 'approved',
-  },
   inside: {
     title: 'Inside now',
     subtitle: 'Visitors currently on site',

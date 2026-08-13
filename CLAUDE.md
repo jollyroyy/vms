@@ -471,10 +471,24 @@
   - **The palette is ours, not the mockup's.** The reference is blue/green/purple; this
     app is Quest Mall gold and bronze. Every tone is the one that tile already carried,
     because a hue is only information if it means the same thing on every screen.
-  - **Eight tiles, not the mockup's six.** It omitted Pre-approved, Walk-ins Approved
-    and Overstaying. Overstaying is not optional — migration 067's sweep is installed
-    but deliberately unscheduled, so that tile is the *only* live mechanism for
-    catching a check-out the gate forgot.
+  - **Six tiles: Entries, Exits, Currently Inside, Overstaying, No-shows, Declined**
+    (3-wide grid). Overstaying is not optional — migration 067's sweep is installed but
+    deliberately unscheduled, so that tile is the *only* live mechanism for catching a
+    check-out the gate forgot.
+  - **Pre-approved and Walk-ins Approved were REMOVED from the dashboard (2026-08-13,
+    client instruction).** Both populations are already first-class segments of the
+    Visitors surface — `/visitors/expected` and `/visitors/approved`, each with its own
+    KPI tile on that page's rail and its own list underneath. Carrying them here too put
+    the same two counts on two screens behind two *independent* queries
+    (`useGateStats` and `Console.loadVisits`), with nothing forcing them to agree: the
+    duplicate-render rule, and the exact failure mode the derived Recent Activity feed
+    was rebuilt to avoid. The keys are gone from `DrillKey`, `DRILL_KEYS`,
+    `DRILL_FILTER`, `DRILL_COPY`, `TILES` **and `GateStats`** — do not re-add them to
+    any of those. `overdue` in `useGateStats` still spans BOTH approval statuses
+    (`IS_EXPECTED`); a visitor is overdue whichever route approved them, and narrowing
+    it to one status is the mistake this removal could invite. One consequence worth
+    knowing: no dashboard drill-down can list a not-yet-arrived visitor any more, so
+    the "never offers Check In" regression test runs against `entered` instead.
   - **No "Entry Denied" tile and no "Issue Pass" action.** See the `Declined` note
     below, and the no-badge-minting rule above.
   - **No gate name and no "Gate Status: Operational" chip.** There is no gates table,
@@ -494,10 +508,30 @@
   `pressed`/`controlsId`/`caption` for the aria contract; a tile's accessible name joins
   its block spans without spaces (e.g. "0ExpectedBooked ahead…"), so tests must query
   unanchored unique substrings, never `^` anchors. Plain stat numbers that open nothing
-  (Analytics, VisitorsDashboard) stay `stat-card` divs — they get the same 3px cap and
-  hover via CSS only, no chevron. The unified rules live in `components-surfaces.css`:
-  `.stat-card::after, .gate-tile::after` = 3px gold cap, `:hover` = lift + gold ring,
-  `:active` = squash.
+  (Analytics, VisitorsDashboard) stay `stat-card` divs — same surface and hover via CSS
+  only, no chevron. The unified rules live in `components-surfaces.css`.
+  - **There is NO top cap, accent bar or per-card border treatment.** A 3px gold
+    `::after` used to sit on `.stat-card` and `.gate-tile`. It was one declaration but
+    it did not *look* like one: the gradient faded to transparent across each card's own
+    width, so a wide Analytics card wore a long gold bar and a narrow tile wore a stub,
+    and the two read on screen as different border weights — which is exactly what the
+    client reported. Deleted 2026-08-13. Do not reintroduce a cap, a top border or a
+    per-tile accent edge. A card's identity is its **numeral's colour**, nothing
+    structural; every card carries the identical 1px hairline on all four sides.
+  - Hover is `translateY(-3px) scale(1.025)` + gold ring; the scale is what makes one
+    card stand out from a grid of eight, since a 2px lift is invisible when every
+    neighbour shares the same shadow. `:active` squashes. `.gate-tile-active` (the
+    expanded tile) holds a `-2px` lift + ring, so it still reads as pressed while a
+    neighbour is hovered. All three transforms are dropped under
+    `prefers-reduced-motion` — the ring and shadow survive, so state is never carried
+    by movement alone.
+  - **`compact` is a layout switch, not a second design.** `KpiTile compact` gives the
+    same card a square face (plate over numeral over label, centred) for the Visitors
+    rail, which packs eight segments two-up in a 300px column. The surface, border,
+    hover and active ring are the shared ones. The hint goes `sr-only` rather than being
+    dropped: "Expected" and "Pending Approval" are ambiguous read aloud, and the
+    accessible name is the only place that context survives once the square has no room
+    to print it — which is also why the rail tests can still query by qualifier text.
 - **`entered` is NOT `inside`.** `visits.status` holds one value, so a visitor who came
   and left is `checked_out`, not `checked_in`. Counting `status === 'checked_in'` answers
   "who is still here", never "how many came through today". `useGateStats` derives

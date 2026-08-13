@@ -93,6 +93,28 @@ describe('VisitorDetails — timeline', () => {
     expect(screen.getByText('Duration')).toBeInTheDocument();
     expect(screen.queryByText('Registered')).not.toBeInTheDocument();
   });
+
+  // Client instruction, 2026-08-13: the guard's copy of this popup carries no
+  // Timeline. A guard is confirming who is standing in front of them, not
+  // auditing when the visit moved between states.
+  it('hides the timeline entirely from a guard', () => {
+    const inside = { ...visit, status: 'checked_in', checked_in_at: '2026-07-30T10:00:00Z' } as unknown as Visit;
+    render(<VisitorDetails visit={inside} onClose={vi.fn()} viewerRole="guard" />);
+    expect(screen.queryByText('Timeline')).not.toBeInTheDocument();
+    expect(screen.queryByText('Checked In')).not.toBeInTheDocument();
+    expect(screen.queryByText('Duration')).not.toBeInTheDocument();
+  });
+
+  // The rejection reason is NOT a timestamp — it is why the visit is in the
+  // state it is in, and it is the one thing a guard reading a declined row at
+  // the gate has to be able to see. It survives the timeline's removal.
+  it('still shows the rejection reason to a guard', () => {
+    const declined = { ...visit, status: 'rejected', rejection_reason: 'Not expected today' } as unknown as Visit;
+    render(<VisitorDetails visit={declined} onClose={vi.fn()} viewerRole="guard" />);
+    expect(screen.getByText('Rejection Reason')).toBeInTheDocument();
+    expect(screen.getByText('Not expected today')).toBeInTheDocument();
+    expect(screen.queryByText('Timeline')).not.toBeInTheDocument();
+  });
 });
 
 describe('VisitorDetails — reopening the entry pass', () => {

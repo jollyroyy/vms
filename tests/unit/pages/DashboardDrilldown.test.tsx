@@ -92,20 +92,50 @@ describe('DashboardDrilldown', () => {
     expect(container.querySelector('.stack-card')).toBeInTheDocument();
   });
 
+  // Client instruction, 2026-08-13: the origin / approval line is off the
+  // DASHBOARD's cards. "Type: Pre-approved" (once inside) and the
+  // "Approved" / "Awaiting approval" tick before it both go; the same card on
+  // /visitors keeps them, which VisitorStackCard.test.tsx still asserts.
+  it('never shows the origin line or the approval tick on a dashboard card', () => {
+    const preApproved = visit({ id: 'pre', status: 'checked_in', scheduled_for: '2026-08-03T05:00:00Z' });
+    const walkIn = visit({ id: 'walk', status: 'checked_in', ref_number: 'VIS-2', scheduled_for: null });
+
+    const { container } = render(
+      <DashboardDrilldown drillKey="inside" loading={false} visits={[preApproved, walkIn]} onSelect={vi.fn()} onClose={vi.fn()} />,
+    );
+
+    expect(container.querySelector('.stack-origin')).toBeNull();
+    expect(screen.queryByText(/^Type:/)).toBeNull();
+    expect(screen.queryByText('Pre-approved')).toBeNull();
+    expect(screen.queryByText('Walk-in')).toBeNull();
+    expect(screen.queryByText('Approved')).toBeNull();
+    expect(screen.queryByText('Awaiting approval')).toBeNull();
+    // The ID-proof tick is untouched — only the approval line went.
+    expect(screen.getAllByText(/^ID Proof:/)).toHaveLength(2);
+  });
+
   // Regression: "Dashboard reads, Console acts" (CLAUDE.md). This panel is
   // situational awareness only — everything that changes a visit's state
   // lives on /visitors. Rendering the stacked card with an `action` here
   // would put a Check In / Check Out button on the dashboard, so it must
   // never receive one. "Details" is the card's own always-present control
   // and is expected.
+  //
+  // The Check In half of this used to run against drillKey="preApproved". That
+  // tile is gone (the approval counts live on /visitors now), and with it the
+  // only dashboard panel that could ever list a not-yet-arrived visitor — so
+  // the assertion is made against the panel that CAN list one instead, by
+  // handing `entered` a still-approved row and confirming it neither lists it
+  // nor offers to act on it.
   it('never renders a Check In or Check Out action, only Details', () => {
     const approved = visit({ id: 'approved', status: 'approved' });
     const checkedIn = visit({ id: 'checked-in', status: 'checked_in', ref_number: 'VIS-2' });
 
     const { unmount } = render(
-      <DashboardDrilldown drillKey="preApproved" loading={false} visits={[approved]} onSelect={vi.fn()} onClose={vi.fn()} />,
+      <DashboardDrilldown drillKey="entered" loading={false} visits={[approved, checkedIn]} onSelect={vi.fn()} onClose={vi.fn()} />,
     );
     expect(screen.queryByText('Check In')).not.toBeInTheDocument();
+    expect(screen.queryByText('Check Out')).not.toBeInTheDocument();
     unmount();
 
     render(

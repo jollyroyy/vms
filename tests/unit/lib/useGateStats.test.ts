@@ -45,7 +45,7 @@ describe('useGateStats', () => {
     const { result } = renderHook(() => useGateStats(TODAY));
     await waitFor(() => expect(result.current.loading).toBe(false));
     expect(result.current.stats).toMatchObject({
-      preApproved: 0, walkInApproved: 0, entered: 0, inside: 0, checkedOut: 0, declined: 0,
+      entered: 0, inside: 0, checkedOut: 0, declined: 0,
     });
   });
 
@@ -108,22 +108,33 @@ describe('useGateStats', () => {
     });
   });
 
-  describe('preApproved vs walkInApproved', () => {
-    // The whole point of splitting the old "expected" tile in two: these are
-    // different populations arriving by different routes, and each must count
-    // only its own status — never the other one, never both.
-    it('counts only status === approved toward preApproved, and only walkin_approved toward walkInApproved', async () => {
+  describe('the approval counts are not this hook’s job', () => {
+    // Both populations are segments of the Visitors surface, counted there
+    // from that page's own array. Reporting them here as well would put one
+    // number on two screens behind two independent queries, with nothing
+    // forcing them to agree. Client instruction, 2026-08-13.
+    it('reports no preApproved or walkInApproved field', async () => {
       mockRows.current = [
-        row({ status: 'approved' }),          // pre-approval
-        row({ status: 'approved' }),          // pre-approval
-        row({ status: 'walkin_approved' }),   // approved at the gate
-        row({ status: 'pending_approval' }),  // not yet decided
-        row({ status: 'checked_in', checked_in_at: '2026-08-02T09:00:00Z' }), // already arrived
+        row({ status: 'approved' }),
+        row({ status: 'walkin_approved' }),
       ];
       const { result } = renderHook(() => useGateStats(TODAY));
       await waitFor(() => expect(result.current.loading).toBe(false));
-      expect(result.current.stats.preApproved).toBe(2);
-      expect(result.current.stats.walkInApproved).toBe(1);
+      expect(result.current.stats).not.toHaveProperty('preApproved');
+      expect(result.current.stats).not.toHaveProperty('walkInApproved');
+    });
+
+    // …but `overdue` still spans BOTH approval routes: a visitor is overdue
+    // whichever way they were approved. Narrowing it to one status is the
+    // mistake the removal above could invite.
+    it('still counts an overdue visit from either approval route', async () => {
+      mockRows.current = [
+        row({ status: 'approved', scheduled_for: '2026-08-02T01:00:00Z' }),
+        row({ status: 'walkin_approved', scheduled_for: '2026-08-02T01:00:00Z' }),
+      ];
+      const { result } = renderHook(() => useGateStats(TODAY));
+      await waitFor(() => expect(result.current.loading).toBe(false));
+      expect(result.current.stats.overdue).toBe(2);
     });
   });
 

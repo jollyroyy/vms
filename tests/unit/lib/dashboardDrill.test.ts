@@ -34,12 +34,16 @@ describe('dashboardDrill', () => {
     });
   });
 
-  it('"preApproved" is approved only, not walkin_approved', () => {
-    expect(drillVisits(ALL, 'preApproved').map((v) => v.id)).toEqual(['approved']);
-  });
-
-  it('"walkInApproved" is walkin_approved only, not approved', () => {
-    expect(drillVisits(ALL, 'walkInApproved').map((v) => v.id)).toEqual(['walkinApproved']);
+  // Both approval populations live on the Visitors surface (/visitors/expected
+  // and /visitors/approved), each with its own tile and list there. Carrying
+  // them on the dashboard too put one number on two screens behind two
+  // independent queries — the failure mode the derived activity feed exists to
+  // avoid. Client instruction, 2026-08-13.
+  it('has no pre-approved or walk-in-approved tile', () => {
+    expect(DRILL_KEYS).not.toContain('preApproved');
+    expect(DRILL_KEYS).not.toContain('walkInApproved');
+    expect(Object.keys(DRILL_COPY)).not.toContain('preApproved');
+    expect(Object.keys(DRILL_COPY)).not.toContain('walkInApproved');
   });
 
   it('"inside" is live occupancy only — a visitor who left is not inside', () => {

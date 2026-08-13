@@ -141,33 +141,35 @@
     @apply text-center py-16;
   }
 
-  /* --- Stat card --- */
+  /* --- KPI card — ONE design for every count card in the app ---
+     Guard dashboard + Visitors rail (.gate-tile), HOD overview, admin
+     overview, who's-inside and the Analytics stat-cards (.stat-card) share
+     one surface: same glass, same 1px hairline border on all four sides,
+     same radius, same hover and press. The ONLY thing that varies per card
+     is the NUMERAL's colour (the tile spec's tone).
+
+     There is NO top cap and no accent bar (client instruction 2026-08-13).
+     A 3px gold `::after` used to sit on top of both classes. It was one
+     declaration, but it did not LOOK like one: the gradient faded to
+     transparent across the card's own width, so a wide Analytics card wore a
+     long gold bar and a narrow dashboard tile wore a short stub, and the two
+     read as different border weights on screen — which is exactly what the
+     client saw. Do not reintroduce a cap, a top border, or a per-tile accent
+     edge: a card's identity here is its number's colour, nothing structural.
+     Active/drill state is a gold RING SHADOW, never a border change. */
   .stat-card {
     @apply card p-5 flex flex-col gap-1;
     position: relative;
     overflow: hidden;
+    /* Same surface as .gate-tile, so the two are indistinguishable side by
+       side. Was flat .card glass, which sat a shade apart from the tiles. */
+    background: linear-gradient(140deg, rgb(var(--glass-bg) / 0.80), rgb(var(--glass-bg) / 0.58));
   }
-  /* --- KPI card — ONE design for every count card in the app ---
-     Guard dashboard + Visitors rail (.gate-tile), HOD overview, admin
-     overview, who's-inside and the Analytics stat-cards (.stat-card) share
-     one surface: same glass, same 1px hairline border, same 3px gold cap,
-     same hover lift and press. The ONLY thing that varies per card is the
-     numeral's colour (the tile spec's tone). Active/drill state is a gold
-     ring shadow — never a border or cap change (client instruction
-     2026-08-13: no card may carry a different border treatment). */
-  .stat-card::after, .gate-tile::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 3px;
-    /* Seasoning, not sauce: a thin, faded gold cap rather than a bright bar. */
-    background: linear-gradient(90deg, rgb(201 165 88 / 0.45), rgb(168 98 58 / 0.20), transparent);
-    border-radius: 2px 2px 0 0;
-  }
+  /* Hover: lift and grow slightly, and take a gold ring. The scale is the
+     part that makes the hovered card stand out from a grid of eight — a 2px
+     lift alone is invisible when every neighbour shares the same shadow. */
   .stat-card:hover, .gate-tile:hover {
-    @apply -translate-y-0.5;
+    transform: translateY(-3px) scale(1.025);
     box-shadow: var(--shadow-contact-hover), var(--shadow-ambient-hover), var(--shadow-wide-hover),
                 var(--ring-gold), var(--edge-highlight-hover);
   }
@@ -180,11 +182,22 @@
     transform: translateY(-1px) scale(0.97);
   }
   /* The tile whose drill-down is open below. It has to read as pressed even
-     while another tile is hovered, so it sits on a ring rather than a lift —
-     and it is never the only cue: the panel underneath carries the tile's
-     title, and the tile itself carries aria-expanded. */
+     while another tile is hovered, so it sits on a ring plus a held lift
+     rather than a transient one — and it is never the only cue: the panel
+     underneath carries the tile's title, and the tile carries aria-expanded. */
   .gate-tile-active {
-    box-shadow: var(--shadow-contact), var(--shadow-ambient), var(--ring-gold-hover), var(--edge-highlight);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-contact-hover), var(--shadow-ambient-hover),
+                var(--ring-gold-hover), var(--edge-highlight-hover);
+  }
+  /* Motion is the accent, so anyone who has turned motion off keeps the ring
+     and the shadow — the state is never carried by movement alone. */
+  @media (prefers-reduced-motion: reduce) {
+    .stat-card:hover, .gate-tile:hover,
+    .stat-card:active, .gate-tile:active,
+    .gate-tile-active {
+      transform: none;
+    }
   }
   /* KPI numeral: text-kpi, deliberately NOT font-display — a serif numeral
      cannot carry tabular figures or a true 800 weight the way Inter can, and
