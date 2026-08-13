@@ -13,7 +13,7 @@
 // never exist in the nav without existing on the page, or be counted by a rule
 // different from the one that lists it. Adding a segment is one edit here.
 import type { Visit } from '../types/index';
-import { isDueToday, isOverstaying } from './visitExpiry';
+import { isDueToday } from './visitExpiry';
 
 export type VisitorSegment =
   | 'all'
@@ -21,16 +21,21 @@ export type VisitorSegment =
   | 'inside'
   | 'pending'
   | 'walkinApproved'
-  | 'overstayed'
   | 'checkedOut'
   | 'walkin';
 
 /** Nav order. Deliberately the order of a visitor's life at the gate:
- *  booked → arrived → waiting on a decision → approved → on site too long →
- *  gone. "All Visitors" leads because it is the segment's own landing page,
- *  and the walk-in register trails because it is a form, not a list. */
+ *  booked → arrived → waiting on a decision → approved → gone. "All Visitors"
+ *  leads because it is the segment's own landing page, and the walk-in
+ *  register trails because it is a form, not a list.
+ *
+ *  There is NO `overstayed` segment (removed 2026-08-13, client instruction).
+ *  An overstay is not a stage of a visitor's life here — it is a subset of
+ *  Inside that needs chasing, and the guard dashboard's Overstaying tile is
+ *  where that chasing happens. `isOverstaying` is still live for that tile and
+ *  must not be deleted. */
 export const VISITOR_SEGMENTS: VisitorSegment[] = [
-  'all', 'expected', 'inside', 'pending', 'walkinApproved', 'overstayed', 'checkedOut', 'walkin',
+  'all', 'expected', 'inside', 'pending', 'walkinApproved', 'checkedOut', 'walkin',
 ];
 
 /** URL slug. `all` is the bare `/visitors` route, so it has no slug. */
@@ -40,7 +45,6 @@ export const SEGMENT_SLUG: Record<VisitorSegment, string> = {
   inside: 'inside',
   pending: 'pending',
   walkinApproved: 'approved',
-  overstayed: 'overstayed',
   checkedOut: 'checked-out',
   walkin: 'walk-in',
 };
@@ -58,7 +62,9 @@ const SLUG_TO_SEGMENT: Record<string, VisitorSegment> = {
   inside: 'inside',
   pending: 'pending',
   approved: 'walkinApproved',
-  overstayed: 'overstayed',
+  // The Overstayed segment is gone; its URL degrades onto Inside rather than
+  // 404-ing, because that is the list an old bookmark was really reaching for.
+  overstayed: 'inside',
   'checked-out': 'checkedOut',
   'walk-in': 'walkin',
   // Legacy aliases from the tab-bar era.
@@ -131,14 +137,6 @@ export const SEGMENT_META: Record<VisitorSegment, SegmentMeta> = {
     emptyHint: 'Once a host approves a walk-in, it appears here to be checked in.',
     showCount: true,
   },
-  overstayed: {
-    navLabel: 'Overstayed',
-    title: 'Overstayed',
-    subtitle: 'Still showing as inside long after they arrived — check them out if they have gone',
-    empty: 'Nobody has been inside unusually long.',
-    emptyHint: 'A visitor past their expected departure appears here.',
-    showCount: true,
-  },
   checkedOut: {
     navLabel: 'Checked Out',
     title: 'Checked Out',
@@ -172,9 +170,6 @@ export const SEGMENT_FILTER: Record<ListSegment, (v: Visit) => boolean> = {
   inside: (v) => v.status === 'checked_in',
   pending: (v) => v.status === 'pending_approval',
   walkinApproved: (v) => v.status === 'walkin_approved',
-  // A subset of `inside`, listed apart because these are the rows that make
-  // "Inside" untrustworthy. See lib/visitExpiry.isOverstaying.
-  overstayed: (v) => isOverstaying(v),
   checkedOut: (v) => v.status === 'checked_out',
 };
 

@@ -2,7 +2,7 @@ import React from 'react';
 import type { Visit } from '../../types/index';
 import { STATUS_STYLES } from '../../lib/statusStyles';
 import { railFor } from '../../lib/statusRail';
-import { formatTime } from '../../lib/formatDate';
+import { formatDateTime } from '../../lib/formatDate';
 
 type Props = {
   visit: Visit;
@@ -92,7 +92,12 @@ export default function VisitorCard({ visit: v, action, onSelect, timeLabel }: P
   return <div className={cls}>{inner}</div>;
 }
 
-/** Convenience: the time a card should show for an expected visitor. */
+/** Convenience: the time a card should show for an expected visitor.
+ *
+ *  Date AND time (client instruction, 2026-08-13). Every list that shows this
+ *  can hold a booking for a day other than today — the open statuses are never
+ *  date-bounded — so a bare "03:30" tells a guard when but not whether that
+ *  when is now. */
 export function expectedTimeLabel(v: Visit): string {
-  return v.scheduled_for ? formatTime(v.scheduled_for) : 'Anytime';
+  return v.scheduled_for ? formatDateTime(v.scheduled_for) : 'Anytime';
 }

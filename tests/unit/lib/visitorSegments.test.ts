@@ -148,20 +148,27 @@ describe('SEGMENT_FILTER — simple status matches', () => {
   });
 });
 
-describe('SEGMENT_FILTER.overstayed — a subset of inside, not a contradiction', () => {
-  it('a visit that is overstaying also satisfies "inside" — both filters may legitimately select the same row', () => {
-    const v = visit({
-      status: 'checked_in',
-      checked_in_at: '2026-08-01T03:00:00Z', // long past the 12h default threshold
-    });
-    expect(SEGMENT_FILTER.inside(v)).toBe(true);
-    expect(SEGMENT_FILTER.overstayed(v)).toBe(true);
+// The Overstayed segment was removed on 2026-08-13 (client instruction). An
+// overstay is a subset of Inside that needs chasing, and the guard dashboard's
+// Overstaying tile is where that happens — `isOverstaying` is still live for
+// it. This asserts the segment is gone from every list that defines the
+// surface, so it cannot come back on one of them alone.
+describe('there is no overstayed segment', () => {
+  it('is absent from VISITOR_SEGMENTS and SEGMENT_FILTER', () => {
+    expect(VISITOR_SEGMENTS).not.toContain('overstayed' as never);
+    expect(Object.keys(SEGMENT_FILTER)).not.toContain('overstayed');
+    expect(Object.keys(SEGMENT_META)).not.toContain('overstayed');
   });
 
-  it('an ordinary recent check-in is inside but not overstayed', () => {
-    const v = visit({ status: 'checked_in', checked_in_at: new Date().toISOString() });
+  // The URL lived in bookmarks. It must land on the list it was reaching for,
+  // never on a blank page.
+  it('degrades the old /visitors/overstayed URL onto Inside', () => {
+    expect(segmentFromSlug('overstayed')).toBe('inside');
+  });
+
+  it('still lists an overstaying visitor under Inside', () => {
+    const v = visit({ status: 'checked_in', checked_in_at: '2026-08-01T03:00:00Z' });
     expect(SEGMENT_FILTER.inside(v)).toBe(true);
-    expect(SEGMENT_FILTER.overstayed(v)).toBe(false);
   });
 });
 

@@ -59,9 +59,13 @@ describe('CheckInVisitorSummary', () => {
     expect(screen.queryByText('Pre-approved at')).not.toBeInTheDocument();
   });
 
-  it('shows the formatted scheduled time when scheduledFor is set', () => {
+  // Date AND time (client instruction, 2026-08-13): an open pre-approval can be
+  // booked for any day, so a bare clock reading says when but not whether that
+  // when is now.
+  it('shows the formatted scheduled date and time when scheduledFor is set', () => {
     render(<CheckInVisitorSummary match={match({ scheduledFor: '2026-08-01T09:30:00Z' })} />);
-    expect(screen.getByText(formatTime('2026-08-01T09:30:00Z'))).toBeInTheDocument();
+    expect(screen.getByText(formatDateTime('2026-08-01T09:30:00Z'))).toBeInTheDocument();
+    expect(screen.queryByText(formatTime('2026-08-01T09:30:00Z'))).toBeNull();
   });
 
   it('shows "Anytime today" when scheduledFor is null', () => {

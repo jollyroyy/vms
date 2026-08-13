@@ -1,7 +1,7 @@
 import React from 'react';
 import type { Visit } from '../../types/index';
 import { STATUS_STYLES } from '../../lib/statusStyles';
-import { formatTime } from '../../lib/formatDate';
+import { formatDateTime } from '../../lib/formatDate';
 
 type Props = {
   visit: Visit;
@@ -11,9 +11,12 @@ export default function PreApprovalRow({ visit: v }: Props): React.ReactElement 
   const style = STATUS_STYLES[v.status];
   return (
     <div className="flex items-center gap-3 px-5 py-3">
-      <div className="shrink-0 w-16 text-center">
-        <span className="text-body font-semibold text-navy-900 dark:text-white tabular-nums">
-          {v.scheduled_for ? formatTime(v.scheduled_for) : 'Anytime'}
+      {/* Wide enough for the date as well as the time (client instruction,
+          2026-08-13). The column was w-16 — a time-only slot — and the date is
+          what says whether "03:30" is now or a fortnight away. */}
+      <div className="shrink-0 w-32 text-center">
+        <span className="text-caption font-semibold text-navy-900 dark:text-white tabular-nums">
+          {v.scheduled_for ? formatDateTime(v.scheduled_for) : 'Anytime'}
         </span>
       </div>
       <div className="min-w-0 flex-1">

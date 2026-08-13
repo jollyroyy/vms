@@ -4,9 +4,16 @@
 // degrade to '' not the string "undefined". Filter behaviour (search box +
 // department picker) lives in checkInMatchesFilters.test.ts — split to stay
 // under the 300-line file cap.
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { freezeIstClock, unfreezeIstClock } from '../helpers/istClock';
 import { buildMatchItems } from '../../../src/pages/Guard/checkInMatches';
 import { makeVisit, makeRecurring } from './checkInMatchesFixtures';
+
+// Frozen at midday IST: the fixtures below are anchored to "today", and since
+// migration 075 ended the IST day at 22:00 they stop being due today for the
+// last two hours of every real day. See tests/unit/helpers/istClock.ts.
+beforeEach(() => { freezeIstClock(); });
+afterEach(() => { unfreezeIstClock(); });
 
 describe('buildMatchItems', () => {
   it('returns empty array when both sources are empty', () => {

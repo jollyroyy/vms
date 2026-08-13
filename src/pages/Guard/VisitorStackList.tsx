@@ -7,16 +7,16 @@ type Props = {
   segment: ListSegment;
   visits: Visit[];
   loading: boolean;
-  /** Per-row primary action. Returning undefined renders no button — an
-   *  Overstayed row and an Inside row are the same visit, but only one of them
-   *  is a list a guard checks people out from. */
+  /** Per-row primary action. Returning undefined renders no button — "All
+   *  Visitors" mixes an expected arrival and a departed one on one screen, and
+   *  a button the guard cannot honour is worse than no button. */
   actionFor?: (v: Visit) => StackAction | undefined;
   onSelect?: (v: Visit) => void;
 };
 
 // The stacked list: heading, live count, then one wide card per visitor. Every
 // segment that lists visits renders through here, so the layout is identical
-// across Expected, Inside, Overstayed and the rest — a guard learns the card
+// across Expected, Inside, Checked Out and the rest — a guard learns the card
 // once.
 //
 // There are NO CONTROLS above the list — no search box, no sort dropdown

@@ -148,12 +148,16 @@ describe('CheckInMatchList — exact approval date and time', () => {
 });
 
 describe('CheckInMatchList — expected arrival time', () => {
-  it('shows the scheduled arrival time when one was set', () => {
+  // Date AND time, even for a match due today (client instruction,
+  // 2026-08-13). The card used to switch formats on dueToday; it no longer
+  // does, so a guard never has to notice which format they were given.
+  it('shows the scheduled arrival date and time when one was set', () => {
     const scheduledFor = '2026-07-30T09:30:00Z';
     render(<CheckInMatchList {...baseProps({
       allMatches: [match({ scheduledFor })],
     })} />);
-    expect(screen.getByText(formatTime(scheduledFor))).toBeInTheDocument();
+    expect(screen.getByText(formatDateTime(scheduledFor))).toBeInTheDocument();
+    expect(screen.queryByText(formatTime(scheduledFor))).toBeNull();
   });
 
   it('falls back to "Anytime today" when no arrival time was scheduled', () => {

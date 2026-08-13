@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import type { Visit } from '../../types/index';
-import { formatTime, formatDuration } from '../../lib/formatDate';
+import { formatTime, formatDateTime, formatDuration } from '../../lib/formatDate';
 import { STATUS_STYLES } from '../../lib/statusStyles';
 import VisitorDetails from '../../components/VisitorDetails';
 import CardField from '../../components/CardField';
@@ -193,7 +193,10 @@ function VisitorCard({ visit: v, index: idx, onClick }: { visit: Visit; index: n
           {v.status === 'approved' && (
             <p className="text-caption text-success-600 dark:text-success-400 font-semibold truncate flex items-center gap-1">
               <span className="h-1.5 w-1.5 rounded-full bg-success-500 shrink-0" />
-              Awaiting gate check{v.scheduled_for && ` · ETA ${formatTime(v.scheduled_for)}`}
+              {/* Date and time, not a bare time (client instruction,
+                  2026-08-13) — this view can list a booking for any day, so
+                  "ETA 03:30" alone reads as an arrival due today. */}
+              Awaiting gate check{v.scheduled_for && ` · ETA ${formatDateTime(v.scheduled_for)}`}
             </p>
           )}
           {v.status === 'pending_approval' && (

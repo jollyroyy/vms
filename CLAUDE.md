@@ -80,7 +80,7 @@
   `Sidebar.tsx`). The `/visitors` entry is declared **twice** — once for `guard`,
   once for `staff` — because the two roles land on different components at that
   route and the staff label carries no sub-nav either. There is **no group and no
-  `SidebarNavGroup.tsx` since 2026-08-13**: the eight segments that used to expand
+  `SidebarNavGroup.tsx` since 2026-08-13**: the segments that used to expand
   under the guard's Visitors item now live on the page itself as KPI tiles
   (`VisitorKpiRail`), counted from the page's own data. The sidebar naming the
   segments was the old answer to "where can I go"; the page carrying the counts
@@ -90,8 +90,18 @@
   count badges are all derived from `VISITOR_SEGMENTS` / `SEGMENT_META` /
   `SEGMENT_FILTER` there, so a segment cannot exist in the nav without existing
   on the page, and "what Expected means" is defined once. Adding a segment is one
-  edit in that file. The eight are: All Visitors, Expected, Inside, Pending
-  Approval, Approved Walk-ins, Overstayed, Checked Out, Walk-in Register.
+  edit in that file. The seven are: All Visitors, Expected, Inside, Pending
+  Approval, Approved Walk-ins, Checked Out, Walk-in Register.
+  - **There is no Overstayed segment** (removed 2026-08-13, client instruction).
+    An overstay is not a stage of a visitor's life at the gate — it is a subset of
+    Inside that needs chasing, and the **guard dashboard's Overstaying tile** is
+    where that chasing happens. That tile stays: migration 067's sweep is installed
+    but deliberately unscheduled, so it is still the only live mechanism for
+    catching a check-out the gate forgot. `isOverstaying` in `lib/visitExpiry.ts`
+    is live for it and must not be deleted. `/visitors/overstayed` degrades onto
+    **Inside** (not `all`) — that is the list the old bookmark was reaching for, and
+    the rows are all still in it. Guarded by `visitorSegments.test.ts` and
+    `GuardConsoleRail.test.tsx`.
 - **Each segment is a real URL** (`/visitors`, `/visitors/expected`,
   `/visitors/inside`, …), routed in `App.tsx` via `/visitors/:segment`. This
   replaced a three-tab bar buried inside the page: the tabs were invisible from
@@ -140,6 +150,19 @@
   reads as a walk-in. Acceptable because nothing branches on this — it is a label on
   an old row, never a permission or an action. If it ever must be exact, add a column
   to `visits` written at creation; do not write a cleverer guess.
+- **An expected time is always DATE AND TIME, never a bare time** (client instruction,
+  2026-08-13). Every list that prints `scheduled_for` can hold a booking for a day
+  other than today — the open statuses are never date-bounded — so "03:30" says when
+  but not whether that when is now, which is the exact confusion that made
+  `VIS-20260811-0007` unreadable. `formatDateTime` at all six sites:
+  `VisitorStackFacts` (Expected Time), `VisitorCard.expectedTimeLabel`,
+  `PreApprovalRow` (its slot column widened from `w-16` to `w-32` to fit),
+  `CheckInMatchCard`, `CheckInVisitorSummary` and `OverviewFilteredView`'s ETA line.
+  `CheckInMatchCard` used to switch on `dueToday` — bare time for today, full date
+  otherwise; the not-due half of that was load-bearing and printing the date
+  everywhere keeps the same guarantee without asking the guard to notice which
+  format they got. A visit with no slot still reads **"Anytime"**, not a dash.
+
 - **Which action a row offers depends on the VISIT, not on the segment heading.**
   `actionFor` in `VisitorSegmentContent.tsx`: `approved` → Check In,
   `checked_in` → Check Out, everything else → no button. "All Visitors" mixes an
@@ -541,7 +564,7 @@
     by movement alone.
   - **`compact` is a layout switch, not a second design.** `KpiTile compact` gives the
     same card a square face (plate over numeral over label, centred) for the Visitors
-    rail, which packs eight segments two-up in a 300px column. The surface, border,
+    rail, which packs its segments two-up in a 300px column. The surface, border,
     hover and active ring are the shared ones. The hint goes `sr-only` rather than being
     dropped: "Expected" and "Pending Approval" are ambiguous read aloud, and the
     accessible name is the only place that context survives once the square has no room

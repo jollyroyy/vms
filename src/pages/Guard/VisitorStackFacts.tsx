@@ -1,6 +1,6 @@
 import React from 'react';
 import type { Visit } from '../../types/index';
-import { formatDateTime, formatTime, formatElapsed } from '../../lib/formatDate';
+import { formatDateTime, formatElapsed } from '../../lib/formatDate';
 
 type Props = { visit: Visit };
 
@@ -48,9 +48,13 @@ function timeFacts(v: Visit): TimeFact[] {
     {
       icon: ICON_CLOCK,
       term: 'Expected Time',
+      // Date AND time, always (client instruction, 2026-08-13). This list is
+      // never date-bounded for open statuses — a booking made last week for
+      // today, and one for next month, sit in the same array — so a bare
+      // "03:30" is unreadable: it says when but not whether that when is now.
       // A booking with no slot is legal only on the walk-in path; "Anytime" is
       // honest about it rather than printing a dash that looks like missing data.
-      value: v.scheduled_for ? formatTime(v.scheduled_for) : 'Anytime',
+      value: v.scheduled_for ? formatDateTime(v.scheduled_for) : 'Anytime',
     },
     { icon: ICON_TICKET, term: 'Reference', value: v.ref_number ?? '—' },
   ];

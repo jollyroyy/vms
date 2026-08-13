@@ -4,9 +4,16 @@
 // substring) and compares phones digits-only, so a typed "98765 43210" or
 // "+91-98765-43210" still matches a stored "+919876543210" — see
 // src/pages/Guard/checkInMatches.ts.
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { freezeIstClock, unfreezeIstClock } from '../helpers/istClock';
 import { buildMatchItems } from '../../../src/pages/Guard/checkInMatches';
 import { makeVisit, makeRecurring } from './checkInMatchesFixtures';
+
+// Frozen at midday IST: the fixtures below are anchored to "today", and since
+// migration 075 ended the IST day at 22:00 they stop being due today for the
+// last two hours of every real day. See tests/unit/helpers/istClock.ts.
+beforeEach(() => { freezeIstClock(); });
+afterEach(() => { unfreezeIstClock(); });
 
 describe('buildMatchItems filtering', () => {
   describe('search filtering', () => {

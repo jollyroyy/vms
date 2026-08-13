@@ -1,22 +1,27 @@
 import React from 'react';
 import type { VisitorSegment } from '../../lib/visitorSegments';
 import type { KpiTileSpec } from '../../components/KpiTile';
-import { glyph, USERS, WALKING, CALENDAR_CHECK, CLOCK, DOOR_OUT, HOURGLASS } from './dashboardTiles';
+import { glyph, USERS, WALKING, CALENDAR_CHECK, DOOR_OUT, HOURGLASS } from './dashboardTiles';
 
 // Look and copy for the Visitors page KPI rail, in one place so VisitorKpiRail
 // stays a layout file and KpiTile stays a card.
 //
 // The tones follow the dashboard board (dashboardTiles.tsx): brand for the
 // pre-booked lane, success for who is on site, accent for the walk-in lane,
-// amber for overstaying, orange for something owed a human's attention. A hue
-// only means something if it means the same thing on every screen.
+// orange for something owed a human's attention. A hue only means something if
+// it means the same thing on every screen.
 
 // A list: everything on the board, no filter.
 const LIST = ['M3.75 6.75h16.5M3.75 12h16.5M3.75 17.25h16.5'];
 const PLUS = ['M12 4.5v15m7.5-7.5h-15'];
 
+// No Overstaying tile (removed 2026-08-13, client instruction). It lives on
+// the guard DASHBOARD, which is the board for things that need chasing; here it
+// was a second door into a subset of Inside. The dashboard tile is still the
+// only live mechanism for catching a forgotten check-out, so do not remove
+// that one too.
 export const VISITOR_KPI_ORDER: VisitorSegment[] = [
-  'all', 'expected', 'inside', 'pending', 'walkinApproved', 'overstayed', 'checkedOut', 'walkin',
+  'all', 'expected', 'inside', 'pending', 'walkinApproved', 'checkedOut', 'walkin',
 ];
 
 export const VISITOR_KPIS: Record<VisitorSegment, KpiTileSpec> = {
@@ -41,12 +46,6 @@ export const VISITOR_KPIS: Record<VisitorSegment, KpiTileSpec> = {
   walkinApproved: {
     label: 'Approved Walk-ins', hint: 'Approved at the gate, not yet in',
     tone: 'text-accent-600 dark:text-accent-300', tint: '250 232 217', icon: glyph(...WALKING),
-  },
-  overstayed: {
-    // Amber, not red: this is nearly always a check-out somebody forgot, not a
-    // person refusing to leave — same reasoning as the dashboard tile.
-    label: 'Overstaying', hint: 'Inside far longer than expected',
-    tone: 'text-amber-600 dark:text-amber-300', tint: 'var(--c-warning-100)', icon: glyph(...CLOCK),
   },
   checkedOut: {
     label: 'Checked Out', hint: 'Came and left today',

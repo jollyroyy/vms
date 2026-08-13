@@ -1,5 +1,6 @@
 import React from 'react';
 import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest';
+import { freezeIstClock, unfreezeIstClock } from '../helpers/istClock';
 import { render, screen, cleanup, waitFor, fireEvent } from '@testing-library/react';
 import CheckInPanel from '../../../src/pages/Guard/CheckInPanel';
 
@@ -56,6 +57,11 @@ const PAN_TEXT = [
 ].join('\n');
 
 beforeEach(() => {
+  // Frozen at midday IST. These fixtures are anchored to "today", and since
+  // migration 075 ended the IST day at 22:00 they stop being due today for the
+  // last two hours of every real day — the suite used to pass all day and fail
+  // each evening. See tests/unit/helpers/istClock.ts.
+  freezeIstClock();
   vi.stubEnv('VITE_FEATURE_OCR', 'true');
   mockUseCameraStream.mockReturnValue({ status: 'streaming', errorMessage: '', start: vi.fn(), stop: vi.fn() });
   mockGetEngine.mockReturnValue({
@@ -134,6 +140,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  unfreezeIstClock();
   cleanup();
   vi.restoreAllMocks();
   vi.unstubAllEnvs();

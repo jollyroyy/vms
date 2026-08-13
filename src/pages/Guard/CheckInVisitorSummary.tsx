@@ -5,7 +5,7 @@
 // be shown redacted rather than travelling in the code itself.
 import React from 'react';
 import PassIdentity from '../../components/PassIdentity';
-import { formatDateTime, formatTime } from '../../lib/formatDate';
+import { formatDateTime } from '../../lib/formatDate';
 import type { MatchItem } from './checkInTypes';
 
 const APPROVAL_LABEL: Record<MatchItem['approvalType'], string> = {
@@ -53,7 +53,9 @@ export default function CheckInVisitorSummary({ match }: Props): React.ReactElem
         {/* The exact instant of approval, not a relative "2 hours ago" — a guard
             challenged on why someone was let in needs the timestamp itself. */}
         {match.approvedAt && <Row term={`${label} at`} value={formatDateTime(match.approvedAt)} />}
-        <Row term="Expected" value={match.scheduledFor ? formatTime(match.scheduledFor) : 'Anytime today'} />
+        {/* Date and time, never a bare time: an open pre-approval can be booked
+            for any day, so the date is what says whether this one is due now. */}
+        <Row term="Expected" value={match.scheduledFor ? formatDateTime(match.scheduledFor) : 'Anytime today'} />
       </dl>
     </div>
   );
