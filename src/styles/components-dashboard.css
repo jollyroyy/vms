@@ -1,0 +1,67 @@
+/* ============================================================
+   GUARD DASHBOARD — the KPI card.
+
+   Layered on .gate-tile (components-guard.css), which still owns the glass
+   surface, the gold cap, the hover lift and the expanded ring. This file adds
+   only what the icon-plate layout needs, so a tile keeps every behaviour it
+   already had.
+
+   Split out of components-guard.css rather than appended to it: that file was
+   at 248 lines and the repo's hard cap is 300 per file, styles included.
+   ============================================================ */
+@layer components {
+
+  /* Horizontal now, not stacked: the plate anchors the left edge so a column
+     of tiles can be read down the icons alone, and the chevron parks on the
+     trailing edge to say the card opens. `items-start` rather than centred —
+     the plate should align with the numeral, which is the tallest thing here,
+     not float in the middle of a three-line stack. */
+  .kpi-tile {
+    @apply flex items-start gap-3.5 pr-9;
+  }
+
+  /* The tinted square behind the glyph. --kpi-tint is an rgb TRIPLE set per
+     tile in dashboardTiles.tsx (a token var wherever one exists), so the alpha
+     lives here in one place and every plate stays the same weight regardless of
+     hue. Without a shared alpha the warm tints read as louder than the cool
+     ones at identical opacity. */
+  .kpi-plate {
+    @apply shrink-0 grid place-items-center rounded-xl;
+    width: 2.75rem;
+    height: 2.75rem;
+    background: rgb(var(--kpi-tint) / 0.60);
+  }
+  /* Dark cards are a wash of near-black, so a 60% tint that looked like a
+     gentle wafer in light mode turns into a glowing chip. Drop it hard and let
+     the glyph's own colour carry the meaning. */
+  .dark .kpi-plate {
+    background: rgb(var(--kpi-tint) / 0.14);
+  }
+
+  /* Parked against the trailing edge and quiet by default — it is an
+     affordance, not information. It brightens with the card on hover. */
+  .kpi-chevron {
+    @apply absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-navy-300;
+    transition: color var(--dur-premium) var(--ease-premium),
+                transform var(--dur-premium) var(--ease-premium);
+  }
+  button.kpi-tile:hover .kpi-chevron {
+    @apply text-navy-500;
+    transform: translate(2px, -50%);
+  }
+  /* Expanded: the chevron turns to point down at the panel it opened, so the
+     tile's state is legible without tracing the gold ring. aria-expanded
+     carries the same fact for anyone not reading pixels. */
+  .kpi-tile[aria-expanded='true'] .kpi-chevron {
+    @apply text-navy-600;
+    transform: translate(0, -50%) rotate(90deg);
+  }
+
+  /* The numeral drops a step on this layout. It shared its row with nothing
+     before; now it sits beside a 44px plate inside a card that also carries a
+     label, a qualifier and a chevron, and at the old size it crowded all three.
+     Still the loudest thing on the card. */
+  .kpi-tile .gate-tile-value {
+    @apply text-3xl font-extrabold;
+  }
+}

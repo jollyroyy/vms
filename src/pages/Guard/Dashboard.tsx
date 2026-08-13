@@ -1,37 +1,43 @@
 import React, { useEffect, useState } from 'react';
 import { useGateStats } from '../../lib/useGateStats';
 import { useTodayVisits } from '../../lib/useTodayVisits';
+import { istDateKey } from '../../lib/visitExpiry';
 import type { ReportVisit } from '../../lib/reportRow';
 import type { DrillKey } from '../../lib/dashboardDrill';
 import DashboardSummary from './DashboardSummary';
 import DashboardDrilldown from './DashboardDrilldown';
+import DashboardActivity from './DashboardActivity';
+import DashboardQuickActions from './DashboardQuickActions';
 import VisitorDetails from '../../components/VisitorDetails';
 
-// The guard's home screen: situational awareness, not a workspace.
+// The guard's home screen: situational awareness, and the two ways to start a
+// job that are not already in the sidebar.
 //
-// Everything that CHANGES a visit's state lives in the console at /visitors.
-// This page used to duplicate that — it carried its own inside-list, its own
-// expected-list and its own realtime subscription while /visitors rendered the
-// same things again, so a guard had two competing home screens and no way to
-// tell which was authoritative. The split is now: read here, act there.
+// Everything that CHANGES a visit's state still lives in the console at
+// /visitors. This page used to duplicate that — its own inside-list, its own
+// expected-list, its own realtime subscription, all mirrored at /visitors — so
+// a guard had two competing home screens and no way to tell which was
+// authoritative. Quick Actions do not reopen that: they navigate to the console,
+// they do not act here.
 //
-// Layout order is deliberate and matches how a shift actually starts:
-// summary (where do we stand) → the drill-down the guard just opened. Search,
-// Quick Actions and the Recent Activity feed were all removed — starting a task
-// lives in the console at /visitors, and every row the activity feed listed was
-// already one click away inside the tile that counts it.
+// Layout order matches how a shift is actually read: where do we stand (the
+// tiles) → the tile you just opened → what has happened so far, beside what you
+// might want to start.
 //
 // Every KPI tile drills down IN PLACE. Clicking a count expands the visits
 // behind it right below the summary; clicking the same tile again collapses it.
 // None of them navigate away — reading the board should never cost you the
-// board. (Acting on a visit still happens in /visitors; opening a card here
-// gives a read-only VisitorDetails.)
+// board. (Opening a card here gives a read-only VisitorDetails.)
 export default function GuardDashboard(): React.ReactElement {
   const [clock, setClock] = useState(() => new Date());
   const [drillKey, setDrillKey] = useState<DrillKey | null>(null);
   const [detailVisit, setDetailVisit] = useState<ReportVisit | null>(null);
 
-  const today = new Date().toISOString().slice(0, 10);
+  // IST, not UTC. `toISOString().slice(0, 10)` is the UTC date, so between
+  // 00:00 and 05:30 IST this page asked for yesterday: a visit booked for 01:00
+  // IST was filed under the previous day and was invisible on the morning it
+  // was due. Same rule as everywhere else — see lib/visitExpiry.ts.
+  const today = istDateKey(clock);
   const { stats, loading } = useGateStats(today);
   const { visits: todayVisits, loading: visitsLoading } = useTodayVisits(today);
 
@@ -42,22 +48,30 @@ export default function GuardDashboard(): React.ReactElement {
 
   return (
     <div className="space-y-7 animate-fade-in pb-4">
-      {/* Header */}
+      {/* No gate name and no "Gate Status: Operational" chip, both of which the
+          reference design carried. There is no gates table, no per-guard gate
+          assignment and nothing that monitors a gate's health, so either would
+          be a hardcoded claim the system cannot stand behind — and a status
+          chip that is green because it is always green is worse than no chip.
+          The clock is real and the Live pill means the subscriptions are on. */}
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="page-title">Security Gate</h1>
-          <p className="page-subtitle">
-            {clock.toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' })}
+          <h1 className="page-title">Dashboard</h1>
+          <p className="page-subtitle flex flex-wrap items-center gap-2">
+            <span>
+              {clock.toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'short', year: 'numeric' })}
+            </span>
+            <span className="glass-chip !py-0.5 !px-2 !gap-1.5">
+              <span className="relative flex h-1.5 w-1.5">
+                <span className="absolute inline-flex h-full w-full rounded-full bg-success-500 opacity-75 animate-ping" />
+                <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-success-500" />
+              </span>
+              <span className="text-[10px] font-bold uppercase tracking-wide text-success-700">Live</span>
+            </span>
+            <span className="font-bold text-navy-700 tabular-nums">
+              {clock.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
+            </span>
           </p>
-        </div>
-        <div className="glass-chip !py-1.5 !px-3.5">
-          <span className="relative flex h-2 w-2">
-            <span className="absolute inline-flex h-full w-full rounded-full bg-success-500 opacity-75 animate-ping" />
-            <span className="relative inline-flex rounded-full h-2 w-2 bg-success-500" />
-          </span>
-          <span className="text-sm font-bold text-navy-700 tabular-nums">
-            {clock.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
-          </span>
         </div>
       </header>
 
@@ -80,9 +94,34 @@ export default function GuardDashboard(): React.ReactElement {
         />
       )}
 
-      {/* No Recent Activity feed. Every one of its rows was already reachable
-          by clicking the tile above that counts it, and a scrolling list of
-          things that already happened is not something a guard acts on. */}
+      {/* Activity is DERIVED from todayVisits — the same array the tiles above
+          count, no second query and no second subscription. That is what makes
+          it safe to show a feed beside the counts: the two cannot tell
+          different stories about the same day. */}
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-5 items-start">
+        <div className="xl:col-span-2">
+          <DashboardActivity
+            visits={todayVisits}
+            loading={visitsLoading}
+            onSelect={setDetailVisit}
+          />
+        </div>
+        <DashboardQuickActions />
+      </div>
+
+      <p className="flex items-start gap-2.5 rounded-xl px-4 py-3 bg-surface-100/70 dark:bg-white/[0.04] border border-surface-200/70 dark:border-white/[0.06] text-xs text-navy-500 dark:text-navy-400">
+        <svg className="w-4 h-4 shrink-0 mt-px text-navy-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.7} aria-hidden="true">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M11.25 11.25h1.5v5.25m-.75-9h.008v.008H12V7.5zM21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        {/* Deliberately not "all statistics are for today only". Open visits are
+            never date-bounded: someone who came in at 21:00 last night and has
+            not left is on the premises NOW and is counted. Saying otherwise
+            would have a guard mistrust the one number they must not. */}
+        <span>
+          Counts update in real time. Figures cover today&rsquo;s activity, plus anyone still
+          inside from an earlier day.
+        </span>
+      </p>
 
       {detailVisit && (
         <VisitorDetails visit={detailVisit} viewerRole="guard" onClose={() => setDetailVisit(null)} />

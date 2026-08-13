@@ -1,6 +1,7 @@
 import React from 'react';
 import type { GateStats } from '../../lib/useGateStats';
 import { DRILL_KEYS, type DrillKey } from '../../lib/dashboardDrill';
+import DashboardTile from './DashboardTile';
 
 type Props = {
   stats: GateStats;
@@ -9,82 +10,40 @@ type Props = {
   onDrill: (key: DrillKey) => void;
 };
 
-// Today's summary. Eight tiles, each answering a different question — see the
-// `entered` vs `inside` note in lib/useGateStats.ts for why those two are not
-// the same filter. `entered = inside + checkedOut` always holds.
+// Today's summary: eight tiles on a 4-wide grid, each answering a different
+// question. See the `entered` vs `inside` note in lib/useGateStats.ts for why
+// those two are not the same filter — `entered = inside + checkedOut` always
+// holds, and a guard can eyeball that.
 //
-// Pre-approved and Walk-ins Approved used to be a single "Expected" tile that
-// counted `approved` and `walkin_approved` together. Those are two different
-// populations arriving by two different routes (booked ahead vs. approved at
-// the gate), each now with its own console page, so a merged tile hid the
-// split the guard actually needs. Keep the two keys separate.
+// The reference design showed six tiles and no Pre-approved, Walk-ins Approved
+// or Overstaying. All three stayed. Overstaying in particular is not
+// decoration: it is the ONLY live mechanism for catching a check-out the gate
+// forgot, and migration 067's sweep that would otherwise catch it is installed
+// but deliberately unscheduled. Dropping the tile would leave nothing watching.
 //
-// Every tile is a drill-down, not a link. They used to navigate to
-// /visitors?tab=..., which threw the guard off the board they were reading and
-// (worse) pointed at audit tabs the console no longer has. Now the matching
-// cards expand underneath, on this page. Only `inside` behaved this way before.
-type Tile = { label: string; tone: string; hint: string };
-
-const TILES: Record<DrillKey, Tile> = {
-  preApproved: {
-    label: 'Pre-approved', tone: 'text-brand-600', hint: 'Booked ahead, not yet arrived',
-  },
-  walkInApproved: {
-    label: 'Walk-ins Approved', tone: 'text-accent-600 dark:text-accent-300', hint: 'Approved at the gate, not yet in',
-  },
-  inside: {
-    label: 'Inside Now', tone: 'text-success-600', hint: 'Currently on the premises',
-  },
-  overstaying: {
-    // Amber, not red. This is nearly always a check-out somebody forgot, not a
-    // person refusing to leave — a red tile would have the guard hunting for an
-    // intruder when the fix is to close a record.
-    label: 'Overstaying', tone: 'text-amber-600 dark:text-amber-300', hint: 'Inside far longer than expected',
-  },
-  entered: {
-    label: 'Entered Today', tone: 'text-navy-800', hint: 'Everyone who came through the gate',
-  },
-  checkedOut: {
-    label: 'Checked Out', tone: 'text-navy-500', hint: 'Came and left',
-  },
-  declined: {
-    // NOT "Denied Entry" — `rejected` means an HOD declined the request,
-    // usually before the visitor ever reached the gate. Calling that "denied
-    // entry" on a guard's screen implies the guard turned someone away.
-    label: 'Declined', tone: 'text-danger-600', hint: 'Request declined by person to meet',
-  },
-  noShow: {
-    // Same orange used for the `no_show` status badge (statusStyles.ts) so the
-    // colour means the same thing everywhere. Orange is a static Tailwind hue,
-    // not a token, so it needs an explicit dark: variant or it goes flat on a
-    // dark card.
-    label: 'No Show', tone: 'text-orange-600 dark:text-orange-300', hint: 'Booked, never arrived',
-  },
-};
-
+// Pre-approved and Walk-ins Approved are likewise two populations arriving by
+// two routes (booked ahead vs. approved at the gate), each with its own console
+// page. Merging them back into one "Expected" tile would hide the split the
+// guard acts on. Keep the keys separate.
+//
+// Row order is the gate's own order: what came in, what went out, who is left,
+// then the four things still owed someone's attention.
 export default function DashboardSummary({ stats, loading, activeKey, onDrill }: Props): React.ReactElement {
   return (
     <section>
-      <h2 className="section-title mb-3">Today&rsquo;s Summary</h2>
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-8 gap-3">
-        {DRILL_KEYS.map((key, i) => {
-          const t = TILES[key];
-          const expanded = activeKey === key;
-          return (
-            <button
-              key={key}
-              type="button"
-              onClick={() => onDrill(key)}
-              aria-expanded={expanded}
-              className={`gate-tile ${key === 'inside' ? 'gate-tile-primary' : ''} ${expanded ? 'gate-tile-active' : ''} animate-slide-up`}
-              style={{ animationDelay: `${i * 0.04}s` }}
-            >
-              <p className={`gate-tile-value ${t.tone}`}>{loading ? '—' : stats[key]}</p>
-              <p className="gate-tile-label">{t.label}</p>
-              <p className="text-[10px] text-navy-300 mt-1 leading-snug">{t.hint}</p>
-            </button>
-          );
-        })}
+      <h2 className="section-title mb-3">Today</h2>
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
+        {DRILL_KEYS.map((key, i) => (
+          <DashboardTile
+            key={key}
+            drillKey={key}
+            value={stats[key]}
+            loading={loading}
+            expanded={activeKey === key}
+            index={i}
+            onDrill={() => onDrill(key)}
+          />
+        ))}
       </div>
     </section>
   );

@@ -13,9 +13,15 @@ import { isOverstaying } from './visitExpiry';
 // from checked_in_at (cumulative), `inside` from status (live).
 export type DrillKey = 'preApproved' | 'walkInApproved' | 'inside' | 'overstaying' | 'entered' | 'checkedOut' | 'declined' | 'noShow';
 
-// `overstaying` sits next to `inside` because it is a subset of it — the rows
-// that make "Inside Now" untrustworthy. Reading them apart is the point.
-export const DRILL_KEYS: DrillKey[] = ['preApproved', 'walkInApproved', 'inside', 'overstaying', 'entered', 'checkedOut', 'declined', 'noShow'];
+// Grid order, and it is the gate's own order. The first row is the traffic
+// through the door — what came in, what went out, who is therefore still here —
+// and the second is the four things still owed someone's attention. Reading it
+// left to right answers "how did today go?" before "what do I need to do?".
+//
+// `overstaying` follows the two approval tiles rather than sitting beside
+// `inside`, even though it is a subset of it: it belongs with the work queue,
+// because unlike Inside Now it is a number the guard is expected to act on.
+export const DRILL_KEYS: DrillKey[] = ['entered', 'checkedOut', 'inside', 'preApproved', 'walkInApproved', 'overstaying', 'noShow', 'declined'];
 
 export const DRILL_FILTER: Record<DrillKey, (v: Visit) => boolean> = {
   preApproved: (v) => v.status === 'approved',
