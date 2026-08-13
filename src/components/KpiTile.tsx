@@ -29,10 +29,6 @@ type Props = {
   controlsId?: string;
   /** Replaces the spec hint when given (e.g. "Click to hide" while open). */
   caption?: string;
-  /** Square face: plate, numeral and label stacked and centred, sized to sit
-   *  two-up in a narrow column. Same card, same border, same hover — only the
-   *  arrangement of the contents changes. */
-  compact?: boolean;
 };
 
 // One KPI card — the single design every count card in the app uses (guard
@@ -51,16 +47,13 @@ type Props = {
 // The numeral is optional so an action tile (e.g. "Register Walk-in", which is
 // a destination, not a count) can share the same card language.
 //
-// `compact` gives the same card a square face — plate over numeral over label,
-// all centred — so eight of them fit two-up in a 300px column beside the list
-// they filter. It is a LAYOUT switch and nothing more: the surface, the
-// hairline border, the hover lift and the active ring are the shared ones every
-// other KPI card uses. The qualifier goes screen-reader-only rather than being
-// dropped, because "Expected" and "Pending Approval" are ambiguous read aloud
-// on their own and the accessible name is the only place that context survives
-// once the square has no room to print it.
+// There is ONE shape. A `compact` square variant used to exist for the Visitors
+// rail while that rail was a narrow column beside the list; the board moved on
+// top of the list at this same size (2026-08-13) and the variant lost its only
+// caller. Do not re-add a second face — the point of this component is that a
+// guard learns the card once and then recognises it on every screen.
 export default function KpiTile({
-  spec, value, loading, expanded, index, onDrill, pressed, controlsId, caption, compact,
+  spec, value, loading, expanded, index, onDrill, pressed, controlsId, caption,
 }: Props): React.ReactElement {
   const active = expanded || pressed;
   const hint = caption ?? spec.hint;
@@ -72,17 +65,17 @@ export default function KpiTile({
       aria-pressed={pressed}
       aria-controls={controlsId}
       style={{ animationDelay: `${index * 0.04}s`, ['--kpi-tint' as string]: spec.tint }}
-      className={`gate-tile kpi-tile ${compact ? 'kpi-tile-compact' : ''} ${active ? 'gate-tile-active' : ''} animate-slide-up`}
+      className={`gate-tile kpi-tile ${active ? 'gate-tile-active' : ''} animate-slide-up`}
     >
       <span className={`kpi-plate ${spec.tone}`}>{spec.icon}</span>
 
-      <span className={compact ? 'min-w-0' : 'min-w-0 flex-1'}>
+      <span className="min-w-0 flex-1">
         {value !== null && (
           <span className={`gate-tile-value block ${spec.tone}`}>{loading ? '—' : value}</span>
         )}
         <span className="gate-tile-label block">{spec.label}</span>
         {hint && (
-          <span className={compact ? 'sr-only' : 'block text-[10px] text-navy-400 dark:text-navy-400 mt-0.5 leading-snug'}>
+          <span className="block text-[10px] text-navy-400 dark:text-navy-400 mt-0.5 leading-snug">
             {hint}
           </span>
         )}

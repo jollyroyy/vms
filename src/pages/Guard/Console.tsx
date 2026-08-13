@@ -227,30 +227,26 @@ export default function GuardConsole(): React.ReactElement {
         </div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-5 items-start">
-        {/* The list. Order swaps so the rail sits on the RIGHT on desktop and
-            on TOP of the list on phones — a filter that renders below the
-            content it filters is a filter nobody reaches. */}
-        <div className="order-2 lg:order-1 min-w-0">
-          <VisitorSegmentContent
-            segment={segment}
-            visits={visits}
-            loading={loading}
-            busyId={busyId}
-            onCheckIn={setCheckingIn}
-            onCheckOut={(v) => setExitTarget(v)}
-            onWalkInCheckIn={(v, details) => { void checkInWalkIn(v, details); }}
-            onWalkInSubmitted={onCheckInSuccess}
-            onSelect={setDetailsOf}
-          />
-        </div>
+      {/* The KPI board sits ON TOP of the list, full width, in the same shape
+          as the guard dashboard's (client instruction, 2026-08-13). It used to
+          be a 300px column on the right holding square compact tiles; same
+          cards, two sizes, two places. A filter must never render below the
+          content it filters — that was true of the old phone layout too, which
+          is why the rail was ordered first there. */}
+      <VisitorKpiRail segment={segment} visits={visits} loading={loading} />
 
-        {/* The KPI rail: every segment as a count tile, counted from the same
-            array the list renders (never its own query or filter). Clicking a
-            tile navigates to the segment's URL. */}
-        <div className="order-1 lg:order-2">
-          <VisitorKpiRail segment={segment} visits={visits} loading={loading} />
-        </div>
+      <div className="min-w-0">
+        <VisitorSegmentContent
+          segment={segment}
+          visits={visits}
+          loading={loading}
+          busyId={busyId}
+          onCheckIn={setCheckingIn}
+          onCheckOut={(v) => setExitTarget(v)}
+          onWalkInCheckIn={(v, details) => { void checkInWalkIn(v, details); }}
+          onWalkInSubmitted={onCheckInSuccess}
+          onSelect={setDetailsOf}
+        />
       </div>
 
       {detailsOf && (

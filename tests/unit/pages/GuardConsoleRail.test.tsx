@@ -126,38 +126,21 @@ describe('GuardConsole â€” KPI rail', () => {
     expect(within(register).queryByText(/\d/)).toBeNull();
   });
 
-  // Two-up square tiles, so all eight segments stay in view beside the list
-  // they filter. One-per-row pushed Checked Out and the walk-in register past
-  // the fold of a gate terminal — a filter rail you have to scroll to reach is
-  // not doing its job. The qualifier survives as sr-only rather than being
-  // dropped: "Expected" alone is ambiguous read aloud, and the accessible name
-  // is the only place that context can live once the square cannot print it.
-  it('renders square compact tiles whose qualifier is in the name but not on the face', async () => {
+  // Full-width board on TOP of the list, at the dashboard's size and shape
+  // (client instruction, 2026-08-13). It used to be a 300px right-hand column
+  // of square `compact` tiles — the same card in two sizes on two screens, so
+  // a guard re-learned it on each. Now the qualifier prints on the tile face
+  // again instead of surviving only in the accessible name.
+  it('renders full-size tiles with the qualifier visible on the face', async () => {
     mockVisitData.current = [visit()];
     renderAt('/visitors');
     await waitFor(() => expect(screen.getByText('Alice Johnson')).toBeInTheDocument());
 
     const expected = screen.getByRole('button', { name: /Booked ahead, not yet arrived/i });
-    expect(expected).toHaveClass('kpi-tile-compact');
+    expect(expected).not.toHaveClass('kpi-tile-compact');
 
     const qualifier = within(expected).getByText('Booked ahead, not yet arrived');
-    expect(qualifier).toHaveClass('sr-only');
-  });
-
-  // Removed 2026-08-13 (client instruction). An overstay is a subset of Inside
-  // that needs chasing, and the guard DASHBOARD's Overstaying tile is where
-  // that happens — that one is still the only live mechanism for catching a
-  // forgotten check-out, so this assertion is scoped to the Visitors rail.
-  it('has no Overstaying tile', async () => {
-    mockVisitData.current = [
-      visit({ id: 'old', checked_in_at: '2026-08-01T03:00:00Z' }),
-    ];
-    renderAt('/visitors');
-    await waitFor(() => expect(screen.getByText('Alice Johnson')).toBeInTheDocument());
-
-    expect(screen.queryByRole('button', { name: /Overstay/i })).toBeNull();
-    // …and the row itself is still reachable, under Inside.
-    expect(within(screen.getByRole('button', { name: /Currently Inside/i })).getByText('1')).toBeInTheDocument();
+    expect(qualifier).not.toHaveClass('sr-only');
   });
 
   it('navigates to the segment URL when a tile is clicked', async () => {

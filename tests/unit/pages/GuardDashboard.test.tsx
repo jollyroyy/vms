@@ -79,10 +79,20 @@ describe('GuardDashboard', () => {
     mockToday.current = { visits: [], loading: false };
   });
 
-  it('renders the page heading', () => {
+  // No page heading (client instruction, 2026-08-13). The sidebar item the
+  // guard just clicked already says "Dashboard"; the page restating its own
+  // name spent the widest line on screen on the one fact they cannot be in
+  // doubt about. The date, the Live pill and the clock all stay — those are
+  // things only the page can tell them.
+  it('does not restate its own name as a page heading', () => {
     renderDashboard();
-    const heading = screen.getByRole('heading', { level: 1 });
-    expect(heading.textContent).toBe('Dashboard');
+    expect(screen.queryByRole('heading', { level: 1 })).toBeNull();
+    expect(screen.queryByText('Dashboard')).toBeNull();
+  });
+
+  it('still shows the live clock header beside the date', () => {
+    renderDashboard();
+    expect(screen.getByText('Live')).toBeInTheDocument();
   });
 
   it('renders all six KPI tile labels', () => {

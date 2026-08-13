@@ -57,35 +57,11 @@
     transform: translate(0, -50%) rotate(90deg);
   }
 
-  /* --- Square face (.kpi-tile-compact) ---------------------------------
-     The Visitors rail: eight segments in a 300px column beside the list they
-     filter. One-per-row they ran the full height of the page and pushed the
-     last segments below the fold on a gate terminal; two-up they all sit in
-     view at once, which is the whole job of a filter rail.
-     Same card, same border, same hover — only the arrangement changes. */
-  .kpi-tile-compact {
-    @apply flex-col items-center justify-center text-center gap-2 px-3 py-4 h-full;
-    /* A floor, not a fixed height: the grid stretches every tile to the tallest
-       in its row anyway, and a hard height would clip a two-word label at large
-       text sizes. The register tile has no numeral and is held level by this. */
-    min-height: 8.75rem;
-  }
-  /* Centred, so the label sits under the numeral rather than beside it. */
-  .kpi-tile-compact .gate-tile-label {
-    @apply mt-1 leading-tight;
-  }
-  /* The chevron moves to the top-right corner: at the middle of a square it
-     would sit on top of the label. Still the same "this opens" mark, and it
-     still leans on hover and turns down when the segment is the current one. */
-  .kpi-tile-compact .kpi-chevron {
-    @apply right-2 top-2 translate-y-0 w-3.5 h-3.5;
-  }
-  button.kpi-tile-compact:hover .kpi-chevron {
-    transform: translate(2px, 0);
-  }
-  .kpi-tile-compact[aria-expanded='true'] .kpi-chevron {
-    transform: rotate(90deg);
-  }
+  /* There is NO square/compact face. `.kpi-tile-compact` existed only for the
+     Visitors rail when that rail was a 300px column beside the list; the board
+     moved on top of the list at the dashboard's own size (2026-08-13) and the
+     variant lost its only caller, so it went with it. One KPI card, one shape,
+     everywhere. */
 
   /* The numeral drops a step on this layout. It shared its row with nothing
      before; now it sits beside a 44px plate inside a card that also carries a

@@ -175,6 +175,19 @@
   the host's answer is one continuous job. `/visitors/approved` likewise still
   renders `GuardWalkInApproved` unchanged — it captures a photo before it can
   act, so it is a flow, not a row with a button.
+- **The Visitors KPI board sits ON TOP of the list, full width, at the dashboard's
+  size** (`VisitorKpiRail.tsx`, client instruction 2026-08-13). Same
+  `grid-cols-1 sm:grid-cols-2 xl:grid-cols-3` as `DashboardSummary`, same full-size
+  `KpiTile`. It used to be a 300px right-hand column of square `compact` tiles — the
+  same card in two sizes on two screens, which made a guard re-learn it on each. The
+  rule that survives from the old layout: a filter must never render BELOW the content
+  it filters, which is why the board is above the list and not beside it.
+- **The guard dashboard has no page heading.** `<h1>Dashboard</h1>` was removed
+  2026-08-13 (client instruction) — the sidebar item the guard just clicked already
+  says it, and the page restating its own name spent the widest line on screen on the
+  one fact they cannot be in doubt about. The date, the **Live** pill and the clock all
+  stay: those are things only the page can tell them. `GuardDashboard.test.tsx` asserts
+  there is no level-1 heading and no "Dashboard" text.
 - **The sidebar count badges must be computed from the page's own rules.**
   `lib/useVisitorCounts.ts` loads the SAME window (`visitorLoadFilter`) and
   slices it with the SAME predicates (`SEGMENT_FILTER`) the page uses. It is
@@ -562,13 +575,13 @@
     neighbour is hovered. All three transforms are dropped under
     `prefers-reduced-motion` — the ring and shadow survive, so state is never carried
     by movement alone.
-  - **`compact` is a layout switch, not a second design.** `KpiTile compact` gives the
-    same card a square face (plate over numeral over label, centred) for the Visitors
-    rail, which packs its segments two-up in a 300px column. The surface, border,
-    hover and active ring are the shared ones. The hint goes `sr-only` rather than being
-    dropped: "Expected" and "Pending Approval" are ambiguous read aloud, and the
-    accessible name is the only place that context survives once the square has no room
-    to print it — which is also why the rail tests can still query by qualifier text.
+  - **There is ONE shape — no `compact` variant.** `KpiTile` briefly had a square
+    face (`.kpi-tile-compact`) for the Visitors rail while that rail was a 300px
+    column beside the list. The board moved on top of the list at the dashboard's own
+    size (2026-08-13, client instruction) and the variant lost its only caller, so the
+    prop and its ~30 lines of CSS were deleted. Do not re-add a second face: the point
+    of this component is that a guard learns the card once and recognises it
+    everywhere. The qualifier is printed on the tile face again, not `sr-only`.
 - **`entered` is NOT `inside`.** `visits.status` holds one value, so a visitor who came
   and left is `checked_out`, not `checked_in`. Counting `status === 'checked_in'` answers
   "who is still here", never "how many came through today". `useGateStats` derives

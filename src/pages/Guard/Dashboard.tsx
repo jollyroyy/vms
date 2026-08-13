@@ -54,9 +54,14 @@ export default function GuardDashboard(): React.ReactElement {
           be a hardcoded claim the system cannot stand behind — and a status
           chip that is green because it is always green is worse than no chip.
           The clock is real and the Live pill means the subscriptions are on. */}
+      {/* No "Dashboard" heading (client instruction, 2026-08-13). The sidebar
+          item the guard just clicked is already lit and already says it; the
+          page restating its own name spent the widest line on screen on the one
+          fact the guard cannot be in doubt about. Everything else on this line
+          stays — the date, the Live pill and the clock are all things only the
+          page can tell them. */}
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="page-title">Dashboard</h1>
           <p className="page-subtitle flex flex-wrap items-center gap-2">
             <span>
               {clock.toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'short', year: 'numeric' })}
