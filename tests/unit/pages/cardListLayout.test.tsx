@@ -34,7 +34,7 @@ describe('DashboardDrilldown — cards are a full-width stack, not a grid', () =
 
   it('renders the matched cards as flex-col, not a multi-column grid', () => {
     const { container } = render(
-      <DashboardDrilldown drillKey="inside" loading={false} visits={[visit()]} onSelect={vi.fn()} onClose={vi.fn()} />,
+      <DashboardDrilldown drillKey="inside" loading={false} visits={[visit()]} onClose={vi.fn()} />,
     );
     const list = container.querySelector('[data-card-list]');
     assertStackNotGrid(list);

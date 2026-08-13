@@ -27,7 +27,15 @@ import VisitorDetails from '../../components/VisitorDetails';
 // Every KPI tile drills down IN PLACE. Clicking a count expands the visits
 // behind it right below the summary; clicking the same tile again collapses it.
 // None of them navigate away — reading the board should never cost you the
-// board. (Opening a card here gives a read-only VisitorDetails.)
+// board.
+//
+// The drill-down's CARDS open nothing (client instruction, 2026-08-13 — the
+// Details control went from the stacked card on both this page and /visitors).
+// The Recent Activity feed's rows still open a read-only VisitorDetails: a feed
+// entry is a one-line "X entered at 09:12" with no facts on it beyond a name
+// and a time, so without somewhere to go it would be a row that says too little
+// and does nothing. A drill-down card already carries everything the sheet
+// would have shown.
 export default function GuardDashboard(): React.ReactElement {
   const [clock, setClock] = useState(() => new Date());
   const [drillKey, setDrillKey] = useState<DrillKey | null>(null);
@@ -94,7 +102,6 @@ export default function GuardDashboard(): React.ReactElement {
           drillKey={drillKey}
           loading={visitsLoading}
           visits={todayVisits}
-          onSelect={setDetailVisit}
           onClose={() => setDrillKey(null)}
         />
       )}

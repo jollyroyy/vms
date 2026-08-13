@@ -7,7 +7,6 @@ type Props = {
   drillKey: DrillKey;
   loading: boolean;
   visits: ReportVisit[];
-  onSelect: (visit: ReportVisit) => void;
   onClose: () => void;
 };
 
@@ -16,7 +15,7 @@ type Props = {
 // filter are now looked up per tile so all five tiles share this one surface
 // instead of each growing its own list component.
 export default function DashboardDrilldown({
-  drillKey, loading, visits, onSelect, onClose,
+  drillKey, loading, visits, onClose,
 }: Props): React.ReactElement {
   const copy = DRILL_COPY[drillKey];
   const rows = drillVisits(visits, drillKey);
@@ -55,10 +54,12 @@ export default function DashboardDrilldown({
         // A full-width vertical stack, not a 2-up grid — the client's core
         // complaint (2026-08-10) was exactly this doubling of scan travel.
         <div data-card-list className="p-5 flex flex-col gap-5">
-          {/* onSelect only — never an `action`. "Dashboard reads, Console
-              acts": a Check In / Check Out button here would let this
-              situational-awareness panel change a visit's state, which is
-              /visitors' job alone.
+          {/* Never an `action`. "Dashboard reads, Console acts": a Check In /
+              Check Out button here would let this situational-awareness panel
+              change a visit's state, which is /visitors' job alone. Since the
+              card lost its Details control too (client instruction,
+              2026-08-13), these rows are now entirely inert — read-only in the
+              literal sense.
 
               showApproval={false} for the same reason (client instruction,
               2026-08-13): the "Type: Pre-approved" line and the
@@ -66,7 +67,7 @@ export default function DashboardDrilldown({
               cards. They stay on the identical card under /visitors, where a
               guard is deciding what to do with the visit. */}
           {rows.map((v) => (
-            <VisitorStackCard key={v.id} visit={v} onSelect={onSelect} showApproval={false} />
+            <VisitorStackCard key={v.id} visit={v} showApproval={false} />
           ))}
         </div>
       )}

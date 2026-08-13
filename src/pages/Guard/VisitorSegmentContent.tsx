@@ -30,7 +30,6 @@ type Props = {
   onCheckOut: (v: Visit) => void;
   onWalkInCheckIn: (v: Visit, details: WalkInCheckIn) => void;
   onWalkInSubmitted: (name: string) => void;
-  onSelect: (v: Visit) => void;
 };
 
 // Segment → what renders. Two of the eight are not lists at all:
@@ -85,7 +84,6 @@ export default function VisitorSegmentContent(props: Props): React.ReactElement 
       segment={segment as ListSegment}
       visits={rows}
       loading={loading}
-      onSelect={props.onSelect}
       actionFor={(v) => actionFor(v, props)}
     />
   );

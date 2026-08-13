@@ -127,6 +127,25 @@
     column always said it, and still does. `VisitorStackCard.test.tsx` fails on any
     `rail-` class. `.visitor-card` keeps its own rail — `lib/statusRail.ts` is still
     live for it, so do not delete that either.
+  - **It has NO "Details" control either** (removed 2026-08-13, client instruction),
+    on the Visitors list and on the dashboard drill-down alike. The card IS the
+    record — name, vendor, host, department, purpose, phone, expected time, status,
+    ID proof and card number are all on its face — so the sheet behind that button
+    was a second place to read the same visit. What only the sheet held (the ID
+    document image, the timeline, the pass) is still reached from `/guard/search`
+    and `/whos-inside`, where looking a visitor *up* is the job; at the gate the job
+    is the person standing there. The `onSelect` prop is **gone from
+    `VisitorStackCard`, `VisitorStackList`, `VisitorSegmentContent` and
+    `DashboardDrilldown`**, and `Console.tsx` no longer imports `VisitorDetails` at
+    all — do not thread it back through. Consequence, and it is the point: a card
+    with no action now renders **no buttons at all**, so the only pressable thing on
+    the Visitors surface is the control that advances the visit, and a drill-down
+    card is completely inert. `VisitorStackCard.test.tsx` and
+    `DashboardDrilldown.test.tsx` both count the buttons.
+    - **The dashboard's Recent Activity rows still open `VisitorDetails`**, and that
+      is not an inconsistency. A feed entry is one line — a name, a time and a kind —
+      with nothing else on it, so a row that opened nothing would say too little and
+      do nothing. `Dashboard.tsx` keeps `detailVisit` for that panel only.
   - **The dashboard drill-down uses this same card.** `DashboardDrilldown.tsx`
     rendered `WhosInsideVisitorCard` until 2026-08-13; the two surfaces now look
     identical, which is what the client asked for. It passes **`onSelect` only and

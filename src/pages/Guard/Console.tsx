@@ -10,7 +10,6 @@ import VisitorSegmentContent from './VisitorSegmentContent';
 import VisitorCheckInFlow from './VisitorCheckInFlow';
 import VisitorKpiRail from './VisitorKpiRail';
 import CardReturnConfirm from './CardReturnConfirm';
-import VisitorDetails from '../../components/VisitorDetails';
 import { type WalkInCheckIn } from './GuardWalkInApproved';
 import { uploadPhoto } from '../../lib/photoUpload';
 import { isAlreadyInsideError } from '../../lib/activeVisit';
@@ -48,7 +47,6 @@ export default function GuardConsole(): React.ReactElement {
   const [busyId, setBusyId] = useState<string | null>(null);
   /** The expected visitor being checked in, if the flow is open. */
   const [checkingIn, setCheckingIn] = useState<Visit | null>(null);
-  const [detailsOf, setDetailsOf] = useState<Visit | null>(null);
   /** The inside visitor whose check-out is waiting on the card-return gate. */
   const [exitTarget, setExitTarget] = useState<Visit | null>(null);
 
@@ -85,7 +83,7 @@ export default function GuardConsole(): React.ReactElement {
 
   // Leaving a segment must not strand the guard inside a half-finished check-in
   // for a visitor the new segment does not even list.
-  useEffect(() => { setCheckingIn(null); setDetailsOf(null); }, [segment]);
+  useEffect(() => { setCheckingIn(null); }, [segment]);
 
   // The check-out WRITE. It is reached only through the card-return confirm
   // (CardReturnConfirm) — the dialog shows the card number the guard must
@@ -245,13 +243,8 @@ export default function GuardConsole(): React.ReactElement {
           onCheckOut={(v) => setExitTarget(v)}
           onWalkInCheckIn={(v, details) => { void checkInWalkIn(v, details); }}
           onWalkInSubmitted={onCheckInSuccess}
-          onSelect={setDetailsOf}
         />
       </div>
-
-      {detailsOf && (
-        <VisitorDetails visit={detailsOf} viewerRole="guard" onClose={() => setDetailsOf(null)} />
-      )}
 
       {/* Every check-out passes through the card-return gate: the guard is
           shown the card number to collect and the confirm stays disabled until

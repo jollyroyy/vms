@@ -28,7 +28,7 @@ function visit(overrides: Partial<Visit> = {}): ReportVisit {
 
 describe('DashboardDrilldown', () => {
   it.each(DRILL_KEYS)('renders the title and subtitle for drill key "%s"', (key: DrillKey) => {
-    render(<DashboardDrilldown drillKey={key} loading={false} visits={[]} onSelect={vi.fn()} onClose={vi.fn()} />);
+    render(<DashboardDrilldown drillKey={key} loading={false} visits={[]} onClose={vi.fn()} />);
     expect(screen.getByText(DRILL_COPY[key].title)).toBeInTheDocument();
     expect(screen.getByText(DRILL_COPY[key].subtitle)).toBeInTheDocument();
   });
@@ -39,7 +39,7 @@ describe('DashboardDrilldown', () => {
     const pending = visit({ id: 'pending', status: 'pending_approval', visitor: { ...visit().visitor!, full_name: 'Pending Person' } });
 
     render(
-      <DashboardDrilldown drillKey="inside" loading={false} visits={[inside, declined, pending]} onSelect={vi.fn()} onClose={vi.fn()} />,
+      <DashboardDrilldown drillKey="inside" loading={false} visits={[inside, declined, pending]} onClose={vi.fn()} />,
     );
 
     expect(screen.getByText('Inside Person')).toBeInTheDocument();
@@ -48,14 +48,14 @@ describe('DashboardDrilldown', () => {
   });
 
   it('shows the loading skeleton and not the empty state or any cards while loading', () => {
-    render(<DashboardDrilldown drillKey="inside" loading visits={[]} onSelect={vi.fn()} onClose={vi.fn()} />);
+    render(<DashboardDrilldown drillKey="inside" loading visits={[]} onClose={vi.fn()} />);
     expect(screen.queryByText(DRILL_COPY.inside.empty)).not.toBeInTheDocument();
     expect(screen.getByText('—')).toBeInTheDocument();
   });
 
   it('shows the per-key empty-state copy when nothing matches', () => {
     const pending = visit({ id: 'pending', status: 'pending_approval' });
-    render(<DashboardDrilldown drillKey="declined" loading={false} visits={[pending]} onSelect={vi.fn()} onClose={vi.fn()} />);
+    render(<DashboardDrilldown drillKey="declined" loading={false} visits={[pending]} onClose={vi.fn()} />);
     expect(screen.getByText(DRILL_COPY.declined.empty)).toBeInTheDocument();
   });
 
@@ -64,30 +64,32 @@ describe('DashboardDrilldown', () => {
     const declined = visit({ id: 'declined', status: 'rejected' });
     const pending = visit({ id: 'pending', status: 'pending_approval' });
     render(
-      <DashboardDrilldown drillKey="inside" loading={false} visits={[inside, declined, pending]} onSelect={vi.fn()} onClose={vi.fn()} />,
+      <DashboardDrilldown drillKey="inside" loading={false} visits={[inside, declined, pending]} onClose={vi.fn()} />,
     );
     expect(screen.getByText(`1 ${DRILL_COPY.inside.countLabel}`)).toBeInTheDocument();
   });
 
   it('calls onClose when the close button is clicked', () => {
     const onClose = vi.fn();
-    render(<DashboardDrilldown drillKey="inside" loading={false} visits={[]} onSelect={vi.fn()} onClose={onClose} />);
+    render(<DashboardDrilldown drillKey="inside" loading={false} visits={[]} onClose={onClose} />);
     fireEvent.click(screen.getByLabelText(`Collapse ${DRILL_COPY.inside.title}`));
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
-  it('clicking Details calls onSelect with that visit', () => {
-    const onSelect = vi.fn();
+  // Client instruction, 2026-08-13: no Details control on the card. This panel
+  // therefore opens nothing at all — it is a list you read, and the rows that
+  // remain clickable on this page are the Recent Activity feed's, not these.
+  it('renders no Details control on a drill-down card', () => {
     const inside = visit({ id: 'inside', status: 'checked_in', visitor: { ...visit().visitor!, full_name: 'Inside Person' } });
-    render(<DashboardDrilldown drillKey="inside" loading={false} visits={[inside]} onSelect={onSelect} onClose={vi.fn()} />);
-    fireEvent.click(screen.getByLabelText('Details for Inside Person'));
-    expect(onSelect).toHaveBeenCalledWith(inside);
+    render(<DashboardDrilldown drillKey="inside" loading={false} visits={[inside]} onClose={vi.fn()} />);
+    expect(screen.queryByLabelText('Details for Inside Person')).toBeNull();
+    expect(screen.queryByText(/details/i)).toBeNull();
   });
 
   it('renders the stacked card, the same one the Visitors surface uses', () => {
     const inside = visit({ id: 'inside', status: 'checked_in' });
     const { container } = render(
-      <DashboardDrilldown drillKey="inside" loading={false} visits={[inside]} onSelect={vi.fn()} onClose={vi.fn()} />,
+      <DashboardDrilldown drillKey="inside" loading={false} visits={[inside]} onClose={vi.fn()} />,
     );
     expect(container.querySelector('.stack-card')).toBeInTheDocument();
   });
@@ -101,7 +103,7 @@ describe('DashboardDrilldown', () => {
     const walkIn = visit({ id: 'walk', status: 'checked_in', ref_number: 'VIS-2', scheduled_for: null });
 
     const { container } = render(
-      <DashboardDrilldown drillKey="inside" loading={false} visits={[preApproved, walkIn]} onSelect={vi.fn()} onClose={vi.fn()} />,
+      <DashboardDrilldown drillKey="inside" loading={false} visits={[preApproved, walkIn]} onClose={vi.fn()} />,
     );
 
     expect(container.querySelector('.stack-origin')).toBeNull();
@@ -118,8 +120,8 @@ describe('DashboardDrilldown', () => {
   // situational awareness only — everything that changes a visit's state
   // lives on /visitors. Rendering the stacked card with an `action` here
   // would put a Check In / Check Out button on the dashboard, so it must
-  // never receive one. "Details" is the card's own always-present control
-  // and is expected.
+  // never receive one. Since Details went too (2026-08-13), a drill-down card
+  // now holds no buttons whatsoever.
   //
   // The Check In half of this used to run against drillKey="preApproved". That
   // tile is gone (the approval counts live on /visitors now), and with it the
@@ -127,20 +129,22 @@ describe('DashboardDrilldown', () => {
   // the assertion is made against the panel that CAN list one instead, by
   // handing `entered` a still-approved row and confirming it neither lists it
   // nor offers to act on it.
-  it('never renders a Check In or Check Out action, only Details', () => {
+  it('never renders a Check In or Check Out action — a card here holds no buttons', () => {
     const approved = visit({ id: 'approved', status: 'approved' });
     const checkedIn = visit({ id: 'checked-in', status: 'checked_in', ref_number: 'VIS-2' });
 
     const { unmount } = render(
-      <DashboardDrilldown drillKey="entered" loading={false} visits={[approved, checkedIn]} onSelect={vi.fn()} onClose={vi.fn()} />,
+      <DashboardDrilldown drillKey="entered" loading={false} visits={[approved, checkedIn]} onClose={vi.fn()} />,
     );
     expect(screen.queryByText('Check In')).not.toBeInTheDocument();
     expect(screen.queryByText('Check Out')).not.toBeInTheDocument();
     unmount();
 
-    render(
-      <DashboardDrilldown drillKey="inside" loading={false} visits={[checkedIn]} onSelect={vi.fn()} onClose={vi.fn()} />,
+    const { container } = render(
+      <DashboardDrilldown drillKey="inside" loading={false} visits={[checkedIn]} onClose={vi.fn()} />,
     );
     expect(screen.queryByText('Check Out')).not.toBeInTheDocument();
+    // The panel's own Collapse button is the only one on the surface.
+    expect(container.querySelectorAll('[data-card-list] button')).toHaveLength(0);
   });
 });

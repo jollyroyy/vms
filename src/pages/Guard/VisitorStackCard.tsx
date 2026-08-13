@@ -8,10 +8,10 @@ export type StackAction = { label: string; onClick: () => void; disabled?: boole
 
 type Props = {
   visit: Visit;
-  /** Primary action, e.g. Check In / Check Out. Rendered as a 44px target. */
+  /** Primary action, e.g. Check In / Check Out. Rendered as a 44px target, and
+   *  the ONLY control the card may carry — there is no Details button (client
+   *  instruction, 2026-08-13). */
   action?: StackAction;
-  /** Opens the detail sheet. Rendered as the "Details" secondary control. */
-  onSelect?: (visit: Visit) => void;
   /** Show the origin / approval line — "Type: Pre-approved" once the visitor is
    *  inside, "Approved" / "Awaiting approval" before that.
    *
@@ -45,8 +45,19 @@ type Props = {
 // to satisfy — never encode status in colour ALONE — is satisfied by the badge
 // on its own. Do not re-add a rail here; `.rail-*` still belongs to the older
 // single-row .visitor-card, which keeps it.
+//
+// There is also NO "Details" control (client instruction, 2026-08-13), on the
+// Visitors list or on the dashboard's drill-down. The card is the record: name,
+// vendor, host, department, purpose, phone, expected time, status, ID proof and
+// card number are all on its face, and the sheet behind that button was a
+// second place to read the same visit. What it uniquely held — the ID document
+// image, the timeline and the pass — is still reachable from /guard/search and
+// /whos-inside, which is where looking a visitor UP is the job; here the job is
+// the person at the gate. The consequence is deliberate: a card with no action
+// now has no buttons at all, so the only thing a guard can press on this
+// surface is the one control that advances the visit.
 export default function VisitorStackCard({
-  visit: v, action, onSelect, showApproval = true,
+  visit: v, action, showApproval = true,
 }: Props): React.ReactElement {
   const style = STATUS_STYLES[v.status];
   // Which desk they came through. Only shown once they are actually inside —
@@ -138,8 +149,8 @@ export default function VisitorStackCard({
           )}
         </div>
 
-        <div className="mt-auto pt-3 flex items-center gap-2">
-          {action && (
+        {action && (
+          <div className="mt-auto pt-3 flex items-center gap-2">
             <button type="button" className="gate-action flex-1" disabled={action.disabled}
               onClick={action.onClick}>
               {action.label}
@@ -147,14 +158,8 @@ export default function VisitorStackCard({
                 <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
               </svg>
             </button>
-          )}
-          {onSelect && (
-            <button type="button" className="gate-action-ghost" onClick={() => onSelect(v)}
-              aria-label={`Details for ${v.visitor?.full_name ?? 'visitor'}`}>
-              Details
-            </button>
-          )}
-        </div>
+          </div>
+        )}
       </div>
     </article>
   );

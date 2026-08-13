@@ -192,11 +192,23 @@ describe('VisitorStackCard', () => {
     expect(screen.getByRole('button', { name: /Check In/i })).toBeDisabled();
   });
 
-  it('opens details through the secondary control', () => {
-    const onSelect = vi.fn();
-    render(<VisitorStackCard visit={visit()} onSelect={onSelect} />);
-    fireEvent.click(screen.getByRole('button', { name: /Details for Rahul Sharma/i }));
-    expect(onSelect).toHaveBeenCalledTimes(1);
+  // The card carries NO Details control (client instruction, 2026-08-13). Every
+  // fact a guard acts on is on the card's face; the detail sheet was a second
+  // place to read the same visit. The only button a card may hold is the one
+  // that advances the visit — Check In or Check Out — so a card with no action
+  // has no buttons at all.
+  it('renders no Details control, and no button at all when there is no action', () => {
+    const { container } = render(<VisitorStackCard visit={visit({ status: 'checked_out' })} />);
+    expect(screen.queryByText(/details/i)).not.toBeInTheDocument();
+    expect(container.querySelectorAll('button')).toHaveLength(0);
+  });
+
+  it('leaves the action button as the only control when there is one', () => {
+    const { container } = render(
+      <VisitorStackCard visit={visit()} action={{ label: 'Check In', onClick: vi.fn() }} />,
+    );
+    expect(screen.queryByText(/details/i)).not.toBeInTheDocument();
+    expect(container.querySelectorAll('button')).toHaveLength(1);
   });
 
   // A guard must never be able to mint an entry pass from a visitor row.

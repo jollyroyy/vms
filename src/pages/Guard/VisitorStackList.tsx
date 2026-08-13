@@ -11,7 +11,6 @@ type Props = {
    *  Visitors" mixes an expected arrival and a departed one on one screen, and
    *  a button the guard cannot honour is worse than no button. */
   actionFor?: (v: Visit) => StackAction | undefined;
-  onSelect?: (v: Visit) => void;
 };
 
 // The stacked list: heading, live count, then one wide card per visitor. Every
@@ -31,7 +30,7 @@ type Props = {
 // a segment, and a control that re-orders that list is one more thing to read
 // before they can act. Do not re-add a toolbar here.
 export default function VisitorStackList({
-  segment, visits, loading, actionFor, onSelect,
+  segment, visits, loading, actionFor,
 }: Props): React.ReactElement {
   const meta = SEGMENT_META[segment];
   const shown = visits;
@@ -61,7 +60,7 @@ export default function VisitorStackList({
         <div className="stack-list">
           {shown.map((v, i) => (
             <div key={v.id} className="animate-slide-up" style={{ animationDelay: `${Math.min(i, 8) * 0.035}s` }}>
-              <VisitorStackCard visit={v} action={actionFor?.(v)} onSelect={onSelect} />
+              <VisitorStackCard visit={v} action={actionFor?.(v)} />
             </div>
           ))}
         </div>
