@@ -8,21 +8,24 @@
 // visit in any state lives in lib/searchVisits.ts.
 import type { Visit } from '../types/index';
 
-export type StackSort = 'recent' | 'name' | 'time';
+// There is no `recent` / "Latest activity" option (removed 2026-08-13, client
+// instruction). It was never a sort — the segment slicer already returns rows
+// newest-activity-first, so picking it did nothing but occupy the control with
+// a restatement of the order the guard was already looking at. That order is
+// still the DEFAULT; it just stopped being something to choose. `null` is how
+// a caller says "leave the segment's own order alone".
+export type StackSort = 'name' | 'time';
 
 export const SORT_LABELS: Record<StackSort, string> = {
-  recent: 'Latest activity',
   name: 'Visitor name (A–Z)',
   time: 'Expected time',
 };
 
-export const SORT_OPTIONS: StackSort[] = ['recent', 'name', 'time'];
+export const SORT_OPTIONS: StackSort[] = ['name', 'time'];
 
-/** Re-sorts an already-segment-ordered list. `recent` is the identity: the
- *  segment slicer has already ordered by latest activity, so re-sorting there
- *  would be a second, divergent definition of the same word. */
-export function sortVisits<T extends Visit>(visits: T[], sort: StackSort): T[] {
-  if (sort === 'recent') return visits;
+/** Re-sorts an already-segment-ordered list. `null` is the identity. */
+export function sortVisits<T extends Visit>(visits: T[], sort: StackSort | null): T[] {
+  if (sort === null) return visits;
   const copy = [...visits];
   if (sort === 'name') {
     return copy.sort((a, b) =>

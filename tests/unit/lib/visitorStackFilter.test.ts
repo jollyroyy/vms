@@ -30,12 +30,12 @@ describe('sortVisits', () => {
   const c = visit({ id: 'c', visitor: visitor({ full_name: 'Meera' }) });
   const input = [a, b, c];
 
-  it('"recent" is the identity — returns the very same array reference', () => {
-    expect(sortVisits(input, 'recent')).toBe(input);
+  it('null is the identity — returns the very same array reference', () => {
+    expect(sortVisits(input, null)).toBe(input);
   });
 
-  it('"recent" does not reorder — the segment slicer already ordered it', () => {
-    expect(sortVisits(input, 'recent').map((v) => v.id)).toEqual(['a', 'b', 'c']);
+  it('null does not reorder — the segment slicer already ordered it', () => {
+    expect(sortVisits(input, null).map((v) => v.id)).toEqual(['a', 'b', 'c']);
   });
 
   it('"name" sorts visitor full_name A-Z', () => {
@@ -90,7 +90,16 @@ describe('SORT_OPTIONS / SORT_LABELS — every sort has a label', () => {
     });
   });
 
-  it('SORT_OPTIONS is exactly recent, name, time', () => {
-    expect(SORT_OPTIONS).toEqual(['recent', 'name', 'time']);
+  it('SORT_OPTIONS is exactly name, time', () => {
+    expect(SORT_OPTIONS).toEqual(['name', 'time']);
+  });
+
+  // Client instruction, 2026-08-13. It was never a sort: the segment slicer
+  // already returns rows newest-activity-first, so the option restated the
+  // order the guard was already looking at. That order is still the default —
+  // it just stopped being one of the choices.
+  it('offers no "Latest activity" option', () => {
+    expect(Object.values(SORT_LABELS)).not.toContain('Latest activity');
+    expect(SORT_OPTIONS).not.toContain('recent' as never);
   });
 });

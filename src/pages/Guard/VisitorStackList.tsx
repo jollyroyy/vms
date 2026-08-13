@@ -24,7 +24,9 @@ export default function VisitorStackList({
   segment, visits, loading, actionFor, onSelect,
 }: Props): React.ReactElement {
   const meta = SEGMENT_META[segment];
-  const [sort, setSort] = useState<StackSort>('recent');
+  // null = the segment's own order, newest activity first. That is where the
+  // list starts and it is no longer one of the choices — see visitorStackFilter.
+  const [sort, setSort] = useState<StackSort | null>(null);
 
   // No search box. The top bar already carries a global search that reaches
   // every visit in any state (lib/searchVisits.ts); a second box here searched

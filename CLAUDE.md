@@ -168,6 +168,14 @@
   in-list box could only narrow the rows the current segment had loaded, so a visitor
   who had checked out was findable in one box and not the other. One search, one
   answer. `visitorStackFilter.ts` now holds `sortVisits` and nothing else.
+  - **And the sort offers only Visitor name and Expected time.** "Latest activity" was
+    removed on 2026-08-13 (client instruction). It was never a sort: `SEGMENT_FILTER`
+    already returns rows newest-activity-first, so `sortVisits` treated it as the
+    identity and picking it restated the order on screen. That order is still the
+    DEFAULT — `StackSort` is now `'name' | 'time'` and the state is `StackSort | null`,
+    where `null` means "the segment's own order". The select's empty first entry reads
+    **"Sort by"**, not the order's name, and must stay selectable or a guard who sorts
+    A–Z can never get back. Do not re-add a `recent` option.
 - **The department appears ONCE per card.** It used to trail the host's name in
   brackets *and* own an attribute row below it — the same value twice on one card,
   which the no-duplicate-renders rule forbids and which made the eye check whether the
