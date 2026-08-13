@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
-  istDayStart, visitMoment, isVisitExpired, isDueToday, isOverdue, isOverstaying,
+  istDayStart, istDayEnd, DAY_END_HOUR_IST, visitMoment, isVisitExpired, isDueToday, isOverdue, isOverstaying,
   OVERSTAY_HOURS, OVERDUE_GRACE_MINUTES,
 } from '../../../src/lib/visitExpiry';
 import type { Visit } from '../../../src/types/index';
@@ -40,6 +40,23 @@ describe('istDayStart', () => {
   });
 });
 
+describe('istDayEnd', () => {
+  it('is 22:00 IST of the day containing now — the day ends at close (migration 075)', () => {
+    // 2026-08-11 09:00 IST == 03:30Z. The day ends 2026-08-11 22:00 IST == 16:30Z.
+    expect(istDayEnd(at('2026-08-11T03:30:00Z')).toISOString()).toBe('2026-08-11T16:30:00.000Z');
+  });
+
+  it('belongs to the next day after midnight IST', () => {
+    // 2026-08-12 01:30 IST == 2026-08-11T20:00Z.
+    expect(istDayEnd(at('2026-08-11T20:00:00Z')).toISOString()).toBe('2026-08-12T16:30:00.000Z');
+  });
+
+  it('is istDayStart plus the single DAY_END_HOUR_IST constant', () => {
+    const now = at('2026-08-11T03:30:00Z');
+    expect(istDayEnd(now).getTime()).toBe(istDayStart(now).getTime() + DAY_END_HOUR_IST * 3_600_000);
+  });
+});
+
 describe('visitMoment', () => {
   it('is the scheduled time when there is one', () => {
     const v = visit({ scheduled_for: '2026-08-11T10:00:00Z' });
@@ -67,10 +84,16 @@ describe('isVisitExpired — end of day, never a grace period', () => {
     expect(isVisitExpired(v, at('2026-08-11T07:00:00Z'))).toBe(false);
   });
 
-  it('does NOT expire a visit late on its own evening', () => {
+  it('does NOT expire a visit an hour before the day ends (21:00 IST)', () => {
     const v = visit({ scheduled_for: '2026-08-11T04:00:00Z' });
-    // 2026-08-11 23:45 IST — same IST day, still valid.
-    expect(isVisitExpired(v, at('2026-08-11T18:15:00Z'))).toBe(false);
+    // 2026-08-11 21:00 IST — the day ends at 22:00 (migration 075).
+    expect(isVisitExpired(v, at('2026-08-11T15:30:00Z'))).toBe(false);
+  });
+
+  it('expires a visit after 22:00 IST even on its own calendar day', () => {
+    const v = visit({ scheduled_for: '2026-08-11T04:00:00Z' });
+    // 2026-08-11 22:15 IST — the day ended at close (075).
+    expect(isVisitExpired(v, at('2026-08-11T16:45:00Z'))).toBe(true);
   });
 
   it('expires it once the IST day has ended', () => {

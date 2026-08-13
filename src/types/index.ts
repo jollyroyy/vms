@@ -162,6 +162,13 @@ export type NotificationType =
   // arrived. A message to the host and NOTHING else — the visit stays valid and
   // checkable-in all day. See migration 070.
   | 'visit_overdue'
+  // The no-show workflow (migration 075): `visit_no_show` is the per-visit
+  // notice fired when the sweep closes an un-arrived approval at 22:00 IST —
+  // "the pass is now void, raise a new request". `visit_no_show_summary` is
+  // the 20:00 IST forecast sent once per department HOD with the day's count;
+  // its related_id is null because it is a summary, not a single visit.
+  | 'visit_no_show'
+  | 'visit_no_show_summary'
   | 'gate_pass_pending'
   | 'gate_pass_approved'
   | 'rgp_due_soon'

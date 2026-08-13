@@ -299,7 +299,10 @@
   migration **072** made the job **hourly** (`sweep-no-shows-hourly`, `40 * * * *`). The
   schedule now decides only how promptly a finished day is swept. The client half is
   `IST_OFFSET_MS` in `lib/visitExpiry.ts` — that pair is what to keep in step; there is no
-  third copy. The function still bears the name `sweep_no_shows_daily()`; renaming a live
+  third copy. **The day END lives in one place too: `vms_day_end_ist()` ↔ `istDayEnd`
+  (22:00 IST, migration 075)** — the start pair above and the end pair must move
+  together, never one side alone. The function still bears the name
+  `sweep_no_shows_daily()`; renaming a live
   function means re-granting and re-pointing the job for no gain.
 - **`visits.expected_departure` is what makes a multi-day visit legible.** Migration
   **073**. 067's overstay sweep shipped unscheduled precisely because nothing could
@@ -369,7 +372,11 @@
 - **Expiry is END OF DAY on the client too.** `CheckInPanel.isExpired` used
   "more than 30 minutes past `scheduled_for`", which turned away a visitor stuck in
   traffic — the pass died mid-morning while they were on their way and the guard could
-  not revive it. It now calls `isVisitExpired`. `CheckInPanel.loadData` also filtered on
+  not revive it. It now calls `isVisitExpired`, which since 075 means "the IST day
+  containing the visit's moment has ENDED (22:00)" — deliberately not "the moment is
+  before today's close", which is true of every moment of today and would expire
+  everything mid-day, unlike the sweep, which only runs after close.
+  `CheckInPanel.loadData` also filtered on
   `created_at` being today, so the *ordinary* case — booked yesterday, arriving today —
   never appeared in the check-in list at all; it now fetches open approvals unbounded and
   filters with `isDueToday`, the same predicate the sweep uses.
@@ -672,6 +679,37 @@ anon-key JWTs (postgres bypasses every guard here, so psql could not prove any o
 including that a fresh user is NOT flagged, a non-admin cannot reset, an admin cannot reset
 an admin, the old password dies, the new one signs in, and the flag clears only with an
 actual password write. Probe user deleted; `profiles` has 0 rows flagged.
+
+### `075` — no-shows close at 10 PM, HODs are warned at 8 PM (2026-08-13)
+
+- **The IST day ends at 22:00, not midnight.** `vms_day_end_ist(ts)` is redefined from
+  "midnight of the next IST day" to "22:00 IST of the day containing `ts`" — the mall's
+  day. Everything that asks "is the day over?" uses it: `close_stale_approvals()`'s
+  boundary, the QR expiry (071/073), and the client's `istDayEnd`. The QR pass's life
+  moving from midnight to 22:00 was the point, not a side effect — the three answers
+  stay in lockstep by construction.
+- **`send_no_show_summary(p_force boolean default false)`** — a 20:00 IST forecast
+  (`30 14 * * *` UTC), one `visit_no_show_summary` notification per department HOD:
+  "N approvals in \<dept\> scheduled for today never arrived. They will be closed as
+  no-shows at 10 PM…". Nothing is marked yet. Dedupe = one per HOD per IST day
+  (`created_at >= vms_day_start_ist()`); `p_force` skips it, for verification only.
+- The first hourly sweep run after 22:00 (~22:40 IST) marks every un-arrived approval
+  whose moment fell before close (`close_stale_approvals` with boundary
+  `vms_day_end_ist(now())` — safe at any hour, idempotent), and the per-visit trigger
+  writes `visit_no_show`: "The pass is now void — if the visitor is still expected,
+  raise a new pre-approval request." No reactivation is surfaced anywhere; the DB-only
+  `no_show -> approved` route stays as a safety net.
+- **`nudge_overdue_visits` stops at the day boundary too** (`now() < vms_day_end_ist()`,
+  body "before 10 PM"), so the overdue notice and the no-show notice can never both
+  fire for the same visit.
+- Two new `notification_type` values (`visit_no_show`, `visit_no_show_summary`), both
+  already in the TS union in `src/types/index.ts`. The summary's `related_id` is
+  **null** on purpose — it is a count, not a visit; never render a "More information"
+  link that resolves to nothing.
+- ACL (the 073 lesson): `send_no_show_summary`, `sweep_no_shows_daily` and
+  `close_stale_approvals` are service-role only; `mark_no_shows()` stays the
+  department-scoped human entry point. Verified by `tests/security/noShowWorkflow.test.ts`
+  (live project; fails until this migration is applied).
 
 ### Migration drift
 - This project has always been migrated by hand, so

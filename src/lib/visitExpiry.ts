@@ -21,6 +21,14 @@ export const OVERSTAY_HOURS = 12;
 export const IST_OFFSET_MS = (5 * 60 + 30) * 60_000;
 
 /**
+ * The IST day ends at mall close, not midnight (migration 075).
+ *
+ * The client mirror of `vms_day_end_ist()`: the sweep's boundary, the QR
+ * expiry and this constant all answer "when does the day end?" with 22:00 IST.
+ */
+export const DAY_END_HOUR_IST = 22;
+
+/**
  * Midnight IST of the day containing `now`, as a UTC instant.
  *
  * The app used `new Date().toISOString().slice(0, 10)` for "today", which is the
@@ -39,6 +47,18 @@ export function istDayStart(now: Date = new Date()): Date {
 export function istDateKey(iso: string | Date): string {
   const d = typeof iso === 'string' ? new Date(iso) : iso;
   return new Date(d.getTime() + IST_OFFSET_MS).toISOString().slice(0, 10);
+}
+
+/**
+ * 22:00 IST of the day containing `now` — the instant the day ends (075).
+ *
+ * NOT midnight: the day is the mall's day, 00:00–22:00 IST. Everything that
+ * asks "is this pass still live?" uses this — the SQL sweep
+ * (`vms_day_end_ist`), the QR expiry and this module, so the three cannot
+ * disagree (the invariant migration 071 established).
+ */
+export function istDayEnd(now: Date = new Date()): Date {
+  return new Date(istDayStart(now).getTime() + DAY_END_HOUR_IST * 3_600_000);
 }
 
 type ExpiryFields = Pick<Visit, 'scheduled_for' | 'created_at' | 'checked_in_at' | 'status'>;
@@ -67,7 +87,11 @@ export function isVisitExpired(v: ExpiryFields, now: Date = new Date()): boolean
   // Attendance beats every expiry rule. Mirrors `checked_in_at is null` in
   // close_stale_approvals: a visit that was attended must never be reachable.
   if (v.checked_in_at) return false;
-  return new Date(visitMoment(v)).getTime() < istDayStart(now).getTime();
+  // The day containing the visit's moment has ended: 22:00 IST of the moment's
+  // own date has passed (075). Deliberately NOT "moment < today's 22:00" —
+  // that is true for every moment of today, and unlike the sweep, which only
+  // ever runs after close, this is evaluated at any hour of the day.
+  return istDayEnd(new Date(visitMoment(v))).getTime() <= now.getTime();
 }
 
 /**
