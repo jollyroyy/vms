@@ -42,7 +42,7 @@ describe('DashboardActivity', () => {
 
   it('shows the empty state when there are no visits', () => {
     renderPanel({ visits: [] });
-    expect(screen.getByText('Nothing has happened at the gate yet today.')).toBeInTheDocument();
+    expect(screen.getByText('Nothing at the gate yet')).toBeInTheDocument();
   });
 
   it('shows skeletons and no rows while loading', () => {

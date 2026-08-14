@@ -81,8 +81,9 @@ export default function DashboardActivity({ visits, loading, onSelect }: Props):
   return (
     <section className="card-premium overflow-hidden">
       <div className="flex items-center justify-between gap-3 px-5 pt-4 pb-3.5 border-b border-surface-100 dark:border-white/[0.06]">
-        <h2 className="font-display text-base font-bold text-navy-950 dark:text-white tracking-tight">
-          Recent Activity
+        <h2 className="revamp-section-head mb-0">
+          <span className="revamp-section-rule" aria-hidden="true" />
+          <span className="revamp-section-title">Recent Activity</span>
         </h2>
         <Link to="/visitors" className="flex items-center gap-1 text-xs font-semibold text-brand-600 hover:text-brand-700">
           View all
@@ -98,8 +99,15 @@ export default function DashboardActivity({ visits, loading, onSelect }: Props):
           {[0, 1].map((i) => <div key={i} className="skeleton h-12 w-full rounded-xl" />)}
         </div>
       ) : events.length === 0 ? (
-        <div className="empty-state !py-12 px-5">
-          <p className="text-sm font-semibold text-navy-500">Nothing has happened at the gate yet today.</p>
+        <div className="revamp-empty px-5">
+          <div className="revamp-empty-medallion">
+            <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7}
+              strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25H12" />
+            </svg>
+          </div>
+          <p className="revamp-empty-title">Nothing at the gate yet</p>
+          <p className="revamp-empty-sub">Entries, exits and declines will appear here as soon as the first visitor arrives.</p>
         </div>
       ) : (
         <div className="flex flex-col divide-y divide-surface-100 dark:divide-white/[0.06]">

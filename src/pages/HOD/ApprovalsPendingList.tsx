@@ -50,12 +50,12 @@ export default function ApprovalsPendingList({ visits, loading, error, acting, r
       )}
 
       {!loading && visits.length === 0 && !error && (
-        <div className="empty-state py-16">
-          <div className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-success-50 mb-3">
-            <svg className="w-7 h-7 text-success-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+        <div className="revamp-empty">
+          <div className="revamp-empty-medallion">
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.7}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
           </div>
-          <p className="text-base font-semibold text-navy-700">All caught up</p>
-          <p className="text-sm text-navy-500 dark:text-navy-400 mt-1">No pending approvals right now</p>
+          <p className="revamp-empty-title">All caught up</p>
+          <p className="revamp-empty-sub">No pending approvals right now. Anything waiting at the gate will appear here first.</p>
         </div>
       )}
 

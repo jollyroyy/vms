@@ -60,11 +60,14 @@ export default function OverviewUpcoming({ loading, upcoming }: Props): React.Re
         />
       )}
       <div className="flex items-center justify-between px-6 pt-5 pb-4 border-b border-surface-100 dark:border-white/[0.05]">
-        <div>
-          <h2 className="font-display text-sm font-bold text-navy-950 dark:text-white">Upcoming visits</h2>
-          <p className="text-xs text-navy-500 dark:text-navy-400 mt-0.5">
-            Pending &amp; pre-approved · up to 30 days ahead, max 15 entries
-          </p>
+        <div className="revamp-section-head mb-0">
+          <span className="revamp-section-rule" aria-hidden="true" />
+          <span className="flex items-baseline gap-2">
+            <h2 className="font-display text-sm font-bold text-navy-950 dark:text-white">Upcoming visits</h2>
+            <span className="text-xs text-navy-500 dark:text-navy-400">
+              Pending &amp; pre-approved · up to 30 days ahead, max 15 entries
+            </span>
+          </span>
         </div>
         {!loading && (
           <span className="text-[11px] font-bold text-navy-500 dark:text-navy-400 bg-surface-100 dark:bg-white/[0.06] px-3 py-1.5 rounded-full">
@@ -78,12 +81,14 @@ export default function OverviewUpcoming({ loading, upcoming }: Props): React.Re
           {[0, 1, 2].map(i => <div key={i} className="skeleton h-[72px] w-full rounded-xl" />)}
         </div>
       ) : upcoming.length === 0 ? (
-        <div className="py-14 px-6 flex flex-col items-center text-center">
-          <svg className="w-10 h-10 text-surface-300 dark:text-navy-600 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.4}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 9v7.5" />
-          </svg>
-          <p className="text-sm font-semibold text-navy-500 dark:text-navy-400">No upcoming visits</p>
-          <p className="text-xs text-navy-500 dark:text-navy-400 mt-1">Scheduled and pre-approved visits will appear here.</p>
+        <div className="revamp-empty px-6">
+          <div className="revamp-empty-medallion">
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.7}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 9v7.5" />
+            </svg>
+          </div>
+          <p className="revamp-empty-title">No upcoming visits</p>
+          <p className="revamp-empty-sub">Scheduled and pre-approved visits will appear here.</p>
         </div>
       ) : (
         <div className="divide-y divide-surface-100 dark:divide-white/[0.04]">

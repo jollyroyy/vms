@@ -58,7 +58,8 @@ export default function VisitorsDashboard(): React.ReactElement {
   return (
     <div className="space-y-6">
       {/* Page heading */}
-      <div>
+      <div className="revamp-greeting">
+        <p className="revamp-greeting-eyebrow">Gate Operations</p>
         <h1 className="text-xl font-bold text-navy-900 dark:text-white">Visitors</h1>
         <p className="text-sm text-navy-500 dark:text-navy-400 mt-0.5">Today's activity overview</p>
       </div>

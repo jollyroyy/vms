@@ -68,23 +68,27 @@ export default function GuardDashboard(): React.ReactElement {
           fact the guard cannot be in doubt about. Everything else on this line
           stays — the date, the Live pill and the clock are all things only the
           page can tell them. */}
-      <header className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <p className="page-subtitle flex flex-wrap items-center gap-2">
-            <span>
-              {clock.toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'short', year: 'numeric' })}
-            </span>
-            <span className="glass-chip !py-0.5 !px-2 !gap-1.5">
+      <header>
+        <div className="revamp-greeting flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <p className="revamp-greeting-eyebrow">Gate Console</p>
+            <p className="revamp-greeting-title">
+              {clock.toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' })}
+            </p>
+            <p className="revamp-greeting-sub">Everything at the entrance, in one glance.</p>
+          </div>
+          <span className="flex items-center gap-3">
+            <span className="glass-chip !py-1 !px-2.5 !gap-1.5">
               <span className="relative flex h-1.5 w-1.5">
                 <span className="absolute inline-flex h-full w-full rounded-full bg-success-500 opacity-75 animate-ping" />
                 <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-success-500" />
               </span>
               <span className="text-[10px] font-bold uppercase tracking-wide text-success-700">Live</span>
             </span>
-            <span className="font-bold text-navy-700 tabular-nums">
+            <span className="font-bold text-navy-700 dark:text-navy-200 text-lg tabular-nums">
               {clock.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
             </span>
-          </p>
+          </span>
         </div>
       </header>
 

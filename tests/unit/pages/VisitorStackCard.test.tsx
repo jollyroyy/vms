@@ -54,16 +54,16 @@ describe('VisitorStackCard', () => {
     expect(screen.queryByText(/\(HR\)/)).not.toBeInTheDocument();
   });
 
-  it('shows the contact number and the vehicle', () => {
+  it('shows the contact number', () => {
     render(<VisitorStackCard visit={visit()} />);
     expect(screen.getByText('9876543210')).toBeInTheDocument();
-    expect(screen.getByText('KA 01 AB 1234')).toBeInTheDocument();
   });
 
-  // "None" rather than a dash: no vehicle is a fact, not missing data.
-  it('says None when the visitor brought no vehicle', () => {
-    render(<VisitorStackCard visit={visit({ visitor: { ...visit().visitor, vehicle_number: null } })} />);
-    expect(screen.getByText('None')).toBeInTheDocument();
+  // Vehicle registration removed per client instruction (no driver/vehicle
+  // management in this mall deployment) — guard against it creeping back in.
+  it('renders no vehicle fact on the card', () => {
+    render(<VisitorStackCard visit={visit()} />);
+    expect(screen.queryByText(/vehicle/i)).not.toBeInTheDocument();
   });
 
   // Which time is shown depends on where the visit is. "Expected Time" beside

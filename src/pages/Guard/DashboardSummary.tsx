@@ -29,7 +29,10 @@ type Props = {
 export default function DashboardSummary({ stats, loading, activeKey, onDrill }: Props): React.ReactElement {
   return (
     <section>
-      <h2 className="section-title mb-3">Today</h2>
+      <h2 className="revamp-section-head">
+        <span className="revamp-section-rule" aria-hidden="true" />
+        <span className="revamp-section-title">Today</span>
+      </h2>
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
         {DRILL_KEYS.map((key, i) => (
           <DashboardTile

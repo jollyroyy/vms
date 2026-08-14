@@ -26,9 +26,12 @@ export default function OverviewNotifications({ loading, notifs, onMarkRead, onD
   return (
     <div className="bg-white dark:bg-white/[0.04] rounded-2xl border border-surface-200/70 dark:border-white/[0.06] overflow-hidden">
       <div className="flex items-center justify-between px-5 pt-5 pb-4 border-b border-surface-100 dark:border-white/[0.05]">
-        <div>
-          <h2 className="font-display text-sm font-bold text-navy-950 dark:text-white">Status &amp; Notifications</h2>
-          <p className="text-xs text-navy-500 dark:text-navy-400 mt-0.5">Real-time visitor arrivals</p>
+        <div className="revamp-section-head mb-0">
+          <span className="revamp-section-rule" aria-hidden="true" />
+          <span className="flex items-baseline gap-2">
+            <h2 className="font-display text-sm font-bold text-navy-950 dark:text-white">Status &amp; Notifications</h2>
+            <span className="text-xs text-navy-500 dark:text-navy-400">Real-time visitor arrivals</span>
+          </span>
         </div>
         <span className="flex items-center gap-1.5 text-[11px] font-bold text-navy-500 dark:text-navy-400 bg-surface-100 dark:bg-white/[0.06] px-3 py-1.5 rounded-full">
           <span className="relative flex h-1.5 w-1.5">
@@ -44,12 +47,14 @@ export default function OverviewNotifications({ loading, notifs, onMarkRead, onD
           {[0, 1, 2].map(i => <div key={i} className="skeleton h-[84px] w-full rounded-xl" />)}
         </div>
       ) : notifs.length === 0 ? (
-        <div className="py-14 px-5 flex flex-col items-center text-center">
-          <svg className="w-10 h-10 text-surface-300 dark:text-navy-600 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.4}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
-          </svg>
-          <p className="text-sm font-semibold text-navy-500 dark:text-navy-400">No notifications</p>
-          <p className="text-xs text-navy-500 dark:text-navy-400 mt-1">Visitor arrivals will appear here in real-time.</p>
+        <div className="revamp-empty px-5">
+          <div className="revamp-empty-medallion">
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.7}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
+            </svg>
+          </div>
+          <p className="revamp-empty-title">No notifications</p>
+          <p className="revamp-empty-sub">Visitor arrivals will appear here in real-time.</p>
         </div>
       ) : (
         <div className="divide-y divide-surface-100 dark:divide-white/[0.04] overflow-y-auto max-h-[520px]">

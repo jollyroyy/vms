@@ -28,7 +28,8 @@ export default function VisitorForm({ onRegistered }: Props): React.ReactElement
   const [hostId,      setHostId]      = useState('');
   const [idType,      setIdType]      = useState('');
   const [idLast4,     setIdLast4]     = useState('');
-  const [vehicle,     setVehicle]     = useState('');
+  // NOTE: vehicle registration intentionally removed per client instruction
+  // (no driver/vehicle management for this mall deployment).
   const [carryingMaterial, setCarryingMaterial] = useState(false);
   const [photoBlob,   setPhotoBlob]   = useState<Blob | null>(null);
   const [scanOpen,    setScanOpen]    = useState(false);
@@ -194,9 +195,6 @@ export default function VisitorForm({ onRegistered }: Props): React.ReactElement
       ).select().single();
       if (visErr) throw visErr;
       if (!vis) throw new Error('Failed to create/find visitor record.');
-      if (vehicle.trim()) {
-        await supabase.from('visitors').update({ vehicle_number: vehicle.trim() || null }).eq('id', vis.id);
-      }
       const { photoPath, photoData } = await uploadPhoto(photoBlob);
       const { error: visitErr } = await supabase.from('visits').insert({
         visitor_id: vis.id, department_id: deptId, host_id: hostId, purpose,
@@ -265,8 +263,6 @@ export default function VisitorForm({ onRegistered }: Props): React.ReactElement
           idLast4={idLast4}
           onIdLast4Change={setIdLast4}
           onScanId={() => setScanOpen(true)}
-          vehicle={vehicle}
-          onVehicleChange={setVehicle}
           carryingMaterial={carryingMaterial}
           onCarryingMaterialChange={setCarryingMaterial}
           photoBlob={photoBlob}

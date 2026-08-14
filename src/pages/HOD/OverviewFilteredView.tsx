@@ -50,9 +50,12 @@ export default function OverviewFilteredView({
 
       {/* Header row */}
       <div className="flex items-center justify-between">
-        <div>
-          <h2 className="font-display text-sm font-bold text-navy-950 dark:text-white">{MODE_META[mode].title}</h2>
-          <p className="text-xs text-navy-500 dark:text-navy-400 mt-0.5">{MODE_META[mode].subtitle}</p>
+        <div className="revamp-section-head mb-0">
+          <span className="revamp-section-rule" aria-hidden="true" />
+          <span className="flex items-baseline gap-2">
+            <h2 className="font-display text-sm font-bold text-navy-950 dark:text-white">{MODE_META[mode].title}</h2>
+            <span className="text-xs text-navy-500 dark:text-navy-400">{MODE_META[mode].subtitle}</span>
+          </span>
         </div>
         <div className="flex items-center gap-2">
           <span className="text-[11px] font-bold text-navy-500 dark:text-navy-400 bg-surface-100 dark:bg-white/[0.06] px-3 py-1.5 rounded-full">
@@ -108,11 +111,13 @@ export default function OverviewFilteredView({
 
       {/* Empty state */}
       {!loading && visits.length === 0 && (
-        <div className="py-16 flex flex-col items-center text-center">
-          <svg className="w-10 h-10 text-surface-300 dark:text-navy-600 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.4}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />
-          </svg>
-          <p className="text-sm font-semibold text-navy-500 dark:text-navy-400">No {mode === 'inside' ? 'visitors inside' : mode === 'approved' ? 'approvals today' : mode === 'pending' ? 'pending requests' : 'rejected entries'}</p>
+        <div className="revamp-empty">
+          <div className="revamp-empty-medallion">
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.7}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />
+            </svg>
+          </div>
+          <p className="revamp-empty-title">No {mode === 'inside' ? 'visitors inside' : mode === 'approved' ? 'approvals today' : mode === 'pending' ? 'pending requests' : 'rejected entries'}</p>
         </div>
       )}
 

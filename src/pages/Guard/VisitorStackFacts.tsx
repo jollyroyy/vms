@@ -19,7 +19,8 @@ export default function VisitorStackFacts({ visit: v }: Props): React.ReactEleme
         <Fact key={f.term} icon={f.icon} term={f.term} value={f.value} />
       ))}
       <Fact icon={ICON_PHONE} term="Contact" value={v.visitor?.phone ?? '—'} tabular />
-      <Fact icon={ICON_CAR} term="Vehicle" value={v.visitor?.vehicle_number || 'None'} tabular />
+      {/* Vehicle fact removed per client instruction — this mall deployment
+          carries no driver/vehicle management. ICON_CAR kept for future use. */}
     </dl>
   );
 }
