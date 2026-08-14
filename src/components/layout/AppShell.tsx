@@ -78,8 +78,15 @@ export default function AppShell({ session, role, children }: Props): React.Reac
       <Sidebar session={session} role={role} collapsed={collapsed} onCollapsedChange={setCollapsed} />
 
       <div className={`app-shell-content relative z-10 flex flex-col min-h-screen transition-[padding] duration-300 ease-in-out ${collapsed ? 'lg:pl-[84px]' : 'lg:pl-[264px]'}`}>
-        {/* Top strip — search, notifications */}
-        <header className="no-print sticky top-0 z-30 card-glass !rounded-none !border-x-0 !border-t-0">
+        {/* Top strip — search, notifications.
+
+            No bottom border and no drop shadow (client instruction,
+            2026-08-14): the strip and the page beneath it are one continuous
+            surface. The glass background is what separates it from content
+            scrolling under it — a hairline plus a shadow on top of that drew a
+            hard seam across every screen at the exact height the eye starts
+            reading. */}
+        <header className="no-print sticky top-0 z-30 card-glass !rounded-none !border-0 !shadow-none">
           <div className="flex items-center gap-3 h-16 px-4 sm:px-6 lg:px-8 pl-16 lg:pl-8">
             {/* Search bar — a contained pill, not a stretched box; sits with the
                 notification bell as a right-hand action cluster. */}
