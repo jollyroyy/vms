@@ -54,7 +54,8 @@ describe('useTodayVisits', () => {
   // Widened window (Part 2 fix): a pre-approval created last week for a visit
   // scheduled today, or a no-show swept overnight, both fall outside a
   // created_at-only window. Must match created_at OR scheduled_for today, so
-  // this list stays in lockstep with useGateStats.ts's count.
+  // this list stays in lockstep with the dashboard tile counts derived from it
+  // (lib/guardTiles.ts).
   it('fetches the whole day: matches created_at OR scheduled_for within midnight-to-midnight UTC', async () => {
     mockRows.current = [];
     const { result } = renderHook(() => useTodayVisits(TODAY));

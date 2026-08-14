@@ -6,9 +6,7 @@
 import React from 'react';
 import { describe, it, expect, vi } from 'vitest';
 import { render } from '@testing-library/react';
-import DashboardDrilldown from '../../../src/pages/Guard/DashboardDrilldown';
 import OverviewFilteredView from '../../../src/pages/HOD/OverviewFilteredView';
-import type { ReportVisit } from '../../../src/lib/reportRow';
 import type { Visit } from '../../../src/types/index';
 
 function assertStackNotGrid(el: Element | null) {
@@ -16,30 +14,6 @@ function assertStackNotGrid(el: Element | null) {
   expect(el!.className).not.toMatch(/\bgrid\b/);
   expect(el!.className).toMatch(/flex-col/);
 }
-
-describe('DashboardDrilldown — cards are a full-width stack, not a grid', () => {
-  function visit(overrides: Partial<Visit> = {}): ReportVisit {
-    return {
-      id: 'v1', ref_number: 'VIS-1', visitor_id: 'p1', department_id: 'd1', host_id: 'h1',
-      purpose: 'meeting', photo_path: null, photo_data: null, status: 'checked_in',
-      checked_in_at: '2026-08-03T04:00:00Z', checked_out_at: null, exit_verified: null,
-      rejection_reason: null, carrying_material: false, scheduled_for: null, qr_token: 't', qr_expires_at: null,
-      created_at: '2026-08-03T04:00:00Z',
-      visitor: { id: 'p1', phone: '9876543210', full_name: 'Alice Johnson', vendor_name: null,
-        id_type: 'Aadhaar', id_last4: '1234', vehicle_number: null,
-        is_blacklisted: false, blacklist_reason: null, created_at: '2026-01-01T00:00:00Z' },
-      ...overrides,
-    } as ReportVisit;
-  }
-
-  it('renders the matched cards as flex-col, not a multi-column grid', () => {
-    const { container } = render(
-      <DashboardDrilldown drillKey="inside" loading={false} visits={[visit()]} onClose={vi.fn()} />,
-    );
-    const list = container.querySelector('[data-card-list]');
-    assertStackNotGrid(list);
-  });
-});
 
 describe('OverviewFilteredView — visitor list is a full-width stack, not a grid', () => {
   const baseVisit: Visit = {

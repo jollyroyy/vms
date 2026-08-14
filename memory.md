@@ -16,8 +16,8 @@
 |-----|---------|
 | `#typescript` | [TS-01](#ts-01), [TS-02](#ts-02), [TS-03](#ts-03), [TS-04](#ts-04), [SB-09](#sb-09) |
 | `#vitest` | [VT-01](#vt-01), [VT-02](#vt-02) |
-| `#supabase` | [SB-01](#sb-01), [SB-02](#sb-02), [SB-03](#sb-03), [SB-04](#sb-04), [SB-05](#sb-05), [SB-06](#sb-06), [SB-07](#sb-07), [SB-08](#sb-08), [SB-09](#sb-09), [SB-10](#sb-10), [SB-11](#sb-11), [SB-12](#sb-12), [SB-13](#sb-13), [SB-14](#sb-14) |
-| `#react` | [RE-01](#re-01), [RE-02](#re-02), [RE-03](#re-03), [SB-08](#sb-08) |
+| `#supabase` | [SB-01](#sb-01), [SB-02](#sb-02), [SB-03](#sb-03), [SB-04](#sb-04), [SB-05](#sb-05), [SB-06](#sb-06), [SB-07](#sb-07), [SB-08](#sb-08), [SB-09](#sb-09), [SB-10](#sb-10), [SB-11](#sb-11), [SB-12](#sb-12), [SB-13](#sb-13), [SB-14](#sb-14), [RE-06](#re-06) |
+| `#react` | [RE-01](#re-01), [RE-02](#re-02), [RE-03](#re-03), [RE-05](#re-05), [RE-06](#re-06), [SB-08](#sb-08) |
 | `#camera` | [CA-01](#ca-01), [CA-02](#ca-02), [SB-10](#sb-10) |
 | `#schema` | [SB-03](#sb-03), [SB-04](#sb-04), [SB-14](#sb-14) |
 | `#rls` | [SB-02](#sb-02), [SB-05](#sb-05), [SB-06](#sb-06), [SB-07](#sb-07) |
@@ -26,7 +26,7 @@
 | `#loop` | [VT-01](#vt-01), [VT-02](#vt-02) |
 | `#security` | [SEC-01](#sec-01), [SEC-02](#sec-02), [SEC-03](#sec-03), [SEC-04](#sec-04), [SEC-05](#sec-05), [SEC-06](#sec-06), [SEC-07](#sec-07), [SEC-08](#sec-08), [SEC-09](#sec-09) |
 | `#migration` | [SB-14](#sb-14), [SB-18](#sb-18) |
-| `#ui` | [RE-03](#re-03), [UI-01](#ui-01) |
+| `#ui` | [RE-03](#re-03), [UI-01](#ui-01), [UI-02](#ui-02), [UI-03](#ui-03) |
 | `#ux` | [RE-03](#re-03) |
 | `#routing` | [SEC-01](#sec-01) |
 | `#postgres` | [SB-06](#sb-06) |
@@ -34,7 +34,7 @@
 | `#privelege-escalation` | [SEC-02](#sec-02) |
 | `#data-isolation` | [SEC-03](#sec-03) |
 | `#concurrency` | [SB-18](#sb-18) |
-| `#dashboard` | [RE-04](#re-04) |
+| `#dashboard` | [RE-04](#re-04), [RE-05](#re-05), [RE-06](#re-06) |
 | `#credentials` | [SEC-04](#sec-04) |
 | `#secrets` | [SEC-04](#sec-04) |
 | `#information-disclosure` | [SEC-05](#sec-05) |
@@ -44,6 +44,7 @@
 | `#pii` | [SEC-08](#sec-08) |
 | `#csp` | [SEC-09](#sec-09) |
 | `#xss-mitigation` | [SEC-09](#sec-09) |
+| `#theming` | [UI-03](#ui-03) |
 
 ---
 
@@ -590,6 +591,50 @@ CREATE POLICY policy_name ON table_name FOR ... USING (...);
 **Prevention:** Any "expand in place" UI driven by realtime-refreshed data must separate "what's open" state from "what data is shown" state. Never let a data reload implicitly close a UI panel.
 **Tags:** `#react` `#supabase` `#dashboard`
 **First seen:** 2026-08-03
+
+---
+
+### RE-05
+
+**Pattern:** A KPI tile's displayed count and the list its drill-down reveals disagree on screen — e.g. a tile reads "1" but expands into 5 cards.
+**Cause:** The tile's count came from one hook/query with its own predicate (`useGateStats`), while the drill-down list was filtered with a separately maintained inline predicate. The two were edited independently over time and drifted apart.
+**Fix:** Define one predicate module (a `Record<TileKey, (v) => boolean>`, e.g. `src/lib/guardTiles.ts`'s `TILE_FILTER` + `tileVisits()`) and derive BOTH the count (`list.length`) and the rendered list from calling the same predicate against the same array.
+**Prevention:** Whenever a UI shows "N" next to a control that reveals N items on click, verify the N and the revealed items come from one `.filter()` over one array — never from two independently maintained queries.
+**Tags:** `#react` `#dashboard`
+**First seen:** 2026-08-14 (guard dashboard KPI tiles)
+
+---
+
+### RE-06
+
+**Pattern:** A record that is still "open" (e.g. a visitor who arrived yesterday and never checked out) is counted in one summary stat but silently absent from the list view answering the same question, because the list query is day-bounded and the open record's day has passed.
+**Cause:** Two hooks/queries answering the same underlying question used different WHERE windows — one ORed in open statuses unbounded by date, the sibling only fetched rows created "today."
+**Fix:** Every hook that lists the rows behind a KPI count must OR in the same open-status condition, unbounded by date, that the count's query uses.
+**Prevention:** When adding or auditing a "today" query, ask "does an open-status row from a previous day need to appear here?" — if a sibling count query answers yes, the list query must match it exactly.
+**Tags:** `#react` `#supabase` `#dashboard`
+**First seen:** 2026-08-14 (`src/lib/useTodayVisits.ts` vs `useGateStats`)
+
+---
+
+### UI-02
+
+**Pattern:** A read-only fact (vendor name, "Host · Department") rendered inside a `readOnly <input>` silently clips long values with no ellipsis and no scrollbar — a truncated value looks identical to a complete one.
+**Cause:** `readOnly <input>` is a single-line form control repurposed to display static text; inputs don't wrap and give no visual cue that content overflowed.
+**Fix:** Render display-only facts as wrapping text (e.g. a `div`/`span` with `break-words`) styled to match the input's border/background/padding/type scale, not as an actual `<input>` element.
+**Prevention:** Never use a form input element to display data the user cannot edit — use a styled text container instead, especially for fields that can hold long values.
+**Tags:** `#ui` `#react`
+**First seen:** 2026-08-14 (Guard Inside Now check-in details)
+
+---
+
+### UI-03
+
+**Pattern:** A component styled with an explicit Tailwind color utility (e.g. `bg-white`) renders in the wrong color anyway — a card meant to preview a printed artifact appears dark-themed.
+**Cause:** A global stylesheet rewrites the utility class under a `.dark` ancestor selector (e.g. `.dark .bg-white { ... }` in `src/styles/base.css`), overriding the component's explicit color choice with app-wide theming.
+**Fix:** For any component previewing something that must render with fixed, real-world colors regardless of app theme (a printed pass, a badge, an exported document preview), use explicit color literals that opt out of the theme rewrite, not shared theme-aware utility classes.
+**Prevention:** Before trusting a Tailwind color utility to render as-written, check whether any global stylesheet rewrites it under a theme selector. Anything simulating a physical/printed object must declare colors that survive both themes.
+**Tags:** `#ui` `#theming`
+**First seen:** 2026-08-14 (visitor pass rendered dark via `.dark .bg-white`)
 
 ---
 

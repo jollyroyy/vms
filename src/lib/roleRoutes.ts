@@ -21,7 +21,7 @@ export const ROLE_ROUTES: Record<UserRole, string[]> = {
   // Live Queue, Pre-Registered, Watchlist — all of which link to each other
   // from the dashboard ("View Full Queue", "Verify ID", the watchlist banner),
   // so all three new paths must be allowed here or the sidebar tabs 404.
-  guard:       ['/guard/dashboard', '/guard/live-queue', '/guard/preregistered', '/guard/watchlist',
+  guard:       ['/guard/dashboard', '/guard/inside-now', '/guard/live-queue', '/guard/preregistered', '/guard/watchlist',
                 '/guard/scan-pass', '/visitors', '/guard', '/guard/pre-approvals',
                 '/guard/search', '/guard/daily-staff', '/kiosk', '/whos-inside', '/profile', '/search'],
   hod:         ['/overview', '/approvals', '/reports', '/analytics', '/profile', '/search'],

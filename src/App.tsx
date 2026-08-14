@@ -252,6 +252,10 @@ export default function App(): React.ReactElement {
             <Route path="/visitors/:segment" element={<ProtectedRoute role={role}>{role === 'guard' ? <GuardConsole /> : <VisitorsDashboard />}</ProtectedRoute>} />
             <Route path="/guard"           element={<ProtectedRoute role={role}><GuardConsole /></ProtectedRoute>} />
             <Route path="/guard/dashboard" element={<ProtectedRoute role={role}><GuardDashboard /></ProtectedRoute>} />
+            <Route path="/guard/inside-now" element={<ProtectedRoute role={role}><GuardLiveQueue /></ProtectedRoute>} />
+            {/* Legacy path, kept routable: /guard/live-queue is in guards'
+                bookmarks and in the ?verify= links the dashboard has been
+                emitting. It renders the same page rather than 404-ing. */}
             <Route path="/guard/live-queue" element={<ProtectedRoute role={role}><GuardLiveQueue /></ProtectedRoute>} />
             <Route path="/guard/preregistered" element={<ProtectedRoute role={role}><GuardPreRegistered /></ProtectedRoute>} />
             <Route path="/guard/watchlist" element={<ProtectedRoute role={role}><GuardWatchlist /></ProtectedRoute>} />

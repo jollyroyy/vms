@@ -36,7 +36,14 @@ export function useTodayVisits(today: string): UseTodayVisits {
       .select(`*, visitor:visitors(*), department:departments(id, name, code, created_at)`)
       .or(
         `and(created_at.gte.${start},created_at.lte.${end}),` +
-        `and(scheduled_for.gte.${start},scheduled_for.lte.${end})`,
+        `and(scheduled_for.gte.${start},scheduled_for.lte.${end}),` +
+        // Open statuses, UNBOUNDED — the third clause useGateStats has always
+        // carried, and the reason the two hooks are now in lockstep. Without it
+        // a visitor who came in at 21:00 yesterday and has not left falls out of
+        // this list at midnight while still being counted as inside, so the
+        // "In Premises" tile and the cards under it disagreed by exactly the
+        // people it is most dangerous to lose track of.
+        `status.in.(pending_approval,walkin_approved,checked_in)`,
       );
     let rows = ((data as unknown as Visit[]) ?? []);
     rows = await attachHostNames(rows);

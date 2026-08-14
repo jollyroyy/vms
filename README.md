@@ -14,10 +14,24 @@ SecureGate VMS handles the full lifecycle of visitor management:
 
 | Role | What they do |
 |------|-------------|
-| **Guard** | Check visitors in/out, monitor daily staff |
+| **Guard** | Check visitors in/out, scan passes, watch the blacklist, monitor daily staff |
 | **HOD** | Pre-approve visitors, approve visitor requests, view department analytics |
 | **Staff** | Request visitor passes |
-| **Admin** | Manage users, departments, system settings, view reports |
+| **Admin** | Manage departments and HODs, view reports and analytics |
+
+### Guard console
+
+The guard's sidebar is Dashboard, Inside Now, Pre-Registered, Watchlist, Scan
+Pass and Visitors:
+- **Dashboard** — four KPI tiles (Expected Today, Checked In, In Premises,
+  Overstaying), each expanding in place to the matching list.
+- **Inside Now** — everyone currently checked in.
+- **Pre-Registered** — today's pre-approved arrivals, fast-tracked at the gate.
+- **Watchlist** — blacklist alerts.
+- **Scan Pass** — a dedicated desk for resolving a visitor's QR pass straight
+  to check-in.
+- **Visitors** — the walk-in lane and the full visitor list, segmented by KPI
+  tiles on the page itself.
 
 ## Application Flow
 
@@ -40,8 +54,9 @@ Guard checks pre-approval status
 src/
   pages/
     Guard/
-      Console.tsx         # Main guard check-in/out interface
-      Dashboard.tsx       # Guard KPI stats at a glance
+      Console.tsx         # Visitors surface shell (walk-in lane + KPI-segmented list)
+      Dashboard.tsx       # Guard dashboard shell -> GuardDashboardMain (4 KPI tiles)
+      GuardLiveQueue.tsx  # "Inside Now" tab (file name predates the 2026-08-14 rename)
       DailyStaff.tsx      # Daily vendors/maids/workers view
     HOD/
       Approvals.tsx       # Approve/reject visitor requests

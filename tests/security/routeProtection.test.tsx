@@ -71,7 +71,7 @@ describe('SEC-7: frontend route protection', () => {
     // through by construction, so the allowlist itself is the pin — if any of
     // these is ever dropped from the array it must also be dropped from
     // App.tsx's <Routes>.
-    for (const route of ['/guard/live-queue', '/guard/preregistered', '/guard/watchlist']) {
+    for (const route of ['/guard/inside-now', '/guard/live-queue', '/guard/preregistered', '/guard/watchlist']) {
       it(`guard allowlist still contains ${route}`, () => {
         expect(ROLE_ROUTES.guard).toContain(route);
         expect(isForbidden(route, role)).toBe(false);
@@ -80,7 +80,7 @@ describe('SEC-7: frontend route protection', () => {
     it('non-guard roles remain FORBIDDEN on the reference-screen routes', () => {
       const nonGuardRoles = ['hod', 'staff', 'admin'] as const;
       for (const role of nonGuardRoles) {
-        for (const route of ['/guard/live-queue', '/guard/preregistered', '/guard/watchlist']) {
+        for (const route of ['/guard/inside-now', '/guard/live-queue', '/guard/preregistered', '/guard/watchlist']) {
           expect(isForbidden(route, role), `${role} must be forbidden on ${route}`).toBe(true);
         }
       }

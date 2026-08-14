@@ -102,6 +102,52 @@ useEffect(() => {
   unique index would generate false collisions — that case has to stay a warning in the
   application layer instead of a hard block.
 
+## A Count and the List It Opens Must Share One Predicate
+
+- The guard dashboard's KPI tiles and their in-place drill-down lists disagreed on
+  screen — a tile could read 1 and expand into 5 cards — because the count came from
+  one query (`useGateStats`) and the drill-down list was filtered with a separately
+  maintained inline predicate. The two drifted apart as each was edited independently.
+- Fix pattern: one predicate module (`src/lib/guardTiles.ts`'s `TILE_FILTER` +
+  `tileVisits()`) that both the count (`list.length`) and the rendered list are
+  derived from. If a tile shows "N" next to a control that reveals N items, that N
+  must literally be `revealedList.length`, not a second, independently computed number.
+
+## Two Hooks Answering the Same Question Need the Same Window
+
+- A "today" query window that only checked `created_at` silently dropped a visitor
+  who arrived at 21:00 the day before and never checked out: the summary count
+  (unbounded for open statuses) still counted them as inside, but the list view
+  (day-bounded) no longer showed them at all — present in the number, absent from
+  the list behind it.
+- Fix pattern: every hook that lists the rows behind a KPI count must OR in the same
+  open-status condition, unbounded by date, that the count's own query uses. When
+  auditing a "today" query, ask whether a sibling count considers an older open row
+  in scope — if it does, the list query must match it exactly.
+
+## Dead Code Plus Stale Docs Is Worse Than Either Alone
+
+- A previous implementation of an entire guard-dashboard screen (five components, a
+  lib file, and their tests) survived a full rebuild while imported by nothing —
+  and the project's own CLAUDE.md kept describing it as the live implementation.
+  Neither problem alone is as costly as the two together: the docs are what the next
+  session reads first, and stale docs pointing at dead code send that session
+  straight into files that no longer do anything.
+- When deleting a superseded implementation, grep for every doc file that names it
+  by path or component name in the same pass — do not treat "delete the code" and
+  "correct the docs" as separable steps.
+
+## Theme-Aware Utilities Can Override an Explicit Color Choice
+
+- A component styled with `bg-white` rendered dark anyway, because a global
+  stylesheet rewrote `.dark .bg-white` into a translucent dark glass for the rest of
+  the app. The component was previewing a printed artifact (a visitor pass) that
+  must never inherit the app's dark/light theme — it simulates a physical object
+  with fixed real-world colors.
+- Fix pattern: anything that previews a printed or physical artifact must opt out of
+  theming with explicit color literals, not shared Tailwind utility classes that a
+  global stylesheet is free to rewrite under a theme selector.
+
 ## Renaming a Live Column or RPC Parameter
 
 - Postgres will not rename a function's input parameter via `CREATE OR REPLACE` — the

@@ -72,7 +72,7 @@ export default function GlanceRail({ filtered, morning, afternoon, vipCount, pil
             return (
               <Link
                 key={v.id}
-                to={`/guard/live-queue?verify=${v.id}`}
+                to={`/guard/inside-now?verify=${v.id}`}
                 className="flex items-center justify-between gap-2 hover:bg-brand-600/5 rounded-lg px-2 py-1 -mx-2 transition-colors">
                 <span>
                   <span className="block text-xs tabular-nums font-semibold text-navy-950 dark:text-white">{slotTime(v)}</span>
@@ -88,7 +88,7 @@ export default function GlanceRail({ filtered, morning, afternoon, vipCount, pil
           {filtered.length === 0 && <p className="text-xs text-navy-400">Nothing scheduled in this view.</p>}
         </div>
         <Link
-          to="/guard/live-queue"
+          to="/guard/inside-now"
           className="mt-3 flex items-center justify-center gap-1 text-sm font-semibold text-brand-500 hover:text-brand-400 transition-colors">
           View full schedule
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">

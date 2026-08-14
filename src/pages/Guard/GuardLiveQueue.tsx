@@ -3,15 +3,22 @@ import { useSearchParams } from 'react-router-dom';
 import { useTodayVisits } from '../../lib/useTodayVisits';
 import { istDateKey } from '../../lib/visitExpiry';
 import type { ReportVisit } from '../../lib/reportRow';
-import { supabase } from '../../supabaseClient';
 import { safeErrorMessage } from '../../lib/errors';
 import QRCode from 'qrcode';
 import { buildQrPayload } from '../../lib/qrToken';
 import SuccessToast from '../../components/SuccessToast';
+import { notifyHostOnCheckIn } from '../../lib/notifyHostCheckIn';
 import CheckInFrame from './CheckInFrame';
 import LiveQueueTable from './LiveQueueTable';
 
-// Live Queue — reference screen 2 (vms.company.com/guard/queue/check-in).
+// Inside Now — the guard's second tab (/guard/inside-now).
+//
+// Renamed from "Live Queue" 2026-08-14 (client instruction). It lists visitors
+// who are already CHECKED IN, and those people are not a queue — they are
+// through the gate. The queue proper, visitors still waiting, is the
+// dashboard's Live Arrival Queue, so the two names were the wrong way round.
+// The FILE keeps its old name: renaming a component half the guard surface
+// imports buys nothing that the route and the label do not already say.
 //
 // SPLIT VIEW, exactly as the approved frame: the queue stays visible on the
 // LEFT while the SELECTED visitor's check-in frame renders on the RIGHT —
@@ -48,7 +55,7 @@ export default function GuardLiveQueue(): React.ReactElement {
   const { visits, loading: visitsLoading } = useTodayVisits(today);
 
   // The visitor whose details render in the right-hand frame. Selecting a
-  // queue row updates it live; arriving at /guard/live-queue?verify=<id>
+  // queue row updates it live; arriving at /guard/inside-now?verify=<id>
   // (from the dashboard's ID Verification card) preselects that visitor.
   const [activeVisit, setActiveVisit] = useState<ReportVisit | null>(null);
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
@@ -81,7 +88,7 @@ export default function GuardLiveQueue(): React.ReactElement {
       .catch(() => setQrDataUrl(null));
   }, [liveActive]);
 
-  // Live Queue = checked-in visitors only (un-checked-in arrivals live on the
+  // Inside Now = checked-in visitors only (un-checked-in arrivals live on the
   // dashboard's Live Arrival Queue).
   const queue = visits
     .filter((v) => v.status === 'checked_in')
@@ -93,25 +100,36 @@ export default function GuardLiveQueue(): React.ReactElement {
   };
 
   const notifyHost = async (v: ReportVisit) => {
-    // Notify = mark the host as pinged for this check-in. Host contact is not
-    // modelled on the visit row, so the "host notified" signal is carried by
-    // the remarks-style `remarks` field the guard lanes already use for
-    // context. It is informational only.
+    // Notify = send the host a real notification, through the `notifications`
+    // table the bell icon already reads.
+    //
+    // This used to APPEND ' - host notified on arrival' to `visits.remarks` and
+    // call that the signal. `remarks` is the walk-in note an HOD reads when
+    // deciding whether to approve someone — free prose, written by a guard, and
+    // surfaced to another role — so guard bookkeeping stuffed into it showed up
+    // inside a colleague's approval card, and Reports printed it. A magic
+    // substring in a prose column is also not a flag: nothing stops a visitor's
+    // genuine note from containing it.
+    //
+    // The toast wording changed with it, and deliberately. "acknowledged
+    // arrival" claimed the HOST had done something; nothing here can know that.
+    // We know only that the notice was delivered.
     setError('');
-    try {
-      const suffix = ' - host notified on arrival';
-      const remarks = (v.remarks ?? '').replace(/ - host notified on arrival$/, '');
-      const { error: err } = await supabase
-        .from('visits')
-        .update({ remarks: (remarks + suffix).slice(0, 1000) })
-        .eq('id', v.id);
-      if (err) throw err;
-      setToast(`Host notified: ${v.host?.full_name ?? 'your host'} acknowledged arrival`);
+    const res = await notifyHostOnCheckIn({
+      id: v.id,
+      host_id: v.host_id ?? null,
+      visitor_name: v.visitor?.full_name ?? null,
+    });
+    if (res.notified) {
+      setToast(`Host notified: ${v.host?.full_name ?? 'the host'} has been sent the arrival notice`);
       setTimeout(() => setToast(null), 5000);
-      setActiveVisit({ ...v, remarks: (remarks + suffix).slice(0, 1000) } as ReportVisit);
-    } catch (err) {
-      setError(safeErrorMessage(err, 'Could not notify the host.'));
+      return;
     }
+    setError(
+      res.error
+        ? safeErrorMessage(res.error, 'Could not notify the host.')
+        : 'No host is recorded on this visit, so there is nobody to notify.',
+    );
   };
 
   const printBadge = () => {
@@ -155,7 +173,7 @@ export default function GuardLiveQueue(): React.ReactElement {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </span>
-            <h2 className="font-display text-h2 text-navy-950 dark:text-white">Checked-In Visitors</h2>
+            <h2 className="font-display text-h2 text-navy-950 dark:text-white">Inside Now</h2>
           </div>
           <span className="text-sm text-navy-500 dark:text-navy-400 tabular-nums">
             {visitsLoading ? '…' : queue.length} visitor{queue.length === 1 ? '' : 's'}

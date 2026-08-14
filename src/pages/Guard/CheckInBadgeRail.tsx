@@ -1,6 +1,7 @@
 import React from 'react';
 
 import type { ReportVisit } from '../../lib/reportRow';
+import { istDayEnd, visitMoment } from '../../lib/visitExpiry';
 
 // Column 3 of the Live Queue check-in frame: the WHITE visitor pass, the blue
 // Print Badge button, and Back to Queue. Nothing else.
@@ -25,6 +26,24 @@ const WHITE = { backgroundColor: '#ffffff' } as const;
 
 const initialsOf = (name: string | null | undefined) =>
   ((name ?? 'U').split(' ').filter(Boolean).slice(0, 2).map((w) => w[0]).join('').toUpperCase() || 'U');
+
+/**
+ * The pass's real expiry, not a fixed "06:00 PM" printed on every pass
+ * regardless of when the visit was for. `qr_expires_at` is the authority —
+ * migrations 071/073 set it to `vms_day_end_ist(scheduled_for)` at approval
+ * time, so it already carries the multi-day-visit exception (073) when one
+ * applies. A row written before that RPC set the column, or a walk-in that
+ * never had a QR expiry written at all, falls back to `expected_departure`
+ * (the approver's own stated end date), and only then to the same
+ * `istDayEnd` rule the sweep and `isVisitExpired` use — the day containing
+ * the visit's moment, ending at mall close (22:00 IST), never midnight.
+ */
+function passValidUntil(v: ReportVisit): string {
+  const iso = v.qr_expires_at ?? v.expected_departure ?? istDayEnd(new Date(visitMoment(v))).toISOString();
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '';
+  return d.toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: 'numeric', minute: '2-digit', hour12: true });
+}
 
 type CheckInBadgeRailProps = {
   activeVisit: ReportVisit;
@@ -99,7 +118,7 @@ export default function CheckInBadgeRail({
           </div>
           <p style={{ color: PASS_INK }} className="mt-3 font-display font-bold text-xl leading-tight text-center">{name}</p>
           <p style={{ color: PASS_BLUE }} className="mt-1.5 text-base font-bold">Day Pass #{activeVisit.ref_number.slice(-4)}</p>
-          <p style={{ color: PASS_MUTED }} className="mt-1 text-sm font-medium">Valid until 06:00 PM</p>
+          <p style={{ color: PASS_MUTED }} className="mt-1 text-sm font-medium">Valid until {passValidUntil(activeVisit)}</p>
           {qrDataUrl ? (
             <img src={qrDataUrl} alt="QR code" className="mt-3 w-[104px] h-[104px]" />
           ) : (

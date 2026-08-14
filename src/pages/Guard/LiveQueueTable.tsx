@@ -72,7 +72,10 @@ export default function LiveQueueTable({
                       <span className="w-8 h-8 rounded-full bg-brand-600 flex items-center justify-center text-white text-xs font-bold">
                         {initialsOf(v.visitor?.full_name)}
                       </span>
-                      <span className="text-navy-950 dark:text-white font-medium truncate">{v.visitor?.full_name ?? 'Unknown'}</span>
+                      {/* No `truncate`: a clipped name on the gate's own list is
+                          the one value that must never be half-shown, and the
+                          cell has no width cap forcing it anyway. */}
+                      <span className="text-navy-950 dark:text-white font-medium">{v.visitor?.full_name ?? 'Unknown'}</span>
                     </span>
                   </td>
                   {/* Company — soft silver, legible but secondary to the name */}

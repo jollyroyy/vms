@@ -21,7 +21,7 @@ export default function OverdueBanner({ count }: OverdueBannerProps): React.Reac
       <span className="font-display font-semibold text-warning-400">
         {count} visitor{count === 1 ? '' : 's'} overdue from expected time
       </span>
-      <Link to="/guard/live-queue" className="ml-auto text-warning-400 hover:text-warning-300 transition-colors" aria-label="Go to live queue">
+      <Link to="/guard/inside-now" className="ml-auto text-warning-400 hover:text-warning-300 transition-colors" aria-label="Go to live queue">
         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
           <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
         </svg>

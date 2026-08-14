@@ -32,7 +32,7 @@ const initialsOf = (name: string | null | undefined) =>
 export default function PreRegisteredCard({ visit, index, pill }: PreRegisteredCardProps): React.ReactElement {
   return (
     <Link
-      to={`/guard/live-queue?verify=${visit.id}`}
+      to={`/guard/inside-now?verify=${visit.id}`}
       className="rounded-2xl border border-surface-200/60 dark:border-white/[0.07] bg-surface-100/60 dark:bg-white/[0.03] p-4 hover:border-brand-500/40 hover:bg-brand-600/5 transition-colors">
       <div className="flex items-center gap-3">
         <div

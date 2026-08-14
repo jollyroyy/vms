@@ -6,24 +6,11 @@ import GuardDashboard from '../../../src/pages/Guard/Dashboard';
 
 // The guard dashboard now renders the reference-exact Guard Console frame
 // (GuardDashboardMain: four KPI tiles, live arrival queue, ID verification,
-// watchlist banner). GateStats is kept local so this file has no dependency on
-// useGateStats's implementation; the stubbed children keep the suite focused
-// on what Dashboard.tsx composes.
+// watchlist banner). Counts are derived from the same visits array the
+// drill-downs use (lib/guardTiles.ts), so seeding mockToday is all a count test
+// needs; the stubbed children keep the suite focused on what Dashboard composes.
 
-const mockStats = vi.hoisted(() => ({
-  current: {
-    stats: {
-      entered: 0, inside: 0, checkedOut: 0, declined: 0,
-      noShow: 0, awaitingApproval: 0, overdue: 0, overstaying: 0,
-    },
-    loading: false,
-  },
-}));
 const mockToday = vi.hoisted(() => ({ current: { visits: [] as any[], loading: false } }));
-
-vi.mock('../../../src/lib/useGateStats', () => ({
-  useGateStats: () => mockStats.current,
-}));
 
 vi.mock('../../../src/lib/useTodayVisits', () => ({
   useTodayVisits: () => mockToday.current,
@@ -73,26 +60,40 @@ function renderDashboard() {
   return render(<MemoryRouter><GuardDashboard /></MemoryRouter>);
 }
 
+// One visit row, shaped like the live schema. Only the fields the dashboard
+// actually reads are meaningful; the rest satisfy the type.
+function visitRow(over: Record<string, any> = {}): any {
+  const { name, ...rest } = over;
+  return {
+    id: 'vx', ref_number: 'REF-X', visitor_id: 'p1', department_id: 'd1', host_id: 'h1',
+    status: 'approved', checked_in_at: null, checked_out_at: null, exit_verified: null,
+    rejection_reason: null, carrying_material: false, qr_token: 'tok', qr_expires_at: null,
+    created_at: '2026-08-14T08:30:00Z', scheduled_for: '2026-08-14T09:30:00Z', purpose: 'Interview',
+    visitor: {
+      full_name: name ?? 'Marcos Fernandez', phone: '', vendor_name: null,
+      is_blacklisted: false, blacklist_reason: null, id_type: null, id_last4: null, created_at: '',
+    },
+    department: { name: 'HR' }, host: { full_name: 'S. Verma' },
+    ...rest,
+  };
+}
+
 describe('GuardDashboard (reference-screen frame)', () => {
   afterEach(() => {
     cleanup();
-    mockStats.current = {
-      stats: {
-        entered: 0, inside: 0, checkedOut: 0, declined: 0,
-        noShow: 0, awaitingApproval: 0, overdue: 0, overstaying: 0,
-      },
-      loading: false,
-    };
     mockToday.current = { visits: [], loading: false };
   });
 
-  it('shows the four reference KPI tiles: Expected Today, Checked In, In Premises, Pending Check-out', () => {
+  it('shows the four reference KPI tiles: Expected Today, Checked In, In Premises, Overstaying', () => {
     renderDashboard();
-    for (const label of ['Expected Today', 'Checked In', 'In Premises', 'Pending Check-out']) {
+    // "Overstaying", not "Pending Check-out": the number has always been
+    // isOverstaying, and everyone inside is pending check-out, so the old label
+    // described the tile next to it.
+    for (const label of ['Expected Today', 'Checked In', 'In Premises', 'Overstaying']) {
       expect(screen.getByText(label)).toBeInTheDocument();
     }
     // The old six-tile board must not silently return.
-    for (const label of ['Entries', 'Exits', 'Currently Inside', 'Overstaying', 'No-shows', 'Declined']) {
+    for (const label of ['Entries', 'Exits', 'Currently Inside', 'No-shows', 'Declined']) {
       expect(screen.queryByText(label)).toBeNull();
     }
   });
@@ -105,11 +106,11 @@ describe('GuardDashboard (reference-screen frame)', () => {
     }
   });
 
-  it('renders the ID Verification card and links to the live queue', () => {
+  it('renders the ID Verification card and links to Inside Now', () => {
     renderDashboard();
     expect(screen.getByText('ID Verification')).toBeInTheDocument();
     expect(screen.getByText('View Full Queue')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /View Full Queue/i })).toHaveAttribute('href', '/guard/live-queue');
+    expect(screen.getByRole('link', { name: /View Full Queue/i })).toHaveAttribute('href', '/guard/inside-now');
   });
 
   it('shows the Empty / no-visitors states when there is no data', () => {
@@ -144,21 +145,49 @@ describe('GuardDashboard (reference-screen frame)', () => {
     // Approved-ahead slots at the gate read PRE-REGISTERED; only unapproved
     // walk-in lanes read WAITING (see statusPill in GuardDashboardMain).
     expect(screen.getByText('PRE-REGISTERED')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /Verify ID/i })).toHaveAttribute('href', '/guard/live-queue?verify=v1');
+    expect(screen.getByRole('link', { name: /Verify ID/i })).toHaveAttribute('href', '/guard/inside-now?verify=v1');
   });
 
-  it('composes Expected Today from awaiting-approval + overdue stats', () => {
-    mockStats.current = {
-      stats: {
-        entered: 0, inside: 0, checkedOut: 0, declined: 0,
-        noShow: 0, awaitingApproval: 40, overdue: 8, overstaying: 0,
-      },
+  // The tile used to be `awaitingApproval + overdue` — unapproved walk-in
+  // requests plus approved visitors already running late — which left out the
+  // ordinary case entirely: booked for 3pm, read at 10am, counted as zero.
+  it('counts Expected Today as approved arrivals who have not come through the gate', () => {
+    mockToday.current = {
+      visits: [
+        visitRow({ id: 'a', status: 'approved', checked_in_at: null }),
+        visitRow({ id: 'b', status: 'walkin_approved', checked_in_at: null }),
+        // Already arrived — no longer expected.
+        visitRow({ id: 'c', status: 'checked_in', checked_in_at: '2026-08-14T09:00:00Z' }),
+        // Never approved: standing at the gate with no decision made.
+        visitRow({ id: 'd', status: 'pending_approval', checked_in_at: null }),
+        visitRow({ id: 'e', status: 'rejected', checked_in_at: null }),
+      ],
       loading: false,
     };
     renderDashboard();
-    // KPI numerals render beside their labels; the whole number is "48".
-    const tile = screen.getByText('Expected Today').closest('div');
-    expect(tile?.textContent).toMatch(/48/);
+    const tile = screen.getByText('Expected Today').closest('button');
+    expect(tile?.textContent).toMatch(/2/);
+  });
+
+  // The regression this whole rewiring exists to kill: the tile's number and
+  // the list it opens came from different rules, so a tile reading 1 could
+  // expand into five cards. They are now the same array.
+  it('opens a drill-down holding exactly as many visitors as the tile counts', () => {
+    mockToday.current = {
+      visits: [
+        visitRow({ id: 'a', name: 'Ada Inside', status: 'checked_in', checked_in_at: '2026-08-14T09:00:00Z' }),
+        visitRow({ id: 'b', name: 'Bo Inside', status: 'checked_in', checked_in_at: '2026-08-14T09:30:00Z' }),
+        visitRow({ id: 'c', name: 'Cy Waiting', status: 'approved', checked_in_at: null }),
+      ],
+      loading: false,
+    };
+    renderDashboard();
+    const tile = screen.getByText('In Premises').closest('button')!;
+    expect(tile.textContent).toMatch(/2/);
+    act(() => { tile.click(); });
+    // Both of the two counted visitors are in the panel the tile opened.
+    expect(screen.getAllByText(/Ada Inside/).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/Bo Inside/).length).toBeGreaterThan(0);
   });
 
   it('shows the watchlist banner when a flagged visitor is among today visits and links to /guard/watchlist', () => {

@@ -45,9 +45,13 @@ const ICON_COG = 'M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11
 export const ALL_LINKS: NavLink[] = [
   // ── Guard: the visitor console ───────────────────────────────────────────
   { to: '/guard/dashboard', label: 'Dashboard', roles: ['guard'], icon: icon(ICON_GRID) },
-  // The reference console puts the arrival queue on Live Queue: same engine as
-  // the old Visitors lane, with the check-in flow reached from the queue row.
-  { to: '/guard/live-queue', label: 'Live Queue', roles: ['guard'], icon: icon(ICON_USERS) },
+  // "Inside Now", not "Live Queue" (renamed 2026-08-14, client instruction).
+  // The tab lists visitors who are already CHECKED IN — people who are not
+  // queuing, because they are through the gate. The actual queue, visitors
+  // still waiting at the gate, is the dashboard's Live Arrival Queue, and
+  // naming this one for waiting put the two the wrong way round: the page's
+  // own heading disagreed with the nav item that opened it.
+  { to: '/guard/inside-now', label: 'Inside Now', roles: ['guard'], icon: icon(ICON_USERS) },
   // Pre-registered arrivals with filter chips and today's schedule rail
   // (reference screen 3). Built on today's pre-approved visits.
   { to: '/guard/preregistered', label: 'Pre-Registered', roles: ['guard'], icon: icon(ICON_CHECK) },

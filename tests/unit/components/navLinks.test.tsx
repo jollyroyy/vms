@@ -10,7 +10,7 @@ describe('navLinks: linksForRole', () => {
     const links = linksForRole('guard');
     expect(links.map((l) => l.label)).toEqual([
       'Dashboard',
-      'Live Queue',
+      'Inside Now',
       'Pre-Registered',
       'Watchlist',
       'Scan Pass',
@@ -23,7 +23,7 @@ describe('navLinks: linksForRole', () => {
   it('guard tab links point at the four reference-screen routes, in reference order', () => {
     const links = linksForRole('guard');
     expect(links[0]?.to).toBe('/guard/dashboard');
-    expect(links[1]?.to).toBe('/guard/live-queue');
+    expect(links[1]?.to).toBe('/guard/inside-now');
     expect(links[2]?.to).toBe('/guard/preregistered');
     expect(links[3]?.to).toBe('/guard/watchlist');
   });

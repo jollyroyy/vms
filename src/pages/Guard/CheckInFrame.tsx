@@ -32,19 +32,29 @@ export default function CheckInFrame({
 }: CheckInFrameProps): React.ReactElement {
   const steps: Step[] = useMemo(() => {
     // Three steps only: Photo → ID Scan → Host Notified. Print Badge was
-    // removed from the timeline (user request) — it stays as the optional
-    // button in the right-hand Steps rail, so it is never framed as mandatory.
-    // Host Notified turns done as soon as the host receives the automatic
-    // check-in notification (the remarks marker or the bell notification row).
-    const hostNotified =
-      (activeVisit.remarks ?? '').includes(' - host notified on arrival') ||
-      activeVisit.status === 'checked_in';
+    // removed from the timeline (user request) — it is the optional button in
+    // the right-hand pass column, so it is never framed as mandatory.
+    //
+    // Host Notified is `status === 'checked_in'`, full stop. It used to ALSO
+    // accept a ' - host notified on arrival' substring inside `visits.remarks`,
+    // written by the Notify Host button. Nothing writes that marker any more —
+    // Notify Host now inserts a real row in `notifications` — and reading a
+    // flag out of a prose column another role writes was never sound. Every
+    // check-in path already notifies the host (lib/checkInFlow.ts), so a
+    // checked-in visit IS a notified host.
+    const hostNotified = activeVisit.status === 'checked_in';
     return [
       { label: 'Photo', done: Boolean(activeVisit.photo_data) },
       { label: 'ID Scan', done: Boolean(activeVisit.visitor?.id_type) },
       { label: 'Host Notified', done: hostNotified },
     ];
   }, [activeVisit]);
+
+  // "Identity verified" used to render unconditionally — the frame claimed a
+  // fact it had no evidence for. It is only true once the two checks that
+  // actually establish identity (the gate photo and the scanned ID) are both
+  // done; reuse the same evidence the step tracker below already computed.
+  const identityVerified = Boolean(activeVisit.photo_data) && Boolean(activeVisit.visitor?.id_type);
 
   const stepCircle = (i: number, done: boolean, pending: boolean) =>
     done
@@ -97,7 +107,10 @@ export default function CheckInFrame({
             ),
           }, {
             label: 'Vehicle',
-            value: activeVisit.visitor?.vehicle_number ? `${activeVisit.visitor.vehicle_number} (parking slot B-12)` : '—',
+            // The vehicle number alone. There is no parking-allocation table
+            // anywhere in the schema, so "(parking slot B-12)" was a made-up
+            // slot printed on a security screen as if it were assigned data.
+            value: activeVisit.visitor?.vehicle_number ?? '—',
             icon: (
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.6} aria-hidden="true">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 18.75a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 01-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h1.125c.621 0 1.129-.504 1.09-1.124a17.902 17.902 0 00-3.213-9.193 2.056 2.056 0 00-1.58-.86H14.25M16.5 18.75h-2.25m0-11.177v-.958c0-.568-.422-1.048-.987-1.106a48.554 48.554 0 00-10.026 0 1.106 1.106 0 00-.987 1.106v7.635m12-6.677v6.677m0 4.5v-4.5m0 0h-12" />
@@ -109,22 +122,22 @@ export default function CheckInFrame({
                 {row.icon}
               </span>
               <label className="w-20 text-sm font-medium text-navy-500 dark:text-navy-300 whitespace-nowrap">{row.label}</label>
-              <input
-                readOnly
-                value={row.value}
-                className="flex-1 min-w-0 rounded-lg border border-surface-200/60 dark:border-white/[0.1] bg-surface-100/50 dark:bg-white/[0.04] px-3 py-2 text-sm font-medium text-white dark:text-white"
-              />
+              {/* A DIV, not a readOnly <input>. An input is a single-line box:
+                  anything wider than it — "Whitfield & Partners", a host with
+                  their department after it — was silently clipped with no
+                  scrollbar and no ellipsis, so the guard could not tell a
+                  truncated value from a complete one. These fields are read-only
+                  facts, never edited here, so the input bought nothing and cost
+                  the one thing this card is for. Same border, background,
+                  padding and type scale, so the card looks unchanged; the value
+                  now wraps onto a second line instead of disappearing. */}
+              <div
+                title={row.value}
+                className="flex-1 min-w-0 rounded-lg border border-surface-200/60 dark:border-white/[0.1] bg-surface-100/50 dark:bg-white/[0.04] px-3 py-2 text-sm font-medium text-white dark:text-white break-words">
+                {row.value}
+              </div>
             </div>
           ))}
-          {/* Tick mark: the automatic reminder to the host has been sent */}
-          {(activeVisit.remarks ?? '').includes(' - host notified on arrival') && (
-            <p className="flex items-center gap-1.5 text-xs font-semibold text-success-500">
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3} aria-hidden="true">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
-              </svg>
-              Host reminded — visitor check-in notified in VMS
-            </p>
-          )}
           <div className="flex items-center gap-3">
             <span className="flex-shrink-0 w-9 h-9 rounded-lg border border-surface-200/60 dark:border-white/[0.1] bg-surface-100/50 dark:bg-white/[0.04] flex items-center justify-center text-brand-500 dark:text-brand-400" aria-hidden="true">
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.6} aria-hidden="true">
@@ -155,7 +168,16 @@ export default function CheckInFrame({
 
       {/* Column 2 — Photo + identity + step tracker */}
       <div className="xl:col-span-5 rounded-2xl bg-surface-100/60 dark:bg-white/[0.03] border border-surface-200/60 dark:border-white/[0.07] p-6 shadow-glow-sm flex flex-col items-center">
-        <div className="relative w-52 h-52 rounded-full p-1.5" style={{ background: 'conic-gradient(from 0deg, #22c55e, #16a34a, #22c55e)' }}>
+        <div
+          // The ring used to be a green conic-gradient unconditionally, whether
+          // or not identity was actually verified. Verified = Photo AND ID Scan
+          // both done, matching the evidence the step tracker below already
+          // has. Anything less is not verified, so the ring must not read
+          // green — falls back to the same neutral token the rest of the guard
+          // surface uses for "not yet" (bg-navy-300 / dark:bg-navy-500).
+          className={`relative w-52 h-52 rounded-full p-1.5 ${identityVerified ? '' : 'bg-navy-300 dark:bg-navy-500'}`}
+          style={identityVerified ? { background: 'conic-gradient(from 0deg, #22c55e, #16a34a, #22c55e)' } : undefined}
+        >
           <div className="w-full h-full rounded-full overflow-hidden bg-surface-100 dark:bg-white/[0.04] flex items-center justify-center">
             {activeVisit.photo_data ? (
               <img src={activeVisit.photo_data} alt={activeVisit.visitor?.full_name ?? 'Visitor'} className="w-full h-full object-cover" />
@@ -164,11 +186,11 @@ export default function CheckInFrame({
             )}
           </div>
         </div>
-        <p className="mt-5 flex items-center gap-2 text-lg font-semibold text-success-500">
+        <p className={`mt-5 flex items-center gap-2 text-lg font-semibold ${identityVerified ? 'text-success-500' : 'text-warning-400'}`}>
           <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
             <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
-          Identity verified
+          {identityVerified ? 'Identity verified' : 'Identity not verified'}
         </p>
 
         {/* Step tracker with connecting line */}

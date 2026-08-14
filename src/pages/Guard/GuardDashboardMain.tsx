@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 
 import { Link } from 'react-router-dom';
-import { useGateStats } from '../../lib/useGateStats';
+import { tileVisits, type GuardTileKey } from '../../lib/guardTiles';
 import { useTodayVisits } from '../../lib/useTodayVisits';
 import { istDateKey } from '../../lib/visitExpiry';
 import type { ReportVisit } from '../../lib/reportRow';
@@ -15,13 +15,16 @@ import VisitorDetails from '../../components/VisitorDetails';
 //
 // Exact framing per the approved attachment:
 //   row 1  — four KPI tiles: Expected Today / Checked In / In Premises /
-//            Pending Check-out, each with an icon in a ring + label + numeral
+//            Overstaying, each with an icon in a ring + label + numeral
 //   row 2  — left: "Live Arrival Queue" card (see ArrivalQueueTable);
 //            right: "ID Verification" card (see IdVerificationCard)
 //   row 3  — red WATCHLIST ALERT banner (see WatchlistAlertBanner)
 //
-// All counts come from useGateStats / useTodayVisits (single subscription),
-// so the tiles and the table can never disagree. KPI tiles are drillable:
+// Every count on this page is the LENGTH OF THE LIST THAT TILE OPENS —
+// lib/guardTiles.ts holds one predicate per tile and both the number and the
+// drill-down panel are derived from it, over the single useTodayVisits
+// subscription. They cannot disagree, because there is only one of them. KPI
+// tiles are drillable:
 // clicking a tile opens the stacked visitor sheet (KpiDrilldownSheet) right
 // below the tiles; tap a card to open its full visitor details popup.
 
@@ -50,8 +53,13 @@ export default function GuardDashboardMain(): React.ReactElement {
   // ID Verification panel renders this exact visitor.
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const today = istDateKey(clock);
-  const { stats, loading } = useGateStats(today);
   const { visits, loading: visitsLoading } = useTodayVisits(today);
+
+  // ONE source for every tile: the count IS the length of the list the tile
+  // opens. These used to come from two different queries under two different
+  // rules (useGateStats for the number, an inline filter for the cards), which
+  // is why a tile reading 1 could expand into five cards. See lib/guardTiles.ts.
+  const drill = tileVisits(visits, clock);
 
   useEffect(() => {
     const t = setInterval(() => setClock(new Date()), 1000);
@@ -83,28 +91,32 @@ export default function GuardDashboardMain(): React.ReactElement {
     {
       key: 'expected',
       label: 'Expected Today',
-      count: stats.awaitingApproval + stats.overdue,
+      count: drill.expected.length,
       ring: 'border-brand-500/30 text-brand-500',
       icon: TILE_ICONS.expected,
     },
     {
       key: 'checked',
       label: 'Checked In',
-      count: stats.entered,
+      count: drill.checked.length,
       ring: 'border-success-500/40 text-success-500',
       icon: TILE_ICONS.checked,
     },
     {
       key: 'inside',
       label: 'In Premises',
-      count: stats.inside,
+      count: drill.inside.length,
       ring: 'border-brand-400/30 text-brand-400',
       icon: TILE_ICONS.inside,
     },
     {
-      key: 'pending',
-      label: 'Pending Check-out',
-      count: stats.overstaying,
+      // "Overstaying", not "Pending Check-out". The number here has always been
+      // `isOverstaying` — everyone inside is pending check-out, so the old label
+      // described the In Premises tile beside it and left this one's real
+      // meaning, a check-out the gate probably forgot, unsaid.
+      key: 'overstaying',
+      label: 'Overstaying',
+      count: drill.overstaying.length,
       ring: 'border-warning-400/40 text-warning-400',
       icon: TILE_ICONS.pending,
     },
@@ -141,17 +153,6 @@ export default function GuardDashboardMain(): React.ReactElement {
 
   const watchlistCount = visits.filter((v) => v.visitor?.is_blacklisted === true).length;
 
-  // Each tile drills into the visits that make up its number. The mapping
-  // mirrors useGateStats: `expected` = approved/walk-in slots, `checked` =
-  // anyone through the gate today, `inside` = still on premises, `pending` =
-  // still inside with a departure window.
-  const tileVisits: Record<string, ReportVisit[]> = {
-    expected: visits.filter((v) => v.status === 'pending_approval' || v.status === 'approved' || v.status === 'walkin_approved'),
-    checked: visits.filter((v) => v.status === 'checked_in' || v.status === 'checked_out' || !!v.checked_in_at),
-    inside: visits.filter((v) => v.status === 'checked_in' && !v.checked_out_at),
-    pending: visits.filter((v) => v.status === 'checked_in' && !v.checked_out_at && v.expected_departure),
-  };
-
   return (
     <div className="space-y-6 animate-fade-in pb-4">
       {/* Row 1 — KPI tiles. Every tile drills into the visitors behind its
@@ -161,7 +162,7 @@ export default function GuardDashboardMain(): React.ReactElement {
       <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
         {tiles.map((t) => {
           const active = drillTile === t.key;
-          const rows = tileVisits[t.key] ?? [];
+          const rows = drill[t.key as GuardTileKey] ?? [];
           return (
             <button
               key={t.key}
@@ -180,7 +181,7 @@ export default function GuardDashboardMain(): React.ReactElement {
               </span>
               <span className="min-w-0">
                 <span className="block text-[13px] font-medium text-navy-500 dark:text-navy-600">{t.label}</span>
-                <span className="block font-display text-[2rem] leading-tight font-medium tracking-tight tabular-nums text-navy-950 dark:text-white">{loading ? '—' : t.count}</span>
+                <span className="block font-display text-[2rem] leading-tight font-medium tracking-tight tabular-nums text-navy-950 dark:text-white">{visitsLoading ? '—' : t.count}</span>
                 <span className="block text-[11px] font-medium text-brand-500 dark:text-brand-400 mt-0.5 opacity-80">
                   {active ? '\u25b2 Click to close' : rows.length > 0 ? '\u25bc Click to view' : ''}
                 </span>
@@ -194,7 +195,7 @@ export default function GuardDashboardMain(): React.ReactElement {
       {drillTile && (
         <KpiDrilldownSheet
           tile={tiles.find((t) => t.key === drillTile)!}
-          visits={tileVisits[drillTile] ?? []}
+          visits={drill[drillTile as GuardTileKey] ?? []}
           loading={visitsLoading}
           initialsOf={initialsOf}
           statusPill={statusPill}
@@ -236,7 +237,7 @@ export default function GuardDashboardMain(): React.ReactElement {
 
           <div className="mt-4 flex justify-center">
             <Link
-              to="/guard/live-queue"
+              to="/guard/inside-now"
               className="text-sm font-semibold text-brand-500 hover:text-brand-400 flex items-center gap-1 transition-colors">
               View Full Queue
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">

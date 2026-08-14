@@ -136,22 +136,18 @@
     and `/whos-inside`, where looking a visitor *up* is the job; at the gate the job
     is the person standing there. The `onSelect` prop is **gone from
     `VisitorStackCard`, `VisitorStackList`, `VisitorSegmentContent` and
-    `DashboardDrilldown`**, and `Console.tsx` no longer imports `VisitorDetails` at
+    the deleted `DashboardDrilldown`**, and `Console.tsx` no longer imports `VisitorDetails` at
     all — do not thread it back through. Consequence, and it is the point: a card
     with no action now renders **no buttons at all**, so the only pressable thing on
     the Visitors surface is the control that advances the visit, and a drill-down
     card is completely inert. `VisitorStackCard.test.tsx` and
-    `DashboardDrilldown.test.tsx` both count the buttons.
-    - **The dashboard's Recent Activity rows still open `VisitorDetails`**, and that
-      is not an inconsistency. A feed entry is one line — a name, a time and a kind —
-      with nothing else on it, so a row that opened nothing would say too little and
-      do nothing. `Dashboard.tsx` keeps `detailVisit` for that panel only.
-  - **The dashboard drill-down uses this same card.** `DashboardDrilldown.tsx`
-    rendered `WhosInsideVisitorCard` until 2026-08-13; the two surfaces now look
-    identical, which is what the client asked for. It passes **`onSelect` only and
-    never an `action`** — "Dashboard reads, Console acts", so a Check In / Check Out
-    button there would let a situational-awareness panel change a visit's state.
-    Tested. `WhosInsideVisitorCard` is untouched and still serves `/whos-inside`.
+    counts the buttons (`DashboardDrilldown.test.tsx` went with that component).
+  - **The dashboard drill-down uses this same card**, via `KpiDrilldownSheet.tsx`
+    (which superseded the deleted `DashboardDrilldown.tsx` in the 2026-08-14 rebuild).
+    It passes **`onSelect` only and never an `action`** — "Dashboard reads, Console
+    acts", so a Check In / Check Out button there would let a situational-awareness
+    panel change a visit's state. `WhosInsideVisitorCard` is untouched and still serves
+    `/whos-inside`.
   - **The visitor TYPE appears only once the visitor is inside.** Third column,
     directly above the ID-proof line, because together they are "who this person is
     on paper" and a guard checks the two as one glance. Before check-in it would be
@@ -196,7 +192,7 @@
   act, so it is a flow, not a row with a button.
 - **The Visitors KPI board sits ON TOP of the list, full width, at the dashboard's
   size** (`VisitorKpiRail.tsx`, client instruction 2026-08-13). Same
-  `grid-cols-1 sm:grid-cols-2 xl:grid-cols-3` as `DashboardSummary`, same full-size
+  `grid-cols-1 sm:grid-cols-2 xl:grid-cols-3` as the dashboard board, same full-size
   `KpiTile`. It used to be a 300px right-hand column of square `compact` tiles — the
   same card in two sizes on two screens, which made a guard re-learn it on each. The
   rule that survives from the old layout: a filter must never render BELOW the content
@@ -470,14 +466,14 @@
   the UTC date, so between 00:00 and 05:30 IST the app thought today was yesterday: a
   visit booked for 01:00 IST was filed under the previous day and was invisible on the
   morning it was due. Use `istDateKey` / `istDayStart` from `lib/visitExpiry.ts`.
-- **Open visits are never date-bounded.** `Console.loadVisits`, `useGateStats` and
+- **Open visits are never date-bounded.** `Console.loadVisits`, `useTodayVisits` and
   `useTodayVisits` all used a bare `created_at >= today` window, which silently dropped
   unfinished work at midnight: a walk-in registered at 23:50 and approved at 00:05 was
   approved into an empty list, a visitor still inside from the previous evening could
   not be checked out, and a pre-approval booked last week for today never appeared.
   The console now ORs in `status.in.(pending_approval,walkin_approved,checked_in)`, and
   the two dashboard hooks OR in `scheduled_for` within today. Keep the hooks in step —
-  the count and the drill-down list must come from the same window. `useGateStats` also
+  the count and the drill-down list must come from the same window. `useTodayVisits` also
   ORs in the open statuses unbounded, so a visitor still inside from last night is
   counted in "Inside Now"; the invariant survives, because every row with
   `checked_in_at` is either `checked_in` or `checked_out`.
@@ -486,25 +482,16 @@
   disables Confirm without one, and `VisitorForm.checkInPreApproved` — which used to
   flip status to `checked_in` with no photo at all — now refuses and uploads one. The
   photo is the record of who actually walked in; an approval only says who was expected.
-- **The Recent Activity feed is back, and it is DERIVED, not fetched.** It was
-  deleted once (`DashboardActivity.tsx` + `lib/useRecentActivity.ts`) because it ran
-  its own query and its own subscription alongside the KPI tiles: two answers to
-  "what happened today" on one screen, with nothing forcing them to agree. It
-  returned on 2026-08-13 with that failure mode designed out — `lib/recentActivity.ts`
-  is a **pure function** over the `todayVisits` array the tiles already count, so the
-  feed cannot tell a different story from the numbers above it. There is no
-  `useRecentActivity` hook and there must not be one again; if the feed ever needs a
-  row the tiles do not have, widen `useTodayVisits`, do not add a second query.
-  - **One visit yields SEVERAL events.** A visitor who arrived at 09:00 and left at
-    11:00 is one row with `status = 'checked_out'`, but two things happened. Keying
-    the feed by visit id would drop every arrival the moment the visitor left — the
-    exact half of the day a guard scrolls back to check. Events are keyed
-    `${visit.id}:${kind}`.
-  - Three kinds only: `entry` (`checked_in_at`), `exit` (`checked_out_at`),
-    `declined` (`actorAt`, falling back to `created_at` — a rejection has no
-    timestamp column of its own, it lives in `audit_logs`). An `approved` or
-    `pending_approval` visit contributes nothing: nothing has happened yet, and a log
-    of what occurred must not contain things that have not.
+- **There is no Recent Activity feed on the guard dashboard (deleted 2026-08-14).**
+  It had two lives — once fetched with its own query and subscription beside the KPI
+  tiles, then rebuilt as a pure function over the day the tiles already counted — and
+  went with the rest of the old dashboard implementation when that turned out to be
+  imported by nothing. `lib/recentActivity.ts` and `DashboardActivity.tsx` are gone. The
+  rule that outlived it is the one worth keeping: **if a panel needs a row the tiles do
+  not have, widen `useTodayVisits`; never add a second query.** Two answers to "what
+  happened today" on one screen, with nothing forcing them to agree, is the same defect
+  the tile-vs-drilldown mismatch was.
+
 - **Global search lives at `/search`**, allowed for all four roles (last in each
   `ROLE_ROUTES` list). The top bar navigates there with **`?q=`** — it used to send
   `/visitors?search=`, a route that is not a search surface and a param nothing read,
@@ -528,49 +515,105 @@
   purpose — the kiosk runs on its own device. They left the sidebar because neither is
   visitor check-in (Search duplicated lookups the Visitors tabs already cover), not
   because access was revoked. Do not "tidy up" `ROLE_ROUTES` by deleting them.
+- **The guard's second tab is "Inside Now" (`/guard/inside-now`), not "Live Queue".**
+  Renamed 2026-08-14 (client instruction). The tab lists visitors who are already CHECKED
+  IN — people who are not queuing, because they are through the gate — while the actual
+  queue, visitors still waiting, is the dashboard's **Live Arrival Queue**. The two names
+  were the wrong way round, and the page's own `<h2>` disagreed with the nav item that
+  opened it. `/guard/live-queue` stays routable to the same page: it is in guards' bookmarks
+  and in every `?verify=` link the dashboard has emitted. The FILE is still
+  `GuardLiveQueue.tsx` — renaming a component half the guard surface imports buys nothing
+  the route and the label do not already say.
+  - **This page starts no check-in.** The "N arrivals still at the gate" banner and the
+    photo + OCR overlay it was the only caller of were removed 2026-08-14. Check-in starts
+    on the dashboard's Live Arrival Queue — one route in, not two that can disagree.
+  - **Notify Host writes a NOTIFICATION, never `visits.remarks`.** It used to append
+    `' - host notified on arrival'` to that column and treat the substring as a flag.
+    `remarks` is the walk-in note an **HOD** reads when deciding an approval (migration 068)
+    and Reports prints it, so guard bookkeeping landed inside a colleague's approval card;
+    and a magic substring in free prose is not a flag, since a genuine note can contain it.
+    `lib/notifyHostCheckIn.ts` inserts one `visitor_checked_in` row, idempotently.
+    CheckInFrame's "Host Notified" step is now `status === 'checked_in'` alone — every
+    check-in path already notifies the host (`lib/checkInFlow.ts`), so a checked-in visit IS
+    a notified host.
+  - **The Check-In Details values are TEXT, not `readOnly` inputs.** An input is a
+    single-line box: a long vendor name, or a host with their department after it, was
+    clipped with no ellipsis and no scrollbar, so a guard could not tell a truncated value
+    from a complete one — on the one card whose entire job is identifying the person at the
+    gate. Same border/background/padding, plus `break-words`. Guarded by
+    `CheckInFrameLegibility.test.tsx`, which fails on any `<input>` in the frame.
+  - **"Identity verified" renders only when it is TRUE** — photo captured AND an ID type on
+    the visitor. It used to render unconditionally, in green, with a green ring, for
+    everyone. A claim about a person, on a screen someone may later be asked to account for,
+    is the last place to hardcode a reassuring string: the same class of error as the "Gate
+    Status: Operational" chip this file already rejects.
+  - **The pass's validity is computed, never printed from a constant.** `qr_expires_at` then
+    `expected_departure` then `istDayEnd(visitMoment(v))`. It read a hardcoded "Valid until
+    06:00 PM", wrong in two ways at once: it ignored the row, and the IST day has ended at
+    **22:00** since migration 075.
+  - **No fabricated facts on the frame.** The Vehicle row printed `"(parking slot B-12)"`
+    after every vehicle number; there is no parking allocation anywhere in the schema.
+    Removed.
 - **Dashboard reads, Console acts.** `/guard/dashboard` is situational awareness only;
   everything that changes a visit's state lives in `/visitors`. These two used to
   duplicate each other (both rendered an inside-list, both held their own realtime
   subscription) and a guard could not tell which was authoritative. Keep the split.
-- **Every dashboard KPI tile drills down IN PLACE.** Clicking a count expands the
-  matching cards directly below the summary; clicking it again collapses it; clicking a
-  different tile swaps the panel. **No tile is a `<Link>`** — they used to navigate to
-  `/visitors?tab=…` (including at audit tabs the console no longer has), which cost the
-  guard the board they were reading. The pieces: `lib/dashboardDrill.ts` (the `DrillKey`
-  union, `DRILL_FILTER` predicates and `DRILL_COPY`), `lib/useTodayVisits.ts` (fetches
-  the whole day once, so five tiles share one subscription and the count can never
-  disagree with the list) and `pages/Guard/DashboardDrilldown.tsx`. `DRILL_FILTER` keys
-  must stay in lockstep with `GateStats` fields — the tile shows `stats[key]`, the panel
-  shows `visits.filter(DRILL_FILTER[key])`. This superseded `lib/useInsideNow.ts` and
-  `pages/Guard/GuardInsideNow.tsx`, both deleted.
+- **The guard dashboard is `GuardDashboardMain.tsx`, and it is the ONLY one.** A
+  previous implementation (`DashboardSummary`, `DashboardActivity`,
+  `DashboardQuickActions`, `DashboardDrilldown`, `DashboardTile`, `lib/recentActivity.ts`)
+  survived the 2026-08-14 rebuild imported by nothing, while this file went on describing
+  it as live — several hundred lines of dead code and a spec for a screen that did not
+  exist. All of it is deleted. `pages/Guard/Dashboard.tsx` is a 17-line shell rendering
+  `GuardDashboardMain`; the drill-down sheet is `KpiDrilldownSheet.tsx`. If you find a rule
+  below about six tiles, a Recent Activity feed or Quick Actions, it is history.
+- **`lib/useGateStats.ts` is DELETED (2026-08-14).** Moving the tiles onto
+  `guardTiles.ts` took away its last importer, and a well-tested hook nothing calls is
+  still dead code — the same thing that had just been cleared out of this dashboard. Its
+  two load-bearing ideas were carried over rather than lost: the widened query window now
+  lives in `useTodayVisits` (see below), and the `entered` vs `inside` invariant is
+  asserted in `tests/unit/lib/guardTiles.test.ts`. Do not resurrect it to add a count —
+  add a predicate to `guardTiles.ts`.
+- **Every dashboard KPI tile drills down IN PLACE.** Clicking a count expands the matching
+  cards directly below the tiles; clicking it again collapses it; clicking a different tile
+  swaps the panel. **No tile is a `<Link>`** — reading the board must never cost you the
+  board.
+- **A TILE'S COUNT IS THE LENGTH OF THE LIST IT OPENS. There is no second rule.**
+  `src/lib/guardTiles.ts` holds one predicate per tile (`TILE_FILTER`) and one slicer
+  (`tileVisits`); `GuardDashboardMain` renders `drill[key].length` as the number and
+  `drill[key]` as the panel. Before 2026-08-14 the number came from `useGateStats` and the
+  list from a separately written inline `visits.filter(...)`, with nothing forcing them to
+  agree — and they did not: "Pending Check-out" counted overstayers while its panel listed
+  everyone inside who had a departure time set, so a tile reading 1 opened onto five cards.
+  Never reintroduce a second source for a count. A new rule is one edit in `guardTiles.ts`
+  and both halves follow.
+- **The four tiles are Expected Today · Checked In · In Premises · Overstaying.**
+  - `expected` is **approved and not yet through the gate** (`approved` /
+    `walkin_approved` with `checked_in_at IS NULL`). It used to be
+    `awaitingApproval + overdue` — unapproved walk-in requests plus approved visitors
+    already running late — which omitted the ordinary case completely: a visitor booked for
+    3pm, read at 10am, was in neither term, so the tile showed **0 on a fully booked
+    morning**. `pending_approval` is deliberately excluded: nobody has cleared that person,
+    and counting them as expected claims somebody did.
+  - `checked` is `checked_in_at IS NOT NULL` (cumulative); `inside` is
+    `status = 'checked_in'` (live). Same rule as the `entered` vs `inside` note below, and
+    just as load-bearing.
+  - `overstaying` was labelled **"Pending Check-out"** until 2026-08-14. The number was
+    always `isOverstaying`; everyone inside is pending check-out, so the old label described
+    the In Premises tile beside it and left this one's real meaning — a check-out the gate
+    probably forgot — unsaid.
+- **`useTodayVisits` carries the open-status clause too.** It fetches created-today OR
+  scheduled-today **OR `status in (pending_approval, walkin_approved, checked_in)`
+  unbounded**. Without that third clause a visitor who came in
+  at 21:00 yesterday and has not left drops out of the list at midnight while still being
+  counted inside — the two hooks disagreed by exactly the people it is most dangerous to
+  lose track of. Keep them in lockstep.
 - **The dashboard follows a reference design, but only where the design was right.**
-  Restyled 2026-08-13 to the client's mockup: icon-plate KPI cards on a 4-wide grid, a
-  Recent Activity panel, Quick Actions, a live clock. `pages/Guard/dashboardTiles.tsx`
-  owns the per-tile label/hint/tone/tint/glyph, `DashboardTile.tsx` the card,
-  `styles/components-dashboard.css` the plate and chevron (split out of
-  `components-guard.css`, which was at 248 of its 300 lines). Four things in the mockup
-  were deliberately **not** built, and each is guarded by a test:
-  - **The palette is ours, not the mockup's.** The reference is blue/green/purple; this
-    app is Quest Mall gold and bronze. Every tone is the one that tile already carried,
-    because a hue is only information if it means the same thing on every screen.
-  - **Six tiles: Entries, Exits, Currently Inside, Overstaying, No-shows, Declined**
-    (3-wide grid). Overstaying is not optional — migration 067's sweep is installed but
-    deliberately unscheduled, so that tile is the *only* live mechanism for catching a
-    check-out the gate forgot.
-  - **Pre-approved and Walk-ins Approved were REMOVED from the dashboard (2026-08-13,
-    client instruction).** Both populations are already first-class segments of the
-    Visitors surface — `/visitors/expected` and `/visitors/approved`, each with its own
-    KPI tile on that page's rail and its own list underneath. Carrying them here too put
-    the same two counts on two screens behind two *independent* queries
-    (`useGateStats` and `Console.loadVisits`), with nothing forcing them to agree: the
-    duplicate-render rule, and the exact failure mode the derived Recent Activity feed
-    was rebuilt to avoid. The keys are gone from `DrillKey`, `DRILL_KEYS`,
-    `DRILL_FILTER`, `DRILL_COPY`, `TILES` **and `GateStats`** — do not re-add them to
-    any of those. `overdue` in `useGateStats` still spans BOTH approval statuses
-    (`IS_EXPECTED`); a visitor is overdue whichever route approved them, and narrowing
-    it to one status is the mistake this removal could invite. One consequence worth
-    knowing: no dashboard drill-down can list a not-yet-arrived visitor any more, so
-    the "never offers Check In" regression test runs against `entered` instead.
+  Icon-plate KPI cards on a 4-wide grid. The palette is ours, not the mockup's: the
+  reference is blue/green/purple, this app is Quest Mall gold and bronze, and a hue is only
+  information if it means the same thing on every screen. Known divergence: these tiles are
+  bespoke markup, **not** `components/KpiTile.tsx`, which the rule below calls the one KPI
+  card. Consolidating them is a visual change and the client froze the visuals on
+  2026-08-14 — do it when that freeze lifts, not before.
   - **No "Entry Denied" tile and no "Issue Pass" action.** See the `Declined` note
     below, and the no-badge-minting rule above.
   - **No gate name and no "Gate Status: Operational" chip.** There is no gates table,
@@ -616,9 +659,9 @@
     everywhere. The qualifier is printed on the tile face again, not `sr-only`.
 - **`entered` is NOT `inside`.** `visits.status` holds one value, so a visitor who came
   and left is `checked_out`, not `checked_in`. Counting `status === 'checked_in'` answers
-  "who is still here", never "how many came through today". `useGateStats` derives
+  "who is still here", never "how many came through today". `guardTiles.ts` derives
   `entered` from `checked_in_at IS NOT NULL` and holds the invariant
-  `entered === inside + checkedOut`. `tests/unit/lib/useGateStats.test.ts` guards this —
+  `checked === inside + departed`. `tests/unit/lib/guardTiles.test.ts` guards this —
   it is the bug the dashboard rebuild fixed and it must not silently return.
 - The `Declined` tile is `status === 'rejected'`, which means **an HOD declined the
   request**, usually before the visitor ever reached the gate. It is not the guard turning
@@ -922,11 +965,13 @@ src/
                      # GuardWalkIns;
                      # VisitorCard (the ONE shared visitor row — superseded the
                      #   deleted GuardConsoleVisitorRow / GuardConsoleInsideCard);
-                     # Dashboard (composition) + DashboardSummary, dashboardTiles
-                     #   (per-tile copy/tone/glyph), DashboardTile (the KPI card),
-                     #   DashboardDrilldown (the in-page KPI expansion — superseded the
-                     #   deleted GuardInsideNow), DashboardActivity (derived feed),
-                     #   DashboardQuickActions (two links, never a third);
+                     # Dashboard (17-line shell) + GuardDashboardMain (the whole
+                     #   board: four KPI tiles, Live Arrival Queue, ID
+                     #   Verification, watchlist banner), ArrivalQueueTable,
+                     #   IdVerificationCard, KpiDrilldownSheet (the in-page KPI
+                     #   expansion), WatchlistAlertBanner;
+                     # GuardLiveQueue = the "Inside Now" tab (/guard/inside-now)
+                     #   + LiveQueueTable, CheckInFrame, CheckInBadgeRail;
                      # PreApprovals + PreApprovalRow; Search; Watchlist;
                      # CheckInPanel + CheckInMatchList, CheckInPhotoStep;
                      # VisitorForm + VisitorFormFields, VisitorFormAlerts,
@@ -950,12 +995,11 @@ src/
                      #   2026-08-13, there are no nav groups),
                      # SidebarAnalytics, SidebarProfile
   lib/               # roleRoutes, theme, errors, mfa,
-                     # useGateStats (guard KPIs — read the entered/inside note above),
+                     # guardTiles (ONE predicate per dashboard tile — the count
+                     #   and the drill-down list are both derived from it),
                      # dashboardDrill (KPI → predicate + copy), useTodayVisits
                      #   (the whole day, one fetch, feeds every drill-down),
                      # activeVisit (already-inside checks + guard-readable message),
-                     # recentActivity (PURE — derives the feed from the day the
-                     #   tiles already loaded; there is no fetching hook),
                      # usePreApprovals, useWatchlist,
                      # visitorSearch (pure query parsing),
                      # statusRail (VisitorCard only — the stacked card has no rail),

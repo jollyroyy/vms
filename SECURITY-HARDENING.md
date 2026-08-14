@@ -197,6 +197,59 @@ what device, since when, with a revoke button. Most of the data is already in
 
 ---
 
+## 6. UI asserting security facts it never verified (found & fixed 2026-08-14)
+
+The guard check-in screen (`CheckInFrame`) displayed **"Identity verified"** in green
+unconditionally, for every visitor, regardless of whether a photo had actually been
+captured or an ID type recorded — a security-relevant claim with no basis in the
+record. In the same screen: the Vehicle row printed a fabricated
+`"(parking slot B-12)"` after every vehicle number, with no parking-allocation
+feature anywhere in the schema; and the visitor pass printed a hardcoded
+**"Valid until 06:00 PM"**, which by 2026-08-14 was also the wrong time (the IST day
+has ended at 22:00, not 18:00, since migration 075).
+
+**Why this belongs here.** A security screen stating an unverified claim as fact is
+worse than one that states nothing — a guard who trusts "Identity verified" skips
+the check it claims already happened. This is the same class of hazard as the rest
+of this document (a control that looks like it is working when it is not), just
+surfaced in the UI layer rather than the RLS/RPC layer.
+
+**Status: fixed, not deferred.** Unlike every other item in this document,
+this one is resolved as of 2026-08-14, not accepted-and-postponed. "Identity
+verified" now renders only when a photo was captured AND the visitor has an ID
+type on file (otherwise "Identity not verified"); the parking-slot text was
+removed outright; pass expiry now resolves `qr_expires_at` → `expected_departure`
+→ `istDayEnd(visitMoment(v))` instead of a hardcoded string. See
+`src/pages/Guard/CheckInFrame.tsx` and `src/pages/Guard/CheckInBadgeRail.tsx`.
+Recorded here as a finding for the pattern, in case a similar unverified-claim
+badge gets added to another screen later.
+
+---
+
+## 7. Guard bookkeeping written into a field another role reads (found & fixed 2026-08-14)
+
+The "Notify Host" action on the check-in flow appended the literal string
+`' - host notified on arrival'` to `visits.remarks` — a free-text column an HOD
+reads when approving a walk-in, and that Reports prints verbatim on screen and in
+the CSV. A guard-side operational flag was being smuggled into a field owned by a
+different role and read by a different audience, with nothing distinguishing "the
+guard's own note" from "the system's bookkeeping" once both landed in the same
+string.
+
+**Why this belongs here.** A shared free-text field carries no per-writer access
+control — anything appended there is visible to whoever reads the field, cannot be
+queried structurally, and is one edit away from being silently overwritten or
+duplicated by the next legitimate write to the same column. Flags belong in their
+own column or their own table, never encoded as a magic substring in prose another
+role owns.
+
+**Status: fixed, not deferred.** As of 2026-08-14, the host-checked-in notification
+inserts a real `visitor_checked_in` notification row via new
+`src/lib/notifyHostCheckIn.ts`; the "Host Notified" UI state now reads
+`status === 'checked_in'` directly instead of parsing `remarks` for a magic string.
+
+---
+
 ## Suggested order
 
 1. **§0.1 + §0.2** — RPC-gated check-in/out with server-side timestamps. Closes

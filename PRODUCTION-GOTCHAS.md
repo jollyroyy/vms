@@ -170,6 +170,27 @@ isn't scheduled to run. Someone needs to go into Supabase and set it up to
 run automatically (e.g. nightly). Until that's done, nothing gets deleted
 automatically, no matter how old it is.
 
+## GOTCHA-11 — The guard dashboard's KPI tiles don't use the shared KpiTile component
+
+**What's the risk:** Every other KPI-style card in the app (the Visitors rail,
+the HOD Overview, the Admin Panel, Who's Inside) renders through one shared
+component, `src/components/KpiTile.tsx`, so a styling fix there reaches every
+screen at once. The guard dashboard's four tiles (Expected Today, Checked In,
+In Premises, Overstaying) are still bespoke markup — a future change to
+`KpiTile` will not automatically reach this one screen, and the two can drift
+apart in appearance without anyone changing this screen directly.
+
+**Why it's OK right now:** The client froze the guard dashboard's visual
+design on 2026-08-14 — logic, naming and correctness fixes only, no
+restyling or re-layout. Migrating the tile markup onto `KpiTile` would be a
+re-layout even if the result looked pixel-identical, which the freeze
+forbids for now.
+
+**What must happen before real visitors use this:** Once the design freeze
+lifts, replace the guard dashboard's bespoke tile markup with
+`components/KpiTile.tsx`, the same component already used on the other four
+KPI surfaces. Effort: small, once permitted.
+
 ## Quick checklist before going live
 
 | Gotcha | Must be done before | Rough effort |
@@ -184,3 +205,4 @@ automatically, no matter how old it is.
 | GOTCHA-8 — Camera needs HTTPS | Any real kiosk not on localhost | Standard HTTPS setup |
 | GOTCHA-9 — Model file size | Optional, only if deploys feel slow | Small |
 | GOTCHA-10 — Data retention job | Before data volume grows meaningfully | Schedule one Supabase job |
+| GOTCHA-11 — Guard dashboard tiles not on shared `KpiTile` | Once the visual-design freeze lifts | Small |
