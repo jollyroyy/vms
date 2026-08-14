@@ -37,13 +37,25 @@ export default function Badge({ visit }: Props): React.ReactElement {
 
   return (
     <div className="print-only mx-auto w-72 rounded-2xl bg-white overflow-hidden" style={{ border: '2px solid transparent', backgroundClip: 'padding-box', boxShadow: '0 4px 24px -4px rgba(0,0,0,0.12), 0 0 0 2px #1e293b' }}>
-      {/* Premium header with brand gradient */}
-      <div className="bg-gradient-to-r from-navy-900 via-navy-800 to-brand-900 px-5 py-4 text-center relative overflow-hidden">
-        <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(51,150,255,0.12),transparent)]" />
-        <div className="relative">
-          <p className="text-[12px] font-bold text-white uppercase tracking-[0.2em]">Visitor Pass</p>
-          <p className="text-[11px] text-brand-300 mt-1 font-mono tracking-wider">{visit.ref_number}</p>
-        </div>
+      {/* White header with the Quest Mall issuing-company logo */}
+      <div className="bg-white px-5 pt-4 pb-2 flex flex-col items-center">
+        {/* Dark lanyard notch */}
+        <div className="w-16 h-3.5 rounded-full bg-[#111827] mb-3" aria-hidden="true" />
+        <img
+          src="/quest-mall-logo.jpg"
+          alt="Quest Mall"
+          width={193}
+          height={160}
+          className="h-14 w-16 object-contain"
+          draggable={false}
+        />
+        <p className="mt-1.5 text-[10px] font-bold uppercase tracking-[0.22em] text-[#5a6070]">Quest Mall · Issued Pass</p>
+      </div>
+
+      {/* Bold blue band, exactly as the reference screen */}
+      <div className="bg-[#1d4ed8] px-5 py-2.5 text-center">
+        <p className="text-[14px] font-bold text-white uppercase tracking-[0.14em]">Visitor Pass</p>
+        <p className="text-[10px] text-white/75 mt-0.5 font-mono tracking-wider">{visit.ref_number}</p>
       </div>
 
       <div className="p-5 space-y-4">

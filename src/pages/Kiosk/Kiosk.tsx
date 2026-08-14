@@ -10,6 +10,7 @@ import KioskPhoneScreen from './KioskPhoneScreen';
 import KioskFormScreen from './KioskFormScreen';
 import KioskBadgeScreen from './KioskBadgeScreen';
 import { useKioskAutoReset } from './useKioskAutoReset';
+import { notifyHostOnCheckIn } from '../../lib/notifyHostCheckIn';
 
 type Step = 'idle' | 'phone' | 'form' | 'badge';
 
@@ -137,10 +138,11 @@ export default function Kiosk(): React.ReactElement {
       const clash = await findActiveVisitByPhone(phone);
       if (clash) { setError(activeVisitMessage(clash)); setCheckingInPreApproved(false); return; }
 
-      const { error: err } = await supabase.from('visits').update({
+      const { error: err, data: updated } = await supabase.from('visits').update({
         status: 'checked_in', checked_in_at: new Date().toISOString(),
-      }).eq('id', preApprovedVisit.id);
+      }).eq('id', preApprovedVisit.id).select('id, host_id').maybeSingle();
       if (err) throw err;
+      if (updated) void notifyHostOnCheckIn({ id: updated.id, host_id: (updated as { host_id: string | null }).host_id, visitor_name: preApprovedVisit.visitor_name ?? undefined });
       const { data: fullVisit } = await (supabase as any)
         .from('visits')
         .select('*, visitor:visitors(*), department:departments(id, name, code, created_at)')

@@ -13,6 +13,7 @@ import CardReturnConfirm from './CardReturnConfirm';
 import { type WalkInCheckIn } from './GuardWalkInApproved';
 import { uploadPhoto } from '../../lib/photoUpload';
 import { isAlreadyInsideError } from '../../lib/activeVisit';
+import { notifyHostOnCheckIn } from '../../lib/notifyHostCheckIn';
 // No Badge import: the guard console must never render an entry pass. See
 // canRoleShowPass in lib/passVisibility.ts for why. Badge draws a live QR
 // straight from visit.qr_token and has no role gate of its own, so wiring it
@@ -127,10 +128,13 @@ export default function GuardConsole(): React.ReactElement {
   const undoExit = async (visit: Visit) => {
     setActionErr('');
     try {
-      const { error } = await supabase.from('visits')
+      const { error, data: updated } = await supabase.from('visits')
         .update({ status: 'checked_in', checked_out_at: null, exit_verified: null, visitor_card_returned_at: null })
-        .eq('id', visit.id);
+        .eq('id', visit.id)
+        .select('id, host_id')
+        .maybeSingle();
       if (error) { setActionErr(safeErrorMessage(error, 'Could not undo the check-out.')); return; }
+      if (updated) void notifyHostOnCheckIn({ id: updated.id, host_id: (updated as { host_id: string | null }).host_id, visitor_name: visit.visitor?.full_name ?? undefined });
       setSuccessMsg(`"${visit.visitor?.full_name ?? 'Visitor'}" is back on the inside list.`);
       setUndoTarget(null);
       void loadVisits(true);
@@ -155,7 +159,7 @@ export default function GuardConsole(): React.ReactElement {
           id_last4: details.idScan.idLast4 || null,
         }).eq('id', visit.visitor_id);
       }
-      const { error } = await supabase.from('visits').update({
+      const { error, data: updated } = await supabase.from('visits').update({
         status: 'checked_in',
         checked_in_at: new Date().toISOString(),
         carrying_material: details.carrying,
@@ -163,8 +167,9 @@ export default function GuardConsole(): React.ReactElement {
         visitor_card_number: details.cardNumber.trim(),
         ...(photoData ? { photo_data: photoData } : {}),
         ...(photoPath ? { photo_path: photoPath } : {}),
-      } as never).eq('id', visit.id);
+      } as never).eq('id', visit.id).select('id, host_id').maybeSingle();
       if (error) throw error;
+      if (updated) void notifyHostOnCheckIn({ id: updated.id, host_id: (updated as { host_id: string | null }).host_id, visitor_name: visit.visitor?.full_name ?? undefined });
       onCheckInSuccess(visit.visitor?.full_name ?? 'Visitor');
     } catch (err) {
       // The one-open-visit-per-visitor index (migration 060) is matched by

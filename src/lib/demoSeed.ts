@@ -66,7 +66,7 @@ function seedVisitors(): SeedVisitor[] {
     { name: 'Marcos Fernandez', phone: '+91 98765 01002', company: null, purpose: 'interview', department: 'hr', hostName: 'HR Department', photoUrl: HOST_PHOTOS.marcos, checkedInMinutesAgo: null },
     { name: 'Ananya Kapoor', phone: '+91 98765 01003', company: 'Kapoor Logistics', purpose: 'delivery', department: 'ops', hostName: 'S. Verma', photoUrl: HOST_PHOTOS.priya, checkedInMinutesAgo: 42 },
     { name: 'Julia Okafor', phone: '+91 98765 01004', company: 'Okofor Facilities', purpose: 'maintenance', department: 'ops', hostName: 'Facilities', photoUrl: HOST_PHOTOS.elena, checkedInMinutesAgo: 26 },
-    { name: 'David Lin', phone: '+91 98765 01005', company: 'Acme Corp', purpose: 'meeting', department: 'admin', hostName: 'R. Sharma', photoUrl: HOST_PHOTOS.david, checkedInMinutesAgo: 9 },
+    { name: 'David Lin', phone: '+91 98765 01005', company: 'Quest Mall', purpose: 'meeting', department: 'admin', hostName: 'R. Sharma', photoUrl: HOST_PHOTOS.david, checkedInMinutesAgo: 9 },
     { name: 'Emmanuel Adeyemi', phone: '+91 98765 01006', company: 'Adeyemi Audit', purpose: 'audit', department: 'finance', hostName: 'Finance Desk', photoUrl: HOST_PHOTOS.emmanuel, checkedInMinutesAgo: null },
   ];
 }

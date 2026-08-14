@@ -3,10 +3,8 @@ import { useSearchParams } from 'react-router-dom';
 import { useTodayVisits } from '../../lib/useTodayVisits';
 import { istDateKey } from '../../lib/visitExpiry';
 import type { ReportVisit } from '../../lib/reportRow';
-import VisitorCheckInFlow from './VisitorCheckInFlow';
 import { supabase } from '../../supabaseClient';
 import { safeErrorMessage } from '../../lib/errors';
-import type { Visit } from '../../types/index';
 import QRCode from 'qrcode';
 import { buildQrPayload } from '../../lib/qrToken';
 import SuccessToast from '../../components/SuccessToast';
@@ -15,18 +13,18 @@ import LiveQueueTable from './LiveQueueTable';
 
 // Live Queue — reference screen 2 (vms.company.com/guard/queue/check-in).
 //
-// SPLIT VIEW, exactly as the approved frame: the arrival queue stays visible
-// on the LEFT while the SELECTED visitor's check-in frame renders on the
-// RIGHT — Check-In Details, the green-ringed photo + 4-step timeline, and the
-// Steps rail with the visitor pass + Print Badge. The guard flips between
-// visitors by clicking rows; the right panel updates live for each of them,
-// including visitors who have already checked in (their timeline shows all
-// steps done, and Host Notified / Print Badge are the optional finishing
-// actions).
+// SPLIT VIEW, exactly as the approved frame: the queue stays visible on the
+// LEFT while the SELECTED visitor's check-in frame renders on the RIGHT —
+// Check-In Details, the green-ringed photo + step timeline, and the white
+// visitor pass + Print Badge. The guard flips between visitors by clicking
+// rows; the right panel updates live for each of them.
 //
-// Only when the guard hits "Check In" / "Verify" for an un-checked-in visitor
-// does the full-screen photo+OCR flow open — that overlay is the existing
-// VisitorCheckInFlow, which remains sacred.
+// Per the guard's instruction this tab shows ONLY visitors who have already
+// checked in — un-checked-in arrivals stay on the dashboard's Live Arrival
+// Queue, where the guard starts the check-in work from. This page therefore
+// STARTS no check-in: the "N arrivals still at the gate" banner and the
+// photo + OCR overlay it opened were removed 2026-08-14 (client instruction),
+// leaving one route into a check-in rather than two that could disagree.
 
 function timeOf(v: ReportVisit): string {
   if (v.checked_in_at) return new Date(v.checked_in_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
@@ -56,7 +54,6 @@ export default function GuardLiveQueue(): React.ReactElement {
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [error, setError] = useState('');
-  const [flowVisit, setFlowVisit] = useState<ReportVisit | null>(null);
 
   useEffect(() => {
     const t = setInterval(() => setClock(new Date()), 1000);
@@ -84,19 +81,15 @@ export default function GuardLiveQueue(): React.ReactElement {
       .catch(() => setQrDataUrl(null));
   }, [liveActive]);
 
+  // Live Queue = checked-in visitors only (un-checked-in arrivals live on the
+  // dashboard's Live Arrival Queue).
   const queue = visits
-    .filter((v) => v.status === 'approved' || v.status === 'walkin_approved' || v.status === 'checked_in')
-    .sort((a, b) => (a.scheduled_for ?? a.created_at).localeCompare(b.scheduled_for ?? b.created_at));
+    .filter((v) => v.status === 'checked_in')
+    .sort((a, b) => (a.checked_in_at ?? a.created_at).localeCompare(b.checked_in_at ?? b.created_at));
 
   const selectVisit = (v: ReportVisit) => {
-    setError('');
-    if (v.status !== 'checked_in' && !v.status.match(/checked_out/)) {
-      // Un-checked-in row → full-screen photo + OCR flow.
-      setFlowVisit(v);
-      setActiveVisit(v);
-    } else {
-      setActiveVisit(v);
-    }
+    // Every row in this queue is checked in — show their completed frame.
+    setActiveVisit(v);
   };
 
   const notifyHost = async (v: ReportVisit) => {
@@ -145,23 +138,6 @@ export default function GuardLiveQueue(): React.ReactElement {
     setQrDataUrl(null);
   };
 
-  // ── Photo + OCR check-in overlay (sacred flow, untouched visually) ────────
-  if (flowVisit && flowVisit.status !== 'checked_in' && !flowVisit.status.match(/checked_out/)) {
-    return (
-      <VisitorCheckInFlow
-        visit={flowVisit as Visit}
-        onDone={(name) => {
-          setToast(`Checked in: ${name}`);
-          setTimeout(() => setToast(null), 5000);
-          setFlowVisit(null);
-          // Keep the just-checked-in visitor selected so the right panel now
-          // shows their completed timeline and pass — same page, no reload.
-        }}
-        onCancel={() => setFlowVisit(null)}
-      />
-    );
-  }
-
   return (
     <div className="space-y-5 animate-fade-in pb-4">
       <SuccessToast message={toast} onDismiss={() => setToast(null)} />
@@ -174,12 +150,12 @@ export default function GuardLiveQueue(): React.ReactElement {
       <div className="rounded-2xl bg-surface-100/60 dark:bg-white/[0.03] border border-surface-200/60 dark:border-white/[0.07] p-5 shadow-glow-sm">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
-            <span className="text-brand-500">
+            <span className="text-success-500">
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8} aria-hidden="true">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 0 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 0 015.25 0z" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </span>
-            <h2 className="font-display text-h2 text-navy-950 dark:text-white">Arrival Queue</h2>
+            <h2 className="font-display text-h2 text-navy-950 dark:text-white">Checked-In Visitors</h2>
           </div>
           <span className="text-sm text-navy-500 dark:text-navy-400 tabular-nums">
             {visitsLoading ? '…' : queue.length} visitor{queue.length === 1 ? '' : 's'}

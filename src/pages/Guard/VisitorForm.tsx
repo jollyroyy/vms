@@ -12,6 +12,7 @@ import VisitorFormAlerts from './VisitorFormAlerts';
 import VisitorFormPreApproved from './VisitorFormPreApproved';
 import VisitorFormFields from './VisitorFormFields';
 import IdScanOverlay, { type IdScanResult } from './IdScanOverlay';
+import { notifyHostOnCheckIn } from '../../lib/notifyHostCheckIn';
 
 type Props = { onRegistered: (visitorName: string) => void };
 
@@ -152,13 +153,14 @@ export default function VisitorForm({ onRegistered }: Props): React.ReactElement
       if (clash) { setError(activeVisitMessage(clash)); setCheckingInPreApproved(false); return; }
 
       const { photoPath, photoData } = await uploadPhoto(photoBlob);
-      const { error: err } = await supabase.from('visits').update({
+      const { error: err, data: updated } = await supabase.from('visits').update({
         status: 'checked_in',
         checked_in_at: new Date().toISOString(),
         ...(photoData ? { photo_data: photoData } : {}),
         ...(photoPath ? { photo_path: photoPath } : {}),
-      }).eq('id', preApprovedVisit.id);
+      }).eq('id', preApprovedVisit.id).select('id, host_id').maybeSingle();
       if (err) throw err;
+      if (updated) void notifyHostOnCheckIn({ id: updated.id, host_id: (updated as { host_id: string | null }).host_id, visitor_name: preApprovedVisit.visitor_name ?? undefined });
       setPreApprovedVisit(null);
       setPhotoBlob(null);
       setPhone(''); setFullName(''); setVendorName(''); setRecalledName(null);

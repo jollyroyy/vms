@@ -13,7 +13,16 @@ import CheckInPanel from '../../../src/pages/Guard/CheckInPanel';
 
 const mockFrom = vi.hoisted(() => vi.fn());
 const mockRpc = vi.hoisted(() => vi.fn());
-const visitsUpdate = vi.hoisted(() => vi.fn(() => ({ eq: vi.fn().mockResolvedValue({ data: null, error: null }) })));
+// The check-in write reads its own row back — `.update(...).eq(...)
+// .select('id, host_id').maybeSingle()` — so the host can be notified that
+// their visitor is inside. The mock mirrors that whole chain; stopping at
+// `.eq()` makes the write resolve to undefined and swallows the error branch.
+const updateResult = vi.hoisted(() => ({ current: { data: { id: 'v1', host_id: 'h1' }, error: null } as any }));
+const visitsUpdate = vi.hoisted(() => vi.fn(() => ({
+  eq: vi.fn(() => ({
+    select: vi.fn(() => ({ maybeSingle: vi.fn(() => Promise.resolve(updateResult.current)) })),
+  })),
+})));
 const alreadyInside = vi.hoisted(() => ({ current: [] as any[] }));
 
 vi.mock('../../../src/supabaseClient', () => ({
@@ -111,6 +120,7 @@ afterEach(() => {
   vi.unstubAllEnvs();
   vi.unstubAllGlobals();
   alreadyInside.current = [];
+  updateResult.current = { data: { id: 'v1', host_id: 'h1' }, error: null };
   visitsUpdate.mockClear();
 });
 
@@ -170,15 +180,13 @@ describe('CheckInPanel — already inside', () => {
   // visitor in between our lookup and our write. The DB index catches it and
   // the guard must still get a sentence, not a raw 23505.
   it('translates the database constraint violation into a readable message', async () => {
-    visitsUpdate.mockImplementationOnce(() => ({
-      eq: vi.fn().mockResolvedValue({
-        data: null,
-        error: {
-          code: '23505',
-          message: 'duplicate key value violates unique constraint "visits_one_open_per_visitor"',
-        },
-      }),
-    }) as any);
+    updateResult.current = {
+      data: null,
+      error: {
+        code: '23505',
+        message: 'duplicate key value violates unique constraint "visits_one_open_per_visitor"',
+      },
+    };
 
     await reachConfirmStep();
     fireEvent.click(await screen.findByText('Check In'));

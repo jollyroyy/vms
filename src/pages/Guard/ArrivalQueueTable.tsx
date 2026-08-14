@@ -47,14 +47,14 @@ export default function ArrivalQueueTable({
           <tbody>
             {loading && (
               <tr>
-                <td colSpan={6} className="px-4 py-10 text-center text-navy-400">
+                <td colSpan={6} className="px-4 py-10 text-center text-[#9aa3af] dark:text-[#b7c0cb]">
                   Loading queue…
                 </td>
               </tr>
             )}
             {!loading && queue.length === 0 && (
               <tr>
-                <td colSpan={6} className="px-4 py-10 text-center text-navy-400">
+                <td colSpan={6} className="px-4 py-10 text-center text-[#9aa3af] dark:text-[#b7c0cb]">
                   No visitors waiting at the gate right now.
                 </td>
               </tr>
@@ -77,14 +77,14 @@ export default function ArrivalQueueTable({
                         <span className="text-navy-950 dark:text-white font-medium truncate">{v.visitor?.full_name ?? 'Unknown'}</span>
                       </span>
                     </td>
-                    {/* Purpose of meeting — muted blue so it reads as context next to the host */}
-                    <td className="px-4 py-3 text-brand-400 dark:text-brand-300 font-medium">{v.purpose}</td>
+                    {/* Purpose of meeting — blue so it reads as context next to the host */}
+                    <td className="px-4 py-3 text-[#6fa8dc] dark:text-[#7fb3e3] font-medium">{v.purpose}</td>
                     {/* Host — brightest value so the guard instantly finds who the visitor is meeting */}
                     <td className="px-4 py-3 text-navy-900 dark:text-white font-semibold">{v.host?.full_name ?? '—'}</td>
-                    {/* Department — warm gray keeps it readable but visually secondary */}
-                    <td className="px-4 py-3 text-navy-600 dark:text-navy-200 font-medium">{v.department?.name ?? '—'}</td>
-                    {/* Time — tabular numerals, neutral slate so it never competes */}
-                    <td className="px-4 py-3 tabular-nums text-navy-700 dark:text-navy-100 font-semibold">{timeOf(v)}</td>
+                    {/* Department — soft silver, clearly legible but visually secondary */}
+                    <td className="px-4 py-3 text-[#9aa3af] dark:text-[#b7c0cb] font-medium">{v.department?.name ?? '—'}</td>
+                    {/* Time — light silver with tabular numerals so the numbers never compete */}
+                    <td className="px-4 py-3 tabular-nums text-[#9aa3af] dark:text-[#b7c0cb] font-semibold">{timeOf(v)}</td>
                     <td className="px-4 py-3">
                       <span className={`inline-block text-[10px] font-bold uppercase tracking-wider rounded-md px-2 py-1 border ${pill.cls}`}>
                         {pill.label}
