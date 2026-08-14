@@ -120,22 +120,30 @@ describe('Sidebar navigation links per role', () => {
     expect(screen.getByText('Pre-Approvals')).toBeInTheDocument();
   });
 
-  it('guard sees all three nav labels of the visitor-only console, and no Search', () => {
+  it('guard sees the reference console tabs plus Scan Pass and Visitors, and no Search', () => {
     renderSidebar('guard');
-    expect(screen.getByText('Dashboard')).toBeInTheDocument();
-    expect(screen.getByText('Scan Pass')).toBeInTheDocument();
-    expect(screen.getByText('Visitors')).toBeInTheDocument();
+    for (const label of ['Dashboard', 'Live Queue', 'Pre-Registered', 'Watchlist', 'Scan Pass', 'Visitors']) {
+      expect(screen.getByText(label)).toBeInTheDocument();
+    }
     expect(screen.queryByText('Search')).not.toBeInTheDocument();
+  });
+
+  it('the four console tabs link to their reference-screen routes', () => {
+    renderSidebar('guard');
+    expect(screen.getByRole('link', { name: /Dashboard/ })).toHaveAttribute('href', '/guard/dashboard');
+    expect(screen.getByRole('link', { name: /Live Queue/ })).toHaveAttribute('href', '/guard/live-queue');
+    expect(screen.getByRole('link', { name: /Pre-Registered/ })).toHaveAttribute('href', '/guard/preregistered');
+    expect(screen.getByRole('link', { name: /Watchlist/ })).toHaveAttribute('href', '/guard/watchlist');
   });
 
   // The Visitors entry is a single <a> now (2026-08-13): the segments that
   // used to expand under a group button live on the page as KPI tiles
-  // (VisitorKpiRail), so the guard nav is exactly three links, all the same
-  // shape.
-  it('guard sidebar has exactly 3 nav links and no group button', () => {
+  // (VisitorKpiRail). The guard nav is the reference four tabs plus Scan Pass
+  // and Visitors — six plain links, no group button (2026-08-14).
+  it('guard sidebar has exactly 6 nav links and no group button', () => {
     const { container } = renderSidebar('guard');
     const links = container.querySelectorAll('a.sidebar-link');
-    expect(links.length).toBe(3);
+    expect(links.length).toBe(6);
     expect(screen.queryByRole('button', { name: /Visitors/ })).not.toBeInTheDocument();
   });
 

@@ -10,3 +10,6 @@ test-results/
 # Synced from node_modules by scripts/sync-ort-assets.mjs (predev/prebuild).
 # Never commit: 13 MB, and it must always match the installed onnxruntime-web.
 public/ort/
+
+# Local working notes — contains the live Supabase project URL.
+REVAMP-NOTES.md

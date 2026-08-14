@@ -17,9 +17,12 @@ export const ROLE_ROUTES: Record<UserRole, string[]> = {
   // `/guard/daily-staff` is still reachable by direct link — they were dropped
   // from the nav because neither is visitor check-in, not because access was
   // revoked. Removing them here would be a regression, not a cleanup.
-  // `/guard/watchlist` is gone entirely: the Watchlist & Alerts feature was
-  // removed; blacklist enforcement at the gate is unaffected.
-  guard:       ['/guard/dashboard', '/guard/scan-pass', '/visitors', '/guard', '/guard/pre-approvals',
+  // The four-tab guard surface from the approved reference design — Dashboard,
+  // Live Queue, Pre-Registered, Watchlist — all of which link to each other
+  // from the dashboard ("View Full Queue", "Verify ID", the watchlist banner),
+  // so all three new paths must be allowed here or the sidebar tabs 404.
+  guard:       ['/guard/dashboard', '/guard/live-queue', '/guard/preregistered', '/guard/watchlist',
+                '/guard/scan-pass', '/visitors', '/guard', '/guard/pre-approvals',
                 '/guard/search', '/guard/daily-staff', '/kiosk', '/whos-inside', '/profile', '/search'],
   hod:         ['/overview', '/approvals', '/reports', '/analytics', '/profile', '/search'],
   staff:       ['/visitors', '/whos-inside', '/reports', '/profile', '/search'],

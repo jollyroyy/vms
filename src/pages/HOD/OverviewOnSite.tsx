@@ -11,8 +11,13 @@ export default function OverviewOnSite({ loading, onSite }: Props): React.ReactE
   return (
     <div className="bg-white dark:bg-white/[0.04] rounded-2xl border border-surface-200/70 dark:border-white/[0.06] overflow-hidden">
       <div className="px-6 pt-5 pb-4 border-b border-surface-100 dark:border-white/[0.05]">
-        <h2 className="font-display text-sm font-bold text-navy-950 dark:text-white">On-site now</h2>
-        <p className="text-xs text-navy-500 dark:text-navy-400 mt-0.5">Checked-in visitors for your department</p>
+        <div className="revamp-section-head mb-0">
+          <span className="revamp-section-rule" aria-hidden="true" />
+          <span className="flex items-baseline gap-2">
+            <h2 className="font-display text-sm font-bold text-navy-950 dark:text-white">On-site now</h2>
+            <span className="text-xs text-navy-500 dark:text-navy-400">Checked-in visitors for your department</span>
+          </span>
+        </div>
       </div>
 
       {loading ? (

@@ -99,6 +99,7 @@ const NAME_LABEL_PATTERN = /^(NAME|नाम)\s*[:\-]?\s*(.*)$/i;
 // Boilerplate printed on every card of a given type — never a person's name.
 const BOILERPLATE_LINES = new Set([
   'GOVERNMENT OF INDIA',
+  'GOVT OF INDIA',
   'INCOME TAX DEPARTMENT',
   'UNIQUE IDENTIFICATION AUTHORITY OF INDIA',
   'PERMANENT ACCOUNT NUMBER',
@@ -111,15 +112,52 @@ const BOILERPLATE_LINES = new Set([
   'PASSPORT',
   'DRIVING LICENCE',
   'TRANSPORT DEPARTMENT',
+  // Aadhaar-specific field words that OCR routinely merges onto the name
+  // line (PP-OCRv5 detection boxes merge adjacent glyphs): a "name" line
+  // equal to any of these is a field label, not a person.
+  'MALE',
+  'FEMALE',
+  'GENDER',
+  'YEAR OF BIRTH',
+  'ADDRESS',
+  'DOB',
 ]);
 
 const ALPHA_NAME_PATTERN = /^[A-Za-z][A-Za-z\s.]{2,}$/;
 
+// Aadhaar packs Name/Gender/YOB in a tight column, so OCR frequently reads
+// them as ONE line: "RAHUL KUMAR MALE" or "RAHUL KUMAR YOB 1998". These are
+// stripped before the line is treated as a name — the real name never
+// contains digits or gender words, and the matcher downstream tolerates the
+// loss of one trailing token because it compares word sets.
+const TRAILING_TOKENS = /\b(YOB|YEAR|MALE|FEMALE|DOB)\b.*$/i;
+
+// A card's secondary script line (Devanagari on Aadhaar) can be detected as a
+// candidate. It is never the return value: keep only Latin lines. Note: the
+// digit rule is applied AFTER trailing-token stripping — OCR on Aadhaar
+// commonly fuses "RAHUL KUMAR YOB 1998" into one line, and the digits belong
+// to the year suffix, not the name.
+const LATIN_NAME_PATTERN = /^[A-Za-z][A-Za-z\s.]{2,}$/;
+
 function isPlausibleName(candidate: string): boolean {
   if (candidate.length < 3) return false;
-  if (!ALPHA_NAME_PATTERN.test(candidate)) return false;
+  if (!LATIN_NAME_PATTERN.test(candidate)) return false;
   if (BOILERPLATE_LINES.has(candidate.toUpperCase())) return false;
   return true;
+}
+
+function cleanNameLine(raw: string): string | null {
+  const line = raw.trim();
+  if (!line) return null;
+  if (BOILERPLATE_LINES.has(line.toUpperCase())) return null;
+  // Drop merged Aadhaar field tokens appended to the name line. "RAHUL KUMAR
+  // MALE" → "RAHUL KUMAR"; "RAHUL KUMAR YOB 1998" → "RAHUL KUMAR". A genuine
+  // name ending in a gender/field word is implausible, so stripping before
+  // the shape check is safe — and it is what lets the digits-bearing merged
+  // suffix pass removal (digits are only allowed inside the stripped part).
+  const cleaned = line.replace(TRAILING_TOKENS, '').trim();
+  if (cleaned.length < 3 || !LATIN_NAME_PATTERN.test(cleaned)) return null;
+  return cleaned;
 }
 
 function extractName(lines: string[]): string | null {
@@ -128,25 +166,27 @@ function extractName(lines: string[]): string | null {
     const labelMatch = NAME_LABEL_PATTERN.exec(line);
     if (!labelMatch) continue;
 
-    const inline = (labelMatch[2] ?? '').trim();
-    if (inline && isPlausibleName(inline)) return inline;
+    const inline = cleanNameLine(labelMatch[2] ?? '');
+    if (inline) return inline;
 
     // Many Aadhaar/PAN cards print the label and the name on separate lines.
     for (let j = i + 1; j < lines.length; j++) {
+      const cleaned = cleanNameLine(lines[j] ?? '');
+      if (cleaned) return cleaned;
       const candidate = (lines[j] ?? '').trim();
-      if (!candidate) continue;
-      if (isPlausibleName(candidate)) return candidate;
-      break; // the next non-empty line wasn't name-shaped — don't keep guessing
+      if (candidate) break; // the next non-empty line wasn't name-shaped — stop
     }
     // A "Name" label was found but nothing plausible followed it: better to
     // report nothing than to hand back boilerplate or a stray line.
     return null;
   }
 
-  // No label anywhere — fall back to the first name-shaped, non-boilerplate line.
+  // No label anywhere — fall back to the first name-shaped, non-boilerplate
+  // Latin line (skipping Devanagari and merged-field lines that cleanNameLine
+  // rejects).
   for (const rawLine of lines) {
-    const line = rawLine.trim();
-    if (isPlausibleName(line)) return line;
+    const cleaned = cleanNameLine(rawLine);
+    if (cleaned) return cleaned;
   }
   return null;
 }

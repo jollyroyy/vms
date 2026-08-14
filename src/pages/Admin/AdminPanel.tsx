@@ -17,6 +17,7 @@ export default function AdminPanel(): React.ReactElement {
             </svg>
           </div>
           <div>
+            <p className="revamp-greeting-eyebrow">Administration</p>
             <h1 className="page-title">Admin Panel</h1>
             <p className="page-subtitle">Departments and their heads of department</p>
           </div>

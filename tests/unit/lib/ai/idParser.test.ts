@@ -92,6 +92,32 @@ describe('M-AI-PARSER: parseIdDocument', () => {
     });
   });
 
+  // PP-OCRv5 detection boxes frequently merge Aadhaar's Name/Gender/YOB
+  // column into a single line. The extractor must strip the field tokens
+  // and return the real name, not the boilerplate.
+  describe('aadhaar merged-field name lines', () => {
+    it('strips a gender word merged onto the name line', () => {
+      const text = 'NAME\nRAHUL KUMAR MALE\nGENDER: MALE\n5555 6666 7777';
+      const result = parseIdDocument(text);
+      expect(result.name).toBe('RAHUL KUMAR');
+      expect(result.type).toBe('aadhaar');
+    });
+
+    it('strips YOB/Year-of-birth text merged onto the name line', () => {
+      // The line after the label carries the merged YOB suffix with digits —
+      // extraction must drop that suffix and keep the name.
+      const text = 'NAME\nRAHUL KUMAR YOB 1998\n5555 6666 7777';
+      const result = parseIdDocument(text);
+      expect(result.name).toBe('RAHUL KUMAR');
+    });
+
+    it('does not mistake MALE alone (label-less scan) for a name', () => {
+      const text = 'GOVERNMENT OF INDIA\nMALE\n5555 6666 7777';
+      const result = parseIdDocument(text);
+      expect(result.name).toBeNull();
+    });
+  });
+
   describe('detection precedence', () => {
     it('PAN takes precedence over Aadhaar when both are present', () => {
       const text = 'ABCDE1234F\n1234 5678 9012';

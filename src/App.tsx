@@ -15,6 +15,9 @@ import { hasRecoveryHash, isRecoveryPending, markRecoveryPending, clearRecoveryP
 import VisitorsDashboard  from './pages/Shared/VisitorsDashboard';
 import GuardConsole       from './pages/Guard/Console';
 import GuardDashboard     from './pages/Guard/Dashboard';
+import GuardLiveQueue      from './pages/Guard/GuardLiveQueue';
+import GuardPreRegistered   from './pages/Guard/GuardPreRegistered';
+import GuardWatchlist       from './pages/Guard/GuardWatchlist';
 import DailyStaff         from './pages/Guard/DailyStaff';
 import GuardPreApprovals  from './pages/Guard/PreApprovals';
 import GuardScanPass      from './pages/Guard/ScanPass';
@@ -249,6 +252,9 @@ export default function App(): React.ReactElement {
             <Route path="/visitors/:segment" element={<ProtectedRoute role={role}>{role === 'guard' ? <GuardConsole /> : <VisitorsDashboard />}</ProtectedRoute>} />
             <Route path="/guard"           element={<ProtectedRoute role={role}><GuardConsole /></ProtectedRoute>} />
             <Route path="/guard/dashboard" element={<ProtectedRoute role={role}><GuardDashboard /></ProtectedRoute>} />
+            <Route path="/guard/live-queue" element={<ProtectedRoute role={role}><GuardLiveQueue /></ProtectedRoute>} />
+            <Route path="/guard/preregistered" element={<ProtectedRoute role={role}><GuardPreRegistered /></ProtectedRoute>} />
+            <Route path="/guard/watchlist" element={<ProtectedRoute role={role}><GuardWatchlist /></ProtectedRoute>} />
             <Route path="/guard/scan-pass" element={<ProtectedRoute role={role}><GuardScanPass /></ProtectedRoute>} />
             <Route path="/guard/daily-staff" element={<ProtectedRoute role={role}><DailyStaff /></ProtectedRoute>} />
             <Route path="/guard/pre-approvals" element={<ProtectedRoute role={role}><GuardPreApprovals /></ProtectedRoute>} />

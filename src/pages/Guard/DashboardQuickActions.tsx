@@ -59,8 +59,9 @@ export default function DashboardQuickActions(): React.ReactElement {
   return (
     <section className="card-premium overflow-hidden">
       <div className="px-5 pt-4 pb-3.5 border-b border-surface-100 dark:border-white/[0.06]">
-        <h2 className="font-display text-base font-bold text-navy-950 dark:text-white tracking-tight">
-          Quick Actions
+        <h2 className="revamp-section-head mb-0">
+          <span className="revamp-section-rule" aria-hidden="true" />
+          <span className="revamp-section-title">Quick Actions</span>
         </h2>
       </div>
 

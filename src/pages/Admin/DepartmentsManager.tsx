@@ -217,8 +217,13 @@ export default function DepartmentsManager(): React.ReactElement {
       {view && (
         <div className="flex flex-wrap items-baseline justify-between gap-2">
           <div>
-            <h2 className="section-title mb-0.5">{ADMIN_OVERVIEW_TITLES[view]}</h2>
-            <p className="text-xs text-navy-500 dark:text-navy-400">{ADMIN_OVERVIEW_HINTS[view]}</p>
+            <div className="revamp-section-head mb-0.5">
+              <span className="revamp-section-rule" aria-hidden="true" />
+              <span className="flex items-baseline gap-2">
+                <h2 className="section-title">{ADMIN_OVERVIEW_TITLES[view]}</h2>
+                <span className="text-xs text-navy-500 dark:text-navy-400">{ADMIN_OVERVIEW_HINTS[view]}</span>
+              </span>
+            </div>
           </div>
           <button
             type="button"

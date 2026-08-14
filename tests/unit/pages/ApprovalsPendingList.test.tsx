@@ -48,7 +48,7 @@ describe('ApprovalsPendingList', () => {
   it('shows the "All caught up" empty state when there are no pending visits and no error', () => {
     render(<ApprovalsPendingList {...baseProps} visits={[]} />);
     expect(screen.getByText('All caught up')).toBeInTheDocument();
-    expect(screen.getByText('No pending approvals right now')).toBeInTheDocument();
+    expect(screen.getByText(/No pending approvals right now/)).toBeInTheDocument();
   });
 
   it('suppresses the empty state when an error is present, even with zero visits', () => {

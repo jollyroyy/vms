@@ -28,6 +28,29 @@ describe('M-AI-OCR-MATCH: namesMatch', () => {
     expect(namesMatch('   ', 'Rahul Verma')).toBe(false);
   });
 
+  // Aadhaar-specific OCR artefacts (PP-OCRv5 mobile merges the tight
+  // Name/Gender/YOB column into a single detected line):
+  it('matches when the OCR merges a gender word onto the name line', () => {
+    expect(namesMatch('RAHUL KUMAR MALE', 'Rahul Kumar')).toBe(true);
+    expect(namesMatch('RAHUL KUMAR FEMALE', 'Rahul Kumar')).toBe(true);
+  });
+
+  it('matches when the OCR merges YOB/Year-of-birth text onto the name line', () => {
+    expect(namesMatch('RAHUL KUMAR YOB 1998', 'Rahul Kumar')).toBe(true);
+    expect(namesMatch('RAHUL KUMAR YEAR 1998', 'Rahul Kumar')).toBe(true);
+  });
+
+  it('matches despite a single-character OCR substitution', () => {
+    expect(namesMatch('Rahul Kumor', 'Rahul Kumar')).toBe(true);
+    expect(namesMatch('RAHULL KUMAR', 'Rahul Kumar')).toBe(true);
+  });
+
+  it('still rejects genuinely different names even under the lenient pass', () => {
+    expect(namesMatch('RAJESH KUMAR', 'RAHUL KUMAR')).toBe(false);
+    expect(namesMatch('RAHUL VERMA', 'RAJESH VERMA')).toBe(false);
+    expect(namesMatch('A RAHUL', 'RAJESH KUMAR')).toBe(false);
+  });
+
   it('normalizeName collapses case and whitespace deterministically', () => {
     expect(normalizeName('  RAHUL   KUMAR  ')).toBe('rahul kumar');
     expect(normalizeName('')).toBe('');

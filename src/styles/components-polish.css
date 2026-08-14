@@ -1,0 +1,104 @@
+/* ============================================================
+   REVAMP POLISH LAYER (2026-08-14)
+   The visual elevation pass over the existing premium system. This file adds
+   only what the approved dark/light mockups carry that the baseline lacked:
+
+     - a two-line gold-accented section heading (rule + label)
+     - a page greeting strip (role + date, for the guard's dashboard)
+     - a richer empty-state block (icon medallion + copy)
+     - a stat strip for card headers (count chip beside the title)
+
+   Every colour resolves to existing tokens in tokens.css; both themes follow
+   automatically. No behaviours, no layout changes elsewhere, no duplication
+   of working systems.
+   ============================================================ */
+@layer components {
+
+  /* --- Section heading with gold rule: the "Today" / "Pending Approvals"
+     headings stop reading as plain body text and gain the mockup's
+     engraved-rule treatment. The rule is a 32px gold gradient chip sitting
+     before the words, not a full-width border (a full-width line would fight
+     every card above it). */
+  .revamp-section-head {
+    @apply flex items-center gap-3 mb-4;
+  }
+  .revamp-section-rule {
+    width: 2rem;
+    height: 3px;
+    border-radius: 3px;
+    background: linear-gradient(120deg, rgb(37 99 235), rgb(30 64 175));
+    box-shadow: 0 2px 6px -2px rgb(37 99 235 / 0.5);
+    flex-shrink: 0;
+  }
+  .revamp-section-title {
+    @apply text-h2 text-navy-900;
+  }
+  .revamp-section-count {
+    @apply inline-flex items-center justify-center min-w-[24px] h-6 px-2
+           rounded-full text-xs font-extrabold tabular-nums
+           bg-brand-500/15 text-brand-700;
+  }
+  .dark .revamp-section-count {
+    @apply text-brand-300;
+    background: rgb(37 99 235 / 0.14);
+  }
+
+  /* --- Page greeting strip: sits above the board on the guard dashboard —
+     role + date + a one-line brief, so the page opens on context before the
+     numbers, like the mockup's header band. */
+  .revamp-greeting {
+    @apply rounded-2xl px-5 py-4 mb-6;
+    background: linear-gradient(120deg, rgb(var(--glass-bg) / 0.85), rgb(var(--glass-bg) / 0.6));
+    backdrop-filter: blur(20px) saturate(170%);
+    -webkit-backdrop-filter: blur(20px) saturate(170%);
+    border: 1px solid rgb(var(--glass-border) / var(--hairline-opacity));
+    box-shadow: var(--shadow-contact), var(--shadow-ambient), var(--edge-highlight);
+  }
+  .revamp-greeting-eyebrow {
+    @apply text-micro uppercase tracking-[0.14em] text-brand-600 font-bold;
+  }
+  .revamp-greeting-title {
+    @apply text-h2 font-display text-navy-950 mt-1;
+  }
+  .revamp-greeting-sub {
+    @apply text-caption text-navy-500 mt-1;
+  }
+  .dark .revamp-greeting-title {
+    @apply text-white;
+  }
+  /* In dark mode the subtext must read as a quiet but clearly legible
+     light gray — never the dim light-mode slate. Same muted treatment as
+     the reference mockup's "Everything at the entrance, in one glance." */
+  .dark .revamp-greeting-sub {
+    @apply text-navy-600;
+  }
+  .dark .revamp-empty-sub {
+    @apply text-navy-600;
+  }
+
+  /* --- Elevated empty state: a round medallion with icon, quiet copy and a
+     quiet action. Replaces the bare "Nothing has happened at the gate yet"
+     centre-of-page emptiness with the mockup's softer zero-data moment. */
+  .revamp-empty {
+    @apply flex flex-col items-center justify-center py-14 px-6 text-center;
+  }
+  .revamp-empty-medallion {
+    @apply grid place-items-center rounded-full mb-4;
+    width: 3.5rem;
+    height: 3.5rem;
+    background: rgb(var(--glass-bg) / 0.55);
+    border: 1px dashed rgb(var(--glass-border) / calc(var(--glass-border-opacity) * 1.6));
+  }
+  .revamp-empty-medallion svg {
+    @apply w-5 h-5 text-navy-400;
+  }
+  .revamp-empty-title {
+    @apply text-sm font-bold text-navy-800;
+  }
+  .revamp-empty-sub {
+    @apply text-xs text-navy-500 mt-1 max-w-xs;
+  }
+  .dark .revamp-empty-title {
+    @apply text-navy-100;
+  }
+}

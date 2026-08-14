@@ -1,4 +1,8 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Playfair+Display:wght@400;500;600;700;800;900&display=swap');
+/* Reference-screens directive (2026-08-14): no deviation from the approved
+   screenshots. The serif face was replaced with Poppins — the reference UI
+   uses one geometric sans for headings and body; a serif anywhere would be a
+   deviation from the approved look. */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Poppins:wght@400;500;600;700;800;900&display=swap');
 @import './styles/tokens.css';
 @import './styles/base.css';
 @import './styles/components-forms.css';
@@ -8,6 +12,7 @@
 @import './styles/components-guard.css';
 @import './styles/components-dashboard.css';
 @import './styles/components-visitor-stack.css';
+@import './styles/components-polish.css';
 @import './styles/aurora.css';
 @import './styles/animations.css';
 @import './styles/print.css';

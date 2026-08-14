@@ -129,6 +129,7 @@ export default function ReportsPage(): React.ReactElement {
           <svg className="w-5.5 h-5.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" /></svg>
         </div>
         <div>
+          <p className="revamp-greeting-eyebrow">Operations</p>
           <h1 className="page-title">Reports</h1>
           <p className="page-subtitle">Daily visitor register</p>
         </div>
@@ -154,7 +155,8 @@ export default function ReportsPage(): React.ReactElement {
       </div>
 
       <section>
-        <div className="flex items-center gap-3 mb-4 no-print">
+        <div className="revamp-section-head mb-4 no-print">
+          <span className="revamp-section-rule" aria-hidden="true" />
           <h2 className="section-title">Register — {rangeLabel}</h2>
           <span className="glass-chip text-navy-500 dark:text-navy-400 tabular-nums">({shown.length} entries)</span>
           {activeDept && (
@@ -212,10 +214,16 @@ export default function ReportsPage(): React.ReactElement {
                     </tr>
                   ))}
                   {shown.length === 0 && (
-                    <tr><td colSpan={16} className="px-4 py-12 text-center text-navy-300">
-                      {activeDept
-                        ? `No ${activeDept.name} visits between ${range.from} and ${range.to}`
-                        : `No visits between ${range.from} and ${range.to}`}
+                    <tr><td colSpan={16} className="px-4 py-10">
+                      <div className="revamp-empty">
+                        <div className="revamp-empty-medallion">
+                          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.7}><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25H12" /></svg>
+                        </div>
+                        <p className="revamp-empty-title">No entries in this range</p>
+                        <p className="revamp-empty-sub">{activeDept
+                          ? `No ${activeDept.name} visits between ${range.from} and ${range.to}`
+                          : `No visits between ${range.from} and ${range.to}`}</p>
+                      </div>
                     </td></tr>
                   )}
                 </tbody>

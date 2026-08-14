@@ -32,7 +32,8 @@ export default function PreApproveForm({ onPreApproved }: Props): React.ReactEle
   const [purpose,     setPurpose]     = useState<VisitorPurpose>('meeting');
   const [deptId,      setDeptId]      = useState('');
   const [hostId,      setHostId]      = useState('');
-  const [vehicle,     setVehicle]     = useState('');
+  // NOTE: vehicle registration intentionally removed per client instruction
+  // (no driver/vehicle management for this mall deployment).
 
   const [blacklistHit,    setBlacklistHit]    = useState<string | null>(null);
   const [submitting,      setSubmitting]      = useState(false);
@@ -199,7 +200,6 @@ export default function PreApproveForm({ onPreApproved }: Props): React.ReactEle
           </div>
         )}
 
-        <div className="sm:col-span-2"><label className="label">Vehicle Number (optional)</label><input type="text" maxLength={20} value={vehicle} onChange={(e) => setVehicle(e.target.value)} className="input" placeholder="MH 12 AB 1234" /></div>
         <div className="sm:col-span-2">
           <label className="label">Schedule for *</label>
           <input type="datetime-local" required value={scheduledFor} onChange={(e) => setScheduledFor(e.target.value)} className="input" />

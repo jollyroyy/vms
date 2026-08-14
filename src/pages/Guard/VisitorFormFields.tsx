@@ -37,8 +37,8 @@ type Props = {
   idLast4: string;
   onIdLast4Change: (v: string) => void;
   onScanId?: () => void;
-  vehicle: string;
-  onVehicleChange: (v: string) => void;
+  // Vehicle registration removed per client instruction (no driver/vehicle
+  // management for this mall deployment) — props kept to avoid touching callers.
   carryingMaterial: boolean;
   onCarryingMaterialChange: (v: boolean) => void;
   photoBlob: Blob | null;
@@ -52,7 +52,8 @@ type Props = {
 export default function VisitorFormFields({
   phone, onPhoneChange, onPhoneBlur, fullName, onFullNameChange, vendorName, onVendorNameChange,
   purpose, onPurposeChange, deptId, onDeptChange, departments, hostId, onHostChange, hosts,
-  hostError, onRetryHosts, idType, onIdTypeChange, idLast4, onIdLast4Change, onScanId, vehicle, onVehicleChange,
+  hostError, onRetryHosts, idType, onIdTypeChange, idLast4, onIdLast4Change, onScanId,
+  // vehicle / onVehicleChange removed from the surface per client instruction.
   carryingMaterial, onCarryingMaterialChange, photoBlob, onPhotoCapture, onRetakePhoto, submitting,
   blacklistHit, activeVisitChecking,
 }: Props): React.ReactElement {
@@ -111,7 +112,6 @@ export default function VisitorFormFields({
             </button>
           </div>
         )}
-        <div className="sm:col-span-2"><label className="label">Vehicle Number (optional)</label><input type="text" maxLength={20} value={vehicle} onChange={(e) => onVehicleChange(e.target.value)} className="input" placeholder="MH 12 AB 1234" /></div>
         <div className="sm:col-span-2">
           <label className="label flex items-center gap-2 cursor-pointer">
             <input type="checkbox" checked={carryingMaterial} onChange={(e) => onCarryingMaterialChange(e.target.checked)} className="h-4 w-4 rounded border-surface-300 text-brand-600 focus:ring-brand-500" />
