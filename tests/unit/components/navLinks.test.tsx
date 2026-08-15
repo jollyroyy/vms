@@ -12,14 +12,18 @@ describe('navLinks: linksForRole', () => {
   // the Visitors tab itself went, every card it carried having moved onto the
   // dashboard. The ROUTE stays allowed, like /kiosk; it is the nav item that
   // was removed.
+  // Re-ordered 2026-08-15 (client instruction): the two ARRIVAL routes sit
+  // second and third, directly under the board. A visitor either holds a pass
+  // (Scan Pass) or does not (Register Walk-in) — those are the two things a
+  // guard starts, and everything below them is a list of work already started.
   it('guard gets exactly 5 links, in order, with the exact labels, and no Visitors or Search', () => {
     const links = linksForRole('guard');
     expect(links.map((l) => l.label)).toEqual([
       'Dashboard',
-      'Entry & Exit',
-      'Pre-Registered',
       'Scan Pass',
       'Register Walk-in',
+      'Entry & Exit',
+      'Pre-Registered',
     ]);
     expect(links.map((l) => l.label)).not.toContain('Visitors');
     expect(links.map((l) => l.label)).not.toContain('Search');
@@ -27,20 +31,19 @@ describe('navLinks: linksForRole', () => {
     expect(links.map((l) => l.label)).not.toContain('Watchlist');
   });
 
-  it('guard tab links point at the reference-screen routes, in reference order', () => {
+  it('guard tab links point at the reference-screen routes, in nav order', () => {
     const links = linksForRole('guard');
     expect(links[0]?.to).toBe('/guard/dashboard');
-    expect(links[1]?.to).toBe('/guard/inside-now');
-    expect(links[2]?.to).toBe('/guard/preregistered');
-    expect(links[3]?.to).toBe('/guard/scan-pass');
-    expect(links[4]?.to).toBe('/guard/walk-in');
+    expect(links[1]?.to).toBe('/guard/scan-pass');
+    expect(links[2]?.to).toBe('/guard/walk-in');
+    expect(links[3]?.to).toBe('/guard/inside-now');
+    expect(links[4]?.to).toBe('/guard/preregistered');
   });
 
-  it('guard Scan Pass link points to /guard/scan-pass and sits fourth', () => {
+  it('puts the two ways a visitor arrives second and third', () => {
     const links = linksForRole('guard');
-    const scan = links.find((l) => l.label === 'Scan Pass');
-    expect(scan?.to).toBe('/guard/scan-pass');
-    expect(links[3]?.label).toBe('Scan Pass');
+    expect(links[1]?.label).toBe('Scan Pass');
+    expect(links[2]?.label).toBe('Register Walk-in');
   });
 
   // No link anywhere is a group (SidebarNavGroup.tsx was deleted 2026-08-13):

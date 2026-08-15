@@ -1,13 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { formatDateTime } from '../lib/formatDate';
 import { useLiveElapsed } from '../lib/useLiveElapsed';
-import { maskIdProof } from '../lib/pii';
 import { approvalTimestamp } from '../lib/visitApproval';
-import { canRoleShowPass, canShowPass } from '../lib/passVisibility';
 import type { ReportVisit } from '../lib/reportRow';
 import type { UserRole } from '../types/index';
 import VisitorDetailsActions from './VisitorDetailsActions';
-import PreApprovalPass from './PreApprovalPass';
+import VisitorDetailsOverview from './VisitorDetailsOverview';
+import VisitorDetailsIdCard, { isIdentityVerified } from './VisitorDetailsIdCard';
 import { VisitorTimelineCard } from './VisitorDetailsTimeline';
 
 interface Props {
@@ -45,22 +43,10 @@ const STATUS_COLORS: Record<string, { bg: string; text: string; dot: string }> =
   no_show:          { bg: 'bg-warning-50', text: 'text-warning-700', dot: 'bg-orange-500' },
 };
 
-function InfoRow({ icon, label, value, sub }: { icon: React.ReactNode; label: string; value: string; sub?: string }) {
-  if (!value || value === '—') return null;
-  return (
-    <div className="flex items-start gap-2.5">
-      <span className="text-navy-300 mt-0.5 shrink-0">{icon}</span>
-      <div className="min-w-0">
-        <p className="text-micro text-navy-500 dark:text-navy-400 uppercase leading-none mb-0.5">{label}</p>
-        <p className="text-body font-medium text-navy-800 truncate">{value}</p>
-        {/* The department the host belongs to — folded under their name rather
-            than kept as its own row, so it is never rendered twice on the
-            same card. */}
-        {sub && <p className="text-caption text-navy-500 dark:text-navy-400 truncate mt-0.5">{sub}</p>}
-      </div>
-    </div>
-  );
-}
+// Two tabs, not three. The Timeline stays BELOW both rather than becoming one,
+// because it is the same visit's clock in either view and a guard reading the
+// ID should not lose sight of when the visitor arrived.
+type Tab = 'overview' | 'id';
 
 export default function VisitorDetails({
   visit: v, onClose, viewerRole, acting, reason, onReasonChange, onApprove, onReject,
@@ -70,7 +56,13 @@ export default function VisitorDetails({
   const dur = useLiveElapsed(v.checked_in_at, v.checked_out_at);
   const approvedAt = approvalTimestamp(v);
   const s = STATUS_COLORS[v.status] ?? { bg: 'bg-surface-100', text: 'text-navy-500', dot: 'bg-navy-300' };
-  const [showPass, setShowPass] = useState(false);
+  const [tab, setTab] = useState<Tab>('overview');
+
+  // An HOD approves on who is visiting and why, never on the ID itself —
+  // matching a government document to the face in front of it is the guard's
+  // job at the gate. So the HOD's copy has no ID tab at all, rather than a tab
+  // that opens onto a refusal.
+  const showIdTab = viewerRole !== 'hod';
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
@@ -99,7 +91,10 @@ export default function VisitorDetails({
           type="button"
           aria-label="Close"
           onClick={(e) => { e.stopPropagation(); onClose(); }}
-          className="absolute top-4 right-4 w-9 h-9 flex items-center justify-center rounded-full bg-white/15 hover:bg-white/25 text-white hover:text-white backdrop-blur-sm transition-all z-30"
+          // Neutral, not white-on-navy: there is no dark banner behind it any
+          // more, so a white cross would have been invisible in light mode. One
+          // token step, no `dark:` pair — the navy scale flips on its own.
+          className="absolute top-4 right-4 w-9 h-9 flex items-center justify-center rounded-full bg-navy-950/[0.06] dark:bg-white/[0.08] hover:bg-navy-950/10 dark:hover:bg-white/[0.14] text-navy-800 transition-all z-30"
         >
           <svg className="pointer-events-none w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -110,149 +105,85 @@ export default function VisitorDetails({
             below its content and the scrollbar never appears. */}
         <div className="flex-1 min-h-0 overflow-y-auto">
 
-        {/* Header with gradient. The navy scale is INVERTED in dark mode, so
-            plain `navy-900/800` — chosen here because they are dark in light
-            mode — turn into near-white and swallow the white close button. The
-            dark: overrides pin the header to the low end of the flipped scale
-            so it stays dark in both themes. */}
-        <div className="relative bg-gradient-to-br from-navy-900 via-navy-800 to-brand-900 dark:from-navy-100 dark:via-navy-200 dark:to-brand-950 px-6 pt-5 pb-14">
-          <div aria-hidden="true" className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(51,150,255,0.2),transparent_70%)]" />
-          {/* No ref number here. It is printed on the pass itself, one click
-              away under View Pass, which is the copy that matters — the one the
-              visitor shows and the guard reads back. Repeating it in the modal
-              chrome spent the most prominent line of the popup on a value
-              nobody acts on at this point. */}
-        </div>
+        {/* ONE SURFACE, top to bottom (client report, 2026-08-15). This used to
+            open with a navy→brand gradient band carrying a radial highlight,
+            with a white profile card lifted onto it — three tones stacked in
+            the first 120px of the popup. In dark mode that read as a light
+            patch behind the visitor's name on an otherwise dark panel, which is
+            what the client saw. Nothing above the tabs paints a background now:
+            the header row IS the modal's own glass, and the photo, the name and
+            the status pill sit directly on it, separated from the tabs by a
+            hairline rather than by a change of colour. `pr-14` keeps the row
+            clear of the close button, which is out of the flow (56px, the
+            arithmetic in CLAUDE.md).
 
-        {/* Profile card overlapping header */}
-        <div className="px-5 -mt-10 relative z-10">
-          {/* Same inverted-scale trap: `dark:bg-navy-800` rendered a near-white
-              card, which the `text-navy-950` name below (also near-white in
-              dark) then vanished into. A translucent white lift reads as
-              elevated over the glass modal in both themes. */}
-          <div className="bg-white dark:bg-white/[0.07] rounded-2xl shadow-elevated p-4 flex gap-4 items-center border border-surface-200/40 dark:border-white/[0.08]">
-            {v.photo_url ? (
-              <img src={v.photo_url} alt="" className="w-14 h-14 object-cover rounded-xl ring-2 ring-brand-500/20 shrink-0" />
-            ) : (
-              <div className="w-14 h-14 bg-gradient-to-br from-brand-100 to-accent-100 dark:from-brand-500/20 dark:to-accent-500/25 rounded-xl flex items-center justify-center shrink-0">
-                <svg className="w-6 h-6 text-brand-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0" />
-                </svg>
-              </div>
-            )}
-            <div className="min-w-0 flex-1">
-              <p className="text-h3 text-navy-950 truncate">{v.visitor?.full_name ?? '—'}</p>
-              {v.visitor?.vendor_name && <p className="text-caption text-navy-500 dark:text-navy-400 truncate mt-0.5">{v.visitor.vendor_name}</p>}
-              <div className="mt-1.5">
-                <span className={`status-badge capitalize ${s.bg} ${s.text}`}>
-                  <span className={`h-1.5 w-1.5 rounded-full ${s.dot} ${v.status === 'checked_in' ? 'animate-pulse' : ''}`} />
-                  {v.status.replace(/_/g, ' ')}
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Details section */}
-        <div className="px-5 pt-5 pb-3">
-          <p className="eyebrow mb-3">Details</p>
-          <div className="grid grid-cols-2 gap-x-4 gap-y-3.5">
-            <InfoRow
-              label="Phone"
-              value={v.visitor?.phone ?? '—'}
-              icon={<svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z" /></svg>}
-            />
-            <InfoRow
-              label="Person to Meet"
-              value={v.host?.full_name ?? '—'}
-              sub={v.department?.name}
-              icon={<svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0" /></svg>}
-            />
-            <InfoRow
-              label="Purpose"
-              value={v.purpose ?? '—'}
-              icon={<svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9.568 3H5.25A2.25 2.25 0 003 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 005.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 009.568 3z" /><path strokeLinecap="round" strokeLinejoin="round" d="M6 6h.008v.008H6V6z" /></svg>}
-            />
-            {/* The time the HOD booked the visitor for. It is the one field the
-                approver chose themselves, and it is what tells anyone reading
-                this whether the visitor is early, expected or overdue — none of
-                which is answerable from the status alone. Absent for walk-ins,
-                which have no scheduled_for by construction, so the row is
-                conditional rather than showing a dash on every walk-in. */}
-            {v.scheduled_for && (
-              <InfoRow
-                label="Expected At"
-                value={formatDateTime(v.scheduled_for)}
-                icon={<svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>}
-              />
-            )}
-            {/* Only when the approver actually named a departure. Its absence is
-                the ordinary case and means "no answer given", not "leaves
-                immediately" — so no row rather than a dash. When present it is
-                the deadline the overstay rule uses. */}
-            {v.expected_departure && (
-              <InfoRow
-                label="Expected Departure"
-                value={formatDateTime(v.expected_departure)}
-                icon={<svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M8.25 9V5.25A2.25 2.25 0 0110.5 3h6a2.25 2.25 0 012.25 2.25v13.5A2.25 2.25 0 0116.5 21h-6a2.25 2.25 0 01-2.25-2.25V15m-3 0l-3-3m0 0l3-3m-3 3H15" /></svg>}
-              />
-            )}
-          </div>
-
-          {/* An HOD approves on who is visiting and why, never on the ID itself —
-              matching a government document to the face in front of it is the
-              guard's job at the gate, so the HOD's copy of this popup omits it. */}
-          {v.visitor?.id_type && viewerRole !== 'hod' && (
-            <div className="mt-3.5">
-              <InfoRow
-                label="ID Document"
-                value={maskIdProof(v.visitor.id_type, v.visitor.id_last4)}
-                icon={<svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15 9h3.75M15 12h3.75M15 15h3.75M4.5 19.5h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5zm6-10.125a1.875 1.875 0 11-3.75 0 1.875 1.875 0 013.75 0zm1.294 6.336a6.721 6.721 0 01-3.17.789 6.721 6.721 0 01-3.168-.789 3.376 3.376 0 016.338 0z" /></svg>}
-              />
+            No ref number here either. It is printed on the pass itself, one
+            click away under View Pass — the copy the visitor shows and the
+            guard reads back. */}
+        <div className="px-5 pt-5 pb-4 pr-14 flex gap-4 items-center border-b border-surface-200/50 dark:border-white/[0.07]">
+          {v.photo_url ? (
+            <img src={v.photo_url} alt="" className="w-14 h-14 object-cover rounded-xl ring-2 ring-brand-500/20 shrink-0" />
+          ) : (
+            <div className="w-14 h-14 rounded-xl bg-navy-950/[0.04] dark:bg-white/[0.06] flex items-center justify-center shrink-0">
+              <svg className="w-6 h-6 text-brand-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0" />
+              </svg>
             </div>
           )}
-
-          {v.carrying_remarks ? (
-            <div className="mt-3.5 flex items-start gap-2 text-warning-700 bg-warning-50 rounded-lg px-3 py-2">
-              <svg className="w-4 h-4 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z" /></svg>
-              <div className="min-w-0">
-                <p className="text-caption font-semibold">Carrying</p>
-                <p className="text-caption mt-0.5 break-words">{v.carrying_remarks}</p>
-              </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-h3 text-navy-950 truncate">{v.visitor?.full_name ?? '—'}</p>
+            {v.visitor?.vendor_name && <p className="text-caption text-navy-500 truncate mt-0.5">{v.visitor.vendor_name}</p>}
+            <div className="mt-1.5">
+              <span className={`status-badge capitalize ${s.bg} ${s.text}`}>
+                <span className={`h-1.5 w-1.5 rounded-full ${s.dot} ${v.status === 'checked_in' ? 'animate-pulse' : ''}`} />
+                {v.status.replace(/_/g, ' ')}
+              </span>
             </div>
-          ) : v.carrying_material ? (
-            <div className="mt-3.5 flex items-center gap-2 text-warning-700 bg-warning-50 rounded-lg px-3 py-2">
-              <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z" /></svg>
-              <span className="text-caption font-semibold">Carrying Material</span>
-            </div>
-          ) : null}
+          </div>
+        </div>
 
-          {/* Two independent gates, both must pass. canShowPass says the visit
-              is at a stage where a pass still means something; canRoleShowPass
-              says this viewer may be shown one at all — guards never may, so
-              the toggle, the QR and both downloads disappear together for them.
-              Everything else on this popup stays visible to a guard: confirming
-              a visitor's identity against their record is the whole job. */}
-          {canShowPass(v.status) && canRoleShowPass(viewerRole) && (
-            <div className="mt-3.5">
+        {/* Tab bar. A segmented control, not links: this popup is one record
+            and the tabs are two readings of it. The ID tab exists because "what
+            document did we take, and does the face match" is the question a
+            guard is later asked to account for, and it used to be one masked
+            line between Purpose and Carrying. */}
+        <div className="px-5 pt-4">
+          <div role="tablist" aria-label="Visitor details" className="flex gap-1 p-1 rounded-xl bg-surface-100 dark:bg-white/[0.05]">
+            {([
+              ['overview', 'Overview'],
+              ...(showIdTab ? [['id', 'ID & Photo'] as const] : []),
+            ] as [Tab, string][]).map(([key, label]) => (
               <button
+                key={key}
+                role="tab"
                 type="button"
-                onClick={() => setShowPass((prev) => !prev)}
-                className="w-full text-caption font-bold text-brand-600 dark:text-brand-300 hover:text-brand-700 dark:hover:text-brand-200 flex items-center justify-center gap-1.5 py-2 rounded-lg border border-brand-200 dark:border-brand-500/30 bg-brand-50/60 hover:bg-brand-50 transition-all"
+                aria-selected={tab === key}
+                onClick={() => setTab(key)}
+                className={`flex-1 rounded-lg px-3 py-2 text-caption font-bold transition-all ${
+                  tab === key
+                    ? 'bg-white dark:bg-white/[0.12] text-navy-950 shadow-soft'
+                    : 'text-navy-600 hover:text-navy-800'
+                }`}
               >
-                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 4.5h4.5v4.5h-4.5v-4.5zM15.75 4.5h4.5v4.5h-4.5v-4.5zM3.75 15.75h4.5v4.5h-4.5v-4.5zM15.75 15.75h1.5v1.5h-1.5v-1.5zM19.5 15.75h.75v.75h-.75v-.75zM15.75 19.5h.75v.75h-.75v-.75zM18.75 18.75h1.5v1.5h-1.5v-1.5z" /></svg>
-                {showPass ? 'Hide Pass' : 'View Pass'}
+                <span className="inline-flex items-center justify-center gap-1.5">
+                  {label}
+                  {/* A tick on the tab itself, so the answer is visible without
+                      opening it — and only when it is genuinely true. */}
+                  {key === 'id' && isIdentityVerified(v) && (
+                    <svg className="w-3.5 h-3.5 text-success-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.6} aria-hidden="true">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                    </svg>
+                  )}
+                </span>
               </button>
-              {/* The header card above already shows the photo, name and
-                  company; Details shows Person to Meet and the ID. The
-                  expanded pass must NOT repeat any of them — it carries only
-                  what the popup does not: ref/status, the pass timing and
-                  the QR. identityShownElsewhere strips the identity block
-                  (and the ID with it) out of PreApprovalPass. */}
-              {showPass && <PreApprovalPass visit={v} identityShownElsewhere />}
-            </div>
-          )}
+            ))}
+          </div>
         </div>
+
+        {tab === 'overview'
+          ? <VisitorDetailsOverview visit={v} viewerRole={viewerRole} />
+          : <VisitorDetailsIdCard visit={v} />}
+
 
         {/* Timeline. Hidden from a guard on the client's instruction
             (2026-08-13) — the rejection reason inside it is not, see

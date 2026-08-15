@@ -41,22 +41,35 @@ describe('VisitorDetails — closing the popup', () => {
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
-  // Regression guard: the profile card wrapper is a LATER sibling with z-10 and
-  // is pulled up into the header with -mt-10, leaving only ~2px of clearance.
-  // At equal z-index the later sibling wins, so any font/zoom variation made it
-  // cover the cross and swallow the click. The cross must outrank it.
-  it('stacks the close button above the overlapping profile card', () => {
-    render(<VisitorDetails visit={visit} onClose={vi.fn()} />);
-    expect(screen.getByRole('button', { name: 'Close' }).className).toContain('z-30');
+  // ONE SURFACE, TOP TO BOTTOM (client report, 2026-08-15). The popup used to
+  // open with a navy→brand gradient band plus a radial highlight behind the
+  // visitor's name, and a white profile card lifted on top of it — three tones
+  // stacked in the first 120px, which in dark mode read as a light patch on an
+  // otherwise dark panel. Nothing above the tabs may paint its own background.
+  it('paints no gradient band or tinted card behind the name', () => {
+    const { container } = render(<VisitorDetails visit={visit} onClose={vi.fn()} />);
+    const html = container.innerHTML;
+    expect(html).not.toContain('bg-gradient-to-br');
+    expect(html).not.toContain('radial-gradient');
+    // The white lift behind the name is the other half of the same complaint.
+    // Walked from the name upwards, so the tab bar's selected pill — a control
+    // state, which must stay distinguishable — is out of scope.
+    for (let el = screen.getByText('John Doe').parentElement; el; el = el.parentElement) {
+      expect(el.className).not.toMatch(/(^|\s)bg-white(\s|$)/);
+      expect(el.className).not.toContain('bg-gradient');
+    }
   });
 
-  // The decorative radial-gradient fills the whole header, including the area
-  // under the cross. It must never intercept pointer events.
-  it('makes the decorative header gradient non-interactive', () => {
-    const { container } = render(<VisitorDetails visit={visit} onClose={vi.fn()} />);
-    const decorative = container.querySelector('[aria-hidden="true"]');
-    expect(decorative).not.toBeNull();
-    expect(decorative!.className).toContain('pointer-events-none');
+  // The cross sits in the header row's own reserved space rather than floating
+  // over a banner, so nothing can grow underneath it — but it must still
+  // out-rank whatever it shares that row with.
+  it('keeps the close button clickable above the header row', () => {
+    const onClose = vi.fn();
+    render(<VisitorDetails visit={visit} onClose={onClose} />);
+    const close = screen.getByRole('button', { name: 'Close' });
+    expect(close.className).toContain('z-30');
+    fireEvent.click(close);
+    expect(onClose).toHaveBeenCalledTimes(1);
   });
 
   it('closes on Escape', () => {
@@ -153,7 +166,10 @@ describe('VisitorDetails — reopening the entry pass', () => {
 
     expect(screen.getAllByText('John Doe')).toHaveLength(1);
     expect(screen.getAllByText('Acme Corp')).toHaveLength(1);
-    expect(screen.getAllByText('Aadhaar ••••46')).toHaveLength(1);
+    // The ID moved to its own tab (2026-08-15), so on the Overview tab it must
+    // appear NOWHERE — including inside the pass, which is what
+    // identityShownElsewhere strips.
+    expect(screen.queryByText('Aadhaar ••••46')).not.toBeInTheDocument();
     // "Valid For" was one mislabelled row; the pass now shows two, Scheduled
     // At and Valid Until (2026-08-15 client report).
     expect(screen.getByText('Scheduled At')).toBeInTheDocument();
@@ -276,25 +292,5 @@ describe('VisitorDetails — Person to Meet shows the host\'s department beneath
     render(<VisitorDetails visit={noHost} onClose={vi.fn()} />);
     expect(screen.queryByText('Person to Meet')).not.toBeInTheDocument();
     expect(screen.queryByText('Engineering')).not.toBeInTheDocument();
-  });
-});
-
-// An HOD approves on who is visiting and why — confirming a government ID
-// against a face is the guard's job at the gate, not the HOD's, so the ID
-// document must not appear anywhere on the HOD's copy of this popup.
-describe('VisitorDetails — ID document is hidden from an HOD', () => {
-  afterEach(() => cleanup());
-
-  const withId = { ...visit, visitor: { ...visit.visitor, id_type: 'Aadhaar', id_last4: '9646' } } as unknown as Visit;
-
-  it('does not show the ID Document row to an HOD', () => {
-    render(<VisitorDetails visit={withId} onClose={vi.fn()} viewerRole="hod" />);
-    expect(screen.queryByText('ID Document')).not.toBeInTheDocument();
-  });
-
-  it('still shows the ID Document row to a non-HOD viewer', () => {
-    render(<VisitorDetails visit={withId} onClose={vi.fn()} viewerRole="admin" />);
-    expect(screen.getByText('ID Document')).toBeInTheDocument();
-    expect(screen.getByText('Aadhaar ••••46')).toBeInTheDocument();
   });
 });
