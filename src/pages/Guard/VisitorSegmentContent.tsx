@@ -2,7 +2,8 @@ import React from 'react';
 import type { Visit } from '../../types/index';
 import VisitorStackList from './VisitorStackList';
 import GuardWalkIns from './GuardWalkIns';
-import GuardWalkInApproved, { type WalkInCheckIn } from './GuardWalkInApproved';
+import GuardWalkInApproved from './GuardWalkInApproved';
+import type { WalkInCheckIn } from '../../lib/checkInWalkInApproved';
 import { SEGMENT_META, segmentVisits, type ListSegment, type VisitorSegment } from '../../lib/visitorSegments';
 
 /** Heading + subtitle for a segment that is a flow rather than a list.

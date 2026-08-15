@@ -19,6 +19,7 @@ import type { Visit } from '../../types/index';
 import { attachHostNames } from '../../lib/hostNames';
 import { checkInScannedVisit } from '../../lib/checkInFlow';
 import GuardQRScan from './GuardQRScan';
+import ScanPassLookup from './ScanPassLookup';
 import CheckInPhotoStep from './CheckInPhotoStep';
 import { visitToMatchItem } from './qrMatchItem';
 import type { MatchItem } from './checkInTypes';
@@ -66,7 +67,7 @@ export default function GuardScanPass(): React.ReactElement {
     <div className="space-y-5">
       <div>
         <h1 className="font-display text-xl font-bold text-navy-950 dark:text-white">Scan Pass</h1>
-        <p className="text-sm text-navy-500 dark:text-navy-400 mt-0.5">Scan a visitor's entry pass to check them in.</p>
+        <p className="text-sm text-navy-500 dark:text-navy-400 mt-0.5">Scan a visitor's entry pass to check them in — or find them by name or mobile number.</p>
       </div>
 
       {successMsg && (
@@ -97,7 +98,15 @@ export default function GuardScanPass(): React.ReactElement {
           onScanResult={setIdScan}
         />
       ) : (
-        <GuardQRScan onResolved={(v) => void handleResolved(v)} onCancel={() => navigate('/guard/pre-approvals')} />
+        <div className="space-y-5">
+          <GuardQRScan onResolved={(v) => void handleResolved(v)} onCancel={() => navigate('/guard/pre-approvals')} />
+          {/* The other way in, for the ordinary cases the camera cannot serve:
+              a flat phone, a pass left at home, a printout that will not focus,
+              a browser that hides mediaDevices on an insecure origin. See
+              ScanPassLookup — it searches every status, and the rows it returns
+              are non-actionable unless the pass is genuinely honourable today. */}
+          <ScanPassLookup onSelect={setMatch} />
+        </div>
       )}
     </div>
   );

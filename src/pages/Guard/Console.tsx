@@ -8,7 +8,7 @@ import { istDateKey } from '../../lib/visitExpiry';
 import { segmentFromSlug, visitorLoadFilter } from '../../lib/visitorSegments';
 import VisitorSegmentContent from './VisitorSegmentContent';
 import VisitorKpiRail from './VisitorKpiRail';
-import { type WalkInCheckIn } from './GuardWalkInApproved';
+import { checkInApprovedWalkIn, type WalkInCheckIn } from '../../lib/checkInWalkInApproved';
 import { uploadPhoto } from '../../lib/photoUpload';
 import { isAlreadyInsideError } from '../../lib/activeVisit';
 import { notifyHostOnCheckIn } from '../../lib/notifyHostCheckIn';
@@ -84,41 +84,15 @@ export default function GuardConsole(): React.ReactElement {
   // already exists (WalkInRequest created it), so this is an update, not an
   // insert — and the photo is captured now rather than at registration, because
   // at registration nobody knew yet whether this visitor was coming in.
+  // The write itself lives in lib/checkInWalkInApproved.ts — it has two
+  // callers since the walk-in lane became its own destination (/guard/walk-in),
+  // and the only route from walkin_approved to checked_in must not exist twice.
   const checkInWalkIn = async (visit: Visit, details: WalkInCheckIn) => {
     setActionErr(''); setBusyId(visit.id);
-    try {
-      const { photoPath, photoData } = await uploadPhoto(details.photoBlob);
-      const remarks = details.remarks.trim();
-      // The ID read at the gate belongs on the visitor row, the same way
-      // checkInScannedVisit persists it for the pre-approved lane — one
-      // identity record whatever the arrival route.
-      if (details.idScan?.idType || details.idScan?.idLast4) {
-        await supabase.from('visitors').update({
-          id_type: details.idScan.idType || null,
-          id_last4: details.idScan.idLast4 || null,
-        }).eq('id', visit.visitor_id);
-      }
-      const { error, data: updated } = await supabase.from('visits').update({
-        status: 'checked_in',
-        checked_in_at: new Date().toISOString(),
-        carrying_material: details.carrying,
-        carrying_remarks: details.carrying && remarks ? remarks : null,
-        visitor_card_number: details.cardNumber.trim(),
-        ...(photoData ? { photo_data: photoData } : {}),
-        ...(photoPath ? { photo_path: photoPath } : {}),
-      } as never).eq('id', visit.id).select('id, host_id').maybeSingle();
-      if (error) throw error;
-      if (updated) void notifyHostOnCheckIn({ id: updated.id, host_id: (updated as { host_id: string | null }).host_id, visitor_name: visit.visitor?.full_name ?? undefined });
-      onCheckInSuccess(visit.visitor?.full_name ?? 'Visitor');
-    } catch (err) {
-      // The one-open-visit-per-visitor index (migration 060) is matched by
-      // constraint NAME, so an unrelated unique violation is not mislabelled.
-      setActionErr(isAlreadyInsideError(err)
-        ? 'That visitor is already checked in and has not been checked out.'
-        : safeErrorMessage(err, 'Check-in failed.'));
-    } finally {
-      setBusyId(null);
-    }
+    const res = await checkInApprovedWalkIn(visit, details);
+    setBusyId(null);
+    if (!res.ok) { setActionErr(res.message); return; }
+    onCheckInSuccess(res.visitorName);
   };
 
   const onCheckInSuccess = useCallback((name: string) => {

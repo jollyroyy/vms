@@ -102,7 +102,13 @@ describe('M-AI-OCR-UI: CheckInPhotoStep scan + identity match', () => {
     await waitFor(() => {
       expect(screen.getByText('Identity verified')).toBeInTheDocument();
     });
-    expect(onScanResult).toHaveBeenCalledWith({ idType: 'PAN', idLast4: '234F', name: 'Rahul Verma' });
+    expect(onScanResult).toHaveBeenCalledWith(
+      expect.objectContaining({ idType: 'PAN', idLast4: '234F', name: 'Rahul Verma' }),
+    );
+    // The scan's own fields stay on screen after it is accepted — a verdict on
+    // its own asked the guard to trust a match without seeing what was matched.
+    expect(screen.getByText('Name on ID')).toBeInTheDocument();
+    expect(screen.getByText('Document')).toBeInTheDocument();
     const checkInButton = screen.getByText('Check In');
     expect(checkInButton.closest('button')).not.toBeDisabled();
   });

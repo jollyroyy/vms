@@ -97,7 +97,17 @@ export default function Sidebar({ session, role, collapsed: collapsedProp, onCol
       <div className="flex-1 overflow-y-auto px-3 space-y-1.5 pb-4">
         {links.map((link) => {
           const { to, label, icon } = link;
-          const active = loc.pathname === to || (to !== '/' && loc.pathname.startsWith(to));
+          // A link may carry a query (the HOD's Walk-in desk and Visitor
+          // schedule are `?tab=` views of /overview — they moved here from a
+          // second tab bar inside the page, 2026-08-15). Path-only matching
+          // would light every one of them at once, so a link WITH a query must
+          // match the query exactly, and a link WITHOUT one must not match a
+          // sibling that has one.
+          const queryAt = to.indexOf('?');
+          const toPath = queryAt === -1 ? to : to.slice(0, queryAt);
+          const toQuery = queryAt === -1 ? '' : to.slice(queryAt + 1);
+          const pathMatch = loc.pathname === toPath || (toPath !== '/' && loc.pathname.startsWith(toPath));
+          const active = pathMatch && (toQuery ? loc.search === `?${toQuery}` : !loc.search.includes('tab='));
           return (
             <Link key={to} to={to} title={isCollapsed ? label : undefined}
               className={`sidebar-link px-3 py-2.5 ${isCollapsed ? 'justify-center !px-0' : ''} ${active ? 'sidebar-link-active' : ''}`}>

@@ -1,6 +1,7 @@
 import React from 'react';
 
 import type { ReportVisit } from '../../lib/reportRow';
+import GateChips from '../../components/GateChips';
 
 // The Entry & Exit table. Row click or the Verify button selects the visit and
 // opens the check-in frame.
@@ -10,14 +11,21 @@ import type { ReportVisit } from '../../lib/reportRow';
 // have to select a row to find out. A visitor still on site shows an em dash
 // under Out, never a blank: blank reads as "not recorded", and here it means
 // "still here", which is precisely the distinction being looked for.
-
-export type LiveQueuePill = { label: string; cls: string };
+//
+// THE STATUS CELL IS A ROW OF SMALL BOXED LABELS, not one pill (client
+// instruction, 2026-08-15). A checked-in row now says in words whether the
+// person is STILL INSIDE or has CHECKED OUT, and adds a box for each exception
+// that applies: OVERSTAYING (with the overrun) and LATE BY (how far past their
+// booked slot they actually arrived). Lateness is stated on a row that has
+// already checked in on purpose — "they arrived" and "they arrived two hours
+// late" are two different facts, and the second does not stop being true once
+// the first is. The rules are in lib/visitGateChips.ts, shared with the guard
+// dashboard, so one visitor reads identically on both surfaces.
 
 type LiveQueueTableProps = {
   queue: ReportVisit[];
   loading: boolean;
   initialsOf: (name: string | null | undefined) => string;
-  statusPill: (v: ReportVisit) => LiveQueuePill;
   timeOf: (v: ReportVisit) => string;
   /** The exit time, or an em dash for a visitor still on site. */
   exitTimeOf: (v: ReportVisit) => string;
@@ -35,7 +43,6 @@ export default function LiveQueueTable({
   queue,
   loading,
   initialsOf,
-  statusPill,
   timeOf,
   exitTimeOf,
   emptyMessage,
@@ -75,7 +82,6 @@ export default function LiveQueueTable({
           )}
           {!loading &&
             queue.map((v) => {
-              const pill = statusPill(v);
               return (
                 <tr
                   key={v.id}
@@ -106,9 +112,7 @@ export default function LiveQueueTable({
                   <td className="px-4 py-3 tabular-nums text-[#9aa3af] dark:text-[#b7c0cb] font-semibold">{timeOf(v)}</td>
                   <td className="px-4 py-3 tabular-nums text-[#9aa3af] dark:text-[#b7c0cb] font-semibold">{exitTimeOf(v)}</td>
                   <td className="px-4 py-3">
-                    <span className={`inline-block text-[10px] font-bold uppercase tracking-wider rounded-md px-2 py-1 border ${pill.cls}`}>
-                      {pill.label}
-                    </span>
+                    <GateChips visit={v} />
                   </td>
                   <td className="px-4 py-3 text-right">
                     {/* A visitor who has already left has nothing left to do to

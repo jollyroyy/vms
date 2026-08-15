@@ -21,10 +21,15 @@ type AdminResetResult = { id: string; email: string; must_change_password: boole
 // every other table (verified: it makes an unrelated recurring_visits/departments
 // query fail to typecheck elsewhere) — well outside this component's job. Cast
 // narrowly, scoped to this one call, instead of touching shared schema typing.
-const callAdminResetPassword = supabase.rpc as unknown as (
+// Invoked ON the client, never lifted off it: supabase.rpc reads `this.rest`,
+// so a detached `const f = supabase.rpc` throws "Cannot read properties of
+// undefined (reading 'rest')" on every call.
+type AdminResetRpc = (
   fn: 'admin_reset_user_password',
   args: { p_user_id: string; p_password: string },
 ) => Promise<{ data: AdminResetResult | null; error: { message: string } | null }>;
+const callAdminResetPassword: AdminResetRpc = (fn, args) =>
+  (supabase.rpc as unknown as AdminResetRpc).call(supabase, fn, args);
 
 /** A strong, unambiguous password an admin can read aloud or hand over on paper. */
 function generatePassword(): string {

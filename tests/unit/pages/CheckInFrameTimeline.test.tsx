@@ -42,7 +42,6 @@ function renderFrame(v: ReportVisit = visit()) {
     <CheckInFrame
       activeVisit={v}
       qrDataUrl={null}
-      onNotifyHost={() => {}}
       onPrintBadge={() => {}}
       onClose={() => {}}
     />,
@@ -50,14 +49,18 @@ function renderFrame(v: ReportVisit = visit()) {
 }
 
 describe('CheckInFrame — visit timeline', () => {
-  it('shows the approval, check-in and check-out stages with their times', () => {
+  it('shows the approval, scheduled slot, check-in and check-out stages with their times', () => {
     renderFrame(visit({ status: 'checked_out', checked_out_at: '2026-08-14T12:00:00Z' }));
     expect(screen.getByText('Visit Timeline')).toBeInTheDocument();
     expect(screen.getByText('Approved')).toBeInTheDocument();
+    // The pre-approver's own slot (client instruction, 2026-08-15) — the one
+    // time on a visit a human chose, and what every arrival is judged against.
+    expect(screen.getByText('Scheduled')).toBeInTheDocument();
     expect(screen.getByText('Checked in')).toBeInTheDocument();
     expect(screen.getByText('Checked out')).toBeInTheDocument();
-    // 05:00Z = 10:30 IST, 12:00Z = 17:30 IST.
-    expect(screen.getByText(/10:30/)).toBeInTheDocument();
+    // 05:00Z = 10:30 IST (the slot AND the entry, on this fixture),
+    // 12:00Z = 17:30 IST.
+    expect(screen.getAllByText(/10:30/).length).toBeGreaterThan(0);
     expect(screen.getByText(/5:30|17:30/)).toBeInTheDocument();
   });
 
@@ -97,10 +100,19 @@ describe('CheckInFrame — no Check-In Details card', () => {
     expect(screen.getAllByText('Sarah Whitfield').length).toBe(1);
   });
 
-  it('keeps the two things the table does not carry: the vehicle and Notify Host', () => {
+  it('keeps the one thing the table does not carry: the vehicle', () => {
     renderFrame();
     expect(screen.getByText('KA 05 AB 1234')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /notify host/i })).toBeInTheDocument();
+  });
+
+  // Removed 2026-08-15 (client instruction). The host is notified by the
+  // check-in itself (lib/notifyHostCheckIn.ts, fired on every path that writes
+  // checked_in), so the button could only re-raise a notice that already
+  // exists. The "Host Notified" step stays — it reports that notice.
+  it('has no Notify Host button, because the check-in already notified them', () => {
+    renderFrame();
+    expect(screen.queryByRole('button', { name: /notify host/i })).toBeNull();
+    expect(screen.getByText('Host Notified')).toBeInTheDocument();
   });
 
   it('drops the disabled one-option Badge type select with the card', () => {

@@ -19,9 +19,48 @@ import { isOverstaying } from './visitExpiry';
 // truth the tests pin, and a predicate that reads the wall clock internally
 // cannot be tested for the boundary cases that actually bite.
 
-export type GuardTileKey = 'expected' | 'checked' | 'inside' | 'overstaying';
+// Seven tiles, two rows. The first four are the gate's own board; the last
+// three came off the Visitors tab's KPI rail on 2026-08-15 (client
+// instruction), so a guard reads one board instead of comparing two screens.
+// They keep the SAME rule as the other four — the tile's count is the length of
+// the list it opens — which is the entire reason they were moved here as
+// predicates rather than as a second rail with its own query.
+//
+// `walkin` did NOT come with them: it was never a count, it was the button that
+// opens the walk-in registration form, and a form does not belong in a board of
+// numbers. It is its own left-hand nav item now (/guard/walk-in).
+export type GuardTileKey =
+  | 'expected' | 'checked' | 'inside' | 'overstaying'
+  | 'all' | 'pending' | 'walkinApproved'
+  | 'declinedByHost' | 'refusedByGuard';
 
+/** Row 1 — the gate's own board. */
 export const GUARD_TILE_KEYS: GuardTileKey[] = ['expected', 'checked', 'inside', 'overstaying'];
+
+/** Row 2 — the lanes that used to live on the Visitors tab, plus the two
+ *  refusal lanes (client instruction, 2026-08-15). */
+export const VISITOR_TILE_KEYS: GuardTileKey[] = [
+  'all', 'pending', 'walkinApproved', 'declinedByHost', 'refusedByGuard',
+];
+
+// A refusal is ONE status and TWO events. `visits.status = 'rejected'` is
+// written both when an HOD declines a request — usually before the visitor ever
+// left home — and when a guard refuses someone at the door. Those are very
+// different things to have on a record, and CLAUDE.md has always forbidden
+// printing "entry denied" for an HOD's decision.
+//
+// What separates them is the ACTOR, not the status: `log_visit_approval` stamps
+// every `visit_rejected` audit row with `auth.uid()`, and `attachVisitActors`
+// resolves that into `actor.role` on the way into `useTodayVisits`. Migration
+// 043 lets a guard read audit rows for visits they can already see, so this
+// resolves on the guard's own session rather than being an admin-only fact.
+//
+// An unresolved actor counts as the HOST's decline. It is the only refusal path
+// the app can still create — Deny Entry was removed on 2026-08-15 — so a row
+// with no readable audit line is far likelier to be an HOD's decision than a
+// guard's, and filing it under the guard would put a refusal-at-the-door on a
+// person's record on the strength of a missing row.
+const isGuardRefusal = (v: ReportVisit) => v.actor?.role === 'guard';
 
 // Which statuses mean "approved and still expected at the gate". A pre-approval
 // is INSERTed already `approved`; a walk-in becomes `walkin_approved` when the
@@ -58,6 +97,32 @@ export const TILE_FILTER: Record<GuardTileKey, (v: ReportVisit, now?: Date) => b
   // who acts records a witnessed exit where the sweep can only record that we
   // stopped believing the row (migration 067).
   overstaying: (v, now) => isOverstaying(v, now ?? new Date()),
+
+  // ── The three lanes moved off the Visitors tab (2026-08-15) ──────────────
+  // Deliberately the SAME predicates as SEGMENT_FILTER in lib/visitorSegments.ts,
+  // because they are the same questions. They are restated here rather than
+  // imported so this file stays the one place the dashboard's counts come from;
+  // if the two ever have to differ, that is a decision to make explicitly.
+
+  // Everything on the board. No filter is the point — this is the tile a guard
+  // presses to stop filtering.
+  all: () => true,
+
+  // A walk-in standing at the gate with nobody's decision on it yet. Not
+  // "expected" (nobody cleared them) and not refused — simply unanswered.
+  pending: (v) => v.status === 'pending_approval',
+
+  // The host said yes at the gate; the visitor still has to have their photo
+  // taken and be let in.
+  walkinApproved: (v) => v.status === 'walkin_approved',
+
+  // The host said no, usually before the visitor set off. NOT "entry denied".
+  declinedByHost: (v) => v.status === 'rejected' && !isGuardRefusal(v),
+
+  // A guard turned someone away at the door — the far heavier event, and the
+  // one somebody may later be asked to account for, which is why it gets its
+  // own number instead of being averaged into the one above.
+  refusedByGuard: (v) => v.status === 'rejected' && isGuardRefusal(v),
 };
 
 /** The visits behind each tile, sliced from one already-loaded day. */
@@ -67,5 +132,10 @@ export function tileVisits(visits: ReportVisit[], now: Date = new Date()): Recor
     checked: visits.filter((v) => TILE_FILTER.checked(v, now)),
     inside: visits.filter((v) => TILE_FILTER.inside(v, now)),
     overstaying: visits.filter((v) => TILE_FILTER.overstaying(v, now)),
+    all: visits.filter((v) => TILE_FILTER.all(v, now)),
+    pending: visits.filter((v) => TILE_FILTER.pending(v, now)),
+    walkinApproved: visits.filter((v) => TILE_FILTER.walkinApproved(v, now)),
+    declinedByHost: visits.filter((v) => TILE_FILTER.declinedByHost(v, now)),
+    refusedByGuard: visits.filter((v) => TILE_FILTER.refusedByGuard(v, now)),
   };
 }

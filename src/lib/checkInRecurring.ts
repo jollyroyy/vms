@@ -11,6 +11,7 @@ import { supabase } from '../supabaseClient';
 import { normalizePhone } from './blacklist';
 import { safeErrorMessage } from './errors';
 import { uploadPhoto } from './photoUpload';
+import { notifyHostOnCheckIn } from './notifyHostCheckIn';
 import {
   findActiveVisitByPhone, findActiveVisitByIdProof, activeVisitMessage,
   isAlreadyInsideError, ALREADY_INSIDE_FALLBACK,
@@ -78,7 +79,7 @@ export async function checkInRecurringVisitor(
     const hostId = match.id.split(':')[2];
     const remarksTrimmed = carrying ? remarks.trim() : '';
 
-    const { error: visitErr } = await supabase.from('visits').insert({
+    const { data: created, error: visitErr } = await supabase.from('visits').insert({
       visitor_id: vis.id,
       department_id: deptId,
       host_id: hostId || vis.id,
@@ -90,8 +91,23 @@ export async function checkInRecurringVisitor(
       carrying_material: carrying, carrying_remarks: remarksTrimmed || null,
       visitor_card_number: cardNumber.trim(),
       scheduled_for: null,
-    });
+    }).select('id, host_id').single();
     if (visitErr) throw visitErr;
+
+    // The host is notified by the check-in itself, on EVERY path — this one was
+    // the hole. `checkInFlow`, `Console.checkInWalkIn` and the kiosk all call
+    // this after their write; the recurring lane inserted a `checked_in` row
+    // and told nobody, so the one arrival a host has no pre-approval for was
+    // also the one they never heard about. Fire-and-forget, like the others:
+    // the visitor is already through the gate and a failed notification must
+    // not read to the guard as a failed check-in.
+    if (created) {
+      void notifyHostOnCheckIn({
+        id: created.id,
+        host_id: (created as { host_id: string | null }).host_id,
+        visitor_name: match.visitorName ?? undefined,
+      });
+    }
 
     return { ok: true };
   } catch (err) {

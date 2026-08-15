@@ -28,9 +28,13 @@ export const ROLE_ROUTES: Record<UserRole, string[]> = {
   // The Watchlist tab was deleted outright 2026-08-15 (client instruction):
   // the blacklist gate lives inside check-in, where it actually fires.
   guard:       ['/guard/dashboard', '/guard/inside-now', '/guard/live-queue', '/guard/preregistered',
-                '/guard/scan-pass', '/visitors', '/guard', '/guard/pre-approvals',
+                '/guard/scan-pass', '/guard/walk-in', '/visitors', '/guard', '/guard/pre-approvals',
                 '/guard/search', '/kiosk', '/whos-inside', '/profile', '/search'],
-  hod:         ['/overview', '/approvals', '/reports', '/analytics', '/profile', '/search'],
+  // No `/analytics` (client instruction, 2026-08-15). An HOD's surface is a
+  // decision desk for one department; the org-wide charts are the admin's, and
+  // dropping it here — not just from the sidebar — is what makes typing the URL
+  // fail rather than merely being unlinked.
+  hod:         ['/overview', '/approvals', '/reports', '/profile', '/search'],
   staff:       ['/visitors', '/whos-inside', '/reports', '/profile', '/search'],
   admin:       ['/analytics', '/reports', '/admin', '/profile', '/search'], // admin is restricted to analytics, reports and settings — no visitor data
 };

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useId, useState } from 'react';
 import { supabase } from '../supabaseClient';
 import type { Visit } from '../types/index';
 import { attachHostNames } from './hostNames';
@@ -31,6 +31,14 @@ const FILTER_PREDICATES: Record<PreApprovalFilter, (v: Visit, today: string) => 
 export function usePreApprovals(filter: PreApprovalFilter): UsePreApprovals {
   const [visits, setVisits] = useState<Visit[]>([]);
   const [loading, setLoading] = useState(true);
+  // One realtime topic PER HOOK INSTANCE. supabase.channel(name) returns the
+  // channel already registered under that topic, so two components (or one
+  // component calling this hook twice, as the HOD console does for 'today' and
+  // 'upcoming') both reached for the same 'guard-pre-approvals' channel — and
+  // the second .on() landed after the first had already subscribe()d, which
+  // supabase-js throws on. The throw happened inside a passive effect, so React
+  // unmounted the whole tree and the app went WHITE, sign-in screen included.
+  const topic = `pre-approvals-${useId()}`;
 
   const load = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
@@ -59,11 +67,11 @@ export function usePreApprovals(filter: PreApprovalFilter): UsePreApprovals {
   useEffect(() => {
     void load();
     const channel = supabase
-      .channel('guard-pre-approvals')
+      .channel(topic)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'visits' }, () => { void load(true); })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [load]);
+  }, [load, topic]);
 
   return { visits, loading };
 }

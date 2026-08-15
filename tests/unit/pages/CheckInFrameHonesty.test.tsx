@@ -33,7 +33,6 @@ function renderFrame(v: ReportVisit) {
     <CheckInFrame
       activeVisit={v}
       qrDataUrl={null}
-      onNotifyHost={() => {}}
       onPrintBadge={() => {}}
       onClose={() => {}}
     />,

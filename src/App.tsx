@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from 'react';
+import HODConsole from './pages/HOD/HODConsole';
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { supabase } from './supabaseClient';
 import type { Session } from '@supabase/supabase-js';
 import type { UserRole } from './types/index';
 import { ROLE_ROUTES } from './lib/roleRoutes';
 import { ThemeProvider } from './lib/theme';
-import Logo from './components/Logo';
 
 // Pages
 import LoginPage          from './pages/Login';
@@ -19,9 +19,8 @@ import GuardPreRegistered   from './pages/Guard/GuardPreRegistered';
 import GuardConsole       from './pages/Guard/Console';
 import GuardPreApprovals  from './pages/Guard/PreApprovals';
 import GuardScanPass      from './pages/Guard/ScanPass';
+import RegisterWalkIn     from './pages/Guard/RegisterWalkIn';
 import GuardSearch        from './pages/Guard/Search';
-import HODApprovals       from './pages/HOD/Approvals';
-import HODOverview        from './pages/HOD/HODOverview';
 import WhosInside         from './pages/Shared/WhosInside';
 import ReportsPage        from './pages/Shared/Reports';
 import AnalyticsPage      from './pages/Shared/Analytics';
@@ -32,12 +31,19 @@ import NotFoundPage       from './pages/NotFound';
 import KioskPage          from './pages/Kiosk/Kiosk';
 import AppShell           from './components/layout/AppShell';
 import SessionTimeout     from './components/SessionTimeout';
+import RouteErrorBoundary from './components/RouteErrorBoundary';
+import { BootSplash, NoRoleScreen } from './components/BootScreens';
+import { isUserRole, resolveUserRole } from './lib/resolveUserRole';
 
 /**
  * SEC-7: Signs the user out immediately if their role is not allowed on the current route.
  * Uses ROLE_ROUTES as the single source of truth — never trusts the URL or a per-route prop.
  * Renders nothing until signOut completes to prevent flash of forbidden content.
  */
+type MustChangePasswordRpc = (
+  fn: 'my_must_change_password',
+) => Promise<{ data: boolean | null; error: { message: string } | null }>;
+
 function ProtectedRoute({ children, role }: { children: React.ReactElement; role: UserRole | null }) {
   const location = useLocation();
   const allowed = role !== null ? (ROLE_ROUTES[role] ?? []) : [];
@@ -85,9 +91,14 @@ export default function App(): React.ReactElement {
   // types every supabase.rpc(name, args) call as taking `undefined`. Widening that shared
   // type ripples into postgrest-js's relationship inference elsewhere (see
   // src/pages/Admin/HodPasswordReset.tsx for the same note) — cast narrowly instead.
-  const callMustChangePassword = supabase.rpc as unknown as (
-    fn: 'my_must_change_password',
-  ) => Promise<{ data: boolean | null; error: { message: string } | null }>;
+  //
+  // INVOKED ON THE CLIENT, never lifted off it. `supabase.rpc` reads
+  // `this.rest` internally, so the old `const f = supabase.rpc` made every call
+  // throw "Cannot read properties of undefined (reading 'rest')" — which the
+  // fail-open branch below then swallowed into a console error. The gate had
+  // therefore never fired for anybody since it shipped.
+  const callMustChangePassword: MustChangePasswordRpc = (fn) =>
+    (supabase.rpc as unknown as MustChangePasswordRpc).call(supabase, fn);
 
   const checkMustChangePassword = async () => {
     setMustChangePassword(null);
@@ -114,14 +125,28 @@ export default function App(): React.ReactElement {
         setRecovering(false);
       }
       setSession(data.session);
-      if (data.session?.user?.app_metadata?.role) {
-        setRole(data.session.user.app_metadata.role as UserRole);
-      }
       if (data.session) {
+        const metadataRole = data.session.user.app_metadata?.role;
+        if (isUserRole(metadataRole)) {
+          setRole(metadataRole);
+        } else {
+          setRole(null);
+          void resolveUserRole(data.session.user.id, metadataRole).then(setRole);
+        }
         void checkMustChangePassword();
       } else {
+        setRole(null);
         setMustChangePassword(false);
       }
+      setLoading(false);
+    }).catch((err: unknown) => {
+      // A transient storage or Supabase client failure must never leave the
+      // application on an indefinite blank/loading screen. Fall back to the
+      // unauthenticated route, where the user can always see the sign-in form.
+      console.error('[VMS] Unable to restore the authentication session:', err);
+      setSession(null);
+      setRole(null);
+      setMustChangePassword(false);
       setLoading(false);
     });
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, s) => {
@@ -133,13 +158,17 @@ export default function App(): React.ReactElement {
       // user sees the confirmation. Its "Back to sign in" link is a full navigation,
       // which reloads without the recovery hash and re-seeds this to false.
       setSession(s);
-      if (s?.user?.app_metadata?.role) {
-        setRole(s.user.app_metadata.role as UserRole);
-      }
-      if (s && event === 'SIGNED_IN') {
-        void checkMustChangePassword();
-      }
-      if (!s) {
+      if (s) {
+        const metadataRole = s.user.app_metadata?.role;
+        if (isUserRole(metadataRole)) {
+          setRole(metadataRole);
+        } else {
+          setRole(null);
+          void resolveUserRole(s.user.id, metadataRole).then(setRole);
+        }
+        if (event === 'SIGNED_IN') void checkMustChangePassword();
+      } else {
+        setRole(null);
         setMustChangePassword(false);
       }
     });
@@ -147,26 +176,7 @@ export default function App(): React.ReactElement {
   }, []);
 
   if (loading) {
-    return (
-      <ThemeProvider>
-        <div className="flex h-screen items-center justify-center bg-surface-50 relative overflow-hidden">
-          <div className="aurora-stage" aria-hidden="true">
-            <div className="aurora-blob aurora-blob-1" />
-            <div className="aurora-blob aurora-blob-2" />
-          </div>
-          <div className="flex flex-col items-center gap-4 relative z-10">
-            <div className="relative">
-              <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-brand-500 to-accent-500 blur-lg opacity-50 animate-pulse-soft" />
-              <Logo size="lg" className="relative" />
-            </div>
-            <p className="font-display text-sm font-bold text-navy-600 tracking-tight">Secure Gate</p>
-            <div className="h-1 w-20 rounded-full bg-surface-200 overflow-hidden">
-              <div className="h-full w-1/2 rounded-full bg-gradient-to-r from-brand-400 to-accent-500 animate-shimmer" />
-            </div>
-          </div>
-        </div>
-      </ThemeProvider>
-    );
+    return <ThemeProvider><BootSplash /></ThemeProvider>;
   }
 
   // Password recovery outranks everything: until a new password is set, the recovery
@@ -202,26 +212,7 @@ export default function App(): React.ReactElement {
   // there are no <Route>s rendered at all while this branch is active, so react-router
   // never gets a chance to match a deep link.
   if (mustChangePassword === null) {
-    return (
-      <ThemeProvider>
-        <div className="flex h-screen items-center justify-center bg-surface-50 relative overflow-hidden">
-          <div className="aurora-stage" aria-hidden="true">
-            <div className="aurora-blob aurora-blob-1" />
-            <div className="aurora-blob aurora-blob-2" />
-          </div>
-          <div className="flex flex-col items-center gap-4 relative z-10">
-            <div className="relative">
-              <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-brand-500 to-accent-500 blur-lg opacity-50 animate-pulse-soft" />
-              <Logo size="lg" className="relative" />
-            </div>
-            <p className="font-display text-sm font-bold text-navy-600 tracking-tight">Secure Gate</p>
-            <div className="h-1 w-20 rounded-full bg-surface-200 overflow-hidden">
-              <div className="h-full w-1/2 rounded-full bg-gradient-to-r from-brand-400 to-accent-500 animate-shimmer" />
-            </div>
-          </div>
-        </div>
-      </ThemeProvider>
-    );
+    return <ThemeProvider><BootSplash /></ThemeProvider>;
   }
 
   if (mustChangePassword) {
@@ -232,6 +223,10 @@ export default function App(): React.ReactElement {
     );
   }
 
+  if (!role) {
+    return <ThemeProvider><NoRoleScreen /></ThemeProvider>;
+  }
+
   const allowed = role ? ROLE_ROUTES[role] ?? ['/visitors'] : ['/visitors'];
 
   return (
@@ -239,6 +234,9 @@ export default function App(): React.ReactElement {
       <BrowserRouter>
         <AppShell session={session} role={role}>
           <SessionTimeout />
+          {/* One page throwing must never blank the whole app — the shell (and
+              with it sign-out and every other route) stays mounted. */}
+          <RouteErrorBoundary>
           <Routes>
             <Route path="/" element={<Navigate to={allowed[0] ?? '/visitors'} replace />} />
             <Route path="/visitors"       element={<ProtectedRoute role={role}>{role === 'guard' ? <GuardConsole /> : <VisitorsDashboard />}</ProtectedRoute>} />
@@ -257,12 +255,17 @@ export default function App(): React.ReactElement {
             <Route path="/guard/live-queue" element={<ProtectedRoute role={role}><GuardLiveQueue /></ProtectedRoute>} />
             <Route path="/guard/preregistered" element={<ProtectedRoute role={role}><GuardPreRegistered /></ProtectedRoute>} />
             <Route path="/guard/scan-pass" element={<ProtectedRoute role={role}><GuardScanPass /></ProtectedRoute>} />
+            {/* Register Walk-in — its own destination since 2026-08-15 (client
+                instruction). The form was a `+` button buried in the Visitors
+                tab's walk-in segment; one of the two ways a visitor enters this
+                building deserves a nav item, not a disclosure triangle. */}
+            <Route path="/guard/walk-in"   element={<ProtectedRoute role={role}><RegisterWalkIn /></ProtectedRoute>} />
             <Route path="/guard/pre-approvals" element={<ProtectedRoute role={role}><GuardPreApprovals /></ProtectedRoute>} />
             <Route path="/guard/search"    element={<ProtectedRoute role={role}><GuardSearch role={role} /></ProtectedRoute>} />
             <Route path="/search"          element={<ProtectedRoute role={role}><GuardSearch role={role} /></ProtectedRoute>} />
             <Route path="/kiosk"          element={<ProtectedRoute role={role}><KioskPage /></ProtectedRoute>} />
-            <Route path="/approvals"       element={<ProtectedRoute role={role}><HODApprovals /></ProtectedRoute>} />
-            <Route path="/overview"        element={<ProtectedRoute role={role}><HODOverview /></ProtectedRoute>} />
+            <Route path="/approvals"       element={<ProtectedRoute role={role}><HODConsole /></ProtectedRoute>} />
+            <Route path="/overview"        element={<ProtectedRoute role={role}><HODConsole /></ProtectedRoute>} />
             <Route path="/whos-inside"     element={<ProtectedRoute role={role}><WhosInside /></ProtectedRoute>} />
             <Route path="/reports"         element={<ProtectedRoute role={role}><ReportsPage /></ProtectedRoute>} />
             <Route path="/analytics"      element={<ProtectedRoute role={role}><AnalyticsPage /></ProtectedRoute>} />
@@ -271,6 +274,7 @@ export default function App(): React.ReactElement {
             <Route path="/profile"         element={<ProtectedRoute role={role}><ProfilePage session={session} role={role} /></ProtectedRoute>} />
             <Route path="*"                element={<NotFoundPage />} />
           </Routes>
+          </RouteErrorBoundary>
         </AppShell>
       </BrowserRouter>
     </ThemeProvider>

@@ -4,7 +4,7 @@ import type { ReportVisit } from '../../lib/reportRow';
 import { buildVisitTimeline } from '../../lib/visitTimeline';
 
 // WHEN each stage of this visit happened — approval (pre-approved visitors
-// only), check-in, check-out.
+// only), the slot the pre-approver booked, check-in, check-out.
 //
 // It sits directly under the step tracker, which answers the neighbouring
 // question: the tracker says WHETHER the photo, the ID scan and the host
@@ -22,6 +22,11 @@ import { buildVisitTimeline } from '../../lib/visitTimeline';
 // mode. One step resolves correctly in both themes. See CLAUDE.md.
 const DOT: Record<string, string> = {
   approved: 'bg-brand-500',
+  // The slot the pre-approver chose. Hollow rather than filled: the other three
+  // dots mark something that HAPPENED, this one marks a time that was intended,
+  // and a guard reading down the rail should not have to check the label to
+  // tell an intention from a record.
+  scheduled: 'bg-transparent border-2 border-brand-500',
   checked_in: 'bg-success-500',
   checked_out: 'bg-navy-600',
 };

@@ -1,4 +1,5 @@
-// The visit timeline: approval (pre-approved only), check-in, check-out.
+// The visit timeline: approval (pre-approved only), the slot the pre-approver
+// booked, check-in, check-out.
 //
 // The rule under test is the one the client stated: the DATE appears once and
 // the TIME appears on every entry — except when the entries span more than one
@@ -41,7 +42,7 @@ describe('buildVisitTimeline', () => {
       checked_in_at: '2026-08-14T05:00:00Z',
       checked_out_at: '2026-08-14T12:00:00Z',
     }));
-    expect(t.entries.map((e) => e.key)).toEqual(['approved', 'checked_in', 'checked_out']);
+    expect(t.entries.map((e) => e.key)).toEqual(['approved', 'scheduled', 'checked_in', 'checked_out']);
     // IST, not the runner's timezone.
     expect(t.entries.find((e) => e.key === 'checked_in')?.time).toMatch(/10:30/);
     expect(t.entries.find((e) => e.key === 'checked_out')?.time).toMatch(/5:30|17:30/);
@@ -70,6 +71,25 @@ describe('buildVisitTimeline', () => {
     expect(t.entries.find((e) => e.key === 'checked_out')?.date).toMatch(/15 Aug 2026/);
   });
 
+  // The pre-approver's own choice — the one time on a visit a human typed, and
+  // the thing every arrival is implicitly judged against (client instruction).
+  it('carries the slot the pre-approver booked, between the approval and the entry', () => {
+    const t = buildVisitTimeline(visit({
+      approvedAt: '2026-08-14T03:00:00Z',
+      checked_in_at: '2026-08-14T12:00:00Z',
+    }));
+    expect(t.entries.map((e) => e.key)).toEqual(['approved', 'scheduled', 'checked_in']);
+    const slot = t.entries.find((e) => e.key === 'scheduled')!;
+    expect(slot.label).toBe('Scheduled');
+    // 05:00Z = 10:30 IST, not the runner's timezone.
+    expect(slot.time).toMatch(/10:30/);
+  });
+
+  it('has no scheduled entry for a walk-in, which never booked a time', () => {
+    const t = buildVisitTimeline(visit({ scheduled_for: null, checked_in_at: '2026-08-14T05:00:00Z' }));
+    expect(t.entries.map((e) => e.key)).not.toContain('scheduled');
+  });
+
   it('returns no entries when nothing timeable has happened yet', () => {
     const t = buildVisitTimeline(visit({ status: 'pending_approval', scheduled_for: null }));
     expect(t.entries).toEqual([]);
@@ -79,7 +99,7 @@ describe('buildVisitTimeline', () => {
   it('drops an unparseable timestamp rather than printing "Invalid Date"', () => {
     const t = buildVisitTimeline(visit({ approvedAt: '2026-08-14T03:00:00Z', checked_in_at: 'not-a-date' }));
     // The approval survives; only the unusable entry is dropped.
-    expect(t.entries.map((e) => e.key)).toEqual(['approved']);
+    expect(t.entries.map((e) => e.key)).toEqual(['approved', 'scheduled']);
     expect(t.entries[0].time).not.toMatch(/invalid/i);
   });
 });

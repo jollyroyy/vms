@@ -85,7 +85,11 @@ describe('GuardWalkInApproved', () => {
   it('clicking Check In opens the photo step', () => {
     render(<GuardWalkInApproved {...baseProps({ approved: [visit()] })} />);
     fireEvent.click(screen.getByText('Check In'));
-    expect(screen.getByText('Take a photo to check in')).toBeInTheDocument();
+    // The heading names WHICH camera this is. The ID scan and the visitor photo
+    // are the same physical webcam on a laptop, so an unlabelled "take a photo"
+    // read as the ID scan starting over.
+    expect(screen.getByText('Photo of the visitor')).toBeInTheDocument();
+    expect(screen.getByText(/not at the ID card/i)).toBeInTheDocument();
   });
 
   // The bug this flow exists to prevent: a check-in recorded with no photo.

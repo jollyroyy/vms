@@ -100,11 +100,14 @@ describe('Sidebar navigation links per role', () => {
     expect(links.length).toBe(3);
   });
 
-  // The Visitors group absorbed "Walk-in Visitors" and "Pre-Approvals" — the
-  // guard now sees the group's own label, "Visitors", as a top-level item.
-  it('guard sees Visitors as a top-level item (absorbed Walk-in Visitors and Pre-Approvals)', () => {
+  // The guard's Visitors nav item was removed outright 2026-08-15 (client
+  // instruction): every card it carried moved to the dashboard's row-2 KPI
+  // tiles (lib/guardTiles.ts) and its walk-in lane became its own "Register
+  // Walk-in" item. The ROUTE stays allowed in ROLE_ROUTES.guard — same
+  // precedent as /kiosk — only the nav item is gone.
+  it('guard has no Visitors nav item (its cards moved to the dashboard; the route stays routable)', () => {
     renderSidebar('guard');
-    expect(screen.getByText('Visitors')).toBeInTheDocument();
+    expect(screen.queryByText('Visitors')).not.toBeInTheDocument();
     expect(screen.queryByText('Walk-in Visitors')).not.toBeInTheDocument();
     expect(screen.queryByText('Pre-Approvals')).not.toBeInTheDocument();
   });
@@ -120,9 +123,9 @@ describe('Sidebar navigation links per role', () => {
     expect(screen.getByText('Pre-Approvals')).toBeInTheDocument();
   });
 
-  it('guard sees the reference console tabs plus Scan Pass and Visitors, and no Search', () => {
+  it('guard sees the reference console tabs plus Scan Pass and Register Walk-in, and no Search', () => {
     renderSidebar('guard');
-    for (const label of ['Dashboard', 'Entry & Exit', 'Pre-Registered', 'Scan Pass', 'Visitors']) {
+    for (const label of ['Dashboard', 'Entry & Exit', 'Pre-Registered', 'Scan Pass', 'Register Walk-in']) {
       expect(screen.getByText(label)).toBeInTheDocument();
     }
     expect(screen.queryByText('Search')).not.toBeInTheDocument();
@@ -137,16 +140,20 @@ describe('Sidebar navigation links per role', () => {
     expect(screen.queryByRole('link', { name: /Watchlist/ })).not.toBeInTheDocument();
   });
 
-  // The Visitors entry is a single <a> now (2026-08-13): the segments that
-  // used to expand under a group button live on the page as KPI tiles
-  // (VisitorKpiRail). The guard nav is the reference three tabs plus Scan Pass
-  // and Visitors — five plain links, no group button (2026-08-14, Watchlist
-  // deleted 2026-08-15).
+  // Every guard nav item is a single <a> (2026-08-13): the segments that used
+  // to expand under a group button live on the page as KPI tiles
+  // (VisitorKpiRail), not in the sidebar. Still five since 2026-08-15, but a
+  // different five: Register Walk-in gained an item and Visitors lost one (its
+  // cards moved to the dashboard). No item is a group, so no click ever
+  // reveals a <button> in this nav.
   it('guard sidebar has exactly 5 nav links and no group button', () => {
-    const { container } = renderSidebar('guard');
-    const links = container.querySelectorAll('a.sidebar-link');
+    renderSidebar('guard');
+    const links = screen.getAllByRole('link').filter((l) => l.className.includes('sidebar-link'));
     expect(links.length).toBe(5);
-    expect(screen.queryByRole('button', { name: /Visitors/ })).not.toBeInTheDocument();
+    const navLabels = ['Dashboard', 'Entry & Exit', 'Pre-Registered', 'Scan Pass', 'Register Walk-in'];
+    for (const label of navLabels) {
+      expect(screen.queryByRole('button', { name: label })).not.toBeInTheDocument();
+    }
   });
 
   // The Self-Service Kiosk is still ROUTABLE (see roleRoutes.ts: /kiosk remains
@@ -161,28 +168,34 @@ describe('Sidebar navigation links per role', () => {
     expect(screen.queryByText('Self-Service Kiosk')).not.toBeInTheDocument();
   });
 
-  // Visitors is a plain link, not a group: there is no expand/collapse state to
-  // hold, and the segments (Expected, Inside, …) never render inside the nav —
-  // they live on the page as KPI tiles under /visitors.
-  it('Visitors is a plain link — no group button, no segment children in the nav', () => {
+  // Register Walk-in is a plain link, not a group: there is no expand/collapse
+  // state to hold anywhere in the guard nav, and no segment children (Expected,
+  // Inside, …) ever render inside it — those live on the dashboard as KPI
+  // tiles now, not under a nav item at all. This keeps alive the guarantee the
+  // old Visitors-group test asserted, now that Visitors itself is gone.
+  it('Register Walk-in is a plain link — no group button, no segment children in the nav', () => {
     renderSidebar('guard', ['/guard/dashboard']);
-    expect(screen.queryByRole('button', { name: /Visitors/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Register Walk-in/ })).not.toBeInTheDocument();
     expect(screen.queryByText('Expected')).not.toBeInTheDocument();
     expect(screen.queryByText('Inside')).not.toBeInTheDocument();
-    const link = screen.getByRole('link', { name: /Visitors/ });
-    expect(link).toHaveAttribute('href', '/visitors');
+    const link = screen.getByRole('link', { name: /Register Walk-in/ });
+    expect(link).toHaveAttribute('href', '/guard/walk-in');
   });
 
-  // Being ON a segment page does not change the nav's shape — there is no
-  // group to open. The Visitors link reads as active for every /visitors/*
-  // path, exactly like any other section link.
-  it('on /visitors/inside the Visitors link is active and nothing else is', () => {
+  // /visitors/inside is a legacy bookmark: the ROUTE still resolves (see
+  // ROLE_ROUTES.guard) but no nav item points at it any more, so nothing in
+  // the sidebar should light up as active while it's the current location —
+  // the mismatch is expected now that Visitors was removed from the nav.
+  it('on /visitors/inside no guard nav link is active', () => {
     renderSidebar('guard', ['/visitors/inside']);
-    const visitorsLink = screen.getByRole('link', { name: /Visitors/ });
-    expect(visitorsLink.className).toContain('sidebar-link-active');
+    expect(screen.queryByText('Visitors')).not.toBeInTheDocument();
     const dashboardLink = screen.getByRole('link', { name: /Dashboard/ });
     expect(dashboardLink.className).not.toContain('sidebar-link-active');
-    expect(screen.queryByRole('button', { name: /Visitors/ })).not.toBeInTheDocument();
+    const navLabels = ['Dashboard', 'Entry & Exit', 'Pre-Registered', 'Scan Pass', 'Register Walk-in'];
+    for (const label of navLabels) {
+      const link = screen.getByRole('link', { name: new RegExp(label) });
+      expect(link.className).not.toContain('sidebar-link-active');
+    }
   });
 
   // Only the guard's Visitors entry is a group. Every other role's sidebar

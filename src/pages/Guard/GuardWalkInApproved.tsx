@@ -24,13 +24,9 @@ import { namesMatch } from '../../lib/ai/nameMatch';
 import { isValidCardNumber } from '../../lib/cardNumber';
 import IdScanOverlay, { type IdScanResult } from './IdScanOverlay';
 
-export type WalkInCheckIn = {
-  photoBlob: Blob;
-  carrying: boolean;
-  remarks: string;
-  idScan: IdScanResult | null;
-  cardNumber: string;
-};
+// The shape moved to lib/checkInWalkInApproved.ts with the write it describes,
+// so the form and the mutation cannot drift apart.
+import type { WalkInCheckIn } from '../../lib/checkInWalkInApproved';
 
 type Props = {
   loading: boolean;
@@ -137,8 +133,19 @@ export default function GuardWalkInApproved({ loading, approved, busyId, onCheck
                       onClose={() => setScanOpen(false)}
                     />
                   )}
-                  <p className="text-sm font-semibold text-navy-700">Take a photo to check in</p>
-                  <PhotoCapture onCapture={setPhotoBlob} />
+                  {/* Same rule as CheckInPhotoStep: ONE camera at a time. This
+                      lane still mounted PhotoCapture underneath the open scan
+                      overlay, so the scan's rear camera and the photo's front
+                      camera were both live at once — the scan fails to start on
+                      phones, and the second feed shows through the translucent
+                      backdrop as what looks like a second scan page. */}
+                  <div>
+                    <p className="text-sm font-bold text-navy-950">Photo of the visitor</p>
+                    <p className="text-[11px] text-navy-700 mt-0.5">
+                      Point the camera at the visitor, not at the ID card.
+                    </p>
+                  </div>
+                  {!scanOpen && <PhotoCapture onCapture={setPhotoBlob} />}
                   {scanSection(v)}
 
                   <div className="rounded-xl border border-surface-200 dark:border-white/[0.07] p-3.5 space-y-2">

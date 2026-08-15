@@ -22,10 +22,13 @@ const MIN_LENGTH = 6;
 // types every supabase.rpc(name, args) call as taking `undefined`. Widening that shared
 // type ripples into postgrest-js's relationship inference elsewhere (see
 // src/pages/Admin/HodPasswordReset.tsx for the same note) — cast narrowly instead.
-const callSetMyPassword = supabase.rpc as unknown as (
+// Invoked ON the client, never lifted off it — supabase.rpc reads `this.rest`.
+type SetMyPasswordRpc = (
   fn: 'set_my_password',
   args: { p_password: string },
 ) => Promise<{ data: unknown; error: { message: string } | null }>;
+const callSetMyPassword: SetMyPasswordRpc = (fn, args) =>
+  (supabase.rpc as unknown as SetMyPasswordRpc).call(supabase, fn, args);
 
 interface Props {
   onSuccess: () => void;

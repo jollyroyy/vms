@@ -123,6 +123,22 @@ export default function CheckInBadgeRail({
           </div>
           <p style={{ color: PASS_INK }} className="mt-3 font-display font-bold text-xl leading-tight text-center">{name}</p>
           <p style={{ color: PASS_BLUE }} className="mt-1.5 text-base font-bold">Day Pass #{activeVisit.ref_number.slice(-4)}</p>
+          {/* THE PHYSICAL CARD, exactly as the guard typed it (client
+              instruction, 2026-08-15). `visitor_card_number` is the number
+              printed on the plastic card handed over at check-in, and the pass
+              is the one piece of paper that travels with the visitor — so it is
+              the only place the plastic and the record can be checked against
+              each other, which is the whole point of demanding the card back at
+              check-out. Printed verbatim, never sliced: unlike "Day Pass
+              #{last 4 of ref}", a partial card number matches the wrong card.
+              Omitted entirely when the visit has none (a row written before
+              migration 076); a "Card —" line would read as a card issued and
+              not recorded. */}
+          {activeVisit.visitor_card_number && (
+            <p style={{ color: PASS_INK }} className="mt-1.5 text-sm font-bold tracking-wide">
+              Card No. {activeVisit.visitor_card_number}
+            </p>
+          )}
           <p style={{ color: PASS_MUTED }} className="mt-1 text-sm font-medium">Valid until {passValidUntil(activeVisit)}</p>
           {qrDataUrl ? (
             <img src={qrDataUrl} alt="QR code" className="mt-3 w-[104px] h-[104px]" />

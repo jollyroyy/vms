@@ -2,8 +2,18 @@ import type { Visit } from '../types/index';
 import { approvalTimestamp, type ApprovableVisit } from './visitApproval';
 import { visitOrigin } from './visitOrigin';
 
-// The three instants that make up a visit's life at the gate: it was approved,
-// the visitor came in, the visitor left.
+// The instants that make up a visit's life at the gate: it was approved, it was
+// due, the visitor came in, the visitor left.
+//
+// THE SLOT THE PRE-APPROVER CHOSE IS ONE OF THEM (client instruction,
+// 2026-08-15). `scheduled_for` is the only time on a visit that a human decided
+// rather than the system recording — the HOD said "come at 10:30" — and it is
+// the one the guard is implicitly judging every arrival against. Without it the
+// timeline said when the visitor arrived but never whether that was the time
+// they were expected, which is the whole question behind an early or a late
+// entry. It sits between the approval and the check-in: cleared at X, due at Y,
+// arrived at Z. A walk-in never sets `scheduled_for`, so this entry simply does
+// not exist for one — correctly, since nobody booked them a time.
 //
 // The gate's own screen never showed any of them. The Inside Now frame's step
 // tracker says WHETHER each stage happened; a guard asked to account for a
@@ -38,7 +48,7 @@ export function istTimeLabel(iso: string): string {
   });
 }
 
-export type VisitTimelineKey = 'approved' | 'checked_in' | 'checked_out';
+export type VisitTimelineKey = 'approved' | 'scheduled' | 'checked_in' | 'checked_out';
 
 export type VisitTimelineEntry = {
   key: VisitTimelineKey;
@@ -74,6 +84,11 @@ export function buildVisitTimeline(visit: TimelineVisit): VisitTimeline {
   // status that proves a prior approval.
   const approvedAt = visitOrigin(visit) === 'pre_approved' ? approvalTimestamp(visit) : null;
   if (usable(approvedAt)) raw.push({ key: 'approved', label: 'Approved', iso: approvedAt });
+  // The slot the pre-approver booked. Read straight off the column — unlike the
+  // approval instant there is nothing to resolve, because this is the one time
+  // on the visit a person typed. Labelled "Scheduled" to match the words on the
+  // pass the visitor is holding (PreApprovalPass prints SCHEDULED AT).
+  if (usable(visit.scheduled_for)) raw.push({ key: 'scheduled', label: 'Scheduled', iso: visit.scheduled_for });
   if (usable(visit.checked_in_at)) raw.push({ key: 'checked_in', label: 'Checked in', iso: visit.checked_in_at });
   if (usable(visit.checked_out_at)) raw.push({ key: 'checked_out', label: 'Checked out', iso: visit.checked_out_at });
 

@@ -8,7 +8,6 @@ import { safeErrorMessage } from '../../lib/errors';
 import QRCode from 'qrcode';
 import { buildQrPayload } from '../../lib/qrToken';
 import SuccessToast from '../../components/SuccessToast';
-import { notifyHostOnCheckIn } from '../../lib/notifyHostCheckIn';
 import CheckInFrame from './CheckInFrame';
 import LiveQueueTable from './LiveQueueTable';
 import CardReturnConfirm from './CardReturnConfirm';
@@ -68,13 +67,6 @@ function timeOf(v: ReportVisit): string {
 
 function exitTimeOf(v: ReportVisit): string {
   return v.checked_out_at ? formatStamp(v.checked_out_at) : '—';
-}
-
-function statusPill(v: ReportVisit) {
-  if (v.status === 'checked_out') return { label: 'CHECKED OUT', cls: 'bg-navy-500/15 text-navy-400 border-navy-400/30' };
-  if (v.checked_in_at) return { label: 'CHECKED IN', cls: 'bg-success-600/15 text-success-500 border-success-500/30' };
-  if (v.status === 'approved') return { label: 'PRE-REGISTERED', cls: 'bg-brand-600/15 text-brand-400 border-brand-500/30' };
-  return { label: 'WAITING', cls: 'bg-warning-500/15 text-warning-400 border-warning-400/30' };
 }
 
 const initialsOf = (name: string | null | undefined) =>
@@ -154,39 +146,6 @@ export default function GuardLiveQueue(): React.ReactElement {
     setActiveVisit(v);
   };
 
-  const notifyHost = async (v: ReportVisit) => {
-    // Notify = send the host a real notification, through the `notifications`
-    // table the bell icon already reads.
-    //
-    // This used to APPEND ' - host notified on arrival' to `visits.remarks` and
-    // call that the signal. `remarks` is the walk-in note an HOD reads when
-    // deciding whether to approve someone — free prose, written by a guard, and
-    // surfaced to another role — so guard bookkeeping stuffed into it showed up
-    // inside a colleague's approval card, and Reports printed it. A magic
-    // substring in a prose column is also not a flag: nothing stops a visitor's
-    // genuine note from containing it.
-    //
-    // The toast wording changed with it, and deliberately. "acknowledged
-    // arrival" claimed the HOST had done something; nothing here can know that.
-    // We know only that the notice was delivered.
-    setError('');
-    const res = await notifyHostOnCheckIn({
-      id: v.id,
-      host_id: v.host_id ?? null,
-      visitor_name: v.visitor?.full_name ?? null,
-    });
-    if (res.notified) {
-      setToast(`Host notified: ${v.host?.full_name ?? 'the host'} has been sent the arrival notice`);
-      setTimeout(() => setToast(null), 5000);
-      return;
-    }
-    setError(
-      res.error
-        ? safeErrorMessage(res.error, 'Could not notify the host.')
-        : 'No host is recorded on this visit, so there is nobody to notify.',
-    );
-  };
-
   const printBadge = () => { if (liveActive) printVisitorBadge(); };
 
   // The exit WRITE, reached only through CardReturnConfirm — the dialog names
@@ -244,7 +203,6 @@ export default function GuardLiveQueue(): React.ReactElement {
           queue={queue}
           loading={visitsLoading}
           initialsOf={initialsOf}
-          statusPill={statusPill}
           timeOf={timeOf}
           exitTimeOf={exitTimeOf}
           onSelect={selectVisit}
@@ -263,7 +221,6 @@ export default function GuardLiveQueue(): React.ReactElement {
         <CheckInFrame
           activeVisit={liveActive}
           qrDataUrl={qrDataUrl}
-          onNotifyHost={notifyHost}
           onPrintBadge={printBadge}
           onClose={closeSplitSelection}
           // Only somebody actually inside can leave. Every row in this table is

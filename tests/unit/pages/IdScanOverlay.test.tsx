@@ -69,12 +69,23 @@ describe('M-AI-OCR-UI: IdScanOverlay camera capture', () => {
     });
   });
 
-  it('Use Details calls onScanned with type label, last-4 and name', async () => {
+  // The masked number and the date of birth travel with the result now. They
+  // were shown in this dialog and then dropped, so the card behind it could
+  // only render a one-line verdict — see CheckInScanSummary.
+  it('Use Details calls onScanned with type label, last-4, name, masked number and DOB', async () => {
     const onScanned = vi.fn();
     render(<IdScanOverlay onScanned={onScanned} onClose={vi.fn()} />);
     fireEvent.click(screen.getByText('Capture Card'));
     fireEvent.click(await screen.findByText('Use Details'));
-    expect(onScanned).toHaveBeenCalledWith({ idType: 'PAN', idLast4: '234F', name: 'Rahul Verma' });
+    expect(onScanned).toHaveBeenCalledWith(
+      expect.objectContaining({ idType: 'PAN', idLast4: '234F', name: 'Rahul Verma' }),
+    );
+    const result = onScanned.mock.calls[0][0];
+    // Masked, never the raw number: only the last four are ever persisted.
+    expect(result.masked).toBeTruthy();
+    expect(result.masked).not.toContain('ABCDE1234F');
+    expect(result.masked).toContain('234F');
+    expect(result).toHaveProperty('dateOfBirth');
   });
 
   it('Camera denied shows the file fallback', () => {

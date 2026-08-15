@@ -40,9 +40,23 @@ const ICON_CHECK = 'M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z'
 const ICON_SPARKLE = 'M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.455 2.456L21.75 6l-1.036.259a3.375 3.375 0 00-2.455 2.456z';
 const ICON_REPORT = 'M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z';
 const ICON_SCAN = 'M3.75 4.5h4.5v4.5h-4.5v-4.5zM15.75 4.5h4.5v4.5h-4.5v-4.5zM3.75 15.75h4.5v4.5h-4.5v-4.5zM15.75 15.75h1.5v1.5h-1.5v-1.5zM19.5 15.75h.75v.75h-.75v-.75zM15.75 19.5h.75v.75h-.75v-.75zM18.75 18.75h1.5v1.5h-1.5v-1.5z';
+const ICON_PLUS = 'M12 4.5v15m7.5-7.5h-15';
 const ICON_COG = 'M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.24-.438.613-.431.992a6.759 6.759 0 010 .255c-.007.378.138.75.43.99l1.005.828c.424.35.534.954.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.28c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.992a6.932 6.932 0 010-.255c.007-.378-.138-.75-.43-.99l-1.004-.828a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.128.332-.183.582-.495.644-.869l.214-1.281z';
 
 export const ALL_LINKS: NavLink[] = [
+  { to: '/overview', label: 'Overview', roles: ['hod'], icon: icon(ICON_GRID) },
+  { to: '/approvals', label: 'Pre-Approvals', roles: ['hod'], icon: icon(ICON_CHECK) },
+  // The HOD console's other two desks. They used to be a SECOND navigation —
+  // a horizontal `.hod-tabs` bar across the top of the console, listing these
+  // four destinations while the sidebar beside it listed the same ones
+  // (client report, 2026-08-15). Two nav bars on one screen means the user has
+  // to work out which one is authoritative, so the tab bar is gone and its
+  // members live here, in the one left-hand panel. They are `?tab=` views of
+  // /overview rather than routes of their own, which is what HODConsole's
+  // `tabFromLocation` already reads.
+  { to: '/overview?tab=walkins', label: 'Walk-in Desk', roles: ['hod'], icon: icon(ICON_USERS) },
+  { to: '/overview?tab=schedule', label: 'Visitor Schedule', roles: ['hod'], icon: icon(ICON_GRID) },
+
   // ── Guard: the visitor console ───────────────────────────────────────────
   { to: '/guard/dashboard', label: 'Dashboard', roles: ['guard'], icon: icon(ICON_GRID) },
   // "Entry & Exit" — "Live Queue" until 2026-08-14, "Inside Now" until
@@ -61,10 +75,23 @@ export const ALL_LINKS: NavLink[] = [
   // The camera lane: a pass held up to the scanner resolves straight to the
   // visitor and the check-in happens on this page.
   { to: '/guard/scan-pass', label: 'Scan Pass', roles: ['guard'], icon: icon(ICON_SCAN) },
-  // A single link, not a group: the eight segments live on the page as KPI
-  // tiles (VisitorKpiRail). This route is also the walk-in lane — the tile
-  // rail holds the register behind the same URL.
-  { to: '/visitors', label: 'Visitors', roles: ['guard'], icon: icon(ICON_USERS) },
+  // The other way in. It was a `+` button inside the Visitors tab's walk-in
+  // segment (client instruction, 2026-08-15): a guard had to know Visitors held
+  // a walk-in lane, reach it, and find a plus sign that expanded into the form.
+  // Registering an unannounced arrival is one of the two routes a visitor takes
+  // into this building, so it gets a destination of its own — and on that page
+  // the form is open on arrival, with no plus sign left to press.
+  { to: '/guard/walk-in', label: 'Register Walk-in', roles: ['guard'], icon: icon(ICON_PLUS) },
+  // NO VISITORS TAB for the guard (removed 2026-08-15, client instruction).
+  // Every card it carried is now on the dashboard: All Visitors, Pending
+  // Approval and Approved Walk-ins are tiles in row 2 (lib/guardTiles.ts), and
+  // the Walk-in Register became its own item above. Its two remaining lanes
+  // moved with them — the approved-walk-in check-in, which is the ONLY route
+  // from walkin_approved to checked_in, is on /guard/walk-in, and check-out has
+  // lived on Entry & Exit since 2026-08-14. The ROUTE stays allowed (see
+  // ROLE_ROUTES.guard), the same precedent as /kiosk and /guard/search: it is
+  // in guards' bookmarks and nothing about it became unsafe, it simply stopped
+  // being a place to go.
   // Staff see a different component at this route (VisitorsDashboard, not the
   // guard console), so they get the unqualified label and no sub-nav.
   { to: '/visitors', label: 'Visitors', roles: ['staff'], icon: icon(ICON_USERS) },
@@ -72,12 +99,16 @@ export const ALL_LINKS: NavLink[] = [
   // ROLE_ROUTES.guard in roleRoutes.ts).
 
   // ── Other roles ───────────────────────────────────────────────────────────
-  { to: '/overview', label: 'Overview', roles: ['hod'], icon: icon(ICON_GRID) },
   // "Pre-Approvals", not "Approvals": the pending walk-in decisions moved to the
   // Overview, so this route is now only the form for booking a visitor ahead.
-  { to: '/approvals', label: 'Pre-Approvals', roles: ['hod'], icon: icon(ICON_CHECK) },
   { to: '/whos-inside', label: 'On-site', roles: ['staff'], icon: icon(ICON_USERS) },
-  { to: '/analytics', label: 'Analytics', roles: ['hod', 'admin'], icon: icon(ICON_SPARKLE) },
+  // Analytics is ADMIN ONLY (client instruction, 2026-08-15). An HOD's screen
+  // is a decision desk scoped to one department — the numbers they act on are
+  // already on the Overview, and org-wide charts are the admin's surface, whose
+  // nav is Reports, Analytics and Settings precisely because it holds no
+  // visitor records. `/analytics` is out of ROLE_ROUTES.hod as well, so the URL
+  // is refused and not merely unlinked.
+  { to: '/analytics', label: 'Analytics', roles: ['admin'], icon: icon(ICON_SPARKLE) },
   { to: '/reports', label: 'Reports', roles: ['hod', 'staff', 'admin'], icon: icon(ICON_REPORT) },
   { to: '/admin', label: 'Settings', roles: ['admin'], icon: icon(ICON_COG) },
 ];

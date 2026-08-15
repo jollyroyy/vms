@@ -120,6 +120,11 @@ describe('SEC-7: frontend route protection', () => {
     it('hod is FORBIDDEN on /kiosk', () => {
       expect(isForbidden('/kiosk', role)).toBe(true);
     });
+    // Analytics is admin-only since 2026-08-15 (client instruction). Removed
+    // from ROLE_ROUTES.hod, not just from the sidebar, so the URL is refused.
+    it('hod is FORBIDDEN on /analytics (admin-only surface)', () => {
+      expect(isForbidden('/analytics', role)).toBe(true);
+    });
     it('hod is FORBIDDEN on /admin', () => {
       expect(isForbidden('/admin', role)).toBe(true);
     });

@@ -4,6 +4,8 @@ import { namesMatch } from '../../lib/ai/nameMatch';
 import { isValidCardNumber } from '../../lib/cardNumber';
 import IdScanOverlay, { type IdScanResult } from './IdScanOverlay';
 import CheckInVisitorSummary from './CheckInVisitorSummary';
+import CheckInStepTracker from './CheckInStepTracker';
+import CheckInScanSummary from './CheckInScanSummary';
 import type { MatchItem } from './checkInTypes';
 
 type Props = {
@@ -57,23 +59,16 @@ export default function CheckInPhotoStep({
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7zm13 5h.01M10 12a2.5 2.5 0 115 0 2.5 2.5 0 01-5 0z" /></svg>
           Scan ID card
         </button>
-      ) : matchStatus === 'match' ? (
-        <div className="rounded-xl bg-success-50 border border-success-200 dark:border-success-500/25 px-4 py-2.5 text-sm flex items-center justify-between gap-2">
-          <span className="font-bold text-success-700">Identity verified</span>
-          <span className="text-xs text-success-700/80">{scanResult.idType} •••• {scanResult.idLast4}</span>
-        </div>
-      ) : matchStatus === 'mismatch' ? (
-        <div className="rounded-xl bg-danger-50 border border-danger-200 dark:border-danger-500/25 px-4 py-2.5 text-sm space-y-1.5">
-          <p className="font-bold text-danger-700">Name doesn't match the approved visitor</p>
-          <p className="text-xs text-danger-700/80">Card shows {scanResult.name} — approved as {selectedMatch.visitorName}</p>
-          <button type="button" onClick={() => { setScanResult(null); onScanResult(null); }}
-            className="text-xs font-bold text-danger-700 underline underline-offset-2">Discard scan</button>
-        </div>
       ) : (
-        <div className="rounded-xl bg-accent-50 border border-accent-200 dark:bg-accent-500/10 dark:border-accent-500/25 px-4 py-2.5 text-sm flex items-center justify-between gap-2">
-          <span className="font-bold text-accent-700 dark:text-accent-300">ID recorded — no name could be read</span>
-          <span className="text-xs text-accent-700/80">{scanResult.idType} •••• {scanResult.idLast4}</span>
-        </div>
+        // Everything the scan read, kept on screen — the verdict alone asked
+        // the guard to trust a match without seeing what had been matched.
+        <CheckInScanSummary
+          scan={scanResult}
+          verdict={matchStatus ?? 'no-name'}
+          approvedName={selectedMatch.visitorName}
+          onDiscard={() => { setScanResult(null); onScanResult(null); }}
+          onRescan={() => setScanOpen(true)}
+        />
       )}
     </div>
   );
@@ -125,9 +120,20 @@ export default function CheckInPhotoStep({
           Back to search
         </button>
         <div className="bg-white dark:bg-white/[0.06] dark:border-white/[0.07] rounded-2xl p-5 shadow-sm border border-surface-100 space-y-4">
+          <CheckInStepTracker scanned={scanResult !== null} photoTaken={false} cardDone={!cardBad} />
           <CheckInVisitorSummary match={selectedMatch} />
           {scanSection}
-          <p className="text-sm font-semibold text-navy-700">Take a photo to check in</p>
+          {/* The camera below is NOT the ID scan starting again — it is the
+              visitor's face, and on a laptop with one webcam it is the same
+              physical device the scan just used, so it must say which of the
+              two it is. The heading and the line under it are the whole fix
+              for "why is it showing me the camera again". */}
+          <div>
+            <p className="text-sm font-bold text-navy-950">Step 2 — Photo of the visitor</p>
+            <p className="text-[11px] text-navy-700 mt-0.5">
+              Point the camera at the visitor, not at the ID card. This photo is the record of who actually walked in.
+            </p>
+          </div>
           {/* ONE camera at a time. PhotoCapture mounts only once the scan
               overlay is closed: while it is open, mounting it underneath
               starts a SECOND getUserMedia stream that fights the scan's rear
@@ -151,6 +157,7 @@ export default function CheckInPhotoStep({
         />
       )}
       <div className="bg-white dark:bg-white/[0.06] dark:border-white/[0.07] rounded-2xl p-5 shadow-sm border border-surface-100 space-y-4">
+        <CheckInStepTracker scanned={scanResult !== null} photoTaken cardDone={!cardBad} />
         <div className="flex items-center gap-3">
           <img src={URL.createObjectURL(photoBlob)} alt="" className="w-14 h-[72px] object-cover rounded-xl ring-2 ring-success-200" />
           <div className="flex-1 min-w-0">

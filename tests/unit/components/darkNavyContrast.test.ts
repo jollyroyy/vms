@@ -86,7 +86,7 @@ const KNOWN_VIOLATIONS = new Set([
   '/DailyVisitors.tsx:138',
   '/DemoDataPanel.tsx:67', '/DemoDataPanel.tsx:75', '/DemoDataPanel.tsx:102',
   '/DocumentSign.tsx:107',
-  '/layout/Sidebar.tsx:91', '/layout/Sidebar.tsx:139', '/layout/Sidebar.tsx:155',
+  '/layout/Sidebar.tsx:91', '/layout/Sidebar.tsx:149', '/layout/Sidebar.tsx:165',
   '/layout/SidebarAnalytics.tsx:53', '/layout/SidebarAnalytics.tsx:64',
   '/layout/SidebarProfile.tsx:51', '/layout/SidebarProfile.tsx:75',
   '/PhotoCapture.tsx:134',

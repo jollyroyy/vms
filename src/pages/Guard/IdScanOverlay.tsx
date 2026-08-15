@@ -104,7 +104,16 @@ export default function IdScanOverlay({ onScanned, onClose }: Props): React.Reac
   const apply = useCallback(() => {
     if (!parsed) return;
     stopCamera();
-    onScanned({ idType: parsed.typeLabel, idLast4: parsed.last4, name: parsed.name });
+    // Carry the masked number and the date of birth through as well. They were
+    // shown in the review step above and then discarded, so everything the scan
+    // read vanished the instant the guard accepted it.
+    onScanned({
+      idType: parsed.typeLabel,
+      idLast4: parsed.last4,
+      name: parsed.name,
+      masked: parsed.masked,
+      dateOfBirth: parsed.dob,
+    });
   }, [parsed, onScanned, stopCamera]);
 
   const close = useCallback(() => {

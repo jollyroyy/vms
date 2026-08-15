@@ -23,7 +23,11 @@ const PURPOSES: { value: VisitorPurpose; label: string }[] = [
 
 type Props = {
   onSubmitted: (name: string) => void;
-  onCancel: () => void;
+  /** Close the form without submitting. OMITTED on /guard/walk-in, where the
+   *  form IS the page — a Cancel button there would close nothing and leave the
+   *  guard staring at the same screen, which is the defect that made the old
+   *  Deny Entry link a no-op. */
+  onCancel?: () => void;
 };
 
 export default function WalkInRequest({ onSubmitted, onCancel }: Props): React.ReactElement {
@@ -210,7 +214,9 @@ export default function WalkInRequest({ onSubmitted, onCancel }: Props): React.R
       </div>
 
       <div className="flex gap-3 pt-1">
-        <button type="button" onClick={onCancel} className="flex-1 bg-surface-50 hover:bg-surface-100 text-navy-700 font-bold rounded-xl py-2.5 text-sm transition-all">Cancel</button>
+        {onCancel && (
+          <button type="button" onClick={onCancel} className="flex-1 bg-surface-50 hover:bg-surface-100 text-navy-700 font-bold rounded-xl py-2.5 text-sm transition-all">Cancel</button>
+        )}
         <button type="submit" disabled={submitting || !!blacklistHit}
           className="flex-1 bg-brand-600 hover:bg-brand-700 text-white font-bold rounded-xl py-2.5 text-sm transition-all disabled:opacity-50 flex items-center justify-center gap-2">
           {submitting ? (

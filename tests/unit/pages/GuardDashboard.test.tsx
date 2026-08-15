@@ -1,11 +1,14 @@
 import React from 'react';
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { render, screen, cleanup, act, fireEvent } from '@testing-library/react';
+import { render, screen, cleanup, act } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import GuardDashboard from '../../../src/pages/Guard/Dashboard';
 
-// The guard dashboard now renders the reference-exact Guard Console frame
-// (GuardDashboardMain: four KPI tiles, live arrival queue, ID verification).
+// The guard dashboard renders the Guard Console frame (GuardDashboardMain:
+// four KPI tiles + the Expected Today arrivals panel). It is READ-ONLY: the ID
+// Verification card was removed 2026-08-15 on client instruction, taking its
+// Verify ID and Deny Entry writes with it, so "Dashboard reads, Console acts"
+// now has no exceptions at all.
 // Counts are derived from the same visits array the drill-downs use
 // (lib/guardTiles.ts), so seeding mockToday is all a count test needs; the
 // stubbed children keep the suite focused on what Dashboard composes.
@@ -29,23 +32,6 @@ vi.mock('../../../src/lib/demoSeed', async (importOriginal) => {
 
 vi.mock('../../../src/components/VisitorDetails', () => ({
   default: () => null,
-}));
-
-// Verify ID opens the check-in flow IN PLACE (no navigation) with the ID scan
-// overlay opening immediately. The real flow mounts the camera via
-// IdScanOverlay, which this suite must not touch; the stub proves the wiring —
-// that the button renders the flow, and with autoScan on.
-const flowStub = vi.hoisted(() => ({ rendered: [] as string[] }));
-vi.mock('../../../src/pages/Guard/VisitorCheckInFlow', () => ({
-  default: ({ visit, autoScan, onDone }: any) => {
-    flowStub.rendered.push(`${visit.visitor?.full_name}:autoScan=${autoScan}`);
-    return (
-      <div data-testid="checkin-flow">
-        Check-in flow for {visit.visitor?.full_name}
-        <button type="button" onClick={() => onDone(visit.visitor?.full_name)}>done</button>
-      </div>
-    );
-  },
 }));
 
 // Minimal stand-in for the global topbar so the clock/date cluster test can
@@ -99,18 +85,23 @@ describe('GuardDashboard (reference-screen frame)', () => {
   afterEach(() => {
     cleanup();
     mockToday.current = { visits: [], loading: false };
-    flowStub.rendered = [];
   });
 
-  it('shows the four reference KPI tiles: Expected Today, Checked In, In Premises, Overstaying', () => {
+  it('shows the four gate tiles plus the five lanes moved off the Visitors tab', () => {
     renderDashboard();
+    // Row 2 (client instruction, 2026-08-15): the Visitors tab's KPI cards moved
+    // onto this board, compact, plus the two refusal lanes.
+    for (const label of ['All Visitors', 'Pending Approval', 'Approved Walk-ins',
+      'Declined by Host', 'Entry Refused at the Gate']) {
+      expect(screen.getAllByText(label).length).toBeGreaterThan(0);
+    }
     // "Overstaying", not "Pending Check-out": the number has always been
     // isOverstaying, and everyone inside is pending check-out, so the old label
     // described the tile next to it.
     // "Expected Today" now names both the KPI tile AND the arrivals panel
     // heading below it (2026-08-15, deliberately — same predicate, two
     // altitudes), so it can appear more than once.
-    for (const label of ['Expected Today', 'Checked In', 'In Premises', 'Overstaying']) {
+    for (const label of ['Expected Today', 'Checked In Today', 'In Premises', 'Overstaying']) {
       expect(screen.getAllByText(label).length).toBeGreaterThan(0);
     }
     // The old six-tile board must not silently return.
@@ -119,29 +110,68 @@ describe('GuardDashboard (reference-screen frame)', () => {
     }
   });
 
-  it('renders the Expected Today arrivals panel with table headers', () => {
-    // Renamed from "Live Arrival Queue" 2026-08-15 — nothing here is live
-    // (these are bookings, often hours away) and nobody is queuing. Scoped to
-    // the heading role since the KPI tile above shares the same text.
+  // ONE panel, whose heading AND columns follow the selected tile (client
+  // instruction, 2026-08-15). It opens on Expected Today; pressing another tile
+  // renames it and re-columns it. The old fixed "Expected Today" table plus a
+  // separate drill-down sheet meant the same rows had two layouts and the
+  // heading was wrong for six of the seven tiles.
+  it('opens on Expected Today, with that lane\'s columns', () => {
     renderDashboard();
     expect(screen.getByRole('heading', { name: 'Expected Today' })).toBeInTheDocument();
-    for (const col of ['Name', 'Purpose', 'Host', 'Time', 'Status']) {
+    for (const col of ['Name', 'Purpose', 'Host', 'Department', 'Scheduled', 'Status']) {
       expect(screen.getByText(col)).toBeInTheDocument();
     }
+    // Nobody in this lane has arrived, so an entry-time column would be an em
+    // dash on every row. (The TILE above still reads "Checked In Today" — this
+    // is about the panel's column headers.)
+    expect(screen.queryByText('Checked In')).toBeNull();
+    expect(screen.queryByText('Checked Out')).toBeNull();
+    expect(screen.queryByText('Overstaying By')).toBeNull();
   });
 
-  it('renders the ID Verification card and no View Full Queue link', () => {
+  it('renames the panel and re-columns it when another tile is pressed', () => {
+    mockToday.current = {
+      visits: [visitRow({ id: 'a', status: 'checked_in', checked_in_at: '2026-08-14T09:00:00Z' })],
+      loading: false,
+    };
     renderDashboard();
-    expect(screen.getByText('ID Verification')).toBeInTheDocument();
-    // The "View Full Queue" shortcut under the Live Arrival Queue was removed
-    // 2026-08-14 (client instruction); the Inside Now nav item is the route.
+    act(() => { screen.getByRole('button', { name: /Checked In Today/ }).click(); });
+    expect(screen.getByRole('heading', { name: 'Checked In Today' })).toBeInTheDocument();
+    // The scheduled slot AND the actual entry, side by side — the whole point
+    // of the dynamic columns.
+    expect(screen.getByText('Scheduled')).toBeInTheDocument();
+    expect(screen.getByText('Checked In')).toBeInTheDocument();
+    expect(screen.getByText('Checked Out')).toBeInTheDocument();
+  });
+
+  // An overstaying row gains a column that exists on no other lane: how far
+  // past their deadline they are (client instruction, 2026-08-15).
+  it('gives the Overstaying lane an Overstaying By column', () => {
+    renderDashboard();
+    act(() => { screen.getByRole('button', { name: /Overstaying/ }).click(); });
+    expect(screen.getByRole('heading', { name: 'Overstaying' })).toBeInTheDocument();
+    expect(screen.getByText('Overstaying By')).toBeInTheDocument();
+  });
+
+  // Removed 2026-08-15 (client instruction). The card was the dashboard's only
+  // pair of writes; check-in now starts on the Pre-Registered board and Deny
+  // Entry is gone from the app entirely.
+  it('renders no ID Verification card, and no View Full Queue link', () => {
+    renderDashboard();
+    expect(screen.queryByText('ID Verification')).toBeNull();
+    expect(screen.queryByText(/No visitor awaiting ID verification/i)).toBeNull();
+    // The "View Full Queue" shortcut under the arrivals panel was removed
+    // 2026-08-14 (client instruction); the Entry & Exit nav item is the route.
     expect(screen.queryByText('View Full Queue')).toBeNull();
   });
 
-  it('shows the Empty / no-visitors states when there is no data', () => {
+  it('shows the empty state of whichever lane is selected', () => {
     renderDashboard();
+    // Each lane says its own thing — "nobody is waiting" and "nobody is
+    // overstaying" are different facts and must not be the same sentence.
     expect(screen.getByText(/No visitors waiting at the gate/i)).toBeInTheDocument();
-    expect(screen.getByText(/No visitor awaiting ID verification/i)).toBeInTheDocument();
+    act(() => { screen.getByRole('button', { name: /Overstaying/ }).click(); });
+    expect(screen.getByText(/Nobody is overstaying/i)).toBeInTheDocument();
   });
 
   it('lists the expected arrivals with initials, purpose and status pills', () => {
@@ -167,20 +197,13 @@ describe('GuardDashboard (reference-screen frame)', () => {
     );
     expect(avatar).toBeInTheDocument();
     expect(screen.getByText('Interview')).toBeInTheDocument();
-    // Approved-ahead slots at the gate read PRE-REGISTERED; only unapproved
-    // walk-in lanes read WAITING (see statusPill in GuardDashboardMain).
-    expect(screen.getByText('PRE-REGISTERED')).toBeInTheDocument();
-    // Verify ID must open the thing that verifies an ID — the ID scan flow —
-    // IN PLACE, not navigate to another tab. It used to be a link to
-    // /guard/preregistered?checkin=, and before that to /guard/inside-now?verify=
-    // (a read-only frame with no scan control at all). Since 2026-08-15 it is a
-    // button that renders the check-in flow as a modal on this page, with the
-    // scan overlay opening immediately (autoScan).
-    expect(screen.queryByRole('link', { name: /Verify ID/i })).not.toBeInTheDocument();
-    const verify = screen.getByRole('button', { name: /Verify ID/i });
-    fireEvent.click(verify);
-    expect(screen.getByRole('dialog', { name: /Verify ID/i })).toBeInTheDocument();
-    expect(flowStub.rendered).toContain('Marcos Fernandez:autoScan=true');
+    // Presence is stated in words, from lib/visitGateChips.ts — the same rules
+    // the Entry & Exit table uses, so one visitor reads the same on both.
+    expect(screen.getByText('Pre-registered')).toBeInTheDocument();
+    // The board is display-only. Verify ID lived on the ID Verification card
+    // and went with it; check-in starts on the Pre-Registered board.
+    expect(screen.queryByRole('button', { name: /Verify ID/i })).toBeNull();
+    expect(screen.queryByRole('link', { name: /Verify ID/i })).toBeNull();
   });
 
   // The tile used to be `awaitingApproval + overdue` — unapproved walk-in
@@ -202,7 +225,7 @@ describe('GuardDashboard (reference-screen frame)', () => {
     renderDashboard();
     // Scoped to the tile (a button), not the panel heading below it, which
     // shares the same text since 2026-08-15.
-    const tile = screen.getByRole('button', { name: /Expected Today/ });
+    const tile = screen.getAllByRole('button', { name: /Expected Today/ })[0];
     expect(tile.textContent).toMatch(/2/);
   });
 
@@ -219,7 +242,7 @@ describe('GuardDashboard (reference-screen frame)', () => {
       loading: false,
     };
     renderDashboard();
-    const tile = screen.getByText('In Premises').closest('button')!;
+    const tile = screen.getAllByText('In Premises')[0].closest('button')!;
     expect(tile.textContent).toMatch(/2/);
     act(() => { tile.click(); });
     // Both of the two counted visitors are in the panel the tile opened.
@@ -247,33 +270,18 @@ describe('GuardDashboard (reference-screen frame)', () => {
     expect(screen.queryByText(/issue pass/i)).toBeNull();
   });
 
-  // Deny Entry used to be a `<Link to="/guard/dashboard">` — a placeholder
-  // that navigated to the page the guard was already on, so pressing it did
-  // nothing. It is a real write now (lib/denyEntryFlow.ts), gated behind a
-  // confirm dialog that demands a reason. This asserts the button opens that
-  // dialog rather than navigating anywhere, and that nothing is written until
-  // a reason is actually supplied — the mandatory-justification rule.
-  it('opens the Deny Entry confirm dialog instead of navigating, and blocks the write until a reason is given', () => {
+  // Deny Entry was the dashboard's other write. It is gone from the APP, not
+  // just from this page (client instruction, 2026-08-15) — lib/denyEntryFlow.ts,
+  // lib/useDenyEntry.ts and DenyEntryConfirm.tsx are deleted. This asserts no
+  // control offers it, on a visit that would previously have been refusable.
+  it('offers no way to deny entry', () => {
     mockToday.current = {
-      visits: [
-        {
-          id: 'v3', ref_number: 'REF-3', visitor_id: 'p3', department_id: 'd1', host_id: 'h1',
-          status: 'approved', checked_in_at: null, checked_out_at: null, exit_verified: null,
-          rejection_reason: null, carrying_material: false, qr_token: 'tok3', qr_expires_at: null,
-          created_at: '2026-08-14T09:00:00Z', scheduled_for: '2026-08-14T10:00:00Z', purpose: 'Visit',
-          visitor: { full_name: 'A. Kapoor', phone: '', vendor_name: null, is_blacklisted: false, blacklist_reason: null, id_type: null, id_last4: null, created_at: '' },
-          department: null, host: null,
-        },
-      ],
+      visits: [visitRow({ id: 'v3', name: 'A. Kapoor', status: 'approved', checked_in_at: null })],
       loading: false,
     };
     renderDashboard();
-    expect(screen.queryByRole('link', { name: /Deny Entry/i })).not.toBeInTheDocument();
-    const deny = screen.getByRole('button', { name: /Deny Entry/i });
-    fireEvent.click(deny);
-
-    expect(screen.getByRole('dialog', { name: /Refuse entry/i })).toBeInTheDocument();
-    const confirmBtn = screen.getByRole('button', { name: /Refuse entry/i });
-    expect(confirmBtn).toBeDisabled();
+    expect(screen.queryByRole('button', { name: /Deny Entry/i })).toBeNull();
+    expect(screen.queryByRole('link', { name: /Deny Entry/i })).toBeNull();
+    expect(screen.queryByText(/Refuse entry/i)).toBeNull();
   });
 });

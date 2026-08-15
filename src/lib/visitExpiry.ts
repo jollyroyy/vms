@@ -142,14 +142,43 @@ export function isOverstaying(
   now: Date = new Date(),
   hours: number = OVERSTAY_HOURS,
 ): boolean {
-  if (v.status !== 'checked_in' || !v.checked_in_at) return false;
-  // The approver's answer beats the fallback. A contractor booked until Friday
-  // is not overstaying on Tuesday night, and before `expected_departure` existed
-  // there was no way to say so — which is exactly why the sweep in migration 067
-  // was installed unscheduled rather than guessing. Mirrors the same coalesce in
-  // sweep_overstays (073).
-  const deadline = v.expected_departure
+  const deadline = overstayDeadline(v, hours);
+  return deadline !== null && now.getTime() > deadline;
+}
+
+/**
+ * The instant this visit was due to end, in epoch ms, or null when the question
+ * does not apply (nobody is inside).
+ *
+ * The approver's answer beats the fallback. A contractor booked until Friday is
+ * not overstaying on Tuesday night, and before `expected_departure` existed
+ * there was no way to say so — which is exactly why the sweep in migration 067
+ * was installed unscheduled rather than guessing. Mirrors the same coalesce in
+ * sweep_overstays (073).
+ *
+ * Extracted so `isOverstaying` (the tile's predicate) and `overstayMs` (the
+ * "Overstaying by" column beside it) cannot answer from two different deadlines
+ * — the same one-source rule guardTiles.ts exists for.
+ */
+export function overstayDeadline(
+  v: Pick<Visit, 'status' | 'checked_in_at'> & { expected_departure?: string | null },
+  hours: number = OVERSTAY_HOURS,
+): number | null {
+  if (v.status !== 'checked_in' || !v.checked_in_at) return null;
+  return v.expected_departure
     ? new Date(v.expected_departure).getTime()
     : new Date(v.checked_in_at).getTime() + hours * 3_600_000;
-  return now.getTime() > deadline;
+}
+
+/** How long past the deadline this visitor has been inside, in ms. 0 when they
+ *  are not overstaying — never a negative number, which would read on screen as
+ *  time owed rather than time overrun. */
+export function overstayMs(
+  v: Pick<Visit, 'status' | 'checked_in_at'> & { expected_departure?: string | null },
+  now: Date = new Date(),
+  hours: number = OVERSTAY_HOURS,
+): number {
+  const deadline = overstayDeadline(v, hours);
+  if (deadline === null) return 0;
+  return Math.max(0, now.getTime() - deadline);
 }

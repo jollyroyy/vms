@@ -15,9 +15,21 @@ import CheckInTimeline from './CheckInTimeline';
 // guard clicked to open it. That is the duplicate-render rule this repo has
 // applied everywhere else: the same value twice on one screen makes the eye
 // check whether the two agree. The Badge type control went with it (a disabled
-// select with one option, which was never a choice), and the two things the
-// table does NOT carry — the vehicle number and the Notify Host action — moved
-// into the identity column below, so nothing was lost with the card.
+// select with one option, which was never a choice), and the one thing the
+// table does NOT carry — the vehicle number — moved into the identity column
+// below, so nothing was lost with the card.
+//
+// THERE IS NO "NOTIFY HOST" BUTTON (removed 2026-08-15, client instruction).
+// The host is notified AUTOMATICALLY, by the check-in itself: every path that
+// writes `status = 'checked_in'` calls `lib/notifyHostCheckIn.ts`, which
+// inserts one `visitor_checked_in` row addressed to `visits.host_id` — the
+// person who booked the visitor, in their own department — and it lands in
+// that host's bell dropdown. A manual button on top of that could only ever do
+// one of two things: nothing (the notice already exists, and the function is
+// idempotent), or re-raise a read notice about a visitor who may have gone
+// home. Neither is an action worth a control at the gate. The step tracker's
+// "Host Notified" step stays, because it REPORTS the automatic notice rather
+// than offering to repeat it.
 
 type Step = { label: string; done: boolean };
 
@@ -27,7 +39,6 @@ const initialsOf = (name: string | null | undefined) =>
 type CheckInFrameProps = {
   activeVisit: ReportVisit;
   qrDataUrl: string | null;
-  onNotifyHost: (v: ReportVisit) => void;
   onPrintBadge: () => void;
   onClose: () => void;
   /** Log this visitor's exit. Threaded straight through to the badge rail. */
@@ -37,7 +48,6 @@ type CheckInFrameProps = {
 export default function CheckInFrame({
   activeVisit,
   qrDataUrl,
-  onNotifyHost,
   onPrintBadge,
   onClose,
   onCheckOut,
@@ -135,30 +145,12 @@ export default function CheckInFrame({
 
         <CheckInTimeline visit={activeVisit} />
 
-        {/* The two things the Inside Now table above does not carry. The
-            vehicle number is a fact only this frame holds; Notify Host is an
-            action, and an action was never a duplicate of a table cell. */}
+        {/* The one thing the Entry & Exit table above does not carry. */}
         <div className="w-full mt-6 pt-5 border-t border-surface-200/60 dark:border-white/[0.07] flex flex-wrap items-center gap-3">
           <span className="text-xs font-semibold uppercase tracking-wider text-navy-500 dark:text-navy-400">Vehicle</span>
           <span className="flex-1 min-w-0 text-sm font-medium text-navy-950 dark:text-white break-words">
             {activeVisit.visitor?.vehicle_number ?? '—'}
           </span>
-          <button
-            onClick={() => void onNotifyHost(activeVisit)}
-            // Enabled for someone who IS inside; disabled once they have left.
-            // This test was INVERTED, and both halves were wrong on the Entry &
-            // Exit tab where the frame lives: every row in the Checked In lane
-            // is `checked_in`, so the button was dead for every visitor it
-            // could help with, while in the Checked Out lane it was live and
-            // would insert a notification reading "<name> has checked in at the
-            // gate" about a visitor who had already gone home.
-            disabled={activeVisit.status !== 'checked_in'}
-            className="rounded-xl bg-brand-600 hover:bg-brand-500 disabled:opacity-50 text-white font-semibold text-sm px-4 py-2.5 flex items-center justify-center gap-2 transition-colors shadow-glow-sm">
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 01-2.555-.337A5.972 5.972 0 015.41 20.97a5.969 5.969 0 01-.474-.065 4.48 4.48 0 00.978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25z" />
-            </svg>
-            Notify Host
-          </button>
         </div>
       </div>
 
