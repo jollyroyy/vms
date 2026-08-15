@@ -128,7 +128,14 @@ export default function CheckInPhotoStep({
           <CheckInVisitorSummary match={selectedMatch} />
           {scanSection}
           <p className="text-sm font-semibold text-navy-700">Take a photo to check in</p>
-          <PhotoCapture onCapture={onCapture} />
+          {/* ONE camera at a time. PhotoCapture mounts only once the scan
+              overlay is closed: while it is open, mounting it underneath
+              starts a SECOND getUserMedia stream that fights the scan's rear
+              camera (the scan then fails to start on phones) and shows a
+              second camera screen through the translucent backdrop — which a
+              guard reads as a second OCR page. When the scan closes, the
+              overlay unmounts its camera and PhotoCapture mounts fresh. */}
+          {!scanOpen && <PhotoCapture onCapture={onCapture} />}
         </div>
         {error && <div className="bg-danger-50 text-danger-700 px-4 py-3 rounded-xl text-sm font-semibold">{error}</div>}
       </div>

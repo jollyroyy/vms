@@ -167,4 +167,21 @@ describe('M-AI-OCR-UI: CheckInPhotoStep scan + identity match', () => {
       expect(screen.queryByText('Capture Card')).not.toBeInTheDocument();
     });
   });
+
+  // The two-camera regression: autoScan (the dashboard's Verify ID) mounted
+  // PhotoCapture BEHIND the scan overlay, so two getUserMedia streams ran at
+  // once — the photo camera showed through the translucent backdrop as a
+  // second OCR page, and on phones the scan camera often failed to start at
+  // all. Exactly one camera may be live at any moment: while the overlay is
+  // open there is no photo camera, and it mounts only after the overlay goes.
+  it('mounts no photo camera while the scan overlay is open (one camera at a time)', async () => {
+    render(<CheckInPhotoStep {...baseProps} autoScan />);
+    expect(await screen.findByText('Capture Card')).toBeInTheDocument();
+    expect(screen.queryByText('Capture Photo')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+    await waitFor(() => {
+      expect(screen.getByText('Capture Photo')).toBeInTheDocument();
+    });
+    expect(screen.queryByText('Capture Card')).not.toBeInTheDocument();
+  });
 });
