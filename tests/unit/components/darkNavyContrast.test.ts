@@ -77,9 +77,10 @@ function findViolations(): Violation[] {
 }
 
 // Grandfathered baseline — see file header. Each entry is `path:line`.
+// Badge.tsx and VisitorDetails.tsx left this list on 2026-08-15 — every
+// `dark:text-navy-*` in them was deleted rather than re-listed while both files
+// were being worked on. Shrinking the baseline is the point of having one.
 const KNOWN_VIOLATIONS = new Set([
-  '/Badge.tsx:76', '/Badge.tsx:85', '/Badge.tsx:89', '/Badge.tsx:94', '/Badge.tsx:98',
-  '/Badge.tsx:102', '/Badge.tsx:106', '/Badge.tsx:118', '/Badge.tsx:129',
   '/CardField.tsx:21', '/CardField.tsx:22',
   '/DailyVisitorAddForm.tsx:37',
   '/DailyVisitorCard.tsx:44', '/DailyVisitorCard.tsx:47',
@@ -91,7 +92,6 @@ const KNOWN_VIOLATIONS = new Set([
   '/layout/SidebarProfile.tsx:51', '/layout/SidebarProfile.tsx:75',
   '/PhotoCapture.tsx:134',
   '/SessionTimeout.tsx:104',
-  '/VisitorDetails.tsx:54', '/VisitorDetails.tsx:59', '/VisitorDetails.tsx:145',
   '/VisitorDetailsTimeline.tsx:55',
 ]);
 

@@ -79,15 +79,31 @@ export default function DashboardVisitorTable({
                         <td key={c.key} className="px-4 py-3"><GateChips visit={v} now={now} /></td>
                       );
                     }
-                    // The name cell leads with the monogram, so the eye finds
-                    // the person before it reads anything else on the row.
+                    // The name cell leads with the FACE where there is one, so
+                    // the eye finds the person before it reads anything else on
+                    // the row (client instruction, 2026-08-15). Every visit that
+                    // has been through a check-in carries a photo — it is
+                    // mandatory on every check-in path — so this is the whole
+                    // In Premises, Checked In and Approved Walk-ins population,
+                    // and a guard matching a row to somebody in front of them
+                    // was being handed two letters instead. The monogram stays
+                    // as the fallback for a row that has not reached a camera
+                    // yet, rather than an empty circle.
                     if (c.key === 'name') {
                       return (
                         <td key={c.key} className="px-4 py-3">
                           <span className="flex items-center gap-2.5">
-                            <span className="w-8 h-8 shrink-0 rounded-full bg-brand-600 flex items-center justify-center text-white text-xs font-bold">
-                              {initialsOf(v.visitor?.full_name)}
-                            </span>
+                            {v.photo_url ? (
+                              <img
+                                src={v.photo_url}
+                                alt=""
+                                className="w-8 h-8 shrink-0 rounded-full object-cover ring-2 ring-brand-500/25"
+                              />
+                            ) : (
+                              <span className="w-8 h-8 shrink-0 rounded-full bg-brand-600 flex items-center justify-center text-white text-xs font-bold">
+                                {initialsOf(v.visitor?.full_name)}
+                              </span>
+                            )}
                             <span className="text-navy-950 dark:text-white font-medium truncate">
                               {c.value(v, now)}
                             </span>

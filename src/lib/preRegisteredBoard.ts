@@ -30,17 +30,64 @@ import { istDateKey } from './visitExpiry';
 /** Minutes past a slot after which "missed" hardens into "late". */
 export const LATE_AFTER_MINUTES = 30;
 
-/** The Today-at-a-Glance windows, in IST hours, defined ONCE.
+/** The Today-at-a-Glance windows: the gate's day, sliced into equal blocks.
  *
- *  They used to live as two hardcoded label strings in GlanceRail ("09:00-12:00",
- *  "12:00-17:00") and two unrelated `getHours()` comparisons in the page — so
- *  the heading and the number under it were free to disagree, and did: the
- *  afternoon test had no upper bound, counting a 20:00 booking under a label
- *  that stopped at 17:00. The rail now renders its labels from these. */
-export const MORNING_FROM = 9;
-export const MORNING_TO = 12;
-export const AFTERNOON_FROM = 12;
-export const AFTERNOON_TO = 17;
+ *  It used to be exactly two, "Arrivals 09:00–12:00" and "Expected 12:00–17:00",
+ *  which left the whole evening and everything before nine uncounted — a guard
+ *  reading the rail at 17:30 saw two numbers that said nothing about the people
+ *  still due. Now every booking on the board falls into exactly one bucket, and
+ *  `arrivalWindows` asserts that by returning the leftovers rather than dropping
+ *  them: windows + outside + unscheduled === the board's length.
+ *
+ *  Change WINDOW_HOURS and the labels, the arithmetic and the rail all follow —
+ *  the heading and the number under it are computed from one pair of bounds, the
+ *  defect that let a 20:00 booking be counted under a label ending at 17:00. */
+export const WINDOW_HOURS = 3;
+export const DAY_FROM = 6;
+export const DAY_TO = 21;
+
+export type ArrivalWindow = {
+  /** IST hour the window opens (inclusive) and closes (exclusive). */
+  from: number;
+  to: number;
+  /** "09:00 – 12:00", rendered from the bounds it counts with. */
+  label: string;
+  count: number;
+};
+
+export type ArrivalWindows = {
+  windows: ArrivalWindow[];
+  /** Booked, but outside the gate's day — never hidden, or the numbers would
+   *  quietly fail to add up to the board. */
+  outside: number;
+  /** No slot at all. `validatePreApproval` makes `scheduled_for` mandatory, but
+   *  rows created before it landed are live and still arrive at a gate. */
+  unscheduled: number;
+  total: number;
+};
+
+const pad = (h: number) => `${String(h).padStart(2, '0')}:00`;
+
+/** How many of this board's visitors are due in each window of the day. */
+export function arrivalWindows(visits: ReportVisit[]): ArrivalWindows {
+  const windows: ArrivalWindow[] = [];
+  for (let from = DAY_FROM; from < DAY_TO; from += WINDOW_HOURS) {
+    const to = Math.min(from + WINDOW_HOURS, DAY_TO);
+    windows.push({ from, to, label: `${pad(from)} – ${pad(to)}`, count: 0 });
+  }
+
+  let outside = 0;
+  let unscheduled = 0;
+  for (const v of visits) {
+    if (!v.scheduled_for) { unscheduled += 1; continue; }
+    const hour = istHour(v.scheduled_for);
+    const bucket = windows.find((w) => hour >= w.from && hour < w.to);
+    if (bucket) bucket.count += 1;
+    else outside += 1;
+  }
+
+  return { windows, outside, unscheduled, total: visits.length };
+}
 
 /** The hour of an instant IN IST.
  *

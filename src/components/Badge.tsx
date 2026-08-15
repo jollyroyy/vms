@@ -73,7 +73,7 @@ export default function Badge({ visit }: Props): React.ReactElement {
         {/* Typography hierarchy */}
         <div className="text-center space-y-1">
           <p className="font-extrabold text-navy-950 text-xl tracking-tight">{visitor?.full_name ?? '—'}</p>
-          <p className="text-sm text-navy-500 dark:text-navy-400 font-medium">{visitor?.vendor_name ?? ''}</p>
+          <p className="text-sm text-navy-500 font-medium">{visitor?.vendor_name ?? ''}</p>
         </div>
 
         {/* Info rows with clean separators */}
@@ -81,41 +81,66 @@ export default function Badge({ visit }: Props): React.ReactElement {
           {/* Department used to have its own row directly above this one —
               folded under Person to Meet instead, so the printed pass never
               shows the same department value twice. */}
+          {/* The phone is on the printed pass because the pass outlives the
+              screen: if a visitor is still on site at shift change, or the card
+              comes back without them, the number on the badge is how the gate
+              reaches them without going back to a terminal. */}
           <div className="flex justify-between py-2 border-b border-surface-100">
-            <span className="text-navy-500 dark:text-navy-400 font-medium">Person to Meet</span>
+            <span className="text-navy-500 font-medium">Phone</span>
+            <span className="font-semibold text-navy-700 font-mono tabular-nums">{visitor?.phone ?? '—'}</span>
+          </div>
+          <div className="flex justify-between py-2 border-b border-surface-100">
+            <span className="text-navy-500 font-medium">Person to Meet</span>
             <span className="text-right">
               <span className="block font-semibold text-navy-700">{host?.full_name ?? '—'}</span>
               {host?.full_name && dept?.name && (
-                <span className="block text-[10px] text-navy-500 dark:text-navy-400">{dept.name}</span>
+                <span className="block text-[10px] text-navy-500">{dept.name}</span>
               )}
             </span>
           </div>
           <div className="flex justify-between py-2 border-b border-surface-100">
-            <span className="text-navy-500 dark:text-navy-400 font-medium">Purpose</span>
+            <span className="text-navy-500 font-medium">Purpose</span>
             <span className="font-semibold text-navy-700">{formatPurpose(visit.purpose)}</span>
           </div>
           <div className="flex justify-between py-2 border-b border-surface-100">
-            <span className="text-navy-500 dark:text-navy-400 font-medium">ID Proof</span>
+            <span className="text-navy-500 font-medium">ID Proof</span>
             <span className="font-semibold text-navy-700 font-mono">{maskIdProof(visitor?.id_type, visitor?.id_last4)}</span>
           </div>
           <div className="flex justify-between py-2 border-b border-surface-100">
-            <span className="text-navy-500 dark:text-navy-400 font-medium">Date</span>
+            <span className="text-navy-500 font-medium">Date</span>
             <span className="font-semibold text-navy-700">{new Date(visit.created_at).toLocaleDateString('en-IN')}</span>
           </div>
           <div className="flex justify-between py-2">
-            <span className="text-navy-500 dark:text-navy-400 font-medium">Status</span>
+            <span className="text-navy-500 font-medium">Status</span>
             <span className="capitalize font-bold text-brand-700">{visit.status.replace(/_/g, ' ')}</span>
           </div>
         </div>
 
-        {/* QR code with clean presentation */}
+        {/* The physical card handed over at the gate, printed on the pass that
+            goes with it — so the two can be matched back to each other at
+            check-out, which is the moment the card is demanded back (migration
+            076). Omitted rather than dashed when no card was issued: the kiosk
+            path never issues one, and a dash there reads as a card that went
+            missing. */}
+        {visit.visitor_card_number && (
+          <div className="rounded-xl border-2 border-dashed border-[#1d4ed8]/25 bg-[#1d4ed8]/[0.04] px-3 py-2 text-center">
+            <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-[#5a6070]">Visitor Card</p>
+            <p className="text-lg font-extrabold tracking-[0.12em] text-navy-950 font-mono">{visit.visitor_card_number}</p>
+          </div>
+        )}
+
+        {/* QR at a size a handheld scanner can lock onto from a lanyard. It was
+            rendered into a 64px box from a 192px source — downscaling a QR
+            blurs the module edges, which is the one thing a decoder needs
+            crisp, and on paper at that size the finder patterns were marginal.
+            Rendered 1:1 now, quiet zone intact. */}
         <div className="flex flex-col items-center gap-2 pt-1">
           {qrDataUrl ? (
             <div className="p-2 bg-white rounded-xl" style={{ boxShadow: '0 0 0 1px rgba(0,0,0,0.06)' }}>
-              <img src={qrDataUrl} alt="QR Code" className="w-16 h-16" />
+              <img src={qrDataUrl} alt="QR Code" className="w-28 h-28 block" />
             </div>
           ) : (
-            <div className="w-16 h-16 border-2 border-navy-800 rounded-xl flex items-center justify-center text-xs text-navy-500 dark:text-navy-400 bg-surface-50 animate-pulse">QR</div>
+            <div className="w-28 h-28 border-2 border-navy-800 rounded-xl flex items-center justify-center text-xs text-navy-500 bg-surface-50 animate-pulse">QR</div>
           )}
           <p className="text-[10px] text-navy-300 font-medium">Scan at reception</p>
         </div>
@@ -126,7 +151,7 @@ export default function Badge({ visit }: Props): React.ReactElement {
         <div className="absolute inset-0 opacity-20" style={{ background: 'repeating-linear-gradient(45deg, transparent, transparent 5px, rgba(51,150,255,0.08) 5px, rgba(51,150,255,0.08) 10px)' }} />
         <div className="relative flex items-center justify-center gap-2">
           <svg className="w-3 h-3 text-brand-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" /></svg>
-          <p className="text-[9px] text-navy-500 dark:text-navy-400 text-center font-medium">Valid for one visit only. Carry at all times.</p>
+          <p className="text-[9px] text-navy-500 text-center font-medium">Valid for one visit only. Carry at all times.</p>
         </div>
       </div>
     </div>

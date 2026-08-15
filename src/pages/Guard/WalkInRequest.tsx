@@ -126,13 +126,18 @@ export default function WalkInRequest({ onSubmitted, onCancel }: Props): React.R
   return (
     <>
     <form onSubmit={handleSubmit} className="bg-white rounded-2xl p-5 shadow-sm border-2 border-dashed border-brand-300/30 space-y-4 animate-fade-in">
+      {/* The header names what this form DOES, not the search that failed to
+          find a pass. It stopped being the "no match found" fallback when the
+          register became its own destination (/guard/walk-in) — the guard
+          reaching it now chose it from the nav, and telling them something was
+          "not found" describes a search they never ran. */}
       <div className="flex items-center gap-2.5">
-        <div className="h-8 w-8 rounded-lg bg-amber-500 flex items-center justify-center shrink-0">
-          <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" /></svg>
+        <div className="h-9 w-9 rounded-xl bg-amber-500 flex items-center justify-center shrink-0 shadow-sm">
+          <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7.5v3m0 0v3m0-3h3m-3 0h-3m-2.25-4.125a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zM4 19.235v-.11a6.375 6.375 0 0112.75 0v.109A12.318 12.318 0 0110.374 21c-2.331 0-4.512-.645-6.374-1.766z" /></svg>
         </div>
         <div>
-          <p className="text-sm font-bold text-navy-900">Not found — request walk-in approval</p>
-          <p className="text-xs text-navy-500 dark:text-navy-400">HOD will be notified to approve</p>
+          <p className="text-sm font-bold text-navy-900">Register a walk-in visitor</p>
+          <p className="text-xs text-navy-500">The person to meet is asked to approve before entry</p>
         </div>
       </div>
 
@@ -213,15 +218,25 @@ export default function WalkInRequest({ onSubmitted, onCancel }: Props): React.R
         </div>
       </div>
 
+      {/* .btn-primary / .btn-secondary rather than a bespoke pair: this is the
+          one submit in the guard's day that hands a decision to somebody else,
+          and it should look like every other primary action in the app — the
+          gold gradient, the inset highlight and the lift are defined once in
+          components-forms.css, so a rebrand moves this button too. */}
       <div className="flex gap-3 pt-1">
         {onCancel && (
-          <button type="button" onClick={onCancel} className="flex-1 bg-surface-50 hover:bg-surface-100 text-navy-700 font-bold rounded-xl py-2.5 text-sm transition-all">Cancel</button>
+          <button type="button" onClick={onCancel} className="btn-secondary flex-1 py-3 font-semibold">Cancel</button>
         )}
         <button type="submit" disabled={submitting || !!blacklistHit}
-          className="flex-1 bg-brand-600 hover:bg-brand-700 text-white font-bold rounded-xl py-2.5 text-sm transition-all disabled:opacity-50 flex items-center justify-center gap-2">
+          className="btn-primary flex-1 py-3 text-[15px] font-bold flex items-center justify-center gap-2">
           {submitting ? (
-            <><svg className="animate-spin h-4 w-4" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg> Sending...</>
-          ) : 'Send Request'}
+            <><svg className="animate-spin h-4 w-4" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg> Sending request…</>
+          ) : (
+            <>
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" /></svg>
+              Send approval request
+            </>
+          )}
         </button>
       </div>
     </form>

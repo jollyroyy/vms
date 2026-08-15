@@ -1,11 +1,16 @@
 import React from 'react';
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { render, screen, cleanup, fireEvent } from '@testing-library/react';
+import { render as rtlRender, screen, cleanup, fireEvent } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import CheckInMatchList from '../../../src/pages/Guard/CheckInMatchList';
 import { formatDateTime, formatTime } from '../../../src/lib/formatDate';
 import type { MatchItem } from '../../../src/pages/Guard/CheckInPanel';
 
 afterEach(() => cleanup());
+
+// The empty state routes to the Register Walk-in tab with a <Link>, so every
+// render of this component needs a router around it.
+const render = (ui: React.ReactElement) => rtlRender(<MemoryRouter>{ui}</MemoryRouter>);
 
 // Text like "Person to Meet: Alex Host" is split across a parent node and a
 // nested <span> for the bolded value — getByText's default matcher only
@@ -29,10 +34,6 @@ function baseProps(overrides: Partial<React.ComponentProps<typeof CheckInMatchLi
     checkedInIds: new Set<string>(),
     isExpired: () => false,
     onSelectMatch: vi.fn(),
-    showWalkIn: false,
-    onShowWalkIn: vi.fn(),
-    onWalkInSubmitted: vi.fn(),
-    onWalkInCancel: vi.fn(),
     ...overrides,
   };
 }
@@ -62,6 +63,31 @@ function match(overrides: Partial<MatchItem> = {}): MatchItem {
     ...overrides,
   };
 }
+
+// A search that finds nothing means there is no pass — but there may well be a
+// visitor at the gate. The register is its own destination now, so the empty
+// state ROUTES there rather than unfolding a second copy of the walk-in form
+// inside a search result.
+describe('CheckInMatchList — no match routes to the Register Walk-in tab', () => {
+  it('links to /guard/walk-in when a search returns nothing', () => {
+    render(<CheckInMatchList {...baseProps({ allMatches: [] })} />);
+    const link = screen.getByRole('link', { name: /register walk-in visitor/i });
+    expect(link).toHaveAttribute('href', '/guard/walk-in');
+  });
+
+  it('renders no walk-in form inline in the empty state', () => {
+    render(<CheckInMatchList {...baseProps({ allMatches: [] })} />);
+    expect(screen.getByText('No match found')).toBeInTheDocument();
+    expect(screen.queryByLabelText(/remarks/i)).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /send approval request/i })).not.toBeInTheDocument();
+  });
+
+  it('shows no walk-in route at all before the guard has searched', () => {
+    render(<CheckInMatchList {...baseProps({ search: '', allMatches: [] })} />);
+    expect(screen.getByText('Search for a visitor')).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /register walk-in/i })).not.toBeInTheDocument();
+  });
+});
 
 describe('CheckInMatchList — host name and vendor name', () => {
   it('shows the host name and vendor name on a pre-approved visitor card', () => {

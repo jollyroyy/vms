@@ -1,0 +1,204 @@
+
+> vms@0.1.0 predev
+> node scripts/sync-ort-assets.mjs
+
+[sync-ort-assets] copied 4 files (40.4 MB) to public/ort/
+
+> vms@0.1.0 dev
+> vite --host 0.0.0.0
+
+
+  [32m[1mVITE[22m v5.4.21[39m  [2mready in [0m[1m852[22m[2m[0m ms[22m
+
+  [32m➜[39m  [1mLocal[22m:   [36mhttp://localhost:[1m5173[22m/[39m
+  [32m➜[39m  [1mNetwork[22m: [36mhttp://192.168.0.3:[1m5173[22m/[39m
+[2m[32m  ➜[39m[22m[2m  press [22m[1mh + enter[22m[2m to show help[22m
+[2m3:04:32 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/Guard/PreApprovals.tsx, /src/index.css, /src/pages/HOD/HODConsole.tsx[22m
+[2m3:04:38 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/Guard/PreApprovals.tsx, /src/index.css, /src/pages/HOD/HODConsole.tsx[22m
+[2m3:04:41 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/Guard/PreApprovals.tsx, /src/index.css, /src/pages/HOD/HODConsole.tsx[22m
+[2m3:04:44 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/Guard/PreApprovals.tsx, /src/index.css, /src/pages/HOD/HODConsole.tsx[22m
+[2m3:05:12 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/App.tsx, /src/index.css[22m
+[2m3:05:12 PM[22m [31m[1m[vite][22m[39m [31mInternal server error: C:\Users\ASUS\Desktop\VMS\src\App.tsx: Expected corresponding JSX closing tag for <RouteErrorBoundary>. (325:8)
+
+[0m [90m 323 |[31m             [33m<[31m[33mRoute[31m path[33m=[31m[32m"*"[31m                element[33m=[31m{[33m<[31m[33mNotFoundPage[31m [35m/>} /[31m[33m>[31m
+ [90m 324 |[31m           [33m<[31m[33m/[31m[33mRoutes[31m[33m>[31m
+[31m[1m>[22m[31m[90m 325 |[31m         [33m<[31m[33m/[31m[33mAppShell[31m[33m>[31m
+ [90m     |[31m         [31m[1m^[22m[31m
+ [90m 326 |[31m       [33m<[31m[33m/[31m[33mBrowserRouter[31m[33m>[31m
+ [90m 327 |[31m     [33m<[31m[33m/[31m[33mThemeProvider[31m[33m>[31m
+ [90m 328 |[31m   )[33m;[31m[0m[39m
+  Plugin: [35mvite:react-babel[39m
+  File: [36mC:/Users/ASUS/Desktop/VMS/src/App.tsx[39m:325:8
+      at constructor (C:\Users\ASUS\Desktop\VMS\node_modules\@babel\parser\lib\index.js:365:19)
+      at TypeScriptParserMixin.raise (C:\Users\ASUS\Desktop\VMS\node_modules\@babel\parser\lib\index.js:6616:19)
+      at TypeScriptParserMixin.jsxParseElementAt (C:\Users\ASUS\Desktop\VMS\node_modules\@babel\parser\lib\index.js:4739:16)
+      at TypeScriptParserMixin.jsxParseElementAt (C:\Users\ASUS\Desktop\VMS\node_modules\@babel\parser\lib\index.js:4710:32)
+      at TypeScriptParserMixin.jsxParseElementAt (C:\Users\ASUS\Desktop\VMS\node_modules\@babel\parser\lib\index.js:4710:32)
+      at TypeScriptParserMixin.jsxParseElementAt (C:\Users\ASUS\Desktop\VMS\node_modules\@babel\parser\lib\index.js:4710:32)
+      at TypeScriptParserMixin.jsxParseElement (C:\Users\ASUS\Desktop\VMS\node_modules\@babel\parser\lib\index.js:4761:17)
+      at TypeScriptParserMixin.parseExprAtom (C:\Users\ASUS\Desktop\VMS\node_modules\@babel\parser\lib\index.js:4771:19)
+      at TypeScriptParserMixin.parseExprSubscripts (C:\Users\ASUS\Desktop\VMS\node_modules\@babel\parser\lib\index.js:11098:23)
+      at TypeScriptParserMixin.parseUpdate (C:\Users\ASUS\Desktop\VMS\node_modules\@babel\parser\lib\index.js:11083:21)
+      at TypeScriptParserMixin.parseMaybeUnary (C:\Users\ASUS\Desktop\VMS\node_modules\@babel\parser\lib\index.js:11063:23)
+      at TypeScriptParserMixin.parseMaybeUnary (C:\Users\ASUS\Desktop\VMS\node_modules\@babel\parser\lib\index.js:9854:18)
+      at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (C:\Users\ASUS\Desktop\VMS\node_modules\@babel\parser\lib\index.js:10916:61)
+      at TypeScriptParserMixin.parseExprOps (C:\Users\ASUS\Desktop\VMS\node_modules\@babel\parser\lib\index.js:10921:23)
+      at TypeScriptParserMixin.parseMaybeConditional (C:\Users\ASUS\Desktop\VMS\node_modules\@babel\parser\lib\index.js:10898:23)
+      at TypeScriptParserMixin.parseMaybeAssign (C:\Users\ASUS\Desktop\VMS\node_modules\@babel\parser\lib\index.js:10848:21)
+      at C:\Users\ASUS\Desktop\VMS\node_modules\@babel\parser\lib\index.js:9792:39
+      at TypeScriptParserMixin.tryParse (C:\Users\ASUS\Desktop\VMS\node_modules\@babel\parser\lib\index.js:6924:20)
+      at TypeScriptParserMixin.parseMaybeAssign (C:\Users\ASUS\Desktop\VMS\node_modules\@babel\parser\lib\index.js:9792:18)
+      at C:\Users\ASUS\Desktop\VMS\node_modules\@babel\parser\lib\index.js:10817:39
+      at TypeScriptParserMixin.allowInAnd (C:\Users\ASUS\Desktop\VMS\node_modules\@babel\parser\lib\index.js:12443:12)
+      at TypeScriptParserMixin.parseMaybeAssignAllowIn (C:\Users\ASUS\Desktop\VMS\node_modules\@babel\parser\lib\index.js:10817:17)
+      at TypeScriptParserMixin.parseMaybeAssignAllowInOrVoidPattern (C:\Users\ASUS\Desktop\VMS\node_modules\@babel\parser\lib\index.js:12510:17)
+      at TypeScriptParserMixin.parseParenAndDistinguishExpression (C:\Users\ASUS\Desktop\VMS\node_modules\@babel\parser\lib\index.js:11692:28)
+      at TypeScriptParserMixin.parseExprAtom (C:\Users\ASUS\Desktop\VMS\node_modules\@babel\parser\lib\index.js:11348:23)
+      at TypeScriptParserMixin.parseExprAtom (C:\Users\ASUS\Desktop\VMS\node_modules\@babel\parser\lib\index.js:4776:20)
+      at TypeScriptParserMixin.parseExprSubscripts (C:\Users\ASUS\Desktop\VMS\node_modules\@babel\parser\lib\index.js:11098:23)
+      at TypeScriptParserMixin.parseUpdate (C:\Users\ASUS\Desktop\VMS\node_modules\@babel\parser\lib\index.js:11083:21)
+      at TypeScriptParserMixin.parseMaybeUnary (C:\Users\ASUS\Desktop\VMS\node_modules\@babel\parser\lib\index.js:11063:23)
+      at TypeScriptParserMixin.parseMaybeUnary (C:\Users\ASUS\Desktop\VMS\node_modules\@babel\parser\lib\index.js:9854:18)
+      at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (C:\Users\ASUS\Desktop\VMS\node_modules\@babel\parser\lib\index.js:10916:61)
+      at TypeScriptParserMixin.parseExprOps (C:\Users\ASUS\Desktop\VMS\node_modules\@babel\parser\lib\index.js:10921:23)
+      at TypeScriptParserMixin.parseMaybeConditional (C:\Users\ASUS\Desktop\VMS\node_modules\@babel\parser\lib\index.js:10898:23)
+      at TypeScriptParserMixin.parseMaybeAssign (C:\Users\ASUS\Desktop\VMS\node_modules\@babel\parser\lib\index.js:10848:21)
+      at TypeScriptParserMixin.parseMaybeAssign (C:\Users\ASUS\Desktop\VMS\node_modules\@babel\parser\lib\index.js:9803:20)
+      at TypeScriptParserMixin.parseExpressionBase (C:\Users\ASUS\Desktop\VMS\node_modules\@babel\parser\lib\index.js:10801:23)
+      at C:\Users\ASUS\Desktop\VMS\node_modules\@babel\parser\lib\index.js:10797:39
+      at TypeScriptParserMixin.allowInAnd (C:\Users\ASUS\Desktop\VMS\node_modules\@babel\parser\lib\index.js:12438:16)
+      at TypeScriptParserMixin.parseExpression (C:\Users\ASUS\Desktop\VMS\node_modules\@babel\parser\lib\index.js:10797:17)
+      at TypeScriptParserMixin.parseReturnStatement (C:\Users\ASUS\Desktop\VMS\node_modules\@babel\parser\lib\index.js:13159:28)
+      at TypeScriptParserMixin.parseStatementContent (C:\Users\ASUS\Desktop\VMS\node_modules\@babel\parser\lib\index.js:12815:21)
+      at TypeScriptParserMixin.parseStatementContent (C:\Users\ASUS\Desktop\VMS\node_modules\@babel\parser\lib\index.js:9525:18)
+      at TypeScriptParserMixin.parseStatementLike (C:\Users\ASUS\Desktop\VMS\node_modules\@babel\parser\lib\index.js:12784:17)
+      at TypeScriptParserMixin.parseStatementListItem (C:\Users\ASUS\Desktop\VMS\node_modules\@babel\parser\lib\index.js:12764:17)
+      at TypeScriptParserMixin.parseBlockOrModuleBlockBody (C:\Users\ASUS\Desktop\VMS\node_modules\@babel\parser\lib\index.js:13333:61)
+      at TypeScriptParserMixin.parseBlockBody (C:\Users\ASUS\Desktop\VMS\node_modules\@babel\parser\lib\index.js:13326:10)
+      at TypeScriptParserMixin.parseBlock (C:\Users\ASUS\Desktop\VMS\node_modules\@babel\parser\lib\index.js:13314:10)
+      at TypeScriptParserMixin.parseFunctionBody (C:\Users\ASUS\Desktop\VMS\node_modules\@babel\parser\lib\index.js:12117:24)
+      at TypeScriptParserMixin.parseFunctionBodyAndFinish (C:\Users\ASUS\Desktop\VMS\node_modules\@babel\parser\lib\index.js:12103:10)
+      at TypeScriptParserMixin.parseFunctionBodyAndFinish (C:\Users\ASUS\Desktop\VMS\node_modules\@babel\parser\lib\index.js:9189:18)
+[2m3:05:15 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/App.tsx, /src/index.css[22m
+[2m3:05:19 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/App.tsx, /src/index.css[22m
+[2m3:05:24 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/App.tsx, /src/index.css[22m
+[2m3:05:31 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/Admin/HodPasswordReset.tsx, /src/index.css[22m
+[2m3:05:32 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/ForcePasswordChange.tsx, /src/index.css[22m
+[2m3:06:07 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/Guard/CheckInPhotoStep.tsx, /src/index.css[22m
+[2m3:06:11 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/Guard/CheckInPhotoStep.tsx, /src/index.css[22m
+[2m3:06:17 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/Guard/CheckInPhotoStep.tsx, /src/index.css[22m
+[2m3:06:21 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/Guard/CheckInPhotoStep.tsx, /src/index.css[22m
+[2m3:07:15 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/App.tsx, /src/index.css[22m
+[2m3:07:21 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/App.tsx, /src/index.css[22m
+[2m3:12:03 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/Admin/HodPasswordReset.tsx, /src/index.css[22m
+[2m3:12:06 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/ForcePasswordChange.tsx, /src/index.css[22m
+[2m3:12:12 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/App.tsx, /src/index.css[22m
+[2m3:12:16 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/App.tsx, /src/index.css[22m
+[2m3:27:50 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/Guard/CheckInPhotoStep.tsx, /src/index.css[22m
+[2m3:29:50 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/Guard/CheckInPhotoStep.tsx, /src/index.css[22m
+[2m3:30:02 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/Guard/CheckInPhotoStep.tsx, /src/index.css[22m
+[2m3:30:09 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/Guard/CheckInPhotoStep.tsx, /src/index.css[22m
+[2m3:33:02 PM[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/pages/Guard/idScanTypes.ts[22m
+[2m3:33:07 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/Guard/IdScanOverlay.tsx, /src/index.css[22m
+[2m3:33:35 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/Guard/CheckInPhotoStep.tsx, /src/index.css[22m
+[2m3:33:42 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/Guard/CheckInPhotoStep.tsx, /src/index.css[22m
+[2m3:36:27 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/Guard/GuardWalkInApproved.tsx, /src/index.css[22m
+[2m3:46:34 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/Guard/CheckInTimeline.tsx, /src/index.css[22m
+[2m3:46:42 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/Guard/CheckInTimeline.tsx, /src/index.css[22m
+[2m3:46:48 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/Guard/CheckInTimeline.tsx, /src/index.css[22m
+[2m3:46:56 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/Guard/CheckInTimeline.tsx, /src/index.css[22m
+[2m3:47:00 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/Guard/CheckInTimeline.tsx, /src/index.css[22m
+[2m3:47:32 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/Guard/CheckInBadgeRail.tsx, /src/index.css[22m
+[2m3:47:44 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/Guard/GuardDashboardMain.tsx, /src/index.css[22m
+[2m3:47:51 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/Guard/GuardDashboardMain.tsx, /src/index.css[22m
+[2m3:47:56 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/Guard/GuardDashboardMain.tsx, /src/index.css[22m
+[2m3:48:05 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/Guard/GuardDashboardMain.tsx, /src/index.css[22m
+[2m3:48:17 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/Guard/GuardDashboardMain.tsx, /src/index.css[22m
+[2m3:48:23 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/Guard/ArrivalQueueTable.tsx, /src/index.css[22m
+[2m3:48:27 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/Guard/ArrivalQueueTable.tsx, /src/index.css[22m
+[2m3:48:31 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/Guard/IdVerificationCard.tsx, /src/index.css[22m
+[2m3:48:31 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/Guard/DenyEntryConfirm.tsx, /src/index.css[22m
+[2m3:48:31 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/Guard/GuardDashboardMain.tsx, /src/index.css[22m
+[2m3:48:31 PM[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/lib/denyEntryFlow.ts[22m
+[2m3:50:14 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/Guard/CheckInFrame.tsx, /src/index.css[22m
+[2m3:50:19 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/Guard/CheckInFrame.tsx, /src/index.css[22m
+[2m3:50:23 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/Guard/CheckInFrame.tsx, /src/index.css[22m
+[2m3:50:32 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/Guard/CheckInFrame.tsx, /src/index.css[22m
+[2m3:50:42 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/Guard/GuardLiveQueue.tsx, /src/index.css[22m
+[2m3:50:50 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/Guard/CheckInPanel.tsx, /src/index.css[22m
+[2m3:50:58 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/Guard/CheckInPanel.tsx, /src/index.css[22m
+[2m3:51:01 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/Guard/CheckInPanel.tsx, /src/index.css[22m
+[2m3:52:53 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/layout/Sidebar.tsx, /src/index.css[22m
+[2m3:53:01 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/layout/Sidebar.tsx, /src/index.css[22m
+[2m3:53:07 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/layout/Sidebar.tsx, /src/index.css[22m
+[2m3:53:12 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/App.tsx, /src/index.css[22m
+[2m3:53:22 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/HOD/HODConsole.tsx, /src/index.css[22m
+[2m3:53:29 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/styles/hod-compact.css[22m
+[2m3:58:01 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/layout/Sidebar.tsx, /src/index.css[22m
+[2m3:59:51 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/Guard/Console.tsx, /src/index.css, /src/pages/Guard/GuardPreRegistered.tsx, /src/pages/Guard/GuardLiveQueue.tsx, /src/pages/Guard/PreApprovals.tsx, /src/pages/Guard/ScanPass.tsx, /src/pages/Guard/VisitorCheckInFlow.tsx, /src/pages/Guard/CheckInPanel.tsx, /src/pages/HOD/HODConsole.tsx, /src/pages/Shared/VisitorsDashboard.tsx, /src/pages/Guard/PreApprovalRow.tsx, /src/pages/Guard/SearchResultCard.tsx, /src/pages/Guard/PreRegisteredCard.tsx, /src/pages/Shared/WhosInsideVisitorCard.tsx, /src/pages/Shared/ProfileDetails.tsx, /src/pages/Guard/GlanceRail.tsx, /src/components/VisitorDetails.tsx, /src/pages/Guard/GuardDashboardMain.tsx, /src/pages/Guard/CheckInVisitorSummary.tsx, /src/pages/Guard/GuardWalkIns.tsx, /src/pages/Guard/GuardWalkInApproved.tsx, /src/components/PreApprovalPass.tsx, /src/pages/Guard/CheckInBadgeRail.tsx, /src/components/VisitorDetailsTimeline.tsx, /src/pages/Guard/VisitorGridCard.tsx, /src/pages/Guard/VisitorCard.tsx, /src/pages/Guard/CheckInMatchCard.tsx[22m
+[2m4:00:17 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/Guard/GuardDashboardMain.tsx, /src/index.css[22m
+[2m4:02:52 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/Guard/GuardDashboardMain.tsx, /src/index.css[22m
+[2m4:03:49 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/Guard/GuardDashboardMain.tsx, /src/index.css[22m
+[2m4:04:26 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/Guard/ArrivalQueueTable.tsx, /src/index.css[22m
+[2m4:04:26 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/Guard/KpiDrilldownSheet.tsx, /src/index.css[22m
+[2m4:05:03 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/Guard/LiveQueueTable.tsx, /src/index.css[22m
+[2m4:05:08 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/Guard/LiveQueueTable.tsx, /src/index.css[22m
+[2m4:05:15 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/Guard/GuardLiveQueue.tsx, /src/index.css[22m
+[2m4:06:02 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/Guard/WalkInRequest.tsx, /src/index.css[22m
+[2m4:06:18 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/App.tsx, /src/index.css[22m
+[2m4:06:18 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/App.tsx, /src/index.css[22m
+[2m4:06:18 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/layout/Sidebar.tsx, /src/index.css[22m
+[2m4:15:46 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/layout/Sidebar.tsx, /src/index.css[22m
+[2m4:17:36 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/Guard/ScanPass.tsx, /src/index.css[22m
+[2m4:18:24 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/Guard/Console.tsx, /src/index.css[22m
+[2m4:18:46 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/Guard/GuardWalkInApproved.tsx, /src/index.css[22m
+[2m4:19:07 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/Guard/VisitorSegmentContent.tsx, /src/index.css[22m
+[2m4:20:01 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/layout/Sidebar.tsx, /src/index.css[22m
+[2m4:34:34 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/Guard/CheckInMatchList.tsx, /src/index.css[22m
+[2m4:34:40 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/Guard/CheckInMatchList.tsx, /src/index.css[22m
+[2m4:34:56 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/Guard/CheckInMatchList.tsx, /src/index.css[22m
+[2m4:35:04 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/Guard/CheckInPanel.tsx, /src/index.css[22m
+[2m4:35:08 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/Guard/CheckInPanel.tsx, /src/index.css[22m
+[2m4:35:13 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/Guard/CheckInPanel.tsx, /src/index.css[22m
+[2m4:35:26 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/Guard/WalkInRequest.tsx, /src/index.css[22m
+[2m4:35:40 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/Guard/WalkInRequest.tsx, /src/index.css[22m
+[2m4:38:25 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/Guard/GuardPreRegistered.tsx, /src/index.css, /src/pages/Guard/GlanceRail.tsx[22m
+[2m4:38:31 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/Guard/GuardPreRegistered.tsx, /src/index.css[22m
+[2m4:38:40 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/Guard/GuardPreRegistered.tsx, /src/index.css[22m
+[2m4:38:44 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/Guard/GuardPreRegistered.tsx, /src/index.css[22m
+[2m4:38:48 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/Guard/GlanceRail.tsx, /src/index.css[22m
+[2m4:38:53 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/Guard/GlanceRail.tsx, /src/index.css[22m
+[2m4:39:14 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/Guard/GlanceRail.tsx, /src/index.css[22m
+[2m4:41:55 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/VisitorDetails.tsx, /src/index.css[22m
+[2m4:42:03 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/VisitorDetails.tsx, /src/index.css[22m
+[2m4:42:09 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/VisitorDetails.tsx, /src/index.css[22m
+[2m4:42:26 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/VisitorDetails.tsx, /src/index.css[22m
+[2m4:45:48 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/Guard/GuardLiveQueue.tsx, /src/index.css[22m
+[2m4:45:59 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/Badge.tsx, /src/index.css[22m
+[2m4:46:13 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/Badge.tsx, /src/index.css[22m
+[2m4:48:38 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/Badge.tsx, /src/index.css[22m
+[2m4:48:38 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/VisitorDetails.tsx, /src/index.css[22m
+[2m4:48:39 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/Guard/CheckInMatchList.tsx, /src/index.css[22m
+[2m4:48:39 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/Guard/WalkInRequest.tsx, /src/index.css[22m
+[2m4:48:39 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/Guard/GlanceRail.tsx, /src/index.css[22m
+[2m4:58:35 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/Guard/ScanPass.tsx, /src/index.css[22m
+[2m4:58:38 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/Guard/ScanPass.tsx, /src/index.css[22m
+[2m4:58:42 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/Guard/ScanPass.tsx, /src/index.css[22m
+[2m4:58:49 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/Guard/ScanPass.tsx, /src/index.css[22m
+[2m4:59:13 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/Guard/GlanceRail.tsx, /src/index.css[22m
+[2m4:59:17 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/Guard/GlanceRail.tsx, /src/index.css[22m
+[2m4:59:26 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/Guard/GlanceRail.tsx, /src/index.css[22m
+[2m4:59:30 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/Guard/GuardPreRegistered.tsx, /src/index.css[22m
+[2m4:59:39 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/Guard/GuardPreRegistered.tsx, /src/index.css[22m
+[2m5:09:39 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/VisitorDetails.tsx, /src/index.css[22m
+[2m5:10:03 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/VisitorDetails.tsx, /src/index.css[22m
+[2m5:11:11 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/layout/Sidebar.tsx, /src/index.css[22m
+[2m5:11:17 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/layout/Sidebar.tsx, /src/index.css[22m
+[2m5:11:33 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/layout/Sidebar.tsx, /src/index.css[22m
+[2m5:17:29 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/Guard/CheckInBadgeRail.tsx, /src/index.css[22m
+[2m5:17:33 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/Guard/CheckInBadgeRail.tsx, /src/index.css[22m
+[2m5:17:40 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/Guard/CheckInBadgeRail.tsx, /src/index.css[22m
+[2m5:17:52 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/Guard/CheckInBadgeRail.tsx, /src/index.css[22m
+[2m5:18:04 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/Guard/GuardLiveQueue.tsx, /src/index.css[22m
+[2m5:18:13 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/Guard/GuardLiveQueue.tsx, /src/index.css[22m
+[2m5:18:38 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/Guard/GuardLiveQueue.tsx, /src/index.css[22m

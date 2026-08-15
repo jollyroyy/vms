@@ -1,10 +1,14 @@
 import React from 'react';
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { render, screen, cleanup, fireEvent } from '@testing-library/react';
+import { render as rtlRender, screen, cleanup, fireEvent } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import CheckInMatchList from '../../../src/pages/Guard/CheckInMatchList';
 import type { MatchItem } from '../../../src/pages/Guard/CheckInPanel';
 
 afterEach(() => cleanup());
+
+// The empty state routes to the Register Walk-in tab with a <Link>.
+const render = (ui: React.ReactElement) => rtlRender(<MemoryRouter>{ui}</MemoryRouter>);
 
 function baseProps(overrides: Partial<React.ComponentProps<typeof CheckInMatchList>> = {}) {
   return {
@@ -20,10 +24,6 @@ function baseProps(overrides: Partial<React.ComponentProps<typeof CheckInMatchLi
     checkedInIds: new Set<string>(),
     isExpired: () => false,
     onSelectMatch: vi.fn(),
-    showWalkIn: false,
-    onShowWalkIn: vi.fn(),
-    onWalkInSubmitted: vi.fn(),
-    onWalkInCancel: vi.fn(),
     ...overrides,
   };
 }

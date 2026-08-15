@@ -1,6 +1,6 @@
 ﻿import React from 'react';
+import { Link } from 'react-router-dom';
 import type { Department, Visit } from '../../types/index';
-import WalkInRequest from './WalkInRequest';
 import CheckInMatchCard from './CheckInMatchCard';
 import type { MatchItem } from './checkInTypes';
 import { isCheckableStatus } from '../../lib/checkableStatus';
@@ -18,16 +18,11 @@ type Props = {
   checkedInIds: Set<string>;
   isExpired: (v: Visit) => boolean;
   onSelectMatch: (m: MatchItem) => void;
-  showWalkIn: boolean;
-  onShowWalkIn: () => void;
-  onWalkInSubmitted: (name: string) => void;
-  onWalkInCancel: () => void;
 };
 
 export default function CheckInMatchList({
   error, search, onSearchChange, deptFilter, onDeptFilterChange, departments, loading,
-  allMatches, preApproved, checkedInIds, isExpired, onSelectMatch, showWalkIn, onShowWalkIn,
-  onWalkInSubmitted, onWalkInCancel,
+  allMatches, preApproved, checkedInIds, isExpired, onSelectMatch,
 }: Props): React.ReactElement {
   return (
     <div className="space-y-4 animate-fade-in">
@@ -81,23 +76,34 @@ export default function CheckInMatchList({
           })}
         </div>
       ) : search || deptFilter ? (
-        <div className="text-center py-12 bg-surface-50 rounded-2xl space-y-3">
-          <p className="text-lg font-bold text-navy-600">No match found</p>
-          <p className="text-sm text-navy-500 dark:text-navy-400">No pass exists for that name, phone number or pass reference — in any state.</p>
-          {!showWalkIn ? (
-            <button onClick={onShowWalkIn}
-              className="inline-flex items-center gap-2 bg-brand-600 hover:bg-brand-700 text-white font-bold px-6 py-3 rounded-xl text-sm transition-all">
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
-              Request Walk-in Approval
-            </button>
-          ) : (
-            <div className="max-w-lg mx-auto">
-              <WalkInRequest
-                onSubmitted={onWalkInSubmitted}
-                onCancel={onWalkInCancel}
-              />
-            </div>
-          )}
+        // No pass, but there IS a visitor at the gate. The register is its own
+        // destination (/guard/walk-in, a left-hand nav item since 2026-08-15),
+        // where the form is open on arrival and the pending queue sits beside
+        // it — so this sends the guard there rather than unfolding a second
+        // copy of that form inside a search result. One place a walk-in is
+        // raised, one place its answer comes back.
+        <div className="text-center py-12 px-6 bg-surface-50 rounded-2xl space-y-4">
+          <span className="mx-auto h-12 w-12 rounded-2xl bg-amber-500/15 text-amber-600 flex items-center justify-center">
+            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.9}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+            </svg>
+          </span>
+          <div className="space-y-1">
+            <p className="text-lg font-bold text-navy-600">No match found</p>
+            <p className="text-sm text-navy-500 max-w-sm mx-auto">
+              No pass exists for that name, phone number or pass reference — in any state.
+              If they are standing at the gate, register them as a walk-in.
+            </p>
+          </div>
+          <Link to="/guard/walk-in"
+            className="btn-primary inline-flex items-center justify-center gap-2 px-6 py-3 text-[15px] font-bold">
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
+            Register walk-in visitor
+            <svg className="w-4 h-4 opacity-80" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.2}><path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12l-7.5 7.5M21 12H3" /></svg>
+          </Link>
+          <p className="text-xs text-navy-500">
+            Opens the Register Walk-in tab — the person to meet is asked to approve
+          </p>
         </div>
       ) : (
         <div className="text-center py-16 bg-surface-50 rounded-2xl">
@@ -105,7 +111,7 @@ export default function CheckInMatchList({
             <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
           </svg>
           <p className="text-lg font-bold text-navy-600">Search for a visitor</p>
-          <p className="text-sm text-navy-500 dark:text-navy-400 mt-1">Search by name, phone number or pass reference</p>
+          <p className="text-sm text-navy-500 mt-1">Search by name, phone number or pass reference</p>
         </div>
       )}
     </div>

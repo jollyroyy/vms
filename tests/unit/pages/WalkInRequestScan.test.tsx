@@ -143,7 +143,7 @@ describe('M-AI-OCR-UI: WalkInRequest scan wiring', () => {
     });
     const hostSelect = screen.getByText('Person to Meet *').parentElement!.querySelector('select')!;
     fireEvent.change(hostSelect, { target: { value: 'h1' } });
-    fireEvent.click(screen.getByText('Send Request'));
+    fireEvent.click(screen.getByRole('button', { name: /send approval request/i }));
 
     await waitFor(() => {
       const upsertCall = visitorsUpsert.mock.calls.find((c: any[]) => c[0]?.id_type);

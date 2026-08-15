@@ -41,7 +41,6 @@ export default function CheckInPanel({ today, onCheckInSuccess }: Props): React.
   const [carrying, setCarrying] = useState(false);
   const [remarks, setRemarks] = useState('');
   const [checkingIn, setCheckingIn] = useState(false);
-  const [showWalkIn, setShowWalkIn] = useState(false);
   const [error, setError] = useState('');
 
   const loadData = useCallback(async () => {
@@ -220,7 +219,7 @@ export default function CheckInPanel({ today, onCheckInSuccess }: Props): React.
       <CheckInMatchList
         error={error}
         search={search}
-        onSearchChange={(value) => { setSearch(value); setShowWalkIn(false); }}
+        onSearchChange={setSearch}
         deptFilter={deptFilter}
         onDeptFilterChange={setDeptFilter}
         departments={departments}
@@ -230,11 +229,7 @@ export default function CheckInPanel({ today, onCheckInSuccess }: Props): React.
         checkedInIds={checkedInIds}
         isExpired={isExpired}
         onSelectMatch={(m) => { setSelectedMatch(m); setPhotoBlob(null); setIdScan(null); setCardNumber(''); setCarrying(false); setRemarks(''); setError(''); }}
-        showWalkIn={showWalkIn}
-        onShowWalkIn={() => setShowWalkIn(true)}
-        onWalkInSubmitted={(name) => { onCheckInSuccess(name); setShowWalkIn(false); setSearch(''); void loadData(); }}
-        onWalkInCancel={() => setShowWalkIn(false)}
-        />
+      />
     </div>
   );
 }

@@ -65,7 +65,7 @@ async function fillAndSubmit(remarks?: string): Promise<void> {
   if (remarks !== undefined) {
     fireEvent.change(screen.getByLabelText(/remarks/i), { target: { value: remarks } });
   }
-  fireEvent.click(screen.getByText('Send Request'));
+  fireEvent.click(screen.getByRole('button', { name: /send approval request/i }));
 }
 
 describe('WalkInRequest — remarks', () => {
