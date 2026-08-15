@@ -21,17 +21,21 @@ SecureGate VMS handles the full lifecycle of visitor management:
 
 ### Guard console
 
-The guard's sidebar is Dashboard, Inside Now, Pre-Registered, Watchlist, Scan
-Pass and Visitors:
+The guard's sidebar is Dashboard, Entry & Exit, Pre-Registered, Scan Pass and
+Visitors:
 - **Dashboard** — four KPI tiles (Expected Today, Checked In, In Premises,
-  Overstaying), each expanding in place to the matching list.
-- **Inside Now** — everyone currently checked in.
+  Overstaying), each expanding in place to the matching list, plus the
+  ID Verification card whose Verify ID opens the scan flow in place.
+- **Entry & Exit** — everyone currently checked in, plus today's departures,
+  in two lanes; owns the card-return gate and the undo.
 - **Pre-Registered** — today's pre-approved arrivals, fast-tracked at the gate.
-- **Watchlist** — blacklist alerts.
 - **Scan Pass** — a dedicated desk for resolving a visitor's QR pass straight
   to check-in.
 - **Visitors** — the walk-in lane and the full visitor list, segmented by KPI
   tiles on the page itself.
+
+Blacklist screening happens inside check-in, not on a browsable page: a
+flagged visitor is refused at the gate with the reason named.
 
 ## Application Flow
 
@@ -56,8 +60,8 @@ src/
     Guard/
       Console.tsx         # Visitors surface shell (walk-in lane + KPI-segmented list)
       Dashboard.tsx       # Guard dashboard shell -> GuardDashboardMain (4 KPI tiles)
-      GuardLiveQueue.tsx  # "Inside Now" tab (file name predates the 2026-08-14 rename)
-      DailyStaff.tsx      # Daily vendors/maids/workers view
+      GuardLiveQueue.tsx  # "Entry & Exit" tab (file name predates the 2026-08-14 rename)
+      GuardPreRegistered.tsx # Pre-Registered arrivals board
     HOD/
       Approvals.tsx       # Approve/reject visitor requests
       HODOverview.tsx      # Department dashboard with live stats

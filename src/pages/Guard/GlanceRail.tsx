@@ -75,11 +75,13 @@ export default function GlanceRail({ filtered, morning, afternoon, pillFor, cloc
             return (
               <Link
                 key={v.id}
-                // Same destination as the dashboard's Verify ID: every row on
-                // this rail is a visitor who has NOT arrived, so a link to the
-                // Entry & Exit tab (which lists only people already through the
-                // gate) could never find them. Checking them in is the one
-                // thing a guard does with this row.
+                // Same check-in flow the dashboard's Verify ID opens (there IN
+                // PLACE since 2026-08-15); this rail reaches it by navigation
+                // because the rail lives on the Pre-Registered page itself.
+                // Every row on this rail is a visitor who has NOT arrived, so
+                // a link to the Entry & Exit tab (which lists only people
+                // already through the gate) could never find them. Checking
+                // them in is the one thing a guard does with this row.
                 to={`/guard/preregistered?checkin=${v.id}`}
                 className="flex items-center justify-between gap-2 hover:bg-brand-600/5 rounded-lg px-2 py-1 -mx-2 transition-colors">
                 <span>

@@ -11,6 +11,10 @@ type Props = {
   visit: Visit;
   onDone: (visitorName: string) => void;
   onCancel: () => void;
+  /** Open the ID scan overlay immediately (see CheckInPhotoStep.autoScan).
+   *  The dashboard's Verify ID button passes this: a click that promised a
+   *  scan must land on a scan, not on a form with a scan button in it. */
+  autoScan?: boolean;
 };
 
 // Checking in a visitor picked from the Expected list.
@@ -25,7 +29,7 @@ type Props = {
 // one, and CheckInPhotoStep does not render its confirm control until a photo
 // exists — an approval says who was expected, the photo is the record of who
 // actually walked in.
-export default function VisitorCheckInFlow({ visit, onDone, onCancel }: Props): React.ReactElement {
+export default function VisitorCheckInFlow({ visit, onDone, onCancel, autoScan = false }: Props): React.ReactElement {
   const [photoBlob, setPhotoBlob] = useState<Blob | null>(null);
   const [idScan, setIdScan] = useState<IdScanResult | null>(null);
   const [cardNumber, setCardNumber] = useState('');
@@ -70,6 +74,7 @@ export default function VisitorCheckInFlow({ visit, onDone, onCancel }: Props): 
       onCancel={onCancel}
       onConfirm={() => { void performCheckIn(); }}
       onScanResult={setIdScan}
+      autoScan={autoScan}
     />
   );
 }

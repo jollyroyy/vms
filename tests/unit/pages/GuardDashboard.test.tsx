@@ -5,10 +5,10 @@ import { MemoryRouter } from 'react-router-dom';
 import GuardDashboard from '../../../src/pages/Guard/Dashboard';
 
 // The guard dashboard now renders the reference-exact Guard Console frame
-// (GuardDashboardMain: four KPI tiles, live arrival queue, ID verification,
-// watchlist banner). Counts are derived from the same visits array the
-// drill-downs use (lib/guardTiles.ts), so seeding mockToday is all a count test
-// needs; the stubbed children keep the suite focused on what Dashboard composes.
+// (GuardDashboardMain: four KPI tiles, live arrival queue, ID verification).
+// Counts are derived from the same visits array the drill-downs use
+// (lib/guardTiles.ts), so seeding mockToday is all a count test needs; the
+// stubbed children keep the suite focused on what Dashboard composes.
 
 const mockToday = vi.hoisted(() => ({ current: { visits: [] as any[], loading: false } }));
 
@@ -29,6 +29,23 @@ vi.mock('../../../src/lib/demoSeed', async (importOriginal) => {
 
 vi.mock('../../../src/components/VisitorDetails', () => ({
   default: () => null,
+}));
+
+// Verify ID opens the check-in flow IN PLACE (no navigation) with the ID scan
+// overlay opening immediately. The real flow mounts the camera via
+// IdScanOverlay, which this suite must not touch; the stub proves the wiring —
+// that the button renders the flow, and with autoScan on.
+const flowStub = vi.hoisted(() => ({ rendered: [] as string[] }));
+vi.mock('../../../src/pages/Guard/VisitorCheckInFlow', () => ({
+  default: ({ visit, autoScan, onDone }: any) => {
+    flowStub.rendered.push(`${visit.visitor?.full_name}:autoScan=${autoScan}`);
+    return (
+      <div data-testid="checkin-flow">
+        Check-in flow for {visit.visitor?.full_name}
+        <button type="button" onClick={() => onDone(visit.visitor?.full_name)}>done</button>
+      </div>
+    );
+  },
 }));
 
 // Minimal stand-in for the global topbar so the clock/date cluster test can
@@ -82,6 +99,7 @@ describe('GuardDashboard (reference-screen frame)', () => {
   afterEach(() => {
     cleanup();
     mockToday.current = { visits: [], loading: false };
+    flowStub.rendered = [];
   });
 
   it('shows the four reference KPI tiles: Expected Today, Checked In, In Premises, Overstaying', () => {
@@ -152,14 +170,17 @@ describe('GuardDashboard (reference-screen frame)', () => {
     // Approved-ahead slots at the gate read PRE-REGISTERED; only unapproved
     // walk-in lanes read WAITING (see statusPill in GuardDashboardMain).
     expect(screen.getByText('PRE-REGISTERED')).toBeInTheDocument();
-    // Verify ID must open a screen that can actually SCAN an ID — that is the
-    // Pre-Registered board's check-in flow. It used to point at
-    // /guard/inside-now?verify=, which renders a read-only frame with no scan
-    // control, and which (since that tab narrowed to visitors already through
-    // the gate) cannot even contain this visitor.
-    const verify = screen.getByRole('link', { name: /Verify ID/i });
-    expect(verify).toHaveAttribute('href', '/guard/preregistered?checkin=v1');
-    expect(verify.getAttribute('href')).not.toContain('inside-now');
+    // Verify ID must open the thing that verifies an ID — the ID scan flow —
+    // IN PLACE, not navigate to another tab. It used to be a link to
+    // /guard/preregistered?checkin=, and before that to /guard/inside-now?verify=
+    // (a read-only frame with no scan control at all). Since 2026-08-15 it is a
+    // button that renders the check-in flow as a modal on this page, with the
+    // scan overlay opening immediately (autoScan).
+    expect(screen.queryByRole('link', { name: /Verify ID/i })).not.toBeInTheDocument();
+    const verify = screen.getByRole('button', { name: /Verify ID/i });
+    fireEvent.click(verify);
+    expect(screen.getByRole('dialog', { name: /Verify ID/i })).toBeInTheDocument();
+    expect(flowStub.rendered).toContain('Marcos Fernandez:autoScan=true');
   });
 
   // The tile used to be `awaitingApproval + overdue` — unapproved walk-in
@@ -204,31 +225,6 @@ describe('GuardDashboard (reference-screen frame)', () => {
     // Both of the two counted visitors are in the panel the tile opened.
     expect(screen.getAllByText(/Ada Inside/).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/Bo Inside/).length).toBeGreaterThan(0);
-  });
-
-  it('shows the watchlist banner when a flagged visitor is among today visits and links to /guard/watchlist', () => {
-    mockToday.current = {
-      visits: [
-        {
-          id: 'v2', ref_number: 'REF-2', visitor_id: 'p2', department_id: 'd1', host_id: 'h1',
-          status: 'approved', checked_in_at: null, checked_out_at: null, exit_verified: null,
-          rejection_reason: null, carrying_material: false, qr_token: 'tok2', qr_expires_at: null,
-          created_at: '2026-08-14T09:00:00Z', scheduled_for: '2026-08-14T10:00:00Z', purpose: 'Meeting',
-          visitor: { full_name: 'D. Mercer', phone: '', vendor_name: null, is_blacklisted: true, blacklist_reason: 'Blacklist - Trespass', id_type: null, id_last4: null, created_at: '' },
-          department: null, host: null,
-        },
-      ],
-      loading: false,
-    };
-    renderDashboard();
-    expect(screen.getByText(/WATCHLIST ALERT/i)).toBeInTheDocument();
-    expect(screen.getByText(/1 flagged visitor match today/i)).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /WATCHLIST ALERT/i })).toHaveAttribute('href', '/guard/watchlist');
-  });
-
-  it('hides the watchlist banner when nobody on the list arrived today', () => {
-    renderDashboard();
-    expect(screen.queryByText(/WATCHLIST ALERT/i)).toBeNull();
   });
 
   it('still shows the clock beside the date in the mockup format (now in the topbar)', () => {

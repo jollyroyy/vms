@@ -50,8 +50,13 @@ describe('SEC-7: frontend route protection', () => {
     it('guard is allowed on /kiosk', () => {
       expect(isForbidden('/kiosk', role)).toBe(false);
     });
-    it('guard is allowed on /guard/daily-staff', () => {
-      expect(isForbidden('/guard/daily-staff', role)).toBe(false);
+    it('guard is FORBIDDEN on /guard/daily-staff (page deleted 2026-08-15)', () => {
+      // The blanket '/guard' prefix lets isForbidden() through by construction
+      // (same as the deleted /guard/gate-passes paths below) — the REAL pin is
+      // the allowlist itself, plus App.tsx's catch-all NotFoundPage route. So
+      // this asserts the allowlist no longer contains the page, which is what
+      // prevents it from ever rendering.
+      expect(ROLE_ROUTES.guard).not.toContain('/guard/daily-staff');
     });
     it('guard is FORBIDDEN on /reports', () => {
       expect(isForbidden('/reports', role)).toBe(true);
@@ -66,21 +71,29 @@ describe('SEC-7: frontend route protection', () => {
       expect(isForbidden('/guard/search', role)).toBe(false);
     });
     // Reference-screen guard console (client instruction 2026-08-14):
-    // /guard/live-queue, /guard/preregistered, /guard/watchlist were ADDED back
-    // to the guard sidebar. The blanket `/guard` prefix lets isForbidden()
-    // through by construction, so the allowlist itself is the pin — if any of
-    // these is ever dropped from the array it must also be dropped from
-    // App.tsx's <Routes>.
-    for (const route of ['/guard/inside-now', '/guard/live-queue', '/guard/preregistered', '/guard/watchlist']) {
+    // /guard/live-queue, /guard/preregistered were ADDED back to the guard
+    // sidebar. The blanket `/guard` prefix lets isForbidden() through by
+    // construction, so the allowlist itself is the pin — if any of these is
+    // ever dropped from the array it must also be dropped from App.tsx's
+    // <Routes>. `/guard/watchlist` is deliberately NOT here: the tab was
+    // deleted 2026-08-15 and the route with it.
+    for (const route of ['/guard/inside-now', '/guard/live-queue', '/guard/preregistered']) {
       it(`guard allowlist still contains ${route}`, () => {
         expect(ROLE_ROUTES.guard).toContain(route);
         expect(isForbidden(route, role)).toBe(false);
       });
     }
+    it('guard is FORBIDDEN on /guard/watchlist (tab deleted 2026-08-15)', () => {
+      // Same construction as /guard/daily-staff above: the blanket '/guard'
+      // prefix lets isForbidden() return false, so the allowlist exclusion is
+      // the pin — the route no longer exists in App.tsx's <Routes> and its
+      // catch-all NotFoundPage renders instead.
+      expect(ROLE_ROUTES.guard).not.toContain('/guard/watchlist');
+    });
     it('non-guard roles remain FORBIDDEN on the reference-screen routes', () => {
       const nonGuardRoles = ['hod', 'staff', 'admin'] as const;
       for (const role of nonGuardRoles) {
-        for (const route of ['/guard/inside-now', '/guard/live-queue', '/guard/preregistered', '/guard/watchlist']) {
+        for (const route of ['/guard/inside-now', '/guard/live-queue', '/guard/preregistered']) {
           expect(isForbidden(route, role), `${role} must be forbidden on ${route}`).toBe(true);
         }
       }

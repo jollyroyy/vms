@@ -23,14 +23,18 @@ type Props = {
   onCancel: () => void;
   onConfirm: () => void;
   onScanResult: (result: IdScanResult | null) => void;
+  /** Open the ID scan overlay immediately on mount instead of waiting for the
+   *  guard to press "Scan ID card". The dashboard's Verify ID uses this: the
+   *  guard clicked a button that promises a scan, so a scan is what opens. */
+  autoScan?: boolean;
 };
 
 export default function CheckInPhotoStep({
   selectedMatch, photoBlob, error, checkingIn, carrying, onCarryingChange,
   remarks, onRemarksChange, cardNumber, onCardNumberChange, onBack, onCapture,
-  onRetake, onCancel, onConfirm, onScanResult,
+  onRetake, onCancel, onConfirm, onScanResult, autoScan = false,
 }: Props): React.ReactElement {
-  const [scanOpen, setScanOpen] = useState(false);
+  const [scanOpen, setScanOpen] = useState(autoScan);
   const [scanResult, setScanResult] = useState<IdScanResult | null>(null);
 
   const matchStatus = scanResult

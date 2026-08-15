@@ -4,8 +4,8 @@ import GuardDashboardMain from './GuardDashboardMain';
 
 // The guard's home screen, rebuilt to match the approved reference design
 // (Guard Console main overview). It renders the reference-exact layout from
-// GuardDashboardMain — the four KPI tiles, the live arrival queue, the ID
-// verification card and the watchlist banner — under the greeting strip.
+// GuardDashboardMain — the four KPI tiles, the live arrival queue and the ID
+// verification card — under the greeting strip.
 export default function GuardDashboard(): React.ReactElement {
   return (
     <div className="space-y-6 animate-fade-in pb-4">

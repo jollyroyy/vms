@@ -2,6 +2,7 @@ import React from 'react';
 
 import type { ReportVisit } from '../../lib/reportRow';
 import { istDayEnd, visitMoment } from '../../lib/visitExpiry';
+import { formatDateTime } from '../../lib/formatDate';
 
 // Column 3 of the Live Queue check-in frame: the WHITE visitor pass, the blue
 // Print Badge button, and Back to Queue. Nothing else.
@@ -40,9 +41,10 @@ const initialsOf = (name: string | null | undefined) =>
  */
 function passValidUntil(v: ReportVisit): string {
   const iso = v.qr_expires_at ?? v.expected_departure ?? istDayEnd(new Date(visitMoment(v))).toISOString();
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return '';
-  return d.toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: 'numeric', minute: '2-digit', hour12: true });
+  // formatDateTime, not a local toLocaleString: it pins IST and prints the
+  // same shape PreApprovalPass uses, so the HOD's copy and the guard's copy
+  // of one pass cannot disagree.
+  return formatDateTime(iso);
 }
 
 type CheckInBadgeRailProps = {

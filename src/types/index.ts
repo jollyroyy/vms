@@ -175,9 +175,11 @@ export type NotificationType =
   // its related_id is null because it is a summary, not a single visit.
   | 'visit_no_show'
   | 'visit_no_show_summary'
-  // A guard escalated a flagged watchlist match from /guard/watchlist, to every
-  // admin (migration 079). This replaced a write into `visits.remarks` — the
-  // HOD's approval note — which the escalation was overwriting outright.
+  // Historical: a guard escalated a flagged watchlist match to every admin
+  // (migration 079), replacing a write into `visits.remarks`. The Watchlist
+  // page was deleted 2026-08-15, so nothing new is ever inserted; the value
+  // stays in the union because live rows can still exist and the bell renders
+  // them generically.
   | 'watchlist_escalation'
   | 'gate_pass_pending'
   | 'gate_pass_approved'

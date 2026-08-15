@@ -7,11 +7,11 @@ import type { ReportVisit } from '../../lib/reportRow';
 import { formatStamp } from '../../lib/formatDate';
 import ArrivalQueueTable from './ArrivalQueueTable';
 import IdVerificationCard from './IdVerificationCard';
-import WatchlistAlertBanner from './WatchlistAlertBanner';
 import KpiDrilldownSheet, { type TileSpec } from './KpiDrilldownSheet';
 import VisitorDetails from '../../components/VisitorDetails';
 import DenyEntryConfirm from './DenyEntryConfirm';
 import SuccessToast from '../../components/SuccessToast';
+import VisitorCheckInFlow from './VisitorCheckInFlow';
 import { useDenyEntry } from '../../lib/useDenyEntry';
 
 // Guard Dashboard — reference screen 1 ("Guard Console" main overview).
@@ -21,7 +21,6 @@ import { useDenyEntry } from '../../lib/useDenyEntry';
 //            Overstaying, each with an icon in a ring + label + numeral
 //   row 2  — left: "Expected Today" card (see ArrivalQueueTable);
 //            right: "ID Verification" card (see IdVerificationCard)
-//   row 3  — red WATCHLIST ALERT banner (see WatchlistAlertBanner)
 //
 // Every count on this page is the LENGTH OF THE LIST THAT TILE OPENS —
 // lib/guardTiles.ts holds one predicate per tile and both the number and the
@@ -58,6 +57,12 @@ export default function GuardDashboardMain(): React.ReactElement {
   // Deny Entry lives in its own hook (lib/useDenyEntry.ts) — see the note
   // there; the dashboard's tiles, queue and drill-down never touch its state.
   const deny = useDenyEntry(() => setSelectedId(null));
+  // Verify ID: the visitor whose check-in flow the guard opened in place (see
+  // IdVerificationCard). The flow renders in a modal ON this page — the ID
+  // scan overlay opens immediately — because the button that says "Verify ID"
+  // must open the thing that verifies an ID, not another tab.
+  const [verifyTarget, setVerifyTarget] = useState<ReportVisit | null>(null);
+  const [checkinToast, setCheckinToast] = useState<string | null>(null);
   const today = istDateKey(clock);
   const { visits, loading: visitsLoading } = useTodayVisits(today);
 
@@ -167,8 +172,6 @@ export default function GuardDashboardMain(): React.ReactElement {
   const timeOf = (visit: ReportVisit) =>
     formatStamp(visit.checked_in_at ?? visit.scheduled_for ?? visit.created_at, clock);
 
-  const watchlistCount = visits.filter((v) => v.visitor?.is_blacklisted === true).length;
-
   return (
     <div className="space-y-6 animate-fade-in pb-4">
       {/* Row 1 — KPI tiles. Every tile drills into the visitors behind its
@@ -252,13 +255,11 @@ export default function GuardDashboardMain(): React.ReactElement {
           />
         </div>
 
-        <IdVerificationCard idTarget={idTarget} initialsOf={initialsOf} onDeny={deny.open} />
+        <IdVerificationCard idTarget={idTarget} initialsOf={initialsOf} onDeny={deny.open} onVerify={setVerifyTarget} />
       </div>
 
-      {/* Row 3 — watchlist alert banner */}
-      <WatchlistAlertBanner watchlistCount={watchlistCount} />
-
       <SuccessToast message={deny.toast} onDismiss={deny.dismissToast} />
+      <SuccessToast message={checkinToast} onDismiss={() => setCheckinToast(null)} />
 
       {deny.error && (
         <p className="rounded-xl border border-danger-500/30 bg-danger-600/10 px-4 py-3 text-sm text-danger-400">{deny.error}</p>
@@ -271,6 +272,32 @@ export default function GuardDashboardMain(): React.ReactElement {
           onClose={deny.cancel}
           onConfirm={(reason) => { void deny.confirm(deny.target!, reason); }}
         />
+      )}
+
+      {/* Verify ID — the ID scan flow, in place. Not a navigation: the
+          dashboard's button promised a scan, so the scan overlay opens
+          immediately (autoScan), and the rest of the check-in (photo, card,
+          confirm) follows in the same modal. When the write lands, the
+          visitor drops off this board on the live subscription. */}
+      {verifyTarget && (
+        <div
+          className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-navy-950/70 backdrop-blur-sm p-4 animate-fade-in"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Verify ID">
+          <div className="w-full max-w-lg my-4">
+            <VisitorCheckInFlow
+              visit={verifyTarget}
+              autoScan
+              onDone={(name) => {
+                setVerifyTarget(null);
+                setCheckinToast(`"${name}" checked in.`);
+                setTimeout(() => setCheckinToast(null), 4000);
+              }}
+              onCancel={() => setVerifyTarget(null)}
+            />
+          </div>
+        </div>
       )}
 
       {detailVisit && (

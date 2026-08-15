@@ -9,7 +9,7 @@
 // screen.
 import React from 'react';
 import { describe, it, expect, afterEach } from 'vitest';
-import { render, screen, cleanup } from '@testing-library/react';
+import { render, screen, cleanup, within } from '@testing-library/react';
 import CheckInFrame from '../../../src/pages/Guard/CheckInFrame';
 import type { ReportVisit } from '../../../src/lib/reportRow';
 
@@ -63,7 +63,14 @@ describe('CheckInFrame — visit timeline', () => {
 
   it('prints the date exactly once when every stage falls on the same IST day', () => {
     renderFrame(visit({ status: 'checked_out', checked_out_at: '2026-08-14T12:00:00Z' }));
-    expect(screen.getAllByText(/14 Aug 2026/).length).toBe(1);
+    // Scoped to the timeline itself: its header prints the date once and each
+    // row a bare time. The pass beside it (CheckInBadgeRail) carries its own
+    // "Valid until" date — the pass is its own content, not a restatement of
+    // the timeline, exactly like the visitor name on the pass.
+    const timelineRoot = screen.getByText('Visit Timeline').closest('div')?.parentElement as HTMLElement;
+    expect(within(timelineRoot).getAllByText(/14 Aug 2026/).length).toBe(1);
+    // The three rows print times, not dates.
+    expect(within(timelineRoot).queryAllByText(/10:30/).length).toBeGreaterThan(0);
   });
 
   it('omits the approval stage for a walk-in', () => {

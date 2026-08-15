@@ -75,8 +75,10 @@
   `sync_profile_role_to_auth` trigger (migration 010) mirrors it into JWT `app_metadata`.
 
 ### Guard console (visitor-only deployment)
-- **The guard sidebar is three items — Dashboard, Scan Pass, and Visitors** as
-  plain links. Defined in `src/components/layout/navLinks.tsx` (extracted out of
+- **The guard sidebar is five items — Dashboard, Entry & Exit, Pre-Registered,
+  Scan Pass, and Visitors** as plain links (the reference-screen tabs since
+  2026-08-14; the Watchlist tab was deleted 2026-08-15, see below). Defined in
+  `src/components/layout/navLinks.tsx` (extracted out of
   `Sidebar.tsx`). The `/visitors` entry is declared **twice** — once for `guard`,
   once for `staff` — because the two roles land on different components at that
   route and the staff label carries no sub-nav either. There is **no group and no
@@ -110,23 +112,22 @@
   degrades onto `all` rather than 404-ing into a blank page — those values live
   in old bookmarks. `GuardConsoleModeTabs.tsx` and `GuardConsoleModeContent.tsx`
   were deleted; `pages/Guard/VisitorSegmentContent.tsx` superseded them.
-- **The stacked card is the one visitor layout.** `VisitorStackCard.tsx` (+
-  `VisitorStackFacts.tsx`) renders three columns — identity, contact facts,
-  verification and action — because a guard reads the name and the host, glances
-  at the time and the phone to confirm it is the right person, then acts. The
-  older single-row `VisitorCard.tsx` **still exists** and is used by
-  `GuardWalkIns` and `GuardWalkInApproved`; do not delete it. Styles are in
-  `styles/components-visitor-stack.css`.
-  - **It has NO leading colour rail, by instruction (2026-08-13).** `.stack-card`
-    used to declare a `::before` with no background so the bare `.rail-*::before`
-    selectors in `components-guard.css` would colour it. The `::before` is now
-    **deleted**, not made transparent, and the `padding-left` inset that cleared it
-    is back on the normal `p-4` step — nothing is left holding space for something
-    that no longer draws. The rule this does not break: colour must never be the
-    **only** carrier of status. It never was here; the text badge in the third
-    column always said it, and still does. `VisitorStackCard.test.tsx` fails on any
-    `rail-` class. `.visitor-card` keeps its own rail — `lib/statusRail.ts` is still
-    live for it, so do not delete that either.
+- **The grid card is the one visitor layout.** `VisitorStackList.tsx` renders
+  `VisitorGridCard` — circular headshot, name, vendor, host, purpose, an always
+  date-and-time stamp, and the status pill. It is the same face as
+  `PreRegisteredCard`, so a guard moving between Pre-Registered and Visitors
+  never re-learns where the name or the host sits. The older single-row
+  `VisitorCard.tsx` **still exists** and is used by `GuardWalkIns` and
+  `GuardWalkInApproved`; do not delete it. The three-column `VisitorStackCard`
+  / `VisitorStackFacts` that preceded the grid card are **deleted** (2026-08-15,
+  no importers remained). Styles are in `styles/components-visitor-stack.css`.
+  - **It has NO leading colour rail, by instruction (2026-08-13).** The stacked
+    card's `::before` rail was deleted, not made transparent, and nothing is left
+    holding space for something that no longer draws. The rule this does not
+    break: colour must never be the **only** carrier of status. It never was
+    here; the text badge always said it, and still does. `VisitorStackList.test.tsx`
+    fails on any `rail-` class. `.visitor-card` keeps its own rail —
+    `lib/statusRail.ts` is still live for it, so do not delete that either.
   - **It has NO "Details" control either** (removed 2026-08-13, client instruction),
     on the Visitors list and on the dashboard drill-down alike. The card IS the
     record — name, vendor, host, department, purpose, phone, expected time, status,
@@ -135,12 +136,12 @@
     document image, the timeline, the pass) is still reached from `/guard/search`
     and `/whos-inside`, where looking a visitor *up* is the job; at the gate the job
     is the person standing there. The `onSelect` prop is **gone from
-    `VisitorStackCard`, `VisitorStackList`, `VisitorSegmentContent` and
+    `VisitorGridCard`, `VisitorStackList`, `VisitorSegmentContent` and
     the deleted `DashboardDrilldown`**, and `Console.tsx` no longer imports `VisitorDetails` at
     all — do not thread it back through. Consequence, and it is the point: a card
     with no action renders **no buttons at all**, so the Visitors surface is
-    display-only end to end. `VisitorStackCard.test.tsx` and
-    counts the buttons (`DashboardDrilldown.test.tsx` went with that component).
+    display-only end to end. `VisitorStackList.test.tsx` asserts there is no button
+    at all (`DashboardDrilldown.test.tsx` went with that component).
   - **The dashboard drill-down uses this same card**, via `KpiDrilldownSheet.tsx`
     (which superseded the deleted `DashboardDrilldown.tsx` in the 2026-08-14 rebuild).
     It passes **`onSelect` only and never an `action`** — "Dashboard reads, Console
@@ -169,7 +170,7 @@
   other than today — the open statuses are never date-bounded — so "03:30" says when
   but not whether that when is now, which is the exact confusion that made
   `VIS-20260811-0007` unreadable. `formatDateTime` at all six sites:
-  `VisitorStackFacts` (Expected Time), `VisitorCard.expectedTimeLabel`,
+  `VisitorGridCard` (its date-and-time stamp), `VisitorCard.expectedTimeLabel`,
   `PreApprovalRow` (its slot column widened from `w-16` to `w-32` to fit),
   `CheckInMatchCard`, `CheckInVisitorSummary` and `OverviewFilteredView`'s ETA line.
   `CheckInMatchCard` used to switch on `dueToday` — bare time for today, full date
@@ -273,7 +274,8 @@
 - **The department appears ONCE per card.** It used to trail the host's name in
   brackets *and* own an attribute row below it — the same value twice on one card,
   which the no-duplicate-renders rule forbids and which made the eye check whether the
-  two agreed. `VisitorStackCard.test.tsx` guards this, along with the vendor and host
+  two agreed. `VisitorGridCard` shows the department once, and
+  `tests/unit/pages/VisitorStackList.test.tsx` guards that, along with the vendor and host
   each appearing exactly once.
 - **QR scanning is UNCONDITIONAL — there is no `qr` feature flag, and adding one back
   is forbidden.** `/guard/scan-pass` is the guard's dedicated scan desk: a visitor
@@ -562,11 +564,16 @@
   (`/guard/inside-now`), which owns the card-return gate; `/guard/dashboard` reads,
   it does not act. Filtering pre-approved arrivals out of the list would make them
   invisible, which is the same problem in the other direction.
-- **Daily Staff, the Kiosk and Search were removed from the NAV but are still ROUTABLE.**
-  `/guard/daily-staff`, `/kiosk` and `/guard/search` remain in `ROLE_ROUTES.guard` on
-  purpose — the kiosk runs on its own device. They left the sidebar because neither is
-  visitor check-in (Search duplicated lookups the Visitors tabs already cover), not
-  because access was revoked. Do not "tidy up" `ROLE_ROUTES` by deleting them.
+- **Daily Staff and the Watchlist page are deleted (2026-08-15); the Kiosk and
+  Search remain ROUTABLE.** `/guard/daily-staff` (its query selected columns that
+  do not exist on `visits`, so it could never show a row) and `/guard/watchlist`
+  (a browsable copy of the blacklist gate that fires inside check-in) were
+  removed from `ROLE_ROUTES.guard` outright, and `routeProtection.test.tsx`
+  asserts both are now forbidden. `/kiosk` and `/guard/search` remain on purpose —
+  the kiosk runs on its own device. They left the sidebar because neither is
+  visitor check-in (Search duplicated lookups the Visitors tabs already cover),
+  not because access was revoked. Do not "tidy up" `ROLE_ROUTES` by deleting
+  those two.
 - **The guard's second tab is "Entry & Exit" (`/guard/inside-now`).** "Live Queue" until
   2026-08-14, "Inside Now" until 2026-08-15, both renamed on client instruction. It lists
   everyone who has been through the gate: visitors still inside, **plus visitors who have
@@ -747,6 +754,15 @@
   everything that changes a visit's state lives in `/visitors`. These two used to
   duplicate each other (both rendered an inside-list, both held their own realtime
   subscription) and a guard could not tell which was authoritative. Keep the split.
+  **The two exceptions are both client-instructed**: Deny Entry (a mandatory-reason
+  refusal write, `lib/denyEntryFlow.ts`) and **Verify ID**, which since 2026-08-15 is
+  NOT a link to another tab but a button that renders the same check-in flow
+  (`VisitorCheckInFlow`) IN PLACE, in a modal, with the ID scan overlay opening
+  immediately (`autoScan` through `CheckInPhotoStep`). A button that says "Verify ID"
+  must open the thing that verifies an ID — the earlier `<Link>` versions sent the
+  guard to a tab where the scan was either absent (`?verify=` on the Entry & Exit
+  frame) or one click deep. The modal uses the same flow as everywhere else, so the
+  mutation is never a third hand-rolled copy.
 - **The guard dashboard is `GuardDashboardMain.tsx`, and it is the ONLY one.** A
   previous implementation (`DashboardSummary`, `DashboardActivity`,
   `DashboardQuickActions`, `DashboardDrilldown`, `DashboardTile`, `lib/recentActivity.ts`)
@@ -859,10 +875,21 @@
   screen claims a person was refused at the door, a different and far more serious event
   to have wrong in a record someone may later be asked to account for.
   `GuardDashboard.test.tsx` fails on any `/denied/i` text.
-- **Watchlist is blacklist-only, on purpose.** `visitors.is_blacklisted` +
-  `blacklist_reason` are the only columns backing it. There is no VIP flag, no ID-expiry
-  column and no duplicate-identity detection in the schema. Do not add placeholder
-  sections for them; add the columns first or leave it alone.
+- **There is NO Watchlist tab (deleted 2026-08-15, client instruction).**
+  `visitors.is_blacklisted` + `blacklist_reason` are the only columns backing
+  it, and the enforcement point that matters is inside check-in —
+  `lib/checkInFlow.ts` refuses the write and names the blacklist reason — so
+  the browsable tab was a second, weaker path to the same protection, carrying
+  a CCTV placeholder, dead buttons and a dismiss that did not persist.
+  `GuardWatchlist.tsx`, `WatchlistMatchCard.tsx`, `CctvFeedCard.tsx`,
+  `WatchlistAlertBanner.tsx` and `lib/notifyWatchlistEscalation.ts` are all
+  **deleted**; `/guard/watchlist` is out of `ROLE_ROUTES.guard` and
+  `routeProtection.test.tsx` asserts it is forbidden. Do not re-add the tab or
+  the dashboard banner. The `watchlist_escalation` value stays in
+  `NotificationType` (live rows can exist, migration 079) but nothing new is
+  ever written. There is no VIP flag, no ID-expiry column and no
+  duplicate-identity detection in the schema. Do not add placeholder sections
+  for them; add the columns first or leave it alone.
 - **No badge/QR anywhere in the guard surface.** A guard must never be able to mint an
   entry pass (see `lib/passVisibility.ts` and the comment at the top of `Console.tsx`).
   This is why there is no "Badge Printing" queue on the dashboard despite the wireframe
@@ -1155,17 +1182,18 @@ src/
                      # VisitorCard (the ONE shared visitor row — superseded the
                      #   deleted GuardConsoleVisitorRow / GuardConsoleInsideCard);
                      # Dashboard (17-line shell) + GuardDashboardMain (the whole
-                     #   board: four KPI tiles, Live Arrival Queue, ID
-                     #   Verification, watchlist banner), ArrivalQueueTable,
+                     #   board: four KPI tiles, Expected Today panel, ID
+                     #   Verification — whose Verify ID opens the check-in flow
+                     #   IN PLACE with the scan overlay open), ArrivalQueueTable,
                      #   IdVerificationCard, KpiDrilldownSheet (the in-page KPI
-                     #   expansion), WatchlistAlertBanner;
+                     #   expansion), DenyEntryConfirm;
                      # GuardLiveQueue = the "Entry & Exit" tab (/guard/inside-now)
                      #   + LiveQueueTable, CheckInFrame,
                      #   CheckInBadgeRail, CheckInTimeline;
-                     # PreApprovals + PreApprovalRow; Search; Watchlist;
+                     # PreApprovals + PreApprovalRow; Search;
                      # CheckInPanel + CheckInMatchList, CheckInPhotoStep;
                      # VisitorForm + VisitorFormFields, VisitorFormAlerts,
-                     # VisitorFormPreApproved; DailyStaff, WalkInRequest
+                     # VisitorFormPreApproved; WalkInRequest
   pages/HOD/         # Approvals, ApprovalsPendingList, ApprovalsVisitList, HODOverview,
                      # OverviewStatCards, OverviewUpcoming, OverviewNotifications, PreApproveForm
   pages/Shared/      # Analytics (shell) + AnalyticsKPICards, AnalyticsCharts;
@@ -1187,10 +1215,10 @@ src/
   lib/               # roleRoutes, theme, errors, mfa,
                      # guardTiles (ONE predicate per dashboard tile — the count
                      #   and the drill-down list are both derived from it),
-                     # dashboardDrill (KPI → predicate + copy), useTodayVisits
-                     #   (the whole day, one fetch, feeds every drill-down),
+                     # useTodayVisits (the whole day, one fetch, feeds every
+                     #   drill-down and the Verify ID flow),
                      # activeVisit (already-inside checks + guard-readable message),
-                     # usePreApprovals, useWatchlist,
+                     # usePreApprovals,
                      # useGateActivity (Entry & Exit: inside + today's exits),
                      # preRegisteredBoard (who is on the board at all, one
                      #   predicate per chip, and the three-state pill),

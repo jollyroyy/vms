@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 
 import type { ReportVisit } from '../../lib/reportRow';
 import { istDateKey } from '../../lib/visitExpiry';
+import { formatTime } from '../../lib/formatDate';
 
 // One visitor card of the Pre-Registered Arrivals grid (reference screen 3):
 // circular headshot, name, company, host, clocked time, and the
@@ -53,11 +54,13 @@ export function isCheckInReady(visit: ReportVisit): boolean {
 // removed from every other `scheduled_for` line in the app. Today's cards keep
 // the compact time the reference frames; anything else carries its date.
 function slotLabel(visit: ReportVisit): string {
-  const when = new Date(visit.scheduled_for ?? visit.created_at);
-  if (Number.isNaN(when.getTime())) return '—';
-  const time = when.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
-  if (istDateKey(when) === istDateKey(new Date())) return time;
-  return `${when.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}, ${time}`;
+  const when = visit.scheduled_for ?? visit.created_at;
+  if (!when) return '—';
+  const d = new Date(when);
+  if (Number.isNaN(d.getTime())) return '—';
+  const time = formatTime(when);
+  if (istDateKey(d) === istDateKey(new Date())) return time;
+  return `${d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', timeZone: 'Asia/Kolkata' })}, ${time}`;
 }
 
 const initialsOf = (name: string | null | undefined) =>

@@ -122,38 +122,40 @@ describe('Sidebar navigation links per role', () => {
 
   it('guard sees the reference console tabs plus Scan Pass and Visitors, and no Search', () => {
     renderSidebar('guard');
-    for (const label of ['Dashboard', 'Entry & Exit', 'Pre-Registered', 'Watchlist', 'Scan Pass', 'Visitors']) {
+    for (const label of ['Dashboard', 'Entry & Exit', 'Pre-Registered', 'Scan Pass', 'Visitors']) {
       expect(screen.getByText(label)).toBeInTheDocument();
     }
     expect(screen.queryByText('Search')).not.toBeInTheDocument();
+    expect(screen.queryByText('Watchlist')).not.toBeInTheDocument();
   });
 
-  it('the four console tabs link to their reference-screen routes', () => {
+  it('the console tabs link to their reference-screen routes', () => {
     renderSidebar('guard');
     expect(screen.getByRole('link', { name: /Dashboard/ })).toHaveAttribute('href', '/guard/dashboard');
     expect(screen.getByRole('link', { name: /Entry & Exit/ })).toHaveAttribute('href', '/guard/inside-now');
     expect(screen.getByRole('link', { name: /Pre-Registered/ })).toHaveAttribute('href', '/guard/preregistered');
-    expect(screen.getByRole('link', { name: /Watchlist/ })).toHaveAttribute('href', '/guard/watchlist');
+    expect(screen.queryByRole('link', { name: /Watchlist/ })).not.toBeInTheDocument();
   });
 
   // The Visitors entry is a single <a> now (2026-08-13): the segments that
   // used to expand under a group button live on the page as KPI tiles
-  // (VisitorKpiRail). The guard nav is the reference four tabs plus Scan Pass
-  // and Visitors — six plain links, no group button (2026-08-14).
-  it('guard sidebar has exactly 6 nav links and no group button', () => {
+  // (VisitorKpiRail). The guard nav is the reference three tabs plus Scan Pass
+  // and Visitors — five plain links, no group button (2026-08-14, Watchlist
+  // deleted 2026-08-15).
+  it('guard sidebar has exactly 5 nav links and no group button', () => {
     const { container } = renderSidebar('guard');
     const links = container.querySelectorAll('a.sidebar-link');
-    expect(links.length).toBe(6);
+    expect(links.length).toBe(5);
     expect(screen.queryByRole('button', { name: /Visitors/ })).not.toBeInTheDocument();
   });
 
-  // Daily Staff and the Self-Service Kiosk are still ROUTABLE (see
-  // roleRoutes.ts: /guard/daily-staff and /kiosk remain in ROLE_ROUTES.guard)
-  // — the kiosk runs on its own device and both stay reachable by direct
-  // link. They were dropped from the SIDEBAR only because neither is visitor
-  // check-in, not because guard access was revoked. Both facts must hold at
-  // once: absent from nav, present in ROLE_ROUTES.
-  it('guard does not see Daily Staff or Self-Service Kiosk in the sidebar (they remain routable, see roleRoutes.ts)', () => {
+  // The Self-Service Kiosk is still ROUTABLE (see roleRoutes.ts: /kiosk remains
+  // in ROLE_ROUTES.guard) — it runs on its own device and stays reachable by
+  // direct link. It was dropped from the SIDEBAR only because it is not visitor
+  // check-in, not because guard access was revoked. Daily Staff was deleted
+  // outright 2026-08-15 (its query could never return a row), so neither
+  // appears in the sidebar.
+  it('guard does not see Daily Staff or Self-Service Kiosk in the sidebar (kiosk remains routable, see roleRoutes.ts)', () => {
     renderSidebar('guard');
     expect(screen.queryByText('Daily Staff')).not.toBeInTheDocument();
     expect(screen.queryByText('Self-Service Kiosk')).not.toBeInTheDocument();

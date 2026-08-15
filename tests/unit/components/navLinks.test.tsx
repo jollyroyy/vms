@@ -2,37 +2,38 @@ import { describe, it, expect } from 'vitest';
 import { ALL_LINKS, linksForRole } from '../../../src/components/layout/navLinks';
 
 describe('navLinks: linksForRole', () => {
-  // The four-tab guard console from the approved reference design
-  // (Dashboard, Live Queue, Pre-Registered, Watchlist), then Scan Pass and the
+  // The three-tab guard console from the approved reference design
+  // (Dashboard, Entry & Exit, Pre-Registered), then Scan Pass and the
   // consolidated Visitors lane. Client instruction 2026-08-14 — no Search, no
-  // group button, no vehicle entries anywhere.
-  it('guard gets exactly 6 links, in order, with the exact labels, and no Search', () => {
+  // group button, no vehicle entries anywhere. The Watchlist tab was deleted
+  // 2026-08-15 (client instruction); the blacklist gate lives inside check-in.
+  it('guard gets exactly 5 links, in order, with the exact labels, and no Search', () => {
     const links = linksForRole('guard');
     expect(links.map((l) => l.label)).toEqual([
       'Dashboard',
       'Entry & Exit',
       'Pre-Registered',
-      'Watchlist',
       'Scan Pass',
       'Visitors',
     ]);
     expect(links.map((l) => l.label)).not.toContain('Search');
     expect(links.map((l) => l.label)).not.toContain('Vehicles');
+    expect(links.map((l) => l.label)).not.toContain('Watchlist');
   });
 
-  it('guard tab links point at the four reference-screen routes, in reference order', () => {
+  it('guard tab links point at the reference-screen routes, in reference order', () => {
     const links = linksForRole('guard');
     expect(links[0]?.to).toBe('/guard/dashboard');
     expect(links[1]?.to).toBe('/guard/inside-now');
     expect(links[2]?.to).toBe('/guard/preregistered');
-    expect(links[3]?.to).toBe('/guard/watchlist');
+    expect(links[3]?.to).toBe('/guard/scan-pass');
   });
 
-  it('guard Scan Pass link points to /guard/scan-pass and sits fifth', () => {
+  it('guard Scan Pass link points to /guard/scan-pass and sits fourth', () => {
     const links = linksForRole('guard');
     const scan = links.find((l) => l.label === 'Scan Pass');
     expect(scan?.to).toBe('/guard/scan-pass');
-    expect(links[4]?.label).toBe('Scan Pass');
+    expect(links[3]?.label).toBe('Scan Pass');
   });
 
   // The Visitors entry is a SINGLE link now (2026-08-13): the eight segments

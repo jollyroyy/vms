@@ -13,19 +13,23 @@ import type { UserRole } from '../types/index';
 // and is listed LAST as well, after `/profile`.
 export const ROLE_ROUTES: Record<UserRole, string[]> = {
   // The guard SIDEBAR is three items (see components/layout/navLinks.tsx), but the
-  // routable surface is deliberately wider. `/kiosk` runs on its own device and
-  // `/guard/daily-staff` is still reachable by direct link — they were dropped
-  // from the nav because neither is visitor check-in, not because access was
-  // revoked. Removing them here would be a regression, not a cleanup.
-  // The four-tab guard surface from the approved reference design — Dashboard,
-  // Live Queue, Pre-Registered, Watchlist — all of which link to each other
-  // from the dashboard ("Verify ID", the watchlist banner), so all three new
-  // paths must be allowed here or the sidebar tabs 404. The "View Full Queue"
-  // dashboard link was removed 2026-08-14 (client instruction); the Inside Now
-  // route stays for the nav item and for `?verify=` links in guards' bookmarks.
-  guard:       ['/guard/dashboard', '/guard/inside-now', '/guard/live-queue', '/guard/preregistered', '/guard/watchlist',
+  // routable surface is deliberately wider. `/kiosk` runs on its own device —
+  // it was dropped from the nav because it is not visitor check-in, not because
+  // access was revoked. Removing it here would be a regression, not a cleanup.
+  // (Daily Staff was deleted outright 2026-08-15: its query selected columns
+  // that do not exist on `visits`, so the page could never show a row, and a
+  // routable page that always renders nothing is a live destination that lies.)
+  // The reference-screen guard surface — Dashboard, Entry & Exit,
+  // Pre-Registered, Scan Pass — all of which link to each other from the
+  // dashboard ("Verify ID" opens the scan flow in place), so those paths must
+  // be allowed here or the sidebar tabs 404. The "View Full Queue" dashboard
+  // link was removed 2026-08-14 (client instruction); the Inside Now route
+  // stays for the nav item and for `?verify=` links in guards' bookmarks.
+  // The Watchlist tab was deleted outright 2026-08-15 (client instruction):
+  // the blacklist gate lives inside check-in, where it actually fires.
+  guard:       ['/guard/dashboard', '/guard/inside-now', '/guard/live-queue', '/guard/preregistered',
                 '/guard/scan-pass', '/visitors', '/guard', '/guard/pre-approvals',
-                '/guard/search', '/guard/daily-staff', '/kiosk', '/whos-inside', '/profile', '/search'],
+                '/guard/search', '/kiosk', '/whos-inside', '/profile', '/search'],
   hod:         ['/overview', '/approvals', '/reports', '/analytics', '/profile', '/search'],
   staff:       ['/visitors', '/whos-inside', '/reports', '/profile', '/search'],
   admin:       ['/analytics', '/reports', '/admin', '/profile', '/search'], // admin is restricted to analytics, reports and settings — no visitor data

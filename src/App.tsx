@@ -16,9 +16,7 @@ import VisitorsDashboard  from './pages/Shared/VisitorsDashboard';
 import GuardDashboard     from './pages/Guard/Dashboard';
 import GuardLiveQueue      from './pages/Guard/GuardLiveQueue';
 import GuardPreRegistered   from './pages/Guard/GuardPreRegistered';
-import GuardWatchlist       from './pages/Guard/GuardWatchlist';
 import GuardConsole       from './pages/Guard/Console';
-import DailyStaff         from './pages/Guard/DailyStaff';
 import GuardPreApprovals  from './pages/Guard/PreApprovals';
 import GuardScanPass      from './pages/Guard/ScanPass';
 import GuardSearch        from './pages/Guard/Search';
@@ -258,9 +256,7 @@ export default function App(): React.ReactElement {
                 emitting. It renders the same page rather than 404-ing. */}
             <Route path="/guard/live-queue" element={<ProtectedRoute role={role}><GuardLiveQueue /></ProtectedRoute>} />
             <Route path="/guard/preregistered" element={<ProtectedRoute role={role}><GuardPreRegistered /></ProtectedRoute>} />
-            <Route path="/guard/watchlist" element={<ProtectedRoute role={role}><GuardWatchlist /></ProtectedRoute>} />
             <Route path="/guard/scan-pass" element={<ProtectedRoute role={role}><GuardScanPass /></ProtectedRoute>} />
-            <Route path="/guard/daily-staff" element={<ProtectedRoute role={role}><DailyStaff /></ProtectedRoute>} />
             <Route path="/guard/pre-approvals" element={<ProtectedRoute role={role}><GuardPreApprovals /></ProtectedRoute>} />
             <Route path="/guard/search"    element={<ProtectedRoute role={role}><GuardSearch role={role} /></ProtectedRoute>} />
             <Route path="/search"          element={<ProtectedRoute role={role}><GuardSearch role={role} /></ProtectedRoute>} />

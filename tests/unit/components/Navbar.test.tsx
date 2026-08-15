@@ -118,15 +118,18 @@ describe('Sidebar: navigation links', () => {
     expect(screen.queryByText('Pre-Approvals')).not.toBeInTheDocument();
 
     // Search left the nav but stays routable at /guard/search (see
-    // ROLE_ROUTES.guard in roleRoutes.ts) — same reasoning as Daily Staff/Kiosk.
+    // ROLE_ROUTES.guard in roleRoutes.ts).
     expect(screen.queryByText('Search')).not.toBeInTheDocument();
 
-    // Dropped from the NAV, but deliberately still ROUTABLE — the kiosk runs on
-    // its own device and both remain in ROLE_ROUTES.guard. They left the
-    // sidebar because neither is visitor check-in, not because a guard lost
-    // access. tests/security/routeProtection.test.tsx asserts the access half.
+    // The Self-Service Kiosk is dropped from the NAV but deliberately still
+    // ROUTABLE — it runs on its own device and remains in ROLE_ROUTES.guard.
+    // It left the sidebar because it is not visitor check-in, not because a
+    // guard lost access. Daily Staff was deleted outright (2026-08-15), and
+    // the Watchlist tab with it. tests/security/routeProtection.test.tsx
+    // asserts the access half.
     expect(screen.queryByText('Self-Service Kiosk')).not.toBeInTheDocument();
     expect(screen.queryByText('Daily Staff')).not.toBeInTheDocument();
+    expect(screen.queryByText('Watchlist')).not.toBeInTheDocument();
 
     expect(screen.queryByText('On-site')).not.toBeInTheDocument();
     expect(screen.queryByText('Material Passes')).not.toBeInTheDocument();

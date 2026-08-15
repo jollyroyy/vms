@@ -81,10 +81,12 @@ export default function GuardPreRegistered(): React.ReactElement {
   );
 
   // `/guard/preregistered?checkin=<visitId>` opens that visitor's check-in
-  // flow directly. This is where the dashboard's "Verify ID" lands, and where
-  // the Today's Schedule rail links to — because ID scanning only exists inside
-  // a check-in (CheckInPhotoStep -> IdScanOverlay), so a link that promises a
-  // scan has to arrive somewhere that can actually perform one.
+  // flow directly. The dashboard's "Verify ID" used to land here; since
+  // 2026-08-15 it opens the same flow IN PLACE on the dashboard (the ID scan
+  // overlay starts immediately), so this param now serves the Today's Schedule
+  // rail's "Next up" cards — because ID scanning only exists inside a check-in
+  // (CheckInPhotoStep -> IdScanOverlay), so a link that promises a scan has to
+  // arrive somewhere that can actually perform one.
   useEffect(() => {
     const id = searchParams.get('checkin');
     if (!id || checkingIn) return;

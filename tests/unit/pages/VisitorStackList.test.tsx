@@ -89,4 +89,37 @@ describe('VisitorStackList', () => {
     );
     expect(screen.queryByRole('button')).toBeNull();
   });
+
+  // No duplicate renders, per card (the rule the deleted VisitorStackCard.test
+  // pinned on the old stacked row). The grid card's host line carries the host;
+  // the department name appears ONLY as that line's fallback when there is no
+  // host — never a second time anywhere on the card.
+  it('renders the vendor and host exactly once each', () => {
+    render(
+      <VisitorStackList segment="inside" loading={false}
+        visits={[visit({ visitor: { ...visit().visitor!, vendor_name: 'Acme Supplies' } })]} />,
+    );
+    expect(screen.getAllByText('Acme Supplies')).toHaveLength(1);
+    expect(screen.getAllByText('Alice Johnson')).toHaveLength(1);
+  });
+
+  it('renders the department only as the host-line fallback, never twice', () => {
+    const dept = { id: 'd1', name: 'Finance', code: 'FIN' } as const;
+    const first = render(
+      <VisitorStackList segment="inside" loading={false}
+        visits={[visit({ department: dept } as never)]} />,
+    );
+    expect(screen.getAllByText(/Host: Finance/)).toHaveLength(1);
+    first.unmount();
+
+    render(
+      <VisitorStackList segment="inside" loading={false}
+        visits={[visit({
+          department: dept,
+          host: { id: 'h1', full_name: 'Bob Sharma' },
+        } as never)]} />,
+    );
+    expect(screen.getAllByText(/Host: Bob Sharma/)).toHaveLength(1);
+    expect(screen.queryAllByText(/Host: Finance/)).toHaveLength(0);
+  });
 });

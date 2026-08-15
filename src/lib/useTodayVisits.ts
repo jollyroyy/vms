@@ -17,7 +17,8 @@ export type UseTodayVisits = {
 // different slice of the same day — expected, inside, entered, checked out,
 // declined. Five status-filtered queries would mean five subscriptions and five
 // chances for the tile count and the expanded list to disagree, so this fetches
-// the day once and lib/dashboardDrill.ts slices it client-side.
+// the day once and lib/guardTiles.ts slices it client-side (one predicate per
+// tile; the count IS the list length).
 export function useTodayVisits(today: string): UseTodayVisits {
   const [visits, setVisits] = useState<ReportVisit[]>([]);
   const [loading, setLoading] = useState(true);
