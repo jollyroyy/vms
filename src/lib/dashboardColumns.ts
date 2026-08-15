@@ -1,6 +1,7 @@
 import type { GuardTileKey } from './guardTiles';
 import type { ReportVisit } from './reportRow';
 import { formatStamp } from './formatDate';
+import { maskIdProof } from './pii';
 import { overstayMs } from './visitExpiry';
 
 // What the guard dashboard's one panel is CALLED, and which columns it shows,
@@ -94,6 +95,28 @@ const OVERSTAY: DashboardColumn = {
   tone: 'warn',
 };
 
+// WHAT KIND of document was taken off this visitor (client instruction,
+// 2026-08-15). It is the one fact on the row a guard may later be asked to
+// account for — "who did you let in, and what did you check?" — and it was
+// reachable only by opening the popup's ID tab, one click deep, on a board
+// whose whole job is being readable at a glance.
+//
+// The TYPE is the answer, so it is printed even when the digits are missing;
+// `maskIdProof` supplies the redacted number when they are there, so the
+// redaction rule stays in lib/pii.ts and cannot drift from Reports, the pass or
+// the badge. "Not recorded" rather than a dash when nothing is on record: a
+// dash reads as a document whose name went unwritten, and the honest answer is
+// that nothing was taken.
+const ID_PROOF: DashboardColumn = {
+  key: 'idProof', header: 'ID Proof',
+  value: (v) => {
+    const type = v.visitor?.id_type?.trim();
+    if (!type) return 'Not recorded';
+    const masked = maskIdProof(type, v.visitor?.id_last4);
+    return masked === '—' ? type : masked;
+  },
+};
+
 const STATUS: DashboardColumn = { key: 'status', header: 'Status', value: () => '' };
 
 // WHO refused, resolved from the `visit_rejected` audit row — the same field
@@ -134,25 +157,25 @@ export const PANEL_SPEC: Record<GuardTileKey, DashboardPanelSpec> = {
   checked: {
     heading: 'Checked In Today',
     empty: 'Nobody has come through the gate yet today.',
-    columns: [NAME, PURPOSE, HOST, SCHEDULED, CHECKED_IN, CHECKED_OUT, STATUS],
+    columns: [NAME, ID_PROOF, PURPOSE, HOST, SCHEDULED, CHECKED_IN, CHECKED_OUT, STATUS],
   },
   // The list you hand a fire marshal. No exit column — by definition none of
   // them has one.
   inside: {
     heading: 'In Premises',
     empty: 'Nobody is inside right now.',
-    columns: [NAME, PURPOSE, HOST, DEPARTMENT, SCHEDULED, CHECKED_IN, STATUS],
+    columns: [NAME, ID_PROOF, PURPOSE, HOST, DEPARTMENT, SCHEDULED, CHECKED_IN, STATUS],
   },
   // The overrun is why the row is here, so it sits last, where the eye lands.
   overstaying: {
     heading: 'Overstaying',
     empty: 'Nobody is overstaying.',
-    columns: [NAME, PURPOSE, HOST, CHECKED_IN, OVERSTAY, STATUS],
+    columns: [NAME, ID_PROOF, PURPOSE, HOST, CHECKED_IN, OVERSTAY, STATUS],
   },
   all: {
     heading: 'All Visitors',
     empty: 'No visitor activity yet today.',
-    columns: [NAME, PURPOSE, HOST, DEPARTMENT, SCHEDULED, CHECKED_IN, CHECKED_OUT, STATUS],
+    columns: [NAME, ID_PROOF, PURPOSE, HOST, DEPARTMENT, SCHEDULED, CHECKED_IN, CHECKED_OUT, STATUS],
   },
   // A walk-in with nobody's decision on it. It has no slot and no entry — only
   // the moment it was raised, which is what the host is late against.
