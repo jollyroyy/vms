@@ -80,9 +80,14 @@ describe('CheckInFrame honesty fixes', () => {
     expect(container.querySelectorAll('select').length).toBe(0);
   });
 
-  it('shows a real validity time on the pass, never the old hardcoded 06:00 PM', () => {
+  // The pass carried a hardcoded "Valid until 06:00 PM", then a computed one,
+  // and now none at all (client instruction, 2026-08-15). Expiry is enforced by
+  // the QR gate from `qr_expires_at` whatever the paper says, so the line was
+  // the one thing on the card nobody could act on; the times that replaced it
+  // are the ones a guard reading a pass back actually asks for.
+  it('prints no validity line on the pass, hardcoded or otherwise', () => {
     renderFrame(visit({ qr_expires_at: '2026-08-15T10:30:00Z' } as any));
-    const validity = screen.getByText(/Valid until/);
-    expect(validity.textContent).not.toContain('06:00 PM');
+    expect(screen.queryByText(/valid until/i)).toBeNull();
+    expect(screen.queryByText(/06:00 PM/)).toBeNull();
   });
 });

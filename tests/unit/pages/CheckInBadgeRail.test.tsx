@@ -62,17 +62,79 @@ describe('CheckInBadgeRail', () => {
     expect(pass?.className).not.toContain('bg-white');
   });
 
-  it('renders the pass identity: name, day pass number and validity', () => {
+  it('renders the pass identity: name and day pass number', () => {
     renderRail();
     expect(screen.getByText('Visitor Pass')).toBeInTheDocument();
     expect(screen.getByText('Sarah Whitfield')).toBeInTheDocument();
     expect(screen.getByText('Day Pass #2417')).toBeInTheDocument();
-    expect(screen.getByText(/Valid until/)).toBeInTheDocument();
+  });
+
+  // "Valid until" is gone (client instruction, 2026-08-15). The pass is handed
+  // to a visitor who is already inside; what a guard reading it back needs is
+  // when this visit was booked for and when the person actually came through,
+  // not a deadline the QR gate enforces on its own.
+  it('prints no validity line', () => {
+    renderRail();
+    expect(screen.queryByText(/valid until/i)).toBeNull();
+    expect(screen.queryByText(/valid till/i)).toBeNull();
+  });
+
+  // The mobile number is on the pass because the pass outlives the screen: if
+  // the visitor is still on site at shift change, or the card comes back
+  // without them, this is how the gate reaches them.
+  it('prints the mobile number', () => {
+    renderRail({ activeVisit: visit({ visitor: { full_name: 'Sarah Whitfield', phone: '9876543210' } as any }) });
+    expect(screen.getByText('Mobile')).toBeInTheDocument();
+    expect(screen.getByText('9876543210')).toBeInTheDocument();
+  });
+
+  it('prints the scheduled time and the check-in time', () => {
+    renderRail({
+      activeVisit: visit({
+        scheduled_for: '2026-08-14T04:30:00Z',
+        checked_in_at: '2026-08-14T05:02:00Z',
+      }),
+    });
+    expect(screen.getByText('Scheduled')).toBeInTheDocument();
+    expect(screen.getByText('Checked in')).toBeInTheDocument();
+  });
+
+  // A walk-in has no slot. "Anytime" rather than a dash — nobody booked them a
+  // time, which is different from a time going unrecorded.
+  it('says Anytime for a visit nobody scheduled', () => {
+    renderRail({ activeVisit: visit({ scheduled_for: null, checked_in_at: '2026-08-14T05:02:00Z' }) });
+    expect(screen.getByText('Anytime')).toBeInTheDocument();
+  });
+
+  // The exit time appears only once there is one: on a visitor still inside the
+  // row would be a claim they had left.
+  it('prints the check-out time only for a visitor who has left', () => {
+    renderRail();
+    expect(screen.queryByText('Checked out')).toBeNull();
+    cleanup();
+    renderRail({
+      activeVisit: visit({
+        status: 'checked_out',
+        checked_in_at: '2026-08-14T05:02:00Z',
+        checked_out_at: '2026-08-14T09:40:00Z',
+      }),
+    });
+    expect(screen.getByText('Checked out')).toBeInTheDocument();
   });
 
   it('falls back to the visitor initials when no gate photo was captured', () => {
     renderRail();
     expect(screen.getByText('SW')).toBeInTheDocument();
+  });
+
+  // `photo_data` is the raw column and is often null on rows that came through
+  // a hook, which map the capture onto `photo_url` (useTodayVisits,
+  // useGateActivity). Reading only the raw column is why a visitor with a
+  // perfectly good gate photo printed as two grey initials.
+  it('shows the captured photo when the row carries it as photo_url', () => {
+    renderRail({ activeVisit: visit({ photo_url: 'https://example.test/p.webp' }) });
+    expect(screen.getByAltText('Sarah Whitfield')).toBeInTheDocument();
+    expect(screen.queryByText('SW')).toBeNull();
   });
 
   it('shows the QR when one has been generated, and a placeholder otherwise', () => {

@@ -1,7 +1,6 @@
 import React from 'react';
 
 import type { ReportVisit } from '../../lib/reportRow';
-import { istDayEnd, visitMoment } from '../../lib/visitExpiry';
 import { formatDateTime } from '../../lib/formatDate';
 
 // Column 3 of the Live Queue check-in frame: the WHITE visitor pass, the blue
@@ -28,23 +27,31 @@ const WHITE = { backgroundColor: '#ffffff' } as const;
 const initialsOf = (name: string | null | undefined) =>
   ((name ?? 'U').split(' ').filter(Boolean).slice(0, 2).map((w) => w[0]).join('').toUpperCase() || 'U');
 
-/**
- * The pass's real expiry, not a fixed "06:00 PM" printed on every pass
- * regardless of when the visit was for. `qr_expires_at` is the authority —
- * migrations 071/073 set it to `vms_day_end_ist(scheduled_for)` at approval
- * time, so it already carries the multi-day-visit exception (073) when one
- * applies. A row written before that RPC set the column, or a walk-in that
- * never had a QR expiry written at all, falls back to `expected_departure`
- * (the approver's own stated end date), and only then to the same
- * `istDayEnd` rule the sweep and `isVisitExpired` use — the day containing
- * the visit's moment, ending at mall close (22:00 IST), never midnight.
- */
-function passValidUntil(v: ReportVisit): string {
-  const iso = v.qr_expires_at ?? v.expected_departure ?? istDayEnd(new Date(visitMoment(v))).toISOString();
-  // formatDateTime, not a local toLocaleString: it pins IST and prints the
-  // same shape PreApprovalPass uses, so the HOD's copy and the guard's copy
-  // of one pass cannot disagree.
-  return formatDateTime(iso);
+// THERE IS NO "VALID UNTIL" LINE (client instruction, 2026-08-15). The pass is
+// handed to somebody who is already inside, and its expiry is enforced by the
+// QR gate against `qr_expires_at` whatever the paper says — so the deadline was
+// the one fact on the card nobody could act on. What a guard reading a pass
+// back actually asks is when the visit was booked for and when the person came
+// through the gate, which is what these lines carry instead.
+//
+// formatDateTime, never a local toLocaleString: it pins IST and prints the same
+// shape PreApprovalPass and the visit timeline use, so three copies of one
+// visit's clock cannot disagree. Every time on this pass is DATE AND TIME — a
+// pass can outlive the day it was printed on, and "03:30" on a card found the
+// next morning says when but not whether that when was today.
+
+/** One label/value line on the pass. */
+function PassLine({ label, value }: { label: string; value: string }): React.ReactElement {
+  return (
+    <div className="flex items-baseline justify-between gap-3 py-1">
+      <span style={{ color: PASS_MUTED }} className="text-[9px] font-bold uppercase tracking-[0.14em] shrink-0">
+        {label}
+      </span>
+      <span style={{ color: PASS_INK }} className="text-[11px] font-semibold text-right break-words">
+        {value}
+      </span>
+    </div>
+  );
 }
 
 type CheckInBadgeRailProps = {
@@ -63,8 +70,14 @@ export default function CheckInBadgeRail({
   onClose,
   onCheckOut,
 }: CheckInBadgeRailProps): React.ReactElement {
-  const photo = activeVisit.photo_data;
+  // BOTH, in that order. `photo_data` is the raw column; the hooks that feed
+  // this screen (useTodayVisits, useGateActivity, useGateVisits) map it onto
+  // `photo_url` and hand the row on, so a rail reading only the raw column
+  // printed two grey initials for a visitor whose gate photo was captured
+  // perfectly well (client report, 2026-08-15).
+  const photo = activeVisit.photo_data ?? activeVisit.photo_url ?? null;
   const name = activeVisit.visitor?.full_name ?? 'Visitor';
+  const phone = activeVisit.visitor?.phone?.trim();
 
   return (
     <div className="xl:col-span-5 rounded-2xl bg-surface-100/60 dark:bg-white/[0.03] border border-surface-200/60 dark:border-white/[0.07] p-5 shadow-glow-sm">
@@ -139,7 +152,33 @@ export default function CheckInBadgeRail({
               Card No. {activeVisit.visitor_card_number}
             </p>
           )}
-          <p style={{ color: PASS_MUTED }} className="mt-1 text-sm font-medium">Valid until {passValidUntil(activeVisit)}</p>
+          {/* Everything a guard reads off a pass, on the pass — one block, one
+              column (client instruction, 2026-08-15). It used to take three
+              screens to answer "who is this, how do I reach them, and when were
+              they due": the mobile number was only on the popup, the times only
+              on the frame's timeline, and the card itself carried a deadline
+              nobody could act on. One column rather than two because at this
+              width a "14 Aug 2026, 10:30 am" value cannot share a line and stay
+              unclipped — and a clipped date is indistinguishable from a
+              complete one. */}
+          <div className="mt-3 w-full" style={{ borderTop: '1px solid #e6e8ee' }}>
+            {phone && <PassLine label="Mobile" value={phone} />}
+            {/* A walk-in has no slot: "Anytime", never a dash. Nobody booked
+                them a time, which is not the same as a time going unrecorded. */}
+            <PassLine
+              label="Scheduled"
+              value={activeVisit.scheduled_for ? formatDateTime(activeVisit.scheduled_for) : 'Anytime'}
+            />
+            {activeVisit.checked_in_at && (
+              <PassLine label="Checked in" value={formatDateTime(activeVisit.checked_in_at)} />
+            )}
+            {/* Only once they have actually left. On a visitor still inside
+                this row would be a claim about where they went — the same rule
+                that keeps `exit_verified` honest. */}
+            {activeVisit.checked_out_at && (
+              <PassLine label="Checked out" value={formatDateTime(activeVisit.checked_out_at)} />
+            )}
+          </div>
           {qrDataUrl ? (
             <img src={qrDataUrl} alt="QR code" className="mt-3 w-[104px] h-[104px]" />
           ) : (

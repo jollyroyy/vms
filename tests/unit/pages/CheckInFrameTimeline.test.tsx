@@ -49,19 +49,25 @@ function renderFrame(v: ReportVisit = visit()) {
 }
 
 describe('CheckInFrame — visit timeline', () => {
+  // Scoped to the timeline, because the printable pass beside it carries the
+  // same three instants since 2026-08-15 (client instruction: the badge must
+  // stand on its own once it leaves the screen). That is the pass being its own
+  // content — the precedent the visitor's name and the date already set here —
+  // not the frame stating one fact twice.
   it('shows the approval, scheduled slot, check-in and check-out stages with their times', () => {
     renderFrame(visit({ status: 'checked_out', checked_out_at: '2026-08-14T12:00:00Z' }));
     expect(screen.getByText('Visit Timeline')).toBeInTheDocument();
-    expect(screen.getByText('Approved')).toBeInTheDocument();
+    const timeline = screen.getByText('Visit Timeline').closest('div')?.parentElement as HTMLElement;
+    expect(within(timeline).getByText('Approved')).toBeInTheDocument();
     // The pre-approver's own slot (client instruction, 2026-08-15) — the one
     // time on a visit a human chose, and what every arrival is judged against.
-    expect(screen.getByText('Scheduled')).toBeInTheDocument();
-    expect(screen.getByText('Checked in')).toBeInTheDocument();
-    expect(screen.getByText('Checked out')).toBeInTheDocument();
+    expect(within(timeline).getByText('Scheduled')).toBeInTheDocument();
+    expect(within(timeline).getByText('Checked in')).toBeInTheDocument();
+    expect(within(timeline).getByText('Checked out')).toBeInTheDocument();
     // 05:00Z = 10:30 IST (the slot AND the entry, on this fixture),
     // 12:00Z = 17:30 IST.
     expect(screen.getAllByText(/10:30/).length).toBeGreaterThan(0);
-    expect(screen.getByText(/5:30|17:30/)).toBeInTheDocument();
+    expect(within(timeline).getByText(/5:30|17:30/)).toBeInTheDocument();
   });
 
   it('prints the date exactly once when every stage falls on the same IST day', () => {
@@ -79,7 +85,8 @@ describe('CheckInFrame — visit timeline', () => {
   it('omits the approval stage for a walk-in', () => {
     renderFrame(visit({ scheduled_for: null, approvedAt: null } as never));
     expect(screen.queryByText('Approved')).toBeNull();
-    expect(screen.getByText('Checked in')).toBeInTheDocument();
+    const timeline = screen.getByText('Visit Timeline').closest('div')?.parentElement as HTMLElement;
+    expect(within(timeline).getByText('Checked in')).toBeInTheDocument();
   });
 
   it('renders no timeline at all when no stage has a time yet', () => {
