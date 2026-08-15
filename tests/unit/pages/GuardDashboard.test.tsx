@@ -1,6 +1,6 @@
 import React from 'react';
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { render, screen, cleanup, act } from '@testing-library/react';
+import { render, screen, cleanup, act, fireEvent } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import GuardDashboard from '../../../src/pages/Guard/Dashboard';
 
@@ -89,8 +89,11 @@ describe('GuardDashboard (reference-screen frame)', () => {
     // "Overstaying", not "Pending Check-out": the number has always been
     // isOverstaying, and everyone inside is pending check-out, so the old label
     // described the tile next to it.
+    // "Expected Today" now names both the KPI tile AND the arrivals panel
+    // heading below it (2026-08-15, deliberately — same predicate, two
+    // altitudes), so it can appear more than once.
     for (const label of ['Expected Today', 'Checked In', 'In Premises', 'Overstaying']) {
-      expect(screen.getByText(label)).toBeInTheDocument();
+      expect(screen.getAllByText(label).length).toBeGreaterThan(0);
     }
     // The old six-tile board must not silently return.
     for (const label of ['Entries', 'Exits', 'Currently Inside', 'No-shows', 'Declined']) {
@@ -98,9 +101,12 @@ describe('GuardDashboard (reference-screen frame)', () => {
     }
   });
 
-  it('renders the Live Arrival Queue card with table headers', () => {
+  it('renders the Expected Today arrivals panel with table headers', () => {
+    // Renamed from "Live Arrival Queue" 2026-08-15 — nothing here is live
+    // (these are bookings, often hours away) and nobody is queuing. Scoped to
+    // the heading role since the KPI tile above shares the same text.
     renderDashboard();
-    expect(screen.getByText('Live Arrival Queue')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Expected Today' })).toBeInTheDocument();
     for (const col of ['Name', 'Purpose', 'Host', 'Time', 'Status']) {
       expect(screen.getByText(col)).toBeInTheDocument();
     }
@@ -146,7 +152,14 @@ describe('GuardDashboard (reference-screen frame)', () => {
     // Approved-ahead slots at the gate read PRE-REGISTERED; only unapproved
     // walk-in lanes read WAITING (see statusPill in GuardDashboardMain).
     expect(screen.getByText('PRE-REGISTERED')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /Verify ID/i })).toHaveAttribute('href', '/guard/inside-now?verify=v1');
+    // Verify ID must open a screen that can actually SCAN an ID — that is the
+    // Pre-Registered board's check-in flow. It used to point at
+    // /guard/inside-now?verify=, which renders a read-only frame with no scan
+    // control, and which (since that tab narrowed to visitors already through
+    // the gate) cannot even contain this visitor.
+    const verify = screen.getByRole('link', { name: /Verify ID/i });
+    expect(verify).toHaveAttribute('href', '/guard/preregistered?checkin=v1');
+    expect(verify.getAttribute('href')).not.toContain('inside-now');
   });
 
   // The tile used to be `awaitingApproval + overdue` — unapproved walk-in
@@ -166,8 +179,10 @@ describe('GuardDashboard (reference-screen frame)', () => {
       loading: false,
     };
     renderDashboard();
-    const tile = screen.getByText('Expected Today').closest('button');
-    expect(tile?.textContent).toMatch(/2/);
+    // Scoped to the tile (a button), not the panel heading below it, which
+    // shares the same text since 2026-08-15.
+    const tile = screen.getByRole('button', { name: /Expected Today/ });
+    expect(tile.textContent).toMatch(/2/);
   });
 
   // The regression this whole rewiring exists to kill: the tile's number and
@@ -236,11 +251,13 @@ describe('GuardDashboard (reference-screen frame)', () => {
     expect(screen.queryByText(/issue pass/i)).toBeNull();
   });
 
-  // The dashboard's Verify ID / Deny Entry must not silently become state
-  // changes. Deny Entry is a navigation affordance placeholder in the frame;
-  // the real reject path stays on the console. Assert Deny Entry links to the
-  // dashboard itself (placeholder target), never a mutation.
-  it('keeps Deny Entry as a placeholder navigation, not a mutation', () => {
+  // Deny Entry used to be a `<Link to="/guard/dashboard">` — a placeholder
+  // that navigated to the page the guard was already on, so pressing it did
+  // nothing. It is a real write now (lib/denyEntryFlow.ts), gated behind a
+  // confirm dialog that demands a reason. This asserts the button opens that
+  // dialog rather than navigating anywhere, and that nothing is written until
+  // a reason is actually supplied — the mandatory-justification rule.
+  it('opens the Deny Entry confirm dialog instead of navigating, and blocks the write until a reason is given', () => {
     mockToday.current = {
       visits: [
         {
@@ -255,7 +272,12 @@ describe('GuardDashboard (reference-screen frame)', () => {
       loading: false,
     };
     renderDashboard();
-    const deny = screen.getByRole('link', { name: /Deny Entry/i });
-    expect(deny).toHaveAttribute('href', '/guard/dashboard');
+    expect(screen.queryByRole('link', { name: /Deny Entry/i })).not.toBeInTheDocument();
+    const deny = screen.getByRole('button', { name: /Deny Entry/i });
+    fireEvent.click(deny);
+
+    expect(screen.getByRole('dialog', { name: /Refuse entry/i })).toBeInTheDocument();
+    const confirmBtn = screen.getByRole('button', { name: /Refuse entry/i });
+    expect(confirmBtn).toBeDisabled();
   });
 });

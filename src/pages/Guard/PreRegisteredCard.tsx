@@ -7,8 +7,17 @@ import { istDateKey } from '../../lib/visitExpiry';
 
 // One visitor card of the Pre-Registered Arrivals grid (reference screen 3):
 // circular headshot, name, company, host, clocked time, and the
-// ARRIVED / EXPECTED / MISSED / LATE pill. Tapping opens the visit in the
-// Live Queue for quick check-in.
+// EXPECTED / MISSED / LATE pill. Every card on this board is somebody who has
+// not arrived yet, so the only action it offers is Check In.
+//
+// NO `dark:text-navy-*` OVERRIDES ANYWHERE ON THIS CARD, and that is a rule,
+// not an oversight. The navy scale is INVERTED in dark mode (tokens.css: light
+// `navy-200` is a pale grey, dark `navy-200` is near-black), so one token
+// number already flips to the correct end in both themes. A pair like
+// `text-navy-700 dark:text-navy-200` therefore picks a DARKER colour in dark
+// mode — which is exactly what made this card's subtext read as invisible
+// against the panel behind it. Pick a single step (700 for secondary text, 800
+// for the values a guard scans) and let the theme resolve it.
 
 export type PreRegisteredPill = { label: string; cls: string };
 
@@ -83,10 +92,8 @@ export default function PreRegisteredCard({ visit, index, pill, onCheckIn }: Pre
 
 function CardBody({ visit, index, pill }: Omit<PreRegisteredCardProps, 'onCheckIn'>): React.ReactElement {
   const inside = visit.status === 'checked_in';
-  const Wrapper = inside ? Link : 'div';
-  const wrapperProps = inside ? { to: `/guard/inside-now?verify=${visit.id}` } : {};
-  return (
-    <Wrapper {...(wrapperProps as never)} className="block">
+  const cardContent = (
+    <>
       <div className="flex items-center gap-3">
         <div
           className="w-14 h-14 shrink-0 rounded-full overflow-hidden border-2 border-surface-200/50 dark:border-white/[0.08] flex items-center justify-center"
@@ -99,17 +106,17 @@ function CardBody({ visit, index, pill }: Omit<PreRegisteredCardProps, 'onCheckI
         </div>
         <div className="min-w-0">
           <p className="font-display font-semibold text-navy-950 dark:text-white truncate">{visit.visitor?.full_name ?? 'Unknown'}</p>
-          <p className="text-sm text-navy-500 dark:text-navy-400 truncate">{visit.visitor?.vendor_name ?? '—'}</p>
+          <p className="text-sm text-navy-700 truncate">{visit.visitor?.vendor_name ?? '—'}</p>
         </div>
       </div>
-      <p className="mt-3 flex items-center gap-1.5 text-xs text-navy-500 dark:text-navy-400">
+      <p className="mt-3 flex items-center gap-1.5 text-xs text-navy-700">
         <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
           <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0" />
         </svg>
         Host: {visit.host?.full_name ?? visit.department?.name ?? '—'}
       </p>
       <div className="mt-3 flex items-center justify-between">
-        <span className="flex items-center gap-1.5 text-xs tabular-nums text-navy-700 dark:text-navy-200">
+        <span className="flex items-center gap-1.5 text-xs tabular-nums font-semibold text-navy-800">
           <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
@@ -117,6 +124,15 @@ function CardBody({ visit, index, pill }: Omit<PreRegisteredCardProps, 'onCheckI
         </span>
         <span className={`text-[10px] font-bold uppercase tracking-wider rounded-md px-2 py-1 border ${pill.cls}`}>{pill.label}</span>
       </div>
-    </Wrapper>
+    </>
   );
+
+  if (inside) {
+    return (
+      <Link to={`/guard/inside-now?verify=${visit.id}`} className="block">
+        {cardContent}
+      </Link>
+    );
+  }
+  return <div className="block">{cardContent}</div>;
 }

@@ -7,6 +7,7 @@ import React, { useCallback, useState } from 'react';
 import { usePreApprovals } from '../../lib/usePreApprovals';
 import PreApprovalRow from './PreApprovalRow';
 import CheckInPanel from './CheckInPanel';
+import { istDateKey } from '../../lib/visitExpiry';
 
 // Today only. The Upcoming and All filters are gone from the guard surface: a
 // guard can only check in a visitor who is due today, so a list of next week's
@@ -15,7 +16,11 @@ import CheckInPanel from './CheckInPanel';
 // the other filters for callers that legitimately need history (Reports).
 export default function GuardPreApprovals(): React.ReactElement {
   const { visits, loading } = usePreApprovals('today');
-  const [today] = useState(() => new Date().toISOString().slice(0, 10));
+  // istDateKey, NOT `new Date().toISOString().slice(0, 10)`. That is the UTC
+  // date: between midnight and 05:30 IST it returns YESTERDAY, so this desk
+  // thought "today" was the previous day for the first five and a half hours of
+  // every morning. Four sibling guard pages already do this correctly.
+  const [today] = useState(() => istDateKey(new Date()));
   const [successMsg, setSuccessMsg] = useState('');
 
   const onCheckInSuccess = useCallback((name: string) => {

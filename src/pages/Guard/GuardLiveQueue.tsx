@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useGateActivity } from '../../lib/useGateActivity';
 import { istDateKey } from '../../lib/visitExpiry';
+import { formatStamp } from '../../lib/formatDate';
 import type { ReportVisit } from '../../lib/reportRow';
 import { safeErrorMessage } from '../../lib/errors';
 import QRCode from 'qrcode';
@@ -12,13 +13,15 @@ import CheckInFrame from './CheckInFrame';
 import LiveQueueTable from './LiveQueueTable';
 import CardReturnConfirm from './CardReturnConfirm';
 import { logVisitExit } from '../../lib/checkOutFlow';
+import { printVisitorBadge } from '../../lib/printBadge';
+import EntryExitTabs, { type EntryExitLane } from './EntryExitTabs';
 
 // Entry & Exit — the guard's second tab (/guard/inside-now).
 //
 // Named "Live Queue" until 2026-08-14, then "Inside Now" until 2026-08-15. It
 // lists everyone who has been through the gate: those still inside, and those
 // who have checked out since the IST day began. Neither older name survived the
-// widening — "Live Queue" described the dashboard's Live Arrival Queue (people
+// widening — "Live Queue" described the dashboard's Expected Today panel (people
 // still waiting, who are not on this page at all), and "Inside Now" was a claim
 // the list stopped making the moment it carried departures. "Entry & Exit" is
 // the two events the tab actually records and nothing more.
@@ -29,18 +32,21 @@ import { logVisitExit } from '../../lib/checkOutFlow';
 // routable — they are in guards' bookmarks and in every ?verify= link the
 // dashboard has emitted.
 //
-// SPLIT VIEW, exactly as the approved frame: the queue stays visible on the
-// LEFT while the SELECTED visitor's check-in frame renders on the RIGHT —
-// Check-In Details, the green-ringed photo + step timeline, and the white
-// visitor pass + Print Badge. The guard flips between visitors by clicking
-// rows; the right panel updates live for each of them.
+// TWO LANES, not one merged list (client instruction, 2026-08-15):
+// EntryExitTabs toggles between Checked In and Checked Out. A guard opens this
+// tab already knowing which of the two they are asking about, and interleaving
+// them meant scanning past the group you did not want. Each lane carries its
+// own count on the tab and its own empty state, so "nobody is inside" and
+// "nobody has left yet" stop being the same sentence.
 //
-// Per the guard's instruction this tab shows ONLY visitors who have already
-// checked in — un-checked-in arrivals stay on the dashboard's Live Arrival
-// Queue, where the guard starts the check-in work from. This page therefore
-// STARTS no check-in: the "N arrivals still at the gate" banner and the
-// photo + OCR overlay it opened were removed 2026-08-14 (client instruction),
-// leaving one route into a check-in rather than two that could disagree.
+// Selecting a row opens that visitor's frame below the table — the identity
+// photo, the step tracker, the visit timeline and the white pass. The guard
+// flips between visitors by clicking rows.
+//
+// This page STARTS no check-in. Un-checked-in arrivals are not here at all;
+// they stay on the dashboard's Expected Today panel, which is the one route into
+// a check-in. The "N arrivals still at the gate" banner and the photo + OCR
+// overlay it opened were removed 2026-08-14 (client instruction).
 //
 // It does END one. /visitors/inside was the only place a visitor could be
 // checked out, so retiring that surface would have meant nobody could ever
@@ -53,15 +59,15 @@ import { logVisitExit } from '../../lib/checkOutFlow';
 // query requires `checked_in_at`); the exit is an em dash until it happens,
 // never a blank — blank reads as "not recorded", and on this list it means
 // "still here", which is the difference the guard is looking for.
+// formatStamp pins IST and adds the DATE whenever the instant is not today.
+// This list carries visitors who arrived on an earlier day by design, so a
+// bare time was exactly the "is this today?" ambiguity to avoid.
 function timeOf(v: ReportVisit): string {
-  if (v.checked_in_at) return new Date(v.checked_in_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
-  if (v.scheduled_for) return new Date(v.scheduled_for).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
-  return new Date(v.created_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+  return formatStamp(v.checked_in_at ?? v.scheduled_for ?? v.created_at);
 }
 
 function exitTimeOf(v: ReportVisit): string {
-  if (!v.checked_out_at) return '—';
-  return new Date(v.checked_out_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+  return v.checked_out_at ? formatStamp(v.checked_out_at) : '—';
 }
 
 function statusPill(v: ReportVisit) {
@@ -84,6 +90,11 @@ export default function GuardLiveQueue(): React.ReactElement {
   // queue row updates it live; arriving at /guard/inside-now?verify=<id>
   // (from the dashboard's ID Verification card) preselects that visitor.
   const [activeVisit, setActiveVisit] = useState<ReportVisit | null>(null);
+
+  // Which lane is on screen. Defaults to the people still on site: they are the
+  // only rows a guard can still act on, and the far commoner reason to open
+  // this tab at all.
+  const [lane, setLane] = useState<EntryExitLane>('inside');
 
   // The visitor the guard has asked to check out. Holding the visit here (not
   // a boolean) means the confirm dialog always names the row that was clicked,
@@ -121,7 +132,7 @@ export default function GuardLiveQueue(): React.ReactElement {
 
   // Entry & Exit = everyone through the gate: still inside, plus today's
   // departures. Un-checked-in arrivals are not here at all — they live on the
-  // dashboard's Live Arrival Queue, which is where a check-in starts.
+  // dashboard's Expected Today panel, which is where a check-in starts.
   //
   // STILL INSIDE FIRST, each group by its own clock: the people on site are the
   // ones a guard can still act on, and putting a departure above them would
@@ -134,7 +145,10 @@ export default function GuardLiveQueue(): React.ReactElement {
   const departed = visits
     .filter((v) => v.status === 'checked_out')
     .sort((a, b) => (b.checked_out_at ?? b.created_at).localeCompare(a.checked_out_at ?? a.created_at));
-  const queue = [...inside, ...departed];
+  // Each lane is its own list. They used to be concatenated into one table,
+  // which meant scanning past the group you were not asking about.
+  const queue = lane === 'inside' ? inside : departed;
+  const laneCounts = { inside: inside.length, departed: departed.length };
 
   const selectVisit = (v: ReportVisit) => {
     setActiveVisit(v);
@@ -173,22 +187,7 @@ export default function GuardLiveQueue(): React.ReactElement {
     );
   };
 
-  const printBadge = () => {
-    // The printed pass is the existing Badge component in a print-only media
-    // query — the reference's white card is the same asset the kiosk prints,
-    // so guards and kiosk can never disagree about what a pass looks like.
-    if (!liveActive) return;
-    const el = document.getElementById('vms-print-badge');
-    if (el) {
-      const w = window.open('', '_blank', 'width=480,height=720');
-      if (w) {
-        w.document.write(`<html><head><title>Visitor Pass</title><style>body{margin:0}img{max-width:100%}</style></head><body>${el.outerHTML}</body></html>`);
-        w.document.close();
-        w.focus();
-        w.print();
-      }
-    }
-  };
+  const printBadge = () => { if (liveActive) printVisitorBadge(); };
 
   // The exit WRITE, reached only through CardReturnConfirm — the dialog names
   // the card the guard has to collect and stays disabled until it is ticked
@@ -232,12 +231,13 @@ export default function GuardLiveQueue(): React.ReactElement {
             </span>
             <h2 className="font-display text-h2 text-navy-950 dark:text-white">Entry &amp; Exit</h2>
           </div>
-          {/* Two numbers, not one total. "12 visitors" on a list holding both
-              groups answers neither of the questions this tab is opened with —
-              how many are on site, and how many have gone. */}
-          <span className="text-sm text-navy-500 dark:text-navy-400 tabular-nums">
-            {visitsLoading ? '…' : `${inside.length} inside · ${departed.length} left today`}
-          </span>
+          {/* The count lives on the tabs now — a lane's number is the length of
+              the list that lane opens, so a separate summary line would be a
+              second place for the same fact to be stated. */}
+        </div>
+
+        <div className="mb-4">
+          <EntryExitTabs lane={lane} onSelect={setLane} counts={laneCounts} loading={visitsLoading} />
         </div>
 
         <LiveQueueTable
@@ -249,6 +249,9 @@ export default function GuardLiveQueue(): React.ReactElement {
           exitTimeOf={exitTimeOf}
           onSelect={selectVisit}
           selectedId={liveActive?.id ?? null}
+          emptyMessage={lane === 'inside'
+            ? 'Nobody is on site right now.'
+            : 'Nobody has checked out today.'}
           onCheckOut={setExitTarget}
         />
       </div>

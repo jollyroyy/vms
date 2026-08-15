@@ -6,13 +6,24 @@ type Props = {
    * by every plain popup. 'dark' sits on a dark gradient header, like
    * VisitorDetails' banner, where a navy icon would vanish. */
   variant?: 'light' | 'dark';
+  /** Lay the button out as a normal flex child instead of absolutely
+   *  positioning it over the panel.
+   *
+   *  Absolute is right when the × sits on a tall banner or an image, where
+   *  there is empty space to float over. It is WRONG on a compact header row
+   *  that already has content on the right — the button is out of the flow, so
+   *  the layout reserves nothing for it and the text runs underneath (client
+   *  report, 2026-08-15: the notifications popup's "Mark all read" collided
+   *  with the ×). Inline makes overlap structurally impossible rather than
+   *  something a padding value has to keep guessing at. */
+  inline?: boolean;
   className?: string;
 };
 
 // The one close (×) control every popup in the app should render, top-right,
 // so it looks and behaves identically everywhere — VisitorDetails.tsx had
 // this exact markup hand-rolled first; every other popup now reuses it.
-export default function ModalCloseButton({ onClose, variant = 'light', className = '' }: Props): React.ReactElement {
+export default function ModalCloseButton({ onClose, variant = 'light', inline = false, className = '' }: Props): React.ReactElement {
   // Client instruction (2026-08-14): the close (×) in the top-right of every
   // popup must be clearly visible. The circular plate is kept opaque enough to
   // stand out from the panel, and the icon uses a high-contrast tone.
@@ -25,7 +36,7 @@ export default function ModalCloseButton({ onClose, variant = 'light', className
       type="button"
       aria-label="Close"
       onClick={(e) => { e.stopPropagation(); onClose(); }}
-      className={`absolute top-4 right-4 w-9 h-9 flex items-center justify-center rounded-full transition-all z-30 ${tone} ${className}`}
+      className={`${inline ? 'relative shrink-0' : 'absolute top-4 right-4'} w-9 h-9 flex items-center justify-center rounded-full transition-all z-30 ${tone} ${className}`}
     >
       <svg className="pointer-events-none w-[0.95rem] h-[0.95rem]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />

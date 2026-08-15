@@ -21,7 +21,12 @@ export default function OverdueBanner({ count }: OverdueBannerProps): React.Reac
       <span className="font-display font-semibold text-warning-400">
         {count} visitor{count === 1 ? '' : 's'} overdue from expected time
       </span>
-      <Link to="/guard/inside-now" className="ml-auto text-warning-400 hover:text-warning-300 transition-colors" aria-label="Go to live queue">
+      {/* The overdue visitors are, by definition, NOT checked in — so a link to
+          the Entry & Exit tab (which lists only people already through the
+          gate) could never show a single one of them. The banner sits on the
+          Pre-Registered board, whose Late chip IS this set, so it filters in
+          place instead of navigating away. */}
+      <Link to="/guard/preregistered?chip=late" className="ml-auto text-warning-400 hover:text-warning-300 transition-colors" aria-label="Show overdue visitors">
         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
           <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
         </svg>

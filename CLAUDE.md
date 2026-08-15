@@ -177,6 +177,24 @@
   everywhere keeps the same guarantee without asking the guard to notice which
   format they got. A visit with no slot still reads **"Anytime"**, not a dash.
 
+- **There is NO Expected segment on the Visitors surface either** (removed 2026-08-15,
+  client instruction, immediately after Checked Out and for the mirror reason). A visitor
+  booked for today who has not arrived is the **Pre-Registered** tab's entire subject — and
+  that board can *act* on them, since it starts the check-in, where this display-only
+  surface could only look. `/visitors/expected` and the legacy `?tab=checkin` both degrade
+  onto `all`, which still contains those rows, and the `expected` tile is gone from
+  `VISITOR_KPI_ORDER`. `isDueToday` lost its last user here; it is still live elsewhere,
+  do not delete it. **The five remaining segments are: All Visitors, Inside, Pending
+  Approval, Approved Walk-ins, Walk-in Register.**
+- **There is NO Checked Out segment on the Visitors surface** (removed 2026-08-15,
+  client instruction). A visitor who has left is the **Entry & Exit** tab's subject — that
+  page holds their entry time, their exit time and their pass, beside the people still
+  inside. Listing them here as well put one visitor on two surfaces with nothing saying
+  which was authoritative. `/visitors/checked-out` **degrades onto `all`** rather than
+  404-ing (that list still contains today's departures), and the `checkedOut` tile is gone
+  from `VISITOR_KPI_ORDER`. The segment is deleted from `visitorSegments.ts` entirely —
+  union, `VISITOR_SEGMENTS`, `SEGMENT_SLUG`, `SEGMENT_META` and `SEGMENT_FILTER` — so
+  re-adding it is a deliberate act, not a silent one.
 - **The Visitors surface is display-only — no card carries an action**
   (client instruction, 2026-08-14). The tab only shows which visitor falls under
   which category; Check In and Check Out are gone from every card on every
@@ -419,6 +437,32 @@
   than annotating them (the visitor never left), and deliberately does **not** re-stamp
   `checked_in_at`. The sweep's auto-closed rows get no exemption — revisit that only when
   067's sweep is actually scheduled.
+- **The pre-approval pass says SCHEDULED AT and VALID UNTIL, and neither is clipped**
+  (client report, 2026-08-15). `PreApprovalPass` had one row, "Valid For", carrying
+  `scheduled_for` — mislabelled, because when a visitor is expected is not how long their
+  pass works, and 071/073 set `qr_expires_at` to the end of the **departure** day, which
+  for a multi-day contractor is days later. It now prints both, resolved through the same
+  `qr_expires_at ?? expected_departure ?? istDayEnd(...)` ladder `CheckInBadgeRail` climbs,
+  so the HOD's copy and the guard's copy cannot disagree about when a pass dies. The block
+  is **one column, not two**: at `text-xs` inside a 320px card, half the width could not
+  hold "14 Aug 2026, 10:30 am". `PassField` uses **`break-words`, never `truncate`** — a
+  clipped date is indistinguishable from a complete one, and there is no width worth that.
+  The **company name** on the pass was invisible in dark mode for the inverted-scale reason
+  below: its value was `text-navy-700 dark:text-navy-200`, so the word "Company" rendered
+  and the company itself did not.
+- **A popup's close (×) must never be able to overlap its own header.**
+  `ModalCloseButton` takes an **`inline`** prop (added 2026-08-15, client report). The
+  default is still `absolute top-4 right-4`, which is right when the × floats over a tall
+  banner or an image with empty space to spare. It is WRONG on a compact header row that
+  already has content on its right: the button is out of the flow, so the layout reserves
+  nothing for it and the text runs underneath. That is what happened to the **notifications
+  popup**, whose `justify-between` header put "Mark all read" 4px from the ×. With `inline`
+  the button is a normal flex child and collision is structurally impossible at any width,
+  rather than something a padding value has to keep guessing at.
+  - For the absolute variant the rule is arithmetic, not taste: the button spans **16-52px
+    from the right edge**, so anything on the modal's first row needs **`pr-14` (56px)** —
+    `pr-8` is not enough, which is what `CardReturnConfirm` had. A centred heading takes
+    symmetric `px-8` so it stays centred and still clears the button.
 - **The visitor popup's close button is OUTSIDE the scroll container.** `.modal-content`
   is the scroller; with the cross inside it, the guard's copy of the popup — the tallest,
   since a guard also sees the ID document, timeline and pass — scrolled the cross out of
@@ -550,6 +594,18 @@
     are the only rows a guard can still act on; a departure above them buries the page's
     only action. The count line reads `N inside · M left today`, two numbers rather than a
     total, because a single figure answers neither question the tab is opened with.
+  - **TWO LANES, not one merged list** (client instruction, 2026-08-15).
+    `EntryExitTabs.tsx` is a `.gate-tab-bar` segmented control toggling **Checked
+    In** / **Checked Out**; only one lane's rows render at a time, defaulting to
+    the people still on site (the only rows a guard can act on). A guard opens
+    this tab already knowing which of the two they are asking about, and
+    interleaving them meant scanning past the group you did not want. **The count
+    lives ON each tab** — a lane's number is the length of the list that lane
+    opens, the `guardTiles.ts` rule again — so the old
+    `N inside · M left today` summary line is gone; two statements of one fact on
+    one screen is what that rule exists to prevent. Each lane also carries its own
+    empty state (`emptyMessage` on `LiveQueueTable`), because "nobody is inside"
+    and "nobody has left yet" are different facts and were the same sentence.
   - **The table carries BOTH times, in an `In` column and an `Out` column.** A visitor
     still on site shows an **em dash** under Out, never a blank cell: blank reads as "not
     recorded", and here it means "still here", which is precisely the distinction being
@@ -612,33 +668,81 @@
   - **No fabricated facts on the frame.** The Vehicle row printed `"(parking slot B-12)"`
     after every vehicle number; there is no parking allocation anywhere in the schema.
     Removed.
-- **The Pre-Registered board is the WHOLE pre-registration record, not today's slice**
-  (client instruction, 2026-08-15). `/guard/preregistered` read `useTodayVisits`, so a
-  visitor pre-registered last week was simply absent from the tab named after them — the
-  page could not answer the question its own title asks. `lib/usePreRegisteredVisits.ts`
-  fetches every pre-approved visit whatever became of it, newest slot first, capped at
-  `PRE_REGISTERED_LIMIT` (500) with a line on screen saying so when the cap is hit; a
-  truncated record presented as the whole one is the sort of thing a guard is later asked
-  to account for. Membership is decided by **`visitOrigin(v) === 'pre_approved'`**, this
-  repo's one answer to pre-approved-vs-walk-in — the old local `isPreRegistered` counted
-  `walkin_approved` rows, which are definitively walk-ins.
-  - **Today-ness is a FILTER here, never the fetch.** `All` is the entire record; the other
-    four chips — Arriving Today, Arrived, Missed, Late — are today's board, which is what
-    their labels already claim. `lib/preRegisteredBoard.ts` holds **one predicate per
-    chip**, and a chip's badge is the length of the list it opens (the `guardTiles.ts`
-    rule). The board used to compute `arriving` as `all - arrived - missed - late`, which
-    is only ever a count and could never have been a list.
-  - **A pill reads the STATUS before it reads the clock.** Closed statuses map directly
-    (ARRIVED / DEPARTED / NO-SHOW / EXPIRED / CANCELLED / **DECLINED** — never "denied
-    entry", see the `Declined` rule below); only an open row is measured against its slot
-    for EXPECTED / MISSED / LATE. Clock-first was harmless while the board held today's
-    open rows and wrong the moment it held history: a visit swept `no_show` last month has
-    a slot far in the past, and LATE says the visitor is still expected.
-  - **A card's time carries its date unless the slot is today** (`slotLabel` in
-    `PreRegisteredCard.tsx`) — same rule as every other `scheduled_for` line in the app.
-    **Today at a Glance is fed today's rows, never the filtered board**, so switching a
-    chip cannot rewrite the day; its schedule list sorts ascending, because a schedule is
-    read forwards, while the board itself sorts newest-first.
+- **The Pre-Registered board is TODAY'S PRE-APPROVALS WHO HAVE NOT ARRIVED YET**
+  (client instruction, 2026-08-15). `lib/preRegisteredBoard.ts` decides membership in one
+  place — `isPreRegisteredArrival` = `status === 'approved'` **and** `checked_in_at IS
+  NULL` **and** the slot is today (IST). Both constraints remove a whole class of row, and
+  each was briefly wrong in the opposite direction earlier that same day:
+  - **Today only.** The board was widened to every pre-registration ever made (with an
+    all-history hook, `usePreRegisteredVisits.ts`, now **deleted**). That turned a list of
+    people to expect at the gate into an archive. **Reports is the archive.** The page is
+    back on `useTodayVisits`, which is read, never modified — it feeds the dashboard tiles,
+    where a tile's count is the length of the list it opens.
+  - **Not yet checked in.** The moment a visitor walks through they stop being an arrival
+    and become a person on site — the **Entry & Exit** tab's subject, which carries their
+    entry time, exit time and pass. A visitor on both boards is one visitor rendered twice,
+    and the guard is left deciding which screen is authoritative.
+  - **There is therefore NO "Arrived" chip.** An arrived visitor is not on this board at
+    all, so a chip for them could only ever read 0. `PreRegisteredChip` is
+    `'all' | 'arriving' | 'missed' | 'late'`; one predicate per chip, and a chip's badge is
+    the length of the list it opens (the `guardTiles.ts` rule). The board once computed
+    `arriving` as `all - arrived - missed - late`, which is only ever a count and could
+    never have been a list.
+  - **The pill has three states — EXPECTED / MISSED / LATE** — because `status =
+    'approved'` already excludes every closed outcome. Do not re-add a status map for
+    NO-SHOW / DEPARTED / DECLINED: those rows cannot reach this board.
+  - **Today at a Glance is fed the same board**, so the two panels cannot describe
+    different days, and the list sorts ascending — a list of people still to arrive is read
+    forwards, soonest first.
+- **The topbar clock is IST, and it is `text-navy-800`.** It was
+  `text-navy-500 dark:text-navy-300` — the inverted-scale bug below, resolving to
+  rgb(92,86,74) on the dark topbar, so the time and the date were rendered and unreadable
+  (client report, 2026-08-15). It also read the **browser's** timezone while the visit
+  timeline reads IST explicitly; the topbar is the worst place for those two to disagree,
+  so both `toLocaleTimeString` and `toLocaleDateString` now pass
+  `timeZone: 'Asia/Kolkata'`. The en-US format is unchanged — only the zone and the colour.
+- **NEVER write `dark:text-navy-*` — the navy scale is INVERTED in dark mode.**
+  `tokens.css` defines light `--c-navy-200: 227 223 214` (pale) and dark
+  `--c-navy-200: 48 45 38` (near-black); the whole scale flips. So **one token number
+  already resolves to the correct end in both themes**, and a pair like
+  `text-navy-700 dark:text-navy-200` picks a *darker* colour in dark mode — the override
+  is the bug, not the fix. This is what made the Pre-Registered card's vendor, host and
+  slot-time lines read as invisible against the panel behind them (client report,
+  2026-08-15). Pick a single step and let the theme resolve it: **700 for secondary text,
+  800 for values a guard scans, 950 for the primary name**. The four Pre-Registered files
+  carry no `dark:text-navy-` at all, by rule. (`dark:text-white` is fine — it is not on
+  this scale.) The literal `text-[#9aa3af] dark:text-[#b7c0cb]` pairs in `LiveQueueTable`
+  are an older workaround for the same trap; they are correct, just verbose.
+- **Deny Entry is a real write, and the justification is MANDATORY** (client
+  instruction, 2026-08-15). The control on the dashboard's ID Verification card was a
+  `<Link to="/guard/dashboard">` — it navigated to the page the guard was already standing
+  on, so pressing it did nothing at all. `lib/denyEntryFlow.ts` is the write and
+  `DenyEntryConfirm.tsx` is the gate: **"Refuse entry" stays disabled until a reason is
+  typed**, so the justification is the only route to the write rather than a warning that
+  can be clicked past. The reason lands on `visits.rejection_reason` and Reports prints it.
+  - **The permission is real, not improvised.** Migration 044's
+    `enforce_visit_update_rules` explicitly allows `approved | walkin_approved -> rejected`
+    for a guard ("Only Guard, HOD, or Admin can clear visitors"), and `log_visit_approval`
+    writes a `visit_rejected` audit row stamped with `auth.uid()`. **That audit row is what
+    keeps this honest**: `status = 'rejected'` normally means an HOD declined the request,
+    and the `Declined` rule below forbids printing "entry denied" for an HOD's decision.
+    The status is shared but the ACTOR is recorded, so a guard's refusal and an approver's
+    decline stay distinguishable in the record — which is the part someone may later be
+    asked to account for.
+  - `canDenyEntry` is `approved | walkin_approved` only. A visitor already inside cannot be
+    denied entry — they are through the gate, and the action there is a check-out; a
+    `pending_approval` row has not been cleared by anyone, so there is nothing to overturn.
+    The button does not render at all when the visit is not refusable: a control a guard
+    cannot honour is worse than no control.
+- **The dashboard's arrivals panel is "Expected Today", not "Live Arrival Queue"**
+  (client instruction, 2026-08-15). The old name was wrong twice over, the same mismatch
+  that renamed Inside Now: nothing in it is **live** (these are bookings, most of them
+  hours away) and nobody is in a **queue** (a queue is people waiting at the gate — the one
+  thing every row shares is that the person is absent, which is exactly why they have no
+  check-in time). It **deliberately shares its name with the KPI tile above it**, because
+  it is literally the same predicate as `TILE_FILTER.expected` — the same list at two
+  altitudes, a number to glance at and the rows with names and times. If that predicate
+  changes, change it in `guardTiles.ts`; do not edit the panel's filter to match.
 - **Dashboard reads, Console acts.** `/guard/dashboard` is situational awareness only;
   everything that changes a visit's state lives in `/visitors`. These two used to
   duplicate each other (both rendered an inside-list, both held their own realtime
@@ -1088,8 +1192,8 @@ src/
                      # activeVisit (already-inside checks + guard-readable message),
                      # usePreApprovals, useWatchlist,
                      # useGateActivity (Entry & Exit: inside + today's exits),
-                     # usePreRegisteredVisits (every pre-approval ever, capped),
-                     # preRegisteredBoard (one predicate per chip + the pills),
+                     # preRegisteredBoard (who is on the board at all, one
+                     #   predicate per chip, and the three-state pill),
                      # visitTimeline (approved/checked-in/checked-out instants),
                      # visitorSearch (pure query parsing),
                      # statusRail (VisitorCard only — the stacked card has no rail),

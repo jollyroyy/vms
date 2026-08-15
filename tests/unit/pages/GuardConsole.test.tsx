@@ -106,10 +106,14 @@ describe('GuardConsole segments', () => {
   // Each segment is a real URL now, not a tab hidden inside the page. That is
   // what makes them bookmarkable and the back button work between them.
   it.each([
-    ['/visitors/expected', 'Expected Visitors'],
     ['/visitors/inside', 'Inside'],
     ['/visitors/pending', 'Pending Approval'],
-    ['/visitors/checked-out', 'Checked Out'],
+    // The Checked Out and Expected segments were both removed 2026-08-15
+    // (client instruction); their old URLs degrade onto All rather than
+    // 404-ing. A visitor booked for today who has not arrived is the
+    // Pre-Registered tab's subject now, which can act on them.
+    ['/visitors/checked-out', 'All Visitors'],
+    ['/visitors/expected', 'All Visitors'],
   ])('%s renders the %s heading', async (path, heading) => {
     renderAt(path);
     await waitFor(() => {
@@ -131,6 +135,8 @@ describe('GuardConsole segments', () => {
 
   // The visitors grid never starts a check-in either — entry is the Scan Pass
   // and Pre-Approvals desks. No button on any card, whatever the status.
+  // /visitors/expected degrades onto `all` (the segment was removed
+  // 2026-08-15), so this still exercises an approved-not-yet-arrived visitor.
   it('offers no Check In and no Check Out on an expected visitor', async () => {
     mockVisitData.current = [visit({
       id: 'v2', status: 'approved', checked_in_at: null,
@@ -187,7 +193,9 @@ describe('GuardConsole segments', () => {
     it.each([
       ['walkins', 'Walk-in Visitors'],
       ['walkin-approved', 'Approved Walk-ins'],
-      ['checkin', 'Expected Visitors'],
+      // The Expected segment was removed 2026-08-15; `checkin` now degrades
+      // onto All, same as `expected` and `checked-out`.
+      ['checkin', 'All Visitors'],
       ['exit', 'Inside'],
       ['rejected', 'All Visitors'],
       ['all', 'All Visitors'],

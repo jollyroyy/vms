@@ -164,7 +164,10 @@ describe('M-QR-PASS: PreApprovalPass', () => {
     expect(screen.queryByText('ID Proof')).not.toBeInTheDocument();
     expect(screen.queryByText('Person to Meet')).not.toBeInTheDocument();
     expect(screen.queryByText('Jane Smith')).not.toBeInTheDocument();
-    expect(screen.getByText('Valid For')).toBeInTheDocument();
+    // "Valid For" was one mislabelled row; the pass now shows two, Scheduled
+    // At and Valid Until (2026-08-15 client report).
+    expect(screen.getByText('Scheduled At')).toBeInTheDocument();
+    expect(screen.getByText('Valid Until')).toBeInTheDocument();
     expect(await screen.findByAltText('Entry pass QR code')).toBeInTheDocument();
   });
 });

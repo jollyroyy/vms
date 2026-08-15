@@ -1,6 +1,6 @@
 import React from 'react';
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { render, screen, cleanup, within } from '@testing-library/react';
+import { render, screen, cleanup, within, fireEvent } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 
 import GuardLiveQueue from '../../../src/pages/Guard/GuardLiveQueue';
@@ -90,9 +90,10 @@ describe('Entry & Exit tab (/guard/inside-now) — widened to entry + exit', () 
     expect(screen.getByText('Entry & Exit')).toBeInTheDocument();
   });
 
-  it('shows a checked-out visitor with their exit time in the Out column', () => {
+  it('shows a checked-out visitor with their exit time in the Out column, on the Checked Out lane', () => {
     mockActivity.current = { visits: [departedVisit()], loading: false };
     renderTab();
+    fireEvent.click(screen.getByRole('tab', { name: /Checked Out/i }));
     const row = screen.getByText('Meera Iyer').closest('tr') as HTMLElement;
     // checked_out_at 2026-08-15T03:00:00Z -> 08:30 IST
     expect(within(row).getByText('08:30 am')).toBeInTheDocument();
@@ -107,22 +108,39 @@ describe('Entry & Exit tab (/guard/inside-now) — widened to entry + exit', () 
     expect(cells[5].textContent).toBe('—');
   });
 
-  it('offers no Check Out button on a checked-out row, but does on a checked-in row', () => {
+  it('offers a Check Out button on a checked-in row (default Checked In lane)', () => {
     mockActivity.current = { visits: [insideVisit(), departedVisit()], loading: false };
     renderTab();
 
     const insideRow = screen.getByText('Ishaan Rao').closest('tr') as HTMLElement;
     expect(within(insideRow).getByRole('button', { name: /check out/i })).toBeInTheDocument();
+    // The departed visitor is on the other lane, not interleaved into this one.
+    expect(screen.queryByText('Meera Iyer')).not.toBeInTheDocument();
+  });
+
+  it('offers no Check Out button on a checked-out row, once switched to the Checked Out lane', () => {
+    mockActivity.current = { visits: [insideVisit(), departedVisit()], loading: false };
+    renderTab();
+    fireEvent.click(screen.getByRole('tab', { name: /Checked Out/i }));
 
     const departedRow = screen.getByText('Meera Iyer').closest('tr') as HTMLElement;
     expect(within(departedRow).queryByRole('button', { name: /check out/i })).toBeNull();
     expect(within(departedRow).getByText('Left')).toBeInTheDocument();
+    // The still-inside visitor stays on the other lane.
+    expect(screen.queryByText('Ishaan Rao')).not.toBeInTheDocument();
   });
 
-  it('sorts still-inside rows above departed rows', () => {
+  // Two lanes, not one merged list (2026-08-15 widening): the tab a guard is
+  // on is the only group they see, each with its own count.
+  it('lists each visitor under their own lane, not interleaved', () => {
     mockActivity.current = { visits: [departedVisit(), insideVisit()], loading: false };
     renderTab();
-    const names = screen.getAllByRole('row').slice(1).map((r) => within(r).queryByText(/Ishaan Rao|Meera Iyer/)?.textContent);
-    expect(names).toEqual(['Ishaan Rao', 'Meera Iyer']);
+
+    expect(screen.getByText('Ishaan Rao')).toBeInTheDocument();
+    expect(screen.queryByText('Meera Iyer')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('tab', { name: /Checked Out/i }));
+    expect(screen.getByText('Meera Iyer')).toBeInTheDocument();
+    expect(screen.queryByText('Ishaan Rao')).not.toBeInTheDocument();
   });
 });

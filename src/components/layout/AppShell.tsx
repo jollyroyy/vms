@@ -19,20 +19,31 @@ const COLLAPSE_KEY = 'securegate-sidebar-collapsed';
 // date separated by a hairline divider, sitting immediately left of the
 // notification bell (client instruction, 2026-08-14). No background panel:
 // it sits directly on the topbar surface.
+// IST explicitly, not the browser's zone — this deployment is IST wherever the
+// laptop is, the same rule `istLocalToUtcIso` and the visit timeline follow. A
+// topbar reading one zone while a visit's times read another is the worst place
+// for the two to disagree.
+const IST = 'Asia/Kolkata';
+
 function TopbarClock(): React.ReactElement {
   const [now, setNow] = useState(() => new Date());
   useEffect(() => {
     const t = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(t);
   }, []);
+  // NO `dark:text-navy-*`. The navy scale is INVERTED in dark mode, so this
+  // clock's old `text-navy-500 dark:text-navy-300` resolved to rgb(92,86,74)
+  // on the dark topbar — the time and date were there and unreadable
+  // (client report, 2026-08-15). One step, `navy-800`, is dark ink in light
+  // mode and bright in dark. See CLAUDE.md.
   return (
-    <span className="flex items-center gap-3 text-navy-500 dark:text-navy-300">
+    <span className="flex items-center gap-3 text-navy-800">
       <span className="flex items-center gap-2">
         <svg className="w-[1.05rem] h-[1.05rem]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8} aria-hidden="true">
           <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
         </svg>
-        <span className="hidden sm:inline-flex font-display text-[0.9rem] font-medium tabular-nums">
-          {now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}
+        <span className="hidden sm:inline-flex font-display text-[0.9rem] font-semibold tabular-nums">
+          {now.toLocaleTimeString('en-US', { timeZone: IST, hour: '2-digit', minute: '2-digit', hour12: true })}
         </span>
       </span>
       <span className="w-px h-5 bg-navy-300/20 dark:bg-white/15" aria-hidden="true" />
@@ -40,8 +51,8 @@ function TopbarClock(): React.ReactElement {
         <svg className="w-[1.05rem] h-[1.05rem]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8} aria-hidden="true">
           <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
         </svg>
-        <span className="hidden sm:inline-flex font-display text-[0.9rem] font-medium">
-          {now.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}
+        <span className="hidden sm:inline-flex font-display text-[0.9rem] font-semibold">
+          {now.toLocaleDateString('en-US', { timeZone: IST, weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}
         </span>
       </span>
     </span>
@@ -142,7 +153,7 @@ export default function AppShell({ session, role, children }: Props): React.Reac
                   onFocus={() => setSearchFocused(true)}
                   onBlur={() => setSearchFocused(false)}
                   placeholder="Search visitors, passes..."
-                  className="w-full h-9 pl-9 pr-9 bg-transparent border-0 text-sm text-navy-700 placeholder:text-navy-500 dark:text-navy-400 focus:outline-none"
+                  className="w-full h-9 pl-9 pr-9 bg-transparent border-0 text-sm text-navy-900 placeholder:text-navy-600 focus:outline-none"
                 />
                 {searchQuery ? (
                   <button
@@ -188,7 +199,7 @@ export default function AppShell({ session, role, children }: Props): React.Reac
                   {profileName ? `Welcome, ${profileName}` : 'Welcome'}
                   {role ? ` — ${role === 'hod' ? 'HOD' : role === 'guard' ? 'Guard' : role === 'admin' ? 'Admin' : 'Staff'}` : ''}
                 </p>
-                <p className="text-xs text-navy-500 dark:text-navy-400 mt-0.5">
+                <p className="text-xs text-navy-700 mt-0.5">
                   {deptName}{deptName ? ' · ' : ''}{(() => {
                     const taglines: Record<string, string> = {
                       'information technology': 'Powering digital transformation',

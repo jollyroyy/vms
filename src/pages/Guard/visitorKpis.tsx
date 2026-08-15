@@ -29,7 +29,7 @@ const PLUS = ['M12 4.5v15m7.5-7.5h-15'];
 export type VisitorKpiSegment = Exclude<VisitorSegment, 'inside'>;
 
 export const VISITOR_KPI_ORDER: VisitorKpiSegment[] = [
-  'all', 'expected', 'pending', 'walkinApproved', 'checkedOut', 'walkin',
+  'all', 'pending', 'walkinApproved', 'walkin',
 ];
 
 export const VISITOR_KPIS: Record<VisitorKpiSegment, KpiTileSpec> = {
@@ -42,10 +42,6 @@ export const VISITOR_KPIS: Record<VisitorKpiSegment, KpiTileSpec> = {
     label: 'All Visitors', hint: 'Everyone on this board',
     tone: 'text-navy-800', tint: 'var(--c-navy-200)',
   },
-  expected: {
-    label: 'Expected', hint: 'Booked ahead, not yet arrived',
-    tone: 'text-brand-600', tint: 'var(--c-brand-100)', icon: glyph(...CALENDAR_CHECK),
-  },
   pending: {
     // Orange, matching the no-show tile's "owed a human's attention" colour —
     // a walk-in waiting on a host is exactly that.
@@ -55,10 +51,6 @@ export const VISITOR_KPIS: Record<VisitorKpiSegment, KpiTileSpec> = {
   walkinApproved: {
     label: 'Approved Walk-ins', hint: 'Approved at the gate, not yet in',
     tone: 'text-accent-600 dark:text-accent-300', tint: '250 232 217', icon: glyph(...WALKING),
-  },
-  checkedOut: {
-    label: 'Checked Out', hint: 'Came and left today',
-    tone: 'text-navy-500', tint: 'var(--c-navy-200)', icon: glyph(...DOOR_OUT),
   },
   walkin: {
     // An action, not a count: the walk-in register is a form, and the tile

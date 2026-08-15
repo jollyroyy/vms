@@ -154,7 +154,10 @@ describe('VisitorDetails — reopening the entry pass', () => {
     expect(screen.getAllByText('John Doe')).toHaveLength(1);
     expect(screen.getAllByText('Acme Corp')).toHaveLength(1);
     expect(screen.getAllByText('Aadhaar ••••46')).toHaveLength(1);
-    expect(screen.getByText('Valid For')).toBeInTheDocument();
+    // "Valid For" was one mislabelled row; the pass now shows two, Scheduled
+    // At and Valid Until (2026-08-15 client report).
+    expect(screen.getByText('Scheduled At')).toBeInTheDocument();
+    expect(screen.getByText('Valid Until')).toBeInTheDocument();
   });
 
   it('offers a pass for a walk-in approval so the badge can still be printed', () => {

@@ -91,16 +91,26 @@ export default function NotificationBell({ userId, role }: Props): React.ReactEl
         <>
           <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
           <div className="absolute right-0 top-full mt-2 w-80 sm:w-96 z-50 rounded-2xl shadow-modal border border-white/10 overflow-hidden animate-scale-in dark:bg-[rgb(20_18_14)] dark:bg-opacity-100 bg-white">
-            <div className="relative flex items-center justify-between px-5 py-3.5 border-b border-white/10 pr-14">
-              <h3 className="text-sm font-bold text-white">Notifications</h3>
+            {/* The × is an INLINE flex child here, not the absolute default.
+                This row is compact and already has content on its right, so an
+                out-of-flow button had nothing reserving space for it: the old
+                `pr-14` left the close button's left edge 4px from "Mark all
+                read", which is the overlap that was reported. As a flex child
+                it cannot collide with its siblings at any width, so no padding
+                value has to be kept in step with the button's size. */}
+            <div className="flex items-center gap-3 px-5 py-3 border-b border-white/10">
+              <h3 className="flex-1 min-w-0 text-sm font-bold text-white truncate">Notifications</h3>
               {unreadCount > 0 && (
-                <button onClick={() => void markAllRead()} className="text-xs font-semibold text-brand-600 hover:text-brand-700 transition-colors">
+                <button
+                  onClick={() => void markAllRead()}
+                  className="shrink-0 text-xs font-semibold text-brand-600 hover:text-brand-700 transition-colors">
                   Mark all read
                 </button>
               )}
               <ModalCloseButton
+                inline
                 variant="dark"
-                className="!text-white hover:!text-white hover:!bg-white/25"
+                className="!text-white hover:!text-white hover:!bg-white/25 -mr-2"
                 onClose={() => setOpen(false)}
               />
             </div>
@@ -115,7 +125,7 @@ export default function NotificationBell({ userId, role }: Props): React.ReactEl
                   <svg className="w-8 h-8 text-surface-300 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
                   </svg>
-                  <p className="text-sm text-navy-500 dark:text-navy-400 font-medium">No notifications</p>
+                  <p className="text-sm text-navy-700 font-medium">No notifications</p>
                   <p className="text-xs text-navy-300 mt-0.5">You are all caught up.</p>
                 </div>
               ) : (
@@ -126,7 +136,7 @@ export default function NotificationBell({ userId, role }: Props): React.ReactEl
                         <div className="shrink-0 mt-0.5 h-2 w-2 rounded-full bg-brand-500" />
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-semibold text-white">{n.title}</p>
-                          <p className="text-xs text-navy-500 dark:text-navy-400 mt-0.5 line-clamp-2">{n.body}</p>
+                          <p className="text-xs text-navy-700 mt-0.5 line-clamp-2">{n.body}</p>
                           <p className="text-[10px] text-navy-300 mt-1">
                             {new Date(n.created_at).toLocaleString()}
                           </p>

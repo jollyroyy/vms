@@ -4,18 +4,22 @@ import { tileVisits, type GuardTileKey } from '../../lib/guardTiles';
 import { useTodayVisits } from '../../lib/useTodayVisits';
 import { istDateKey } from '../../lib/visitExpiry';
 import type { ReportVisit } from '../../lib/reportRow';
+import { formatStamp } from '../../lib/formatDate';
 import ArrivalQueueTable from './ArrivalQueueTable';
 import IdVerificationCard from './IdVerificationCard';
 import WatchlistAlertBanner from './WatchlistAlertBanner';
 import KpiDrilldownSheet, { type TileSpec } from './KpiDrilldownSheet';
 import VisitorDetails from '../../components/VisitorDetails';
+import DenyEntryConfirm from './DenyEntryConfirm';
+import SuccessToast from '../../components/SuccessToast';
+import { useDenyEntry } from '../../lib/useDenyEntry';
 
 // Guard Dashboard — reference screen 1 ("Guard Console" main overview).
 //
 // Exact framing per the approved attachment:
 //   row 1  — four KPI tiles: Expected Today / Checked In / In Premises /
 //            Overstaying, each with an icon in a ring + label + numeral
-//   row 2  — left: "Live Arrival Queue" card (see ArrivalQueueTable);
+//   row 2  — left: "Expected Today" card (see ArrivalQueueTable);
 //            right: "ID Verification" card (see IdVerificationCard)
 //   row 3  — red WATCHLIST ALERT banner (see WatchlistAlertBanner)
 //
@@ -51,6 +55,9 @@ export default function GuardDashboardMain(): React.ReactElement {
   // first awaiting visitor and switches live as rows are clicked — the
   // ID Verification panel renders this exact visitor.
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  // Deny Entry lives in its own hook (lib/useDenyEntry.ts) — see the note
+  // there; the dashboard's tiles, queue and drill-down never touch its state.
+  const deny = useDenyEntry(() => setSelectedId(null));
   const today = istDateKey(clock);
   const { visits, loading: visitsLoading } = useTodayVisits(today);
 
@@ -65,11 +72,24 @@ export default function GuardDashboardMain(): React.ReactElement {
     return () => clearInterval(t);
   }, []);
 
-  // The queue row of the reference screen: visitors expected at the gate —
-  // approved or walk-in approved visitors who have NOT checked in yet,
-  // ordered by scheduled time (walk-ins without a slot sort by created_at).
-  // Checked-in visitors are deliberately excluded — they are already through
-  // the gate and appear in the full Live Queue tab instead.
+  // "Expected Today" — approved or walk-in-approved visitors who have NOT
+  // checked in yet, ordered by scheduled time (walk-ins without a slot sort by
+  // created_at). Checked-in visitors are deliberately excluded: they are
+  // through the gate and belong to the Entry & Exit tab.
+  //
+  // Named "Live Arrival Queue" until 2026-08-15 (client instruction), which was
+  // wrong twice over — the same class of mismatch that renamed Inside Now.
+  // Nothing here is LIVE (these are bookings, most of them hours away) and
+  // nobody is in a QUEUE (a queue is people waiting at the gate; the one thing
+  // every row here shares is that the person is absent, which is exactly why
+  // they have no check-in time).
+  //
+  // The name now matches the KPI tile above it ON PURPOSE, because this is
+  // literally the same predicate as `TILE_FILTER.expected` in lib/guardTiles.ts.
+  // They are the same list at two altitudes — a number to glance at, and the
+  // rows with names and times — and giving them one name is what says so. If
+  // the predicate ever changes, change it in guardTiles.ts and derive this from
+  // it rather than editing the filter below to match.
   const queue = visits
     .filter((v) => (v.status === 'approved' || v.status === 'walkin_approved') && !v.checked_in_at)
     .sort((a, b) => (a.scheduled_for ?? a.created_at).localeCompare(b.scheduled_for ?? b.created_at));
@@ -140,15 +160,12 @@ export default function GuardDashboardMain(): React.ReactElement {
     return { label: 'WAITING', cls: 'bg-warning-500/15 text-warning-400 border-warning-400/30' };
   };
 
-  const timeOf = (visit: ReportVisit) => {
-    if (visit.checked_in_at) {
-      return new Date(visit.checked_in_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
-    }
-    if (visit.scheduled_for) {
-      return new Date(visit.scheduled_for).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
-    }
-    return new Date(visit.created_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
-  };
+  // formatStamp, not a local toLocaleTimeString: it pins IST and prints the
+  // DATE as well whenever the instant is not today. This list is not
+  // date-bounded, so a bare time on it said when but not whether that when was
+  // today. See lib/formatDate.ts.
+  const timeOf = (visit: ReportVisit) =>
+    formatStamp(visit.checked_in_at ?? visit.scheduled_for ?? visit.created_at, clock);
 
   const watchlistCount = visits.filter((v) => v.visitor?.is_blacklisted === true).length;
 
@@ -207,7 +224,7 @@ export default function GuardDashboardMain(): React.ReactElement {
         />
       )}
 
-      {/* Row 2 — Live Arrival Queue + ID Verification */}
+      {/* Row 2 — Expected Today + ID Verification */}
       <div className="grid grid-cols-1 xl:grid-cols-5 gap-5 items-start">
         <div className="xl:col-span-3 rounded-2xl bg-surface-100/60 dark:bg-white/[0.03] border border-surface-200/60 dark:border-white/[0.07] p-5 shadow-glow-sm">
           <div className="flex items-center gap-3 mb-4">
@@ -216,7 +233,7 @@ export default function GuardDashboardMain(): React.ReactElement {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 0 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />
               </svg>
             </span>
-            <h2 className="font-display text-h2 text-navy-950 dark:text-white">Live Arrival Queue</h2>
+            <h2 className="font-display text-h2 text-navy-950 dark:text-white">Expected Today</h2>
           </div>
 
           <ArrivalQueueTable
@@ -235,11 +252,26 @@ export default function GuardDashboardMain(): React.ReactElement {
           />
         </div>
 
-        <IdVerificationCard idTarget={idTarget} initialsOf={initialsOf} />
+        <IdVerificationCard idTarget={idTarget} initialsOf={initialsOf} onDeny={deny.open} />
       </div>
 
       {/* Row 3 — watchlist alert banner */}
       <WatchlistAlertBanner watchlistCount={watchlistCount} />
+
+      <SuccessToast message={deny.toast} onDismiss={deny.dismissToast} />
+
+      {deny.error && (
+        <p className="rounded-xl border border-danger-500/30 bg-danger-600/10 px-4 py-3 text-sm text-danger-400">{deny.error}</p>
+      )}
+
+      {deny.target && (
+        <DenyEntryConfirm
+          visit={deny.target}
+          busy={deny.busy}
+          onClose={deny.cancel}
+          onConfirm={(reason) => { void deny.confirm(deny.target!, reason); }}
+        />
+      )}
 
       {detailVisit && (
         <VisitorDetails

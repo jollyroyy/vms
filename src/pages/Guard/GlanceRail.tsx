@@ -3,7 +3,20 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 
 import type { ReportVisit } from '../../lib/reportRow';
+import { formatTime } from '../../lib/formatDate';
 import type { PreRegisteredPill } from './PreRegisteredCard';
+import { MORNING_FROM, MORNING_TO, AFTERNOON_FROM, AFTERNOON_TO } from '../../lib/preRegisteredBoard';
+
+// There is NO "VIP Today" row (removed 2026-08-15). It counted
+// /(vip|important|executive)/i against `purpose`, which is a seven-value enum —
+// meeting, vendor, interview, delivery, maintenance, audit, other. None of them
+// can ever match, so the tile was a hardcoded 0 wearing the costume of a
+// metric. It broke two standing rules at once: no fuzzy matching against a
+// known enum, and no placeholder UI for a field the schema does not have (there
+// is no VIP flag on `visitors`). Add the column first, or leave it out.
+//
+// The window LABELS are rendered from the same constants the counts are
+// computed with, so a heading can no longer disagree with the number under it.
 
 // Right rail of the Pre-Registered Arrivals page (reference screen 3):
 // "Today at a Glance" — morning arrivals, afternoon expected, VIP count,
@@ -14,16 +27,15 @@ type GlanceRailProps = {
   filtered: ReportVisit[];
   morning: number;
   afternoon: number;
-  vipCount: number;
   pillFor: (v: ReportVisit, now: Date) => PreRegisteredPill;
   clock: Date;
 };
 
-export default function GlanceRail({ filtered, morning, afternoon, vipCount, pillFor, clock }: GlanceRailProps): React.ReactElement {
-  const slotTime = (v: ReportVisit): string =>
-    v.scheduled_for
-      ? new Date(v.scheduled_for).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })
-      : new Date(v.created_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+export default function GlanceRail({ filtered, morning, afternoon, pillFor, clock }: GlanceRailProps): React.ReactElement {
+  // Bare time is correct HERE and only here: this rail is fed the
+  // Pre-Registered board, which `isPreRegisteredArrival` has already narrowed
+  // to today. formatTime still pins IST.
+  const slotTime = (v: ReportVisit): string => formatTime(v.scheduled_for ?? v.created_at);
 
   return (
     <div className="rounded-2xl border border-surface-200/60 dark:border-white/[0.07] bg-surface-100/60 dark:bg-white/[0.03] p-5">
@@ -36,31 +48,22 @@ export default function GlanceRail({ filtered, morning, afternoon, vipCount, pil
 
       <div className="space-y-3">
         <div className="flex items-center justify-between">
-          <span className="flex items-center gap-2 text-sm text-navy-700 dark:text-navy-200">
+          <span className="flex items-center gap-2 text-sm text-navy-800">
             <svg className="w-4 h-4 text-success-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
               <path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />
             </svg>
-            Arrivals 09:00–12:00
+            Arrivals {MORNING_FROM}:00–{MORNING_TO}:00
           </span>
           <span className="font-display text-kpi tabular-nums text-brand-500">{morning}</span>
         </div>
         <div className="flex items-center justify-between">
-          <span className="flex items-center gap-2 text-sm text-navy-700 dark:text-navy-200">
+          <span className="flex items-center gap-2 text-sm text-navy-800">
             <svg className="w-4 h-4 text-brand-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            Expected 12:00–17:00
+            Expected {AFTERNOON_FROM}:00–{AFTERNOON_TO}:00
           </span>
           <span className="font-display text-kpi tabular-nums text-brand-500">{afternoon}</span>
-        </div>
-        <div className="flex items-center justify-between">
-          <span className="flex items-center gap-2 text-sm text-navy-700 dark:text-navy-200">
-            <svg className="w-4 h-4 text-warning-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.386a.563.563 0 00-.182-.557l-4.204-3.602a.563.563 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z" />
-            </svg>
-            VIP Today
-          </span>
-          <span className="font-display text-kpi tabular-nums text-warning-400">{vipCount}</span>
         </div>
       </div>
 
@@ -72,11 +75,16 @@ export default function GlanceRail({ filtered, morning, afternoon, vipCount, pil
             return (
               <Link
                 key={v.id}
-                to={`/guard/inside-now?verify=${v.id}`}
+                // Same destination as the dashboard's Verify ID: every row on
+                // this rail is a visitor who has NOT arrived, so a link to the
+                // Entry & Exit tab (which lists only people already through the
+                // gate) could never find them. Checking them in is the one
+                // thing a guard does with this row.
+                to={`/guard/preregistered?checkin=${v.id}`}
                 className="flex items-center justify-between gap-2 hover:bg-brand-600/5 rounded-lg px-2 py-1 -mx-2 transition-colors">
                 <span>
-                  <span className="block text-xs tabular-nums font-semibold text-navy-950 dark:text-white">{slotTime(v)}</span>
-                  <span className="block text-[11px] text-navy-500 dark:text-navy-400 truncate max-w-[160px]">
+                  <span className="block text-xs tabular-nums font-semibold text-navy-950">{slotTime(v)}</span>
+                  <span className="block text-[11px] text-navy-700 truncate max-w-[160px]">
                     {v.visitor?.full_name ?? 'Unknown'}
                     <span className="block font-normal">{v.visitor?.vendor_name ?? ''}</span>
                   </span>
@@ -85,10 +93,10 @@ export default function GlanceRail({ filtered, morning, afternoon, vipCount, pil
               </Link>
             );
           })}
-          {filtered.length === 0 && <p className="text-xs text-navy-400">Nothing scheduled in this view.</p>}
+          {filtered.length === 0 && <p className="text-xs text-navy-700">Nothing scheduled in this view.</p>}
         </div>
         <Link
-          to="/guard/inside-now"
+          to="/guard/preregistered"
           className="mt-3 flex items-center justify-center gap-1 text-sm font-semibold text-brand-500 hover:text-brand-400 transition-colors">
           View full schedule
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">

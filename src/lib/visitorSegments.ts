@@ -13,21 +13,32 @@
 // never exist in the nav without existing on the page, or be counted by a rule
 // different from the one that lists it. Adding a segment is one edit here.
 import type { Visit } from '../types/index';
-import { isDueToday } from './visitExpiry';
 
 export type VisitorSegment =
   | 'all'
-  | 'expected'
   | 'inside'
   | 'pending'
   | 'walkinApproved'
-  | 'checkedOut'
   | 'walkin';
 
 /** Nav order. Deliberately the order of a visitor's life at the gate:
- *  booked → arrived → waiting on a decision → approved → gone. "All Visitors"
- *  leads because it is the segment's own landing page, and the walk-in
- *  register trails because it is a form, not a list.
+ *  arrived → waiting on a decision → approved. "All Visitors" leads because it
+ *  is the segment's own landing page, and the walk-in register trails because
+ *  it is a form, not a list.
+ *
+ *  There is NO `expected` segment either (removed 2026-08-15, client
+ *  instruction), for the same reason `checkedOut` went: a visitor booked for
+ *  today who has not arrived is the **Pre-Registered** tab's whole subject, and
+ *  that board can act on them (it starts the check-in) where this display-only
+ *  surface could not. `/visitors/expected` and the legacy `?tab=checkin` both
+ *  degrade onto `all`, which still contains those rows.
+ *
+ *  There is NO `checkedOut` segment (removed 2026-08-15, client instruction).
+ *  A visitor who has left is the **Entry & Exit** tab's subject — that page
+ *  holds their entry time, their exit time and their pass, side by side with
+ *  the people still inside. Listing them here as well put one visitor on two
+ *  surfaces with nothing saying which was authoritative. `/visitors/checked-out`
+ *  degrades onto `all`, which still contains today's departures.
  *
  *  There is NO `overstayed` segment (removed 2026-08-13, client instruction).
  *  An overstay is not a stage of a visitor's life here — it is a subset of
@@ -35,17 +46,15 @@ export type VisitorSegment =
  *  where that chasing happens. `isOverstaying` is still live for that tile and
  *  must not be deleted. */
 export const VISITOR_SEGMENTS: VisitorSegment[] = [
-  'all', 'expected', 'inside', 'pending', 'walkinApproved', 'checkedOut', 'walkin',
+  'all', 'inside', 'pending', 'walkinApproved', 'walkin',
 ];
 
 /** URL slug. `all` is the bare `/visitors` route, so it has no slug. */
 export const SEGMENT_SLUG: Record<VisitorSegment, string> = {
   all: '',
-  expected: 'expected',
   inside: 'inside',
   pending: 'pending',
   walkinApproved: 'approved',
-  checkedOut: 'checked-out',
   walkin: 'walk-in',
 };
 
@@ -58,19 +67,23 @@ export function segmentPath(segment: VisitorSegment): string {
 // Those links live in bookmarks and in old dashboard tiles; none of them may
 // 404 into a blank page. A lookup map, never an includes() chain (CLAUDE.md).
 const SLUG_TO_SEGMENT: Record<string, VisitorSegment> = {
-  expected: 'expected',
   inside: 'inside',
   pending: 'pending',
   approved: 'walkinApproved',
   // The Overstayed segment is gone; its URL degrades onto Inside rather than
   // 404-ing, because that is the list an old bookmark was really reaching for.
   overstayed: 'inside',
-  'checked-out': 'checkedOut',
+  // Both the Checked Out and Expected segments are gone; their URLs degrade
+  // onto All rather than 404-ing. All still contains today's departures, and
+  // still contains today's approved arrivals. The dedicated views are the
+  // Entry & Exit tab and the Pre-Registered tab respectively.
+  'checked-out': 'all',
+  expected: 'all',
   'walk-in': 'walkin',
   // Legacy aliases from the tab-bar era.
   walkins: 'walkin',
   'walkin-approved': 'walkinApproved',
-  checkin: 'expected',
+  checkin: 'all',
   exit: 'inside',
   rejected: 'all',
   all: 'all',
@@ -105,14 +118,6 @@ export const SEGMENT_META: Record<VisitorSegment, SegmentMeta> = {
     emptyHint: 'Arrivals, walk-ins and departures all appear here.',
     showCount: false,
   },
-  expected: {
-    navLabel: 'Expected',
-    title: 'Expected Visitors',
-    subtitle: 'Booked in advance and due today — check them in on arrival',
-    empty: 'No pre-approved visitors are due today.',
-    emptyHint: 'Bookings made by a person to meet appear here on the day they are due.',
-    showCount: true,
-  },
   inside: {
     navLabel: 'Inside',
     title: 'Inside',
@@ -137,14 +142,6 @@ export const SEGMENT_META: Record<VisitorSegment, SegmentMeta> = {
     emptyHint: 'Once a host approves a walk-in, it appears here to be checked in.',
     showCount: true,
   },
-  checkedOut: {
-    navLabel: 'Checked Out',
-    title: 'Checked Out',
-    subtitle: 'Came and left today',
-    empty: 'Nobody has checked out yet.',
-    emptyHint: 'Visitors you check out appear here for the rest of the day.',
-    showCount: false,
-  },
   walkin: {
     navLabel: 'Walk-in Register',
     title: 'Walk-in Visitors',
@@ -166,11 +163,9 @@ export const SEGMENT_FILTER: Record<ListSegment, (v: Visit) => boolean> = {
   // for open statuses (a booking made three weeks ago for today must appear),
   // which also drags in next month's bookings — and a future booking read as
   // an arrival due now is exactly the mistake this list must not invite.
-  expected: (v) => v.status === 'approved' && isDueToday(v),
   inside: (v) => v.status === 'checked_in',
   pending: (v) => v.status === 'pending_approval',
   walkinApproved: (v) => v.status === 'walkin_approved',
-  checkedOut: (v) => v.status === 'checked_out',
 };
 
 /** The rows behind a segment, most recent activity first. */

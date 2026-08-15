@@ -2,7 +2,8 @@ import React from 'react';
 
 import type { ReportVisit } from '../../lib/reportRow';
 
-// Live Arrival Queue table from the guard dashboard (reference screen 1).
+// "Expected Today" table from the guard dashboard (reference screen 1).
+// Renamed from "Live Arrival Queue" 2026-08-15 — see GuardDashboardMain.
 // Six columns — Name / Purpose / Host / Department / Time / Status — with
 // `overflow-x-auto` on the wrapper: the Status column used to be silently
 // clipped at typical widths, which is why the guard could not see the

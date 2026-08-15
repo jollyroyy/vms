@@ -1,8 +1,15 @@
-// The Pre-Registered board holds EVERY visitor ever pre-registered, so the
-// chips have to say "today" out loud rather than inherit it from the fetch,
-// and a pill has to be read off the STATUS before the clock.
+// The Pre-Registered board is TODAY'S PRE-APPROVALS WHO HAVE NOT ARRIVED YET
+// (client instruction, 2026-08-15). Both constraints are tested here, because
+// each one removes a whole class of row that used to be on the board: yesterday
+// turned it into an archive, and a checked-in visitor put the same person on
+// two tabs at once with nothing saying which was authoritative.
 import { describe, it, expect } from 'vitest';
-import { chipCounts, chipVisits, preRegisteredPill } from '../../../src/lib/preRegisteredBoard';
+import {
+  chipCounts,
+  chipVisits,
+  isPreRegisteredArrival,
+  preRegisteredPill,
+} from '../../../src/lib/preRegisteredBoard';
 import type { ReportVisit } from '../../../src/lib/reportRow';
 
 // 2026-08-14 09:30 IST = 04:00Z.
@@ -19,27 +26,36 @@ const v = (over: Partial<ReportVisit>): ReportVisit =>
     ...over,
   }) as unknown as ReportVisit;
 
+describe('isPreRegisteredArrival — who belongs on the board', () => {
+  it('accepts an approved visitor booked for today who has not arrived', () => {
+    expect(isPreRegisteredArrival(v({}), NOW)).toBe(true);
+  });
+
+  it('rejects a visitor who has already checked in', () => {
+    // They are on Entry & Exit now. Listing them here too is one visitor on two
+    // boards, and the guard has to work out which one is authoritative.
+    expect(isPreRegisteredArrival(v({ status: 'checked_in', checked_in_at: '2026-08-14T03:30:00Z' }), NOW)).toBe(false);
+  });
+
+  it('rejects a visitor who has already checked out', () => {
+    expect(isPreRegisteredArrival(v({ status: 'checked_out', checked_in_at: '2026-08-14T03:00:00Z' }), NOW)).toBe(false);
+  });
+
+  it('rejects yesterday, however it ended', () => {
+    expect(isPreRegisteredArrival(v({ scheduled_for: '2026-08-13T05:00:00Z' }), NOW)).toBe(false);
+    expect(isPreRegisteredArrival(v({ status: 'no_show', scheduled_for: '2026-08-13T05:00:00Z' }), NOW)).toBe(false);
+  });
+
+  it('rejects a walk-in — walkin_approved is never a pre-approval', () => {
+    expect(isPreRegisteredArrival(v({ status: 'walkin_approved' }), NOW)).toBe(false);
+  });
+
+  it.each(['no_show', 'expired', 'cancelled', 'rejected'])('rejects a closed %s row', (status) => {
+    expect(isPreRegisteredArrival(v({ status: status as never }), NOW)).toBe(false);
+  });
+});
+
 describe('preRegisteredPill', () => {
-  it('reads a closed status before it reads the clock', () => {
-    // A no-show swept last month has a slot far in the past. A clock-first rule
-    // called it LATE, which claims the visitor is still expected.
-    const old = v({ status: 'no_show', scheduled_for: '2026-07-01T05:00:00Z' });
-    expect(preRegisteredPill(old, NOW).label).toBe('NO-SHOW');
-  });
-
-  it('labels an HOD rejection DECLINED, never denied entry', () => {
-    expect(preRegisteredPill(v({ status: 'rejected' }), NOW).label).toBe('DECLINED');
-  });
-
-  it.each([
-    ['checked_in', 'ARRIVED'],
-    ['checked_out', 'DEPARTED'],
-    ['expired', 'EXPIRED'],
-    ['cancelled', 'CANCELLED'],
-  ])('labels %s as %s', (status, label) => {
-    expect(preRegisteredPill(v({ status: status as never }), NOW).label).toBe(label);
-  });
-
   it('is EXPECTED while the slot is still ahead', () => {
     expect(preRegisteredPill(v({}), NOW).label).toBe('EXPECTED');
   });
@@ -51,30 +67,23 @@ describe('preRegisteredPill', () => {
 });
 
 describe('chip filters', () => {
-  const todayAhead = v({ id: 'a' } as never);
-  const todayMissed = v({ id: 'b', scheduled_for: '2026-08-14T03:50:00Z' } as never);
-  const todayLate = v({ id: 'c', scheduled_for: '2026-08-14T03:00:00Z' } as never);
-  const todayArrived = v({ id: 'd', status: 'checked_in', checked_in_at: '2026-08-14T03:30:00Z' } as never);
-  const lastWeek = v({ id: 'e', status: 'checked_out', scheduled_for: '2026-08-07T05:00:00Z', checked_in_at: '2026-08-07T05:10:00Z' } as never);
-  const all = [todayAhead, todayMissed, todayLate, todayArrived, lastWeek];
+  const ahead = v({ id: 'a' } as never);
+  const missed = v({ id: 'b', scheduled_for: '2026-08-14T03:50:00Z' } as never);
+  const late = v({ id: 'c', scheduled_for: '2026-08-14T03:00:00Z' } as never);
+  const board = [ahead, missed, late];
 
-  it('All is the whole record, history included', () => {
-    expect(chipVisits('all', all, NOW)).toHaveLength(5);
-  });
-
-  it('the four dated chips are today only', () => {
-    const counts = chipCounts(all, NOW);
-    expect(counts).toEqual({ all: 5, arriving: 1, arrived: 1, missed: 1, late: 1 });
-  });
-
-  it('never counts last week in Arrived, however it ended', () => {
-    expect(chipVisits('arrived', all, NOW).map((x) => x.id)).toEqual(['d']);
+  it('slices a board that already excludes arrivals and other days', () => {
+    expect(chipCounts(board, NOW)).toEqual({ all: 3, arriving: 1, missed: 1, late: 1 });
   });
 
   it('a chip count is the length of the list it opens', () => {
-    const counts = chipCounts(all, NOW);
-    for (const chip of ['all', 'arriving', 'arrived', 'missed', 'late'] as const) {
-      expect(chipVisits(chip, all, NOW)).toHaveLength(counts[chip]);
+    const counts = chipCounts(board, NOW);
+    for (const chip of ['all', 'arriving', 'missed', 'late'] as const) {
+      expect(chipVisits(chip, board, NOW)).toHaveLength(counts[chip]);
     }
+  });
+
+  it('has no Arrived chip — an arrived visitor is not on this board at all', () => {
+    expect(Object.keys(chipCounts(board, NOW))).not.toContain('arrived');
   });
 });

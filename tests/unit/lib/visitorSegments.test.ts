@@ -1,12 +1,10 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import {
   VISITOR_SEGMENTS, SEGMENT_SLUG, SEGMENT_META, SEGMENT_FILTER, OPEN_STATUSES,
   segmentPath, segmentFromSlug, segmentVisits, visitorLoadFilter,
 } from '../../../src/lib/visitorSegments';
 import type { ListSegment } from '../../../src/lib/visitorSegments';
 import type { Visit } from '../../../src/types/index';
-
-const at = (iso: string) => new Date(iso);
 
 function visit(overrides: Partial<Visit> = {}): Visit {
   return {
@@ -44,7 +42,9 @@ describe('segmentFromSlug', () => {
   it('maps every legacy ?tab= alias onto a live segment', () => {
     expect(segmentFromSlug('walkins')).toBe('walkin');
     expect(segmentFromSlug('walkin-approved')).toBe('walkinApproved');
-    expect(segmentFromSlug('checkin')).toBe('expected');
+    // The Expected segment was removed 2026-08-15; `checkin` now degrades
+    // onto All, same as `expected` and `checked-out`.
+    expect(segmentFromSlug('checkin')).toBe('all');
     expect(segmentFromSlug('exit')).toBe('inside');
     expect(segmentFromSlug('rejected')).toBe('all');
     expect(segmentFromSlug('all')).toBe('all');
@@ -77,47 +77,28 @@ describe('completeness — every segment the nav can list must be renderable', (
   });
 });
 
-describe('SEGMENT_FILTER.expected — due today, not merely approved', () => {
-  // SEGMENT_FILTER.expected calls isDueToday(v) with no injectable `now`, so the
-  // only deterministic way to test it is to pin the system clock rather than
-  // depend on the real "today".
-  beforeEach(() => {
-    vi.useFakeTimers();
-    vi.setSystemTime(at('2026-08-11T04:00:00Z')); // 2026-08-11 09:30 IST
-  });
-  afterEach(() => {
-    vi.useRealTimers();
-  });
-
-  it('includes an approved visit booked for today', () => {
-    const v = visit({ status: 'approved', scheduled_for: '2026-08-11T10:00:00Z', created_at: '2026-08-04T09:00:00Z' });
-    expect(SEGMENT_FILTER.expected(v)).toBe(true);
+// The Expected segment was removed on 2026-08-15 (client instruction), for
+// the same reason `checkedOut` went: a visitor booked for today who has not
+// arrived is the Pre-Registered tab's whole subject, and that board can act
+// on them (it starts the check-in) where this display-only surface could not.
+describe('there is no expected segment', () => {
+  it('is absent from VISITOR_SEGMENTS, SEGMENT_FILTER and SEGMENT_META', () => {
+    expect(VISITOR_SEGMENTS).not.toContain('expected' as never);
+    expect(Object.keys(SEGMENT_FILTER)).not.toContain('expected');
+    expect(Object.keys(SEGMENT_META)).not.toContain('expected');
   });
 
-  // THE BUG this segment exists to prevent: a future booking read as an
-  // arrival due now.
-  it('excludes a future booking', () => {
-    const v = visit({ status: 'approved', scheduled_for: '2099-01-01T10:00:00Z' });
-    expect(SEGMENT_FILTER.expected(v)).toBe(false);
+  // The URL and the legacy ?tab=checkin value both lived in bookmarks. They
+  // degrade onto All, which still contains today's approved arrivals, rather
+  // than 404-ing into a blank page.
+  it('degrades the old /visitors/expected URL and the checkin alias onto All', () => {
+    expect(segmentFromSlug('expected')).toBe('all');
+    expect(segmentFromSlug('checkin')).toBe('all');
   });
 
-  it('excludes an approved visit whose day has already passed', () => {
-    const v = visit({ status: 'approved', scheduled_for: '2026-08-09T10:00:00Z' });
-    expect(SEGMENT_FILTER.expected(v)).toBe(false);
-  });
-
-  it('excludes a non-approved status even if scheduled for today', () => {
-    const v = visit({ status: 'pending_approval', scheduled_for: '2026-08-11T10:00:00Z' });
-    expect(SEGMENT_FILTER.expected(v)).toBe(false);
-  });
-
-  it('excludes an approved visit already checked in', () => {
-    const v = visit({
-      status: 'approved',
-      scheduled_for: '2026-08-11T10:00:00Z',
-      checked_in_at: '2026-08-11T10:05:00Z',
-    });
-    expect(SEGMENT_FILTER.expected(v)).toBe(false);
+  it('still lists an approved-not-yet-arrived visitor under All', () => {
+    const v = visit({ status: 'approved', scheduled_for: '2026-08-11T10:00:00Z' });
+    expect(SEGMENT_FILTER.all(v)).toBe(true);
   });
 });
 
@@ -135,11 +116,6 @@ describe('SEGMENT_FILTER — simple status matches', () => {
   it('walkinApproved is walkin_approved only', () => {
     expect(SEGMENT_FILTER.walkinApproved(visit({ status: 'walkin_approved' }))).toBe(true);
     expect(SEGMENT_FILTER.walkinApproved(visit({ status: 'approved' }))).toBe(false);
-  });
-
-  it('checkedOut is checked_out only', () => {
-    expect(SEGMENT_FILTER.checkedOut(visit({ status: 'checked_out' }))).toBe(true);
-    expect(SEGMENT_FILTER.checkedOut(visit({ status: 'checked_in' }))).toBe(false);
   });
 
   it('all matches everything regardless of status', () => {
@@ -179,15 +155,35 @@ describe('segmentVisits — sorted by most recent activity first', () => {
     expect(segmentVisits([older, newer], 'inside').map((v) => v.id)).toEqual(['newer', 'older']);
   });
 
+  // No segment lists checked_out rows anymore (removed 2026-08-15), but the
+  // stamp fallback itself is segment-agnostic — exercise it through `all`,
+  // which still matches every status.
   it('falls back to checked_out_at, then scheduled_for, then created_at for the sort stamp', () => {
     const a = visit({ id: 'a', status: 'checked_out', checked_out_at: '2026-08-11T09:00:00Z', checked_in_at: '2026-08-11T01:00:00Z' });
     const b = visit({ id: 'b', status: 'checked_out', checked_out_at: '2026-08-11T08:00:00Z', checked_in_at: '2026-08-11T01:00:00Z' });
-    expect(segmentVisits([b, a], 'checkedOut').map((v) => v.id)).toEqual(['a', 'b']);
+    expect(segmentVisits([b, a], 'all').map((v) => v.id)).toEqual(['a', 'b']);
   });
 
   it('returns an empty array rather than throwing when nothing matches', () => {
     expect(segmentVisits([], 'inside')).toEqual([]);
-    expect(segmentVisits([visit({ status: 'approved' })], 'checkedOut')).toEqual([]);
+    expect(segmentVisits([visit({ status: 'checked_out' })], 'pending')).toEqual([]);
+  });
+});
+
+// The Checked Out segment was removed on 2026-08-15 (client instruction). A
+// visitor who has left is the Entry & Exit tab's subject now, not a Visitors
+// list segment.
+describe('there is no checkedOut segment', () => {
+  it('is absent from VISITOR_SEGMENTS, SEGMENT_FILTER and SEGMENT_META', () => {
+    expect(VISITOR_SEGMENTS).not.toContain('checkedOut' as never);
+    expect(Object.keys(SEGMENT_FILTER)).not.toContain('checkedOut');
+    expect(Object.keys(SEGMENT_META)).not.toContain('checkedOut');
+  });
+
+  // The URL lived in bookmarks. It degrades onto All, which still contains
+  // today's departures, rather than 404-ing into a blank page.
+  it('degrades the old /visitors/checked-out URL onto All', () => {
+    expect(segmentFromSlug('checked-out')).toBe('all');
   });
 });
 

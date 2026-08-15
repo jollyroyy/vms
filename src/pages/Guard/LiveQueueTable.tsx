@@ -21,6 +21,9 @@ type LiveQueueTableProps = {
   timeOf: (v: ReportVisit) => string;
   /** The exit time, or an em dash for a visitor still on site. */
   exitTimeOf: (v: ReportVisit) => string;
+  /** Empty-state copy. Each Entry & Exit lane says its own thing — "nobody is
+   *  inside" and "nobody has left yet" are different facts. */
+  emptyMessage?: string;
   onSelect: (v: ReportVisit) => void;
   selectedId: string | null;
   /** Check this visitor out straight from the row. Omitted, the last column
@@ -35,6 +38,7 @@ export default function LiveQueueTable({
   statusPill,
   timeOf,
   exitTimeOf,
+  emptyMessage,
   onSelect,
   selectedId,
   onCheckOut,
@@ -65,7 +69,7 @@ export default function LiveQueueTable({
           {!loading && queue.length === 0 && (
             <tr>
               <td colSpan={8} className="px-4 py-10 text-center text-[#9aa3af] dark:text-[#b7c0cb]">
-                Nobody is on site, and nobody has checked out today.
+                {emptyMessage ?? 'Nobody is on site, and nobody has checked out today.'}
               </td>
             </tr>
           )}

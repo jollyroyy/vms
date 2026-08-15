@@ -17,10 +17,13 @@ import { buildVisitTimeline } from '../../lib/visitTimeline';
 // falls on the same IST day and hands each row its own date otherwise, so a
 // stay that crossed midnight can never read as one that did not.
 
+// No `dark:text-navy-*` here — the navy scale is INVERTED in dark mode, so a
+// pair like `text-navy-700 dark:text-navy-200` picks a DARKER colour in dark
+// mode. One step resolves correctly in both themes. See CLAUDE.md.
 const DOT: Record<string, string> = {
   approved: 'bg-brand-500',
   checked_in: 'bg-success-500',
-  checked_out: 'bg-navy-400 dark:bg-navy-500',
+  checked_out: 'bg-navy-600',
 };
 
 export default function CheckInTimeline({ visit }: { visit: ReportVisit }): React.ReactElement | null {
@@ -34,7 +37,7 @@ export default function CheckInTimeline({ visit }: { visit: ReportVisit }): Reac
   return (
     <div className="w-full mt-8 pt-6 border-t border-surface-200/60 dark:border-white/[0.07]">
       <div className="flex items-baseline justify-between gap-3 mb-4">
-        <h4 className="text-xs font-semibold uppercase tracking-wider text-navy-500 dark:text-navy-400">
+        <h4 className="text-xs font-semibold uppercase tracking-wider text-navy-700">
           Visit Timeline
         </h4>
         {timeline.date && (
@@ -49,7 +52,7 @@ export default function CheckInTimeline({ visit }: { visit: ReportVisit }): Reac
           <li key={e.key} className="flex items-center gap-3">
             <span className={`flex-shrink-0 w-2.5 h-2.5 rounded-full ${DOT[e.key]}`} aria-hidden="true" />
             <span className="flex-1 min-w-0 text-sm font-medium text-navy-950 dark:text-white">{e.label}</span>
-            <span className="text-sm font-semibold tabular-nums text-navy-700 dark:text-navy-200 whitespace-nowrap">
+            <span className="text-sm font-semibold tabular-nums text-navy-800 whitespace-nowrap">
               {/* The per-entry date appears ONLY when this visit's stages span
                   more than one IST day — otherwise the single header date
                   above already said it. */}

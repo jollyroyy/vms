@@ -90,13 +90,18 @@ describe('GuardConsole â€” KPI rail', () => {
     mockVisitData.current = [
       visit(),
       visit({ id: 'v2', status: 'checked_out', checked_out_at: `${istToday()}T06:00:00Z` }),
-      visit({ id: 'v3', status: 'approved', checked_in_at: null, scheduled_for: `${istToday()}T05:00:00Z` }),
+      visit({ id: 'v3', status: 'pending_approval', checked_in_at: null }),
     ];
     renderAt('/visitors');
     await waitFor(() => expect(screen.getAllByText('Alice Johnson')).toHaveLength(3));
 
-    expect(within(screen.getByRole('button', { name: /Checked Out/i })).getByText('1')).toBeInTheDocument();
-    expect(within(screen.getByRole('button', { name: /Booked ahead, not yet arrived/i })).getByText('1')).toBeInTheDocument();
+    // No Checked Out tile and no Expected tile on the board (both removed
+    // 2026-08-15, client instruction) — a departed visitor is the Entry & Exit
+    // tab's subject now, and an arrival not yet through the gate is the
+    // Pre-Registered tab's.
+    expect(screen.queryByRole('button', { name: /Checked Out/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Booked ahead, not yet arrived/i })).not.toBeInTheDocument();
+    expect(within(screen.getByRole('button', { name: /Walk-ins waiting on a host/i })).getByText('1')).toBeInTheDocument();
     expect(within(screen.getByRole('button', { name: /All Visitors/i })).getByText('3')).toBeInTheDocument();
   });
 
@@ -124,12 +129,12 @@ describe('GuardConsole â€” KPI rail', () => {
 
   it('marks the tile of the current segment as expanded', async () => {
     mockVisitData.current = [
-      visit({ status: 'approved', checked_in_at: null, scheduled_for: `${istToday()}T05:00:00Z` }),
+      visit({ status: 'pending_approval', checked_in_at: null }),
     ];
-    renderAt('/visitors/expected');
+    renderAt('/visitors/pending');
     await waitFor(() => expect(screen.getByText('Alice Johnson')).toBeInTheDocument());
 
-    expect(screen.getByRole('button', { name: /Booked ahead, not yet arrived/i }))
+    expect(screen.getByRole('button', { name: /Walk-ins waiting on a host/i }))
       .toHaveAttribute('aria-expanded', 'true');
     expect(screen.getByRole('button', { name: /All Visitors/i })).toHaveAttribute('aria-expanded', 'false');
   });
@@ -147,8 +152,8 @@ describe('GuardConsole â€” KPI rail', () => {
     const all = screen.getByRole('button', { name: /All Visitors/i });
     expect(all.querySelector('.kpi-plate')).toBeNull();
 
-    const expected = screen.getByRole('button', { name: /Booked ahead, not yet arrived/i });
-    expect(expected.querySelector('.kpi-plate')).not.toBeNull();
+    const pending = screen.getByRole('button', { name: /Walk-ins waiting on a host/i });
+    expect(pending.querySelector('.kpi-plate')).not.toBeNull();
   });
 
   it('renders the walk-in register tile without a numeral â€” it is an action, not a count', async () => {
@@ -171,10 +176,10 @@ describe('GuardConsole â€” KPI rail', () => {
     renderAt('/visitors');
     await waitFor(() => expect(screen.getByText('Alice Johnson')).toBeInTheDocument());
 
-    const expected = screen.getByRole('button', { name: /Booked ahead, not yet arrived/i });
-    expect(expected).not.toHaveClass('kpi-tile-compact');
+    const pending = screen.getByRole('button', { name: /Walk-ins waiting on a host/i });
+    expect(pending).not.toHaveClass('kpi-tile-compact');
 
-    const qualifier = within(expected).getByText('Booked ahead, not yet arrived');
+    const qualifier = within(pending).getByText('Walk-ins waiting on a host');
     expect(qualifier).not.toHaveClass('sr-only');
   });
 
@@ -186,7 +191,7 @@ describe('GuardConsole â€” KPI rail', () => {
     fireEvent.click(screen.getByRole('button', { name: /All Visitors/i }));
     await waitFor(() => expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('All Visitors'));
 
-    fireEvent.click(screen.getByRole('button', { name: /Booked ahead, not yet arrived/i }));
-    await waitFor(() => expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Expected Visitors'));
+    fireEvent.click(screen.getByRole('button', { name: /Walk-ins waiting on a host/i }));
+    await waitFor(() => expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Pending Approval'));
   });
 });

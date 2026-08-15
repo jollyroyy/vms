@@ -70,11 +70,18 @@ export default function PassIdentity({
 
         {/* Company — labelled like every other fact on the pass. A bare value
             with no caption ("Acme Corp" floating under a name with nothing
-            saying what it is) reads as a stray word, not a fact. */}
+            saying what it is) reads as a stray word, not a fact.
+
+            NO `dark:text-navy-*` HERE. The navy scale is INVERTED in dark mode,
+            so this value's old `text-navy-700 dark:text-navy-200` rendered it
+            near-black on a dark card: the word "Company" showed and the company
+            NAME did not, which is exactly how it was reported (2026-08-15).
+            `break-words` because a real vendor name is long and must not be
+            clipped on the pass a guard reads back. */}
         {vendorName && (
           <div>
-            <p className="text-micro text-navy-500 dark:text-navy-400 uppercase leading-none mb-0.5">Company</p>
-            <p className="text-sm font-medium text-navy-700 dark:text-navy-200">{vendorName}</p>
+            <p className="text-micro text-navy-700 uppercase leading-none mb-0.5">Company</p>
+            <p className="text-sm font-semibold text-navy-800 break-words">{vendorName}</p>
           </div>
         )}
 
@@ -82,7 +89,7 @@ export default function PassIdentity({
             deciding on who and why, not checking a document against a face. */}
         {showIdProof && (
           <div className="flex items-baseline gap-2 text-xs">
-            <span className="text-navy-500 dark:text-navy-400 font-medium uppercase tracking-wide">ID Proof</span>
+            <span className="text-navy-700 font-medium uppercase tracking-wide">ID Proof</span>
             <span className="font-mono text-navy-600">{maskIdProof(idType, idLast4)}</span>
           </div>
         )}

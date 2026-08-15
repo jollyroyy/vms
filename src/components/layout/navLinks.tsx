@@ -5,7 +5,7 @@ import type { UserRole } from '../../types/index';
 // so that file stays under the 300-line cap.
 //
 // Client instruction 2026-08-14: the guard console follows four reference
-// screens, so the sidebar carries their tabs — Dashboard, Live Queue,
+// screens, so the sidebar carries their tabs — Dashboard, Entry & Exit,
 // Pre-Registered, Watchlist — before Scan Pass and Visitors. Daily Staff, the
 // Self-Service Kiosk and Search are intentionally NOT here: all three are
 // still routable (see ROLE_ROUTES in lib/roleRoutes.ts) — the kiosk runs on its
@@ -48,14 +48,15 @@ export const ALL_LINKS: NavLink[] = [
   // "Entry & Exit" — "Live Queue" until 2026-08-14, "Inside Now" until
   // 2026-08-15, both renamed on client instruction. The tab lists everyone who
   // has been through the gate: still inside, plus today's departures. "Live
-  // Queue" named the dashboard's Live Arrival Queue instead (visitors still
+  // Queue" named the dashboard's Expected Today panel instead (visitors still
   // waiting, who are not on this page at all), and "Inside Now" stopped being
   // true the moment the list carried people who had left. The route keeps its
   // old path — it is in guards' bookmarks and in every ?verify= link the
   // dashboard emits — so only the label moves.
   { to: '/guard/inside-now', label: 'Entry & Exit', roles: ['guard'], icon: icon(ICON_USERS) },
-  // Every visitor ever pre-registered, with filter chips and today's schedule
-  // rail (reference screen 3). Today-ness is a filter here, never the fetch.
+  // Today's pre-approvals who have NOT arrived yet, with filter chips and the
+  // schedule rail (reference screen 3). Once a visitor checks in they leave
+  // this board for Entry & Exit — one visitor is never on two tabs at once.
   { to: '/guard/preregistered', label: 'Pre-Registered', roles: ['guard'], icon: icon(ICON_CHECK) },
   // Watchlist & Alerts (reference screen 4). Severity cards plus the live
   // CCTV panel; blacklist enforcement at the gate is untouched.

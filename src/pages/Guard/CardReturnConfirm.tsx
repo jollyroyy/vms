@@ -27,9 +27,11 @@ export default function CardReturnConfirm({ visit, onConfirm, onClose }: Props):
     <div className="fixed inset-0 z-50 bg-navy-950/80 flex items-center justify-center p-4" onClick={onClose}>
       <div className="bg-white rounded-2xl p-6 max-w-sm w-full space-y-4 relative" onClick={(e) => e.stopPropagation()}>
         <ModalCloseButton onClose={onClose} />
-        <div className="pr-8">
+        {/* pr-14, not pr-8: the absolute × spans 16-52px from the right edge, so
+            32px of padding left the heading running underneath it. */}
+        <div className="pr-14">
           <h3 className="font-bold text-navy-900">Confirm check-out</h3>
-          <p className="text-sm text-navy-500 dark:text-navy-400 mt-1">{visit.visitor?.full_name ?? 'Visitor'}</p>
+          <p className="text-sm text-navy-700 mt-1">{visit.visitor?.full_name ?? 'Visitor'}</p>
         </div>
 
         <div className="rounded-xl border border-surface-200 dark:border-white/[0.07] px-4 py-3 flex items-center justify-between gap-3">

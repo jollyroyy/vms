@@ -38,8 +38,8 @@ export default function SuccessPopup({ title, message, onClose, children }: Prop
                 <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
               </svg>
             </div>
-            <h3 className="text-lg font-bold text-navy-900 font-display">{title}</h3>
-            {message && <p className="text-sm text-navy-500 mt-1.5 leading-relaxed">{message}</p>}
+            <h3 className="text-lg font-bold text-navy-900 font-display px-8">{title}</h3>
+            {message && <p className="text-sm text-navy-700 mt-1.5 leading-relaxed">{message}</p>}
             {children}
           </div>
           <div className="px-8 pb-6 pt-4 flex justify-center">
