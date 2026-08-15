@@ -10,7 +10,7 @@ import {
   preRegisteredPill,
   type PreRegisteredChip,
 } from '../../lib/preRegisteredBoard';
-import { istHour, MORNING_FROM, MORNING_TO, AFTERNOON_FROM, AFTERNOON_TO } from '../../lib/preRegisteredBoard';
+import { arrivalWindows } from '../../lib/preRegisteredBoard';
 import PreRegisteredCard from './PreRegisteredCard';
 import GlanceRail from './GlanceRail';
 import OverdueBanner from './OverdueBanner';
@@ -83,10 +83,11 @@ export default function GuardPreRegistered(): React.ReactElement {
   // `/guard/preregistered?checkin=<visitId>` opens that visitor's check-in
   // flow directly. The dashboard's "Verify ID" used to land here; since
   // 2026-08-15 it opens the same flow IN PLACE on the dashboard (the ID scan
-  // overlay starts immediately), so this param now serves the Today's Schedule
-  // rail's "Next up" cards — because ID scanning only exists inside a check-in
-  // (CheckInPhotoStep -> IdScanOverlay), so a link that promises a scan has to
-  // arrive somewhere that can actually perform one.
+  // overlay starts immediately), and the Glance rail's schedule list — the
+  // param's other producer — was removed the same day. Nothing in the app emits
+  // it now, but it stays honoured: it is in guards' bookmarks and in every
+  // `?checkin=` link the dashboard has already handed out, and landing on the
+  // board with the flow open is still exactly what those links promised.
   useEffect(() => {
     const id = searchParams.get('checkin');
     if (!id || checkingIn) return;
@@ -126,20 +127,12 @@ export default function GuardPreRegistered(): React.ReactElement {
     return chipVisits(chip, board, now).filter(matchesQuery);
   }, [board, chip, query, now]);
 
-  // IST hours, not `new Date(...).getHours()`, which reads the BROWSER's zone.
-  // This was the one place in the guard surface where the wrong timezone
-  // changed a NUMBER rather than a rendered string: on a machine not set to
-  // IST these counts were simply wrong, with nothing on screen to say so.
-  //
-  // Both buckets are BOUNDED, and the bounds are exported so GlanceRail can
-  // label them from the same constants. The afternoon bucket used to be
-  // `>= 12` with no upper end, so a 20:00 booking was counted under a heading
-  // that read "12:00-17:00" — the label and the arithmetic disagreed, in two
-  // different files.
-  const inWindow = (v: ReportVisit, from: number, to: number) =>
-    Boolean(v.scheduled_for) && istHour(v.scheduled_for as string) >= from && istHour(v.scheduled_for as string) < to;
-  const morning = board.filter((v) => inWindow(v, MORNING_FROM, MORNING_TO)).length;
-  const afternoon = board.filter((v) => inWindow(v, AFTERNOON_FROM, AFTERNOON_TO)).length;
+  // How many are due in each block of the day, computed in IST — never
+  // `new Date(...).getHours()`, which reads the BROWSER's zone. This is the one
+  // place in the guard surface where the wrong timezone changes a NUMBER rather
+  // than a rendered string, so it would be wrong with nothing on screen saying
+  // so. Every booking lands in exactly one bucket (see `arrivalWindows`).
+  const windows = useMemo(() => arrivalWindows(board), [board]);
   const overdue = counts.missed + counts.late;
 
   const chipBadgeCls = (k: PreRegisteredChip) =>
@@ -249,13 +242,7 @@ export default function GuardPreRegistered(): React.ReactElement {
 
         {/* Right rail — Today at a Glance, fed the same board so the two panels
             can never describe different days. */}
-        <GlanceRail
-          filtered={board}
-          morning={morning}
-          afternoon={afternoon}
-          pillFor={preRegisteredPill}
-          clock={now}
-        />
+        <GlanceRail windows={windows} />
       </div>
     </div>
   );
