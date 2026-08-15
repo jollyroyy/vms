@@ -14,6 +14,7 @@ import {
   isAlreadyInsideError, ALREADY_INSIDE_FALLBACK,
 } from './activeVisit';
 import { isVisitExpired } from './visitExpiry';
+import { notifyHostOnCheckIn } from './notifyHostCheckIn';
 
 /** The subset of a MatchItem this write needs. Structural on purpose: src/lib
     files are type-checked without JSX (see tsconfig.json), so they cannot
@@ -82,7 +83,7 @@ export async function checkInScannedVisit({ match, visit, photoBlob, carrying, r
     }).eq('id', (visitRec as { visitor_id: string } | null)?.visitor_id ?? '');
   }
 
-  const { error: err } = await supabase.from('visits').update({
+  const { error: err, data: updated } = await supabase.from('visits').update({
     status: 'checked_in',
     checked_in_at: new Date().toISOString(),
     carrying_material: carrying,
@@ -90,11 +91,16 @@ export async function checkInScannedVisit({ match, visit, photoBlob, carrying, r
     visitor_card_number: cardNumber.trim(),
     ...(photoData ? { photo_data: photoData } : {}),
     ...(photoPath ? { photo_path: photoPath } : {}),
-  } as any).eq('id', match.visitId);
+  } as any).eq('id', match.visitId).select('id, host_id').maybeSingle();
   if (err) {
     // The race the pre-check cannot close: a second device checked the same
     // visitor in between our lookup and our write.
     return { ok: false, message: isAlreadyInsideError(err) ? ALREADY_INSIDE_FALLBACK : safeErrorMessage(err, 'Check-in failed.') };
   }
+
+  // Tell the host who made the pre-approval their guest is inside — a red
+  // bell entry appears in the host's own VMS session, automatically.
+  if (updated) void notifyHostOnCheckIn({ id: updated.id, host_id: (updated as { host_id: string | null }).host_id, visitor_name: match.visitorName });
+
   return { ok: true, visitorName: match.visitorName };
 }

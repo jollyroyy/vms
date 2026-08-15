@@ -2,21 +2,37 @@ import { describe, it, expect } from 'vitest';
 import { ALL_LINKS, linksForRole } from '../../../src/components/layout/navLinks';
 
 describe('navLinks: linksForRole', () => {
-  it('guard gets exactly 3 links, in order, with the exact labels, and no Search', () => {
+  // The four-tab guard console from the approved reference design
+  // (Dashboard, Live Queue, Pre-Registered, Watchlist), then Scan Pass and the
+  // consolidated Visitors lane. Client instruction 2026-08-14 — no Search, no
+  // group button, no vehicle entries anywhere.
+  it('guard gets exactly 6 links, in order, with the exact labels, and no Search', () => {
     const links = linksForRole('guard');
     expect(links.map((l) => l.label)).toEqual([
       'Dashboard',
+      'Live Queue',
+      'Pre-Registered',
+      'Watchlist',
       'Scan Pass',
       'Visitors',
     ]);
     expect(links.map((l) => l.label)).not.toContain('Search');
+    expect(links.map((l) => l.label)).not.toContain('Vehicles');
   });
 
-  it('guard Scan Pass link points to /guard/scan-pass and sits second', () => {
+  it('guard tab links point at the four reference-screen routes, in reference order', () => {
+    const links = linksForRole('guard');
+    expect(links[0]?.to).toBe('/guard/dashboard');
+    expect(links[1]?.to).toBe('/guard/live-queue');
+    expect(links[2]?.to).toBe('/guard/preregistered');
+    expect(links[3]?.to).toBe('/guard/watchlist');
+  });
+
+  it('guard Scan Pass link points to /guard/scan-pass and sits fifth', () => {
     const links = linksForRole('guard');
     const scan = links.find((l) => l.label === 'Scan Pass');
     expect(scan?.to).toBe('/guard/scan-pass');
-    expect(links[1]?.label).toBe('Scan Pass');
+    expect(links[4]?.label).toBe('Scan Pass');
   });
 
   // The Visitors entry is a SINGLE link now (2026-08-13): the eight segments

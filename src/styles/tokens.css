@@ -23,8 +23,8 @@
     --c-surface-300: 218 214 203;
     --c-surface-400: 172 166 152;
 
-    --c-brand-50: 250 246 237;
-    --c-brand-100: 245 237 219;
+    --c-brand-50: 239 246 255;
+    --c-brand-100: 219 234 254;
 
     --c-success-50: 240 253 244;
     --c-success-100: 220 252 231;
@@ -66,8 +66,8 @@
     --shadow-wide-hover: 0 26px 56px -18px rgb(15 12 40 / 0.16);
     --edge-highlight: inset 0 1px 0 0 rgb(255 255 255 / 0.38);
     --edge-highlight-hover: inset 0 1px 0 0 rgb(255 255 255 / 0.44);
-    --ring-gold: 0 0 0 1px rgb(184 147 74 / 0.08);
-    --ring-gold-hover: 0 0 0 1px rgb(184 147 74 / 0.14);
+    --ring-gold: 0 0 0 1px rgb(37 99 235 / 0.10);
+    --ring-gold-hover: 0 0 0 1px rgb(37 99 235 / 0.18);
 
     color-scheme: light;
   }
@@ -92,8 +92,8 @@
     --c-surface-300: 68 63 53;
     --c-surface-400: 118 111 96;
 
-    --c-brand-50: 42 34 20;
-    --c-brand-100: 56 45 26;
+    --c-brand-50: 23 37 84;
+    --c-brand-100: 30 58 138;
 
     --c-success-50: 18 42 30;
     --c-success-100: 22 55 38;
@@ -121,8 +121,8 @@
     --shadow-wide-hover: 0 28px 60px -16px rgb(0 0 0 / 0.60);
     --edge-highlight: inset 0 1px 0 0 rgb(255 255 255 / 0.06);
     --edge-highlight-hover: inset 0 1px 0 0 rgb(255 255 255 / 0.09);
-    --ring-gold: 0 0 0 1px rgb(184 147 74 / 0.14);
-    --ring-gold-hover: 0 0 14px -4px rgb(184 147 74 / 0.22);
+    --ring-gold: 0 0 0 1px rgb(59 130 246 / 0.20);
+    --ring-gold-hover: 0 0 14px -4px rgb(59 130 246 / 0.40);
 
     color-scheme: dark;
   }

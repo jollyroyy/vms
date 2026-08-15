@@ -137,5 +137,6 @@ export default defineConfig({
   plugins: [react(), apiProxyPlugin()],
   server: {
     port: parseInt(env.PORT || '5173', 10),
+    allowedHosts: ['5173-itgbyrum77hhmtwn4sujd-a6830051.sg1.manus.computer'],
   },
 });

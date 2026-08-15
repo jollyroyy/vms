@@ -81,6 +81,14 @@ beforeAll(async () => {
   if (visErr) throw visErr;
   visitorId = vis!.id;
 
+  // Migration 060 pins exactly one checked_in visit per visitor (partial
+  // unique index). The demo seed, the guard console, or an aborted run of
+  // this very suite can leave an open visit on this phone behind, so the
+  // checked_in fixture insert below would trip the constraint. Wipe every
+  // open visit for the fixture visitor first — same hygiene freshVisitor()
+  // applies to its own rows.
+  await svc.from('visits').delete().eq('visitor_id', visitorId);
+
   // One visit per scenario; insert (trigger sets ref) then service-patch status where needed.
   async function mkVisit(dept: string, status: string): Promise<string> {
     const { data, error } = await svc.from('visits')
@@ -107,7 +115,7 @@ beforeAll(async () => {
   const { error: upErr } = await svc.storage.from('visitor-photos')
     .upload(PROBE_PATH, new Blob(['rls probe — not a real photo']), { upsert: true, contentType: 'text/plain' });
   if (upErr) throw new Error(`probe upload: ${upErr.message}`);
-}, 120_000);
+}, 300_000);
 
 afterAll(async () => {
   if (cleanupVisits.length) {

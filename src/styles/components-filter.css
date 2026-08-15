@@ -28,17 +28,17 @@
      reminder that rows are being withheld. */
   .dept-trigger-active {
     @apply pr-9;
-    border-color: rgb(201 165 88 / 0.55);
-    box-shadow: 0 0 0 3px rgb(184 147 74 / 0.12), var(--shadow-contact-hover), var(--edge-highlight-hover);
+    border-color: rgb(59 130 246 / 0.55);
+    box-shadow: 0 0 0 3px rgb(37 99 235 / 0.12), var(--shadow-contact-hover), var(--edge-highlight-hover);
   }
   .dark .dept-trigger-active {
-    border-color: rgb(201 165 88 / 0.55);
+    border-color: rgb(59 130 246 / 0.55);
   }
 
   .dept-trigger-icon {
     @apply h-8 w-8 rounded-xl flex items-center justify-center shrink-0 text-white;
-    background: linear-gradient(135deg, #c9a558, #a8623a);
-    box-shadow: 0 3px 10px -3px rgb(184 147 74 / 0.55), inset 0 1px 0 0 rgb(255 255 255 / 0.25);
+    background: linear-gradient(135deg, #60a5fa, #1e40af);
+    box-shadow: 0 3px 10px -3px rgb(37 99 235 / 0.55), inset 0 1px 0 0 rgb(255 255 255 / 0.25);
   }
 
   .dept-trigger-eyebrow {
@@ -53,11 +53,11 @@
 
   .dept-count {
     @apply text-[11px] font-bold tabular-nums rounded-full px-2 py-0.5 shrink-0;
-    background: rgb(184 147 74 / 0.14);
-    color: #a8623a;
+    background: rgb(37 99 235 / 0.14);
+    color: #1e40af;
   }
   .dark .dept-count {
-    background: rgb(201 165 88 / 0.18);
+    background: rgb(59 130 246 / 0.18);
     color: rgb(224 190 128);
   }
 
@@ -90,7 +90,7 @@
   .dept-panel::after {
     content: '';
     @apply absolute inset-x-0 top-0 h-px pointer-events-none;
-    background: linear-gradient(90deg, transparent, rgb(201 165 88 / 0.55), transparent);
+    background: linear-gradient(90deg, transparent, rgb(59 130 246 / 0.55), transparent);
   }
 
   .dept-panel-head {
@@ -122,10 +122,10 @@
   }
   .dept-option-on {
     @apply text-navy-900 font-semibold;
-    background: rgb(184 147 74 / 0.12);
+    background: rgb(37 99 235 / 0.12);
   }
   .dark .dept-option-on {
-    background: rgb(201 165 88 / 0.16);
+    background: rgb(59 130 246 / 0.16);
   }
 
   /* Initials tile — a fixed left-hand anchor the eye can run down. */
@@ -140,7 +140,7 @@
     color: rgb(var(--c-navy-500));
   }
   .dept-option-on .dept-mark {
-    background: linear-gradient(135deg, #c9a558, #a8623a);
+    background: linear-gradient(135deg, #60a5fa, #1e40af);
     border-color: transparent;
     @apply text-white;
   }

@@ -47,7 +47,7 @@
     border-radius: var(--radius-md);
     padding: 1px;
     /* Seasoning, not sauce: a faint gold trace on the border, not a glow. */
-    background: linear-gradient(135deg, rgb(201 165 88 / 0.22), rgb(168 98 58 / 0.10), rgb(201 165 88 / 0.05));
+    background: linear-gradient(135deg, rgb(59 130 246 / 0.22), rgb(30 64 175 / 0.10), rgb(59 130 246 / 0.05));
     mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
     mask-composite: exclude;
     -webkit-mask-composite: xor;
@@ -56,7 +56,7 @@
 
   /* --- Gradient text --- */
   .gradient-text {
-    background: linear-gradient(120deg, #c9a558, #a8623a, #c9a558);
+    background: linear-gradient(120deg, #60a5fa, #1e40af, #60a5fa);
     background-size: 200% auto;
     -webkit-background-clip: text;
     background-clip: text;

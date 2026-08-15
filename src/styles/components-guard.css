@@ -79,7 +79,7 @@
     background: rgb(var(--c-surface-300));
   }
   .rail-inside::before   { background: linear-gradient(180deg, #22c55e, #16a34a); }
-  .rail-expected::before { background: linear-gradient(180deg, #c9a558, #a8623a); }
+  .rail-expected::before { background: linear-gradient(180deg, #60a5fa, #1e40af); }
   .rail-pending::before  { background: linear-gradient(180deg, #f59e0b, #d97706); }
   .rail-out::before      { background: rgb(var(--c-surface-300)); }
   .rail-flagged::before  { background: linear-gradient(180deg, #ef4444, #b91c1c); }
@@ -117,11 +117,11 @@
     @apply inline-flex items-center justify-center gap-2 rounded-xl px-5 text-sm font-bold
            text-white transition-all duration-200 active:scale-[0.97] shrink-0;
     min-height: 44px;
-    background: linear-gradient(120deg, rgb(184 147 74 / 0.96), rgb(168 98 58 / 0.90));
-    box-shadow: 0 4px 16px -4px rgb(184 147 74 / 0.55), inset 0 1px 0 0 rgb(255 255 255 / 0.22);
+    background: linear-gradient(120deg, rgb(37 99 235 / 0.96), rgb(30 64 175 / 0.90));
+    box-shadow: 0 4px 16px -4px rgb(37 99 235 / 0.55), inset 0 1px 0 0 rgb(255 255 255 / 0.22);
   }
   .gate-action:hover {
-    box-shadow: 0 8px 24px -6px rgb(184 147 74 / 0.65), inset 0 1px 0 0 rgb(255 255 255 / 0.28);
+    box-shadow: 0 8px 24px -6px rgb(37 99 235 / 0.65), inset 0 1px 0 0 rgb(255 255 255 / 0.28);
   }
   .gate-action:disabled {
     @apply opacity-50 pointer-events-none;
@@ -136,7 +136,7 @@
   }
   .gate-action-ghost:hover {
     background: rgb(var(--c-surface-100) / 0.85);
-    border-color: rgb(184 147 74 / 0.30);
+    border-color: rgb(37 99 235 / 0.30);
   }
 
   /* --- Big mode tabs (Expected / Walk-ins / Inside) ----------------------
@@ -153,12 +153,12 @@
   }
   .gate-tab-active {
     @apply text-white;
-    background: linear-gradient(120deg, rgb(184 147 74 / 0.95), rgb(168 98 58 / 0.88));
-    box-shadow: 0 6px 20px -6px rgb(184 147 74 / 0.60), inset 0 1px 0 0 rgb(255 255 255 / 0.22);
+    background: linear-gradient(120deg, rgb(37 99 235 / 0.95), rgb(30 64 175 / 0.88));
+    box-shadow: 0 6px 20px -6px rgb(37 99 235 / 0.60), inset 0 1px 0 0 rgb(255 255 255 / 0.22);
   }
   .gate-tab-active:hover {
     @apply text-white;
-    background: linear-gradient(120deg, rgb(184 147 74 / 1), rgb(168 98 58 / 0.95));
+    background: linear-gradient(120deg, rgb(37 99 235 / 1), rgb(30 64 175 / 0.95));
   }
   .gate-tab-count {
     @apply inline-flex items-center justify-center min-w-[24px] h-6 px-1.5
@@ -188,7 +188,7 @@
   }
   .queue-row:hover {
     background: rgb(var(--c-surface-100) / 0.75);
-    border-color: rgb(184 147 74 / 0.28);
+    border-color: rgb(37 99 235 / 0.28);
   }
   .queue-count {
     @apply ml-auto inline-flex items-center justify-center min-w-[30px] h-7 px-2
@@ -197,7 +197,7 @@
   }
   .queue-count-hot {
     @apply text-white;
-    background: linear-gradient(120deg, rgb(184 147 74 / 0.95), rgb(168 98 58 / 0.88));
+    background: linear-gradient(120deg, rgb(37 99 235 / 0.95), rgb(30 64 175 / 0.88));
   }
 
   /* --- Section heading --- Inter, not display: a sub-section heading is not

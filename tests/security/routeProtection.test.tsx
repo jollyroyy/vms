@@ -65,13 +65,25 @@ describe('SEC-7: frontend route protection', () => {
     it('guard is allowed on /guard/search', () => {
       expect(isForbidden('/guard/search', role)).toBe(false);
     });
-    it('guard route list no longer contains /guard/watchlist', () => {
-      // The Watchlist & Alerts feature was REMOVED. The blanket `/guard` prefix
-      // (deliberately, for the guard console) lets isForbidden("watchlist")
-      // through, so the array itself is the pin: if the route is ever re-added
-      // here it must also be re-added to App.tsx's <Routes>, and this test is
-      // the reminder.
-      expect(ROLE_ROUTES.guard).not.toContain('/guard/watchlist');
+    // Reference-screen guard console (client instruction 2026-08-14):
+    // /guard/live-queue, /guard/preregistered, /guard/watchlist were ADDED back
+    // to the guard sidebar. The blanket `/guard` prefix lets isForbidden()
+    // through by construction, so the allowlist itself is the pin — if any of
+    // these is ever dropped from the array it must also be dropped from
+    // App.tsx's <Routes>.
+    for (const route of ['/guard/live-queue', '/guard/preregistered', '/guard/watchlist']) {
+      it(`guard allowlist still contains ${route}`, () => {
+        expect(ROLE_ROUTES.guard).toContain(route);
+        expect(isForbidden(route, role)).toBe(false);
+      });
+    }
+    it('non-guard roles remain FORBIDDEN on the reference-screen routes', () => {
+      const nonGuardRoles = ['hod', 'staff', 'admin'] as const;
+      for (const role of nonGuardRoles) {
+        for (const route of ['/guard/live-queue', '/guard/preregistered', '/guard/watchlist']) {
+          expect(isForbidden(route, role), `${role} must be forbidden on ${route}`).toBe(true);
+        }
+      }
     });
 
     it('guard is FORBIDDEN on /admin', () => {

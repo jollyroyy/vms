@@ -1,7 +1,8 @@
 import type { Config } from 'tailwindcss';
 
 /**
- * Quest Mall design system (Aurora Glass base, Quest Mall gold/bronze palette).
+ * Quest Mall design system (Aurora Glass base, enterprise-blue palette
+ * matching the approved dark-console screenshots).
  * navy/surface/brand shades are CSS-variable driven so they automatically
  * flip between light and dark themes (see :root / .dark in index.css).
  */
@@ -11,32 +12,32 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Quest Mall gold — primary brand (static mid-tones work on both themes)
+        // Enterprise blue — primary brand (static mid-tones work on both themes)
         brand: {
           50:  'rgb(var(--c-brand-50) / <alpha-value>)',
           100: 'rgb(var(--c-brand-100) / <alpha-value>)',
-          200: '#e8d5a8',
-          300: '#d9bd7a',
-          400: '#c9a558',
-          500: '#b8934a',
-          600: '#9c7a3c',
-          700: '#7d6130',
-          800: '#5f4a26',
-          900: '#453620',
-          950: '#2b2114',
+          200: '#bfdbfe',
+          300: '#93c5fd',
+          400: '#60a5fa',
+          500: '#3b82f6',
+          600: '#2563eb',
+          700: '#1d4ed8',
+          800: '#1e40af',
+          900: '#1e3a8a',
+          950: '#172554',
         },
-        // Bronze / copper — secondary accent
+        // Blue tint — secondary accent (hover fills, focus rings)
         accent: {
-          50:  '#fdf6f0',
-          100: '#fae8d9',
-          200: '#f0cba8',
-          300: '#e0a877',
-          400: '#c67f4e',
-          500: '#a8623a',
-          600: '#8a4d2d',
-          700: '#6b3a22',
-          800: '#4d2a19',
-          900: '#331b10',
+          50:  '#eff6ff',
+          100: '#dbeafe',
+          200: '#bfdbfe',
+          300: '#93c5fd',
+          400: '#60a5fa',
+          500: '#3b82f6',
+          600: '#2563eb',
+          700: '#1d4ed8',
+          800: '#1e40af',
+          900: '#1e3a8a',
         },
         // Semantic neutrals — auto-flip with theme via CSS vars
         navy: {
@@ -108,8 +109,11 @@ export default {
         },
       },
       fontFamily: {
+        // Reference-screens directive (2026-08-14): no deviation from the
+        // approved screenshots. Both faces are geometric sans (Poppins for
+        // headings/KPIs, Inter for body) — the serif face was removed.
         sans: ['"Inter"', 'system-ui', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', 'sans-serif'],
-        display: ['"Playfair Display"', '"Inter"', 'system-ui', 'serif'],
+        display: ['"Poppins"', '"Inter"', 'system-ui', 'sans-serif'],
       },
       // ── Type scale — Minor Third (1.2), seven steps + the KPI numeral ──────
       // Size, weight and tracking travel TOGETHER so a heading cannot be used
@@ -146,10 +150,10 @@ export default {
         'modal':    '0 20px 60px -12px rgb(0 0 0 / 0.25), 0 8px 20px -8px rgb(0 0 0 / 0.1)',
         'glass':    '0 8px 32px 0 rgb(15 12 40 / 0.10), inset 0 1px 0 0 rgb(255 255 255 / 0.35)',
         'glass-lg': '0 24px 70px -12px rgb(15 12 40 / 0.22), inset 0 1px 0 0 rgb(255 255 255 / 0.30)',
-        'glow':     '0 0 24px -6px rgb(184 147 74 / 0.45)',
-        'glow-sm':  '0 0 12px -3px rgb(184 147 74 / 0.35)',
-        'glow-accent': '0 0 24px -6px rgb(168 98 58 / 0.40)',
-        'glow-mix': '0 8px 30px -6px rgb(184 147 74 / 0.45), 0 4px 18px -4px rgb(168 98 58 / 0.35)',
+        'glow':     '0 0 24px -6px rgb(59 130 246 / 0.45)',
+        'glow-sm':  '0 0 12px -3px rgb(59 130 246 / 0.35)',
+        'glow-accent': '0 0 24px -6px rgb(37 99 235 / 0.40)',
+        'glow-mix': '0 8px 30px -6px rgb(59 130 246 / 0.45), 0 4px 18px -4px rgb(37 99 235 / 0.35)',
       },
       borderRadius: {
         '4xl': '2rem',

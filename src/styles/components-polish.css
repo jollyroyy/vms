@@ -26,8 +26,8 @@
     width: 2rem;
     height: 3px;
     border-radius: 3px;
-    background: linear-gradient(120deg, rgb(184 147 74), rgb(168 98 58));
-    box-shadow: 0 2px 6px -2px rgb(184 147 74 / 0.5);
+    background: linear-gradient(120deg, rgb(37 99 235), rgb(30 64 175));
+    box-shadow: 0 2px 6px -2px rgb(37 99 235 / 0.5);
     flex-shrink: 0;
   }
   .revamp-section-title {
@@ -40,7 +40,7 @@
   }
   .dark .revamp-section-count {
     @apply text-brand-300;
-    background: rgb(184 147 74 / 0.14);
+    background: rgb(37 99 235 / 0.14);
   }
 
   /* --- Page greeting strip: sits above the board on the guard dashboard —
@@ -65,6 +65,15 @@
   }
   .dark .revamp-greeting-title {
     @apply text-white;
+  }
+  /* In dark mode the subtext must read as a quiet but clearly legible
+     light gray — never the dim light-mode slate. Same muted treatment as
+     the reference mockup's "Everything at the entrance, in one glance." */
+  .dark .revamp-greeting-sub {
+    @apply text-navy-600;
+  }
+  .dark .revamp-empty-sub {
+    @apply text-navy-600;
   }
 
   /* --- Elevated empty state: a round medallion with icon, quiet copy and a

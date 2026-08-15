@@ -15,6 +15,39 @@ type Props = {
 
 const COLLAPSE_KEY = 'securegate-sidebar-collapsed';
 
+// Live top-right clock/date cluster — clock icon + time and calendar icon +
+// date separated by a hairline divider, sitting immediately left of the
+// notification bell (client instruction, 2026-08-14). No background panel:
+// it sits directly on the topbar surface.
+function TopbarClock(): React.ReactElement {
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const t = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(t);
+  }, []);
+  return (
+    <span className="flex items-center gap-3 text-navy-500 dark:text-navy-300">
+      <span className="flex items-center gap-2">
+        <svg className="w-[1.05rem] h-[1.05rem]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8} aria-hidden="true">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <span className="hidden sm:inline-flex font-display text-[0.9rem] font-medium tabular-nums">
+          {now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}
+        </span>
+      </span>
+      <span className="w-px h-5 bg-navy-300/20 dark:bg-white/15" aria-hidden="true" />
+      <span className="flex items-center gap-2">
+        <svg className="w-[1.05rem] h-[1.05rem]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8} aria-hidden="true">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
+        </svg>
+        <span className="hidden sm:inline-flex font-display text-[0.9rem] font-medium">
+          {now.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}
+        </span>
+      </span>
+    </span>
+  );
+}
+
 // Computed once — Mac shows the ⌘ glyph, everyone else gets a spelled-out Ctrl.
 const SHORTCUT_HINT = typeof navigator !== 'undefined' && /Mac/i.test(navigator.platform) ? '⌘K' : 'Ctrl K';
 
@@ -89,10 +122,13 @@ export default function AppShell({ session, role, children }: Props): React.Reac
         <header className="no-print sticky top-0 z-30 card-glass !rounded-none !border-0 !shadow-none">
           <div className="flex items-center gap-3 h-16 px-4 sm:px-6 lg:px-8 pl-16 lg:pl-8">
             {/* Search bar — a contained pill, not a stretched box; sits with the
-                notification bell as a right-hand action cluster. */}
+                notification bell as a right-hand action cluster. Hidden for the
+                guard role per client instruction (2026-08-14): the guard console
+                puts the clock + calendar in the page header instead, and the
+                Search bar duplicated visual chrome at the top-right. */}
             <form
               onSubmit={handleSearch}
-              className={`ml-auto min-w-0 w-40 sm:w-64 transition-[width] duration-200 ease-out ${searchFocused ? 'sm:w-80' : ''}`}
+              className={`ml-auto min-w-0 w-40 sm:w-64 transition-[width] duration-200 ease-out ${searchFocused ? 'sm:w-80' : ''} ${role === 'guard' ? '!hidden' : ''}`}
             >
               <div className={`topbar-search relative flex items-center ${searchFocused ? 'is-focused' : ''}`}>
                 <svg className="topbar-search-icon absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -133,7 +169,13 @@ export default function AppShell({ session, role, children }: Props): React.Reac
                 in. A top-bar icon that jumped to a scanner with no check-in
                 context around it was a shortcut to nowhere. */}
 
-            <NotificationBell userId={session.user.id} role={role} />
+            {/* Date label sits immediately left of the notification bell,
+                pinned to the far right of the topbar per client instruction
+                (2026-08-14). */}
+            <div className="ml-auto flex items-center gap-3">
+              <TopbarClock />
+              <NotificationBell userId={session.user.id} role={role} />
+            </div>
           </div>
         </header>
 

@@ -99,7 +99,7 @@ export default function VisitorDetails({
           type="button"
           aria-label="Close"
           onClick={(e) => { e.stopPropagation(); onClose(); }}
-          className="absolute top-4 right-4 w-9 h-9 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white/80 hover:text-white backdrop-blur-sm transition-all z-30"
+          className="absolute top-4 right-4 w-9 h-9 flex items-center justify-center rounded-full bg-white/15 hover:bg-white/25 text-white hover:text-white backdrop-blur-sm transition-all z-30"
         >
           <svg className="pointer-events-none w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />

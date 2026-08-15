@@ -90,15 +90,19 @@ export default function NotificationBell({ userId, role }: Props): React.ReactEl
       {open && (
         <>
           <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
-          <div className="absolute right-0 top-full mt-2 w-80 sm:w-96 z-50 bg-white rounded-2xl shadow-modal border border-surface-200/80 overflow-hidden animate-scale-in">
-            <div className="relative flex items-center justify-between px-5 py-3.5 border-b border-surface-100 pr-14">
-              <h3 className="text-sm font-bold text-navy-900">Notifications</h3>
+          <div className="absolute right-0 top-full mt-2 w-80 sm:w-96 z-50 rounded-2xl shadow-modal border border-white/10 overflow-hidden animate-scale-in dark:bg-[rgb(20_18_14)] dark:bg-opacity-100 bg-white">
+            <div className="relative flex items-center justify-between px-5 py-3.5 border-b border-white/10 pr-14">
+              <h3 className="text-sm font-bold text-white">Notifications</h3>
               {unreadCount > 0 && (
                 <button onClick={() => void markAllRead()} className="text-xs font-semibold text-brand-600 hover:text-brand-700 transition-colors">
                   Mark all read
                 </button>
               )}
-              <ModalCloseButton onClose={() => setOpen(false)} />
+              <ModalCloseButton
+                variant="dark"
+                className="!text-white hover:!text-white hover:!bg-white/25"
+                onClose={() => setOpen(false)}
+              />
             </div>
 
             <div className="max-h-80 overflow-y-auto">
@@ -115,13 +119,13 @@ export default function NotificationBell({ userId, role }: Props): React.ReactEl
                   <p className="text-xs text-navy-300 mt-0.5">You are all caught up.</p>
                 </div>
               ) : (
-                <ul className="divide-y divide-surface-100">
+                <ul className="divide-y divide-white/8">
                   {notifications.map((n) => (
-                    <li key={n.id} className="px-5 py-3.5 transition-colors bg-brand-50/40">
+                    <li key={n.id} className="px-5 py-3.5 transition-colors bg-brand-500/10">
                       <div className="flex items-start gap-3">
                         <div className="shrink-0 mt-0.5 h-2 w-2 rounded-full bg-brand-500" />
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-semibold text-navy-900">{n.title}</p>
+                          <p className="text-sm font-semibold text-white">{n.title}</p>
                           <p className="text-xs text-navy-500 dark:text-navy-400 mt-0.5 line-clamp-2">{n.body}</p>
                           <p className="text-[10px] text-navy-300 mt-1">
                             {new Date(n.created_at).toLocaleString()}
