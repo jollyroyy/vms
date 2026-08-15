@@ -81,8 +81,10 @@ beforeEach(() => {
           if (cols === 'id, visitor_id, status') {
             return { in: () => ({ gte: () => Promise.resolve({ data: [], error: null }) }) };
           }
-          if (cols === 'visitor_id') {
-            return { eq: () => ({ maybeSingle: vi.fn().mockResolvedValue({ data: { visitor_id: 'vis1' }, error: null }) }) };
+          // Carries the blacklist columns: checkInScannedVisit reads the
+          // watchlist flag off this same lookup.
+          if (cols.startsWith('visitor_id')) {
+            return { eq: () => ({ maybeSingle: vi.fn().mockResolvedValue({ data: { visitor_id: 'vis1', visitor: { is_blacklisted: false, blacklist_reason: null } }, error: null }) }) };
           }
           if (cols.includes('visitor:visitors!inner')) {
             const chain: any = {

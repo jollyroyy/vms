@@ -117,30 +117,34 @@ describe('GuardConsole segments', () => {
     });
   });
 
-  it('lists a checked-in visitor under Inside, with a Check Out action', async () => {
+  // The Visitors tab only shows which visitor falls under which category —
+  // client instruction, 2026-08-14. Check-out happens on the Inside Now tab
+  // (/guard/inside-now); a card in a category list never carries an action.
+  it('lists a checked-in visitor under Inside, with no check-out action', async () => {
     mockVisitData.current = [visit()];
     renderAt('/visitors/inside');
     await waitFor(() => {
       expect(screen.getByText('Alice Johnson')).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: /Check Out/i })).toBeInTheDocument();
     });
+    expect(screen.queryByRole('button', { name: /Check Out/i })).not.toBeInTheDocument();
   });
 
-  // Expected is the pre-booked lane: its action starts a check-in, never ends
-  // one. A Check Out button here would offer to close a visit that never opened.
-  it('offers Check In — not Check Out — on an expected visitor', async () => {
+  // The visitors grid never starts a check-in either — entry is the Scan Pass
+  // and Pre-Approvals desks. No button on any card, whatever the status.
+  it('offers no Check In and no Check Out on an expected visitor', async () => {
     mockVisitData.current = [visit({
       id: 'v2', status: 'approved', checked_in_at: null,
       scheduled_for: `${istToday()}T05:00:00Z`,
     })];
     renderAt('/visitors/expected');
     await waitFor(() => expect(screen.getByText('Alice Johnson')).toBeInTheDocument());
-    expect(screen.getByRole('button', { name: /Check In/i })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Check In/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Check Out/i })).not.toBeInTheDocument();
   });
 
   // A visit awaiting an HOD's decision has nothing the guard can do to it. A
-  // button they cannot honour is worse than no button.
+  // button they cannot honour is worse than no button — and there are no
+  // buttons here at all.
   it('offers no action on a visit still pending approval', async () => {
     mockVisitData.current = [visit({ id: 'v3', status: 'pending_approval', checked_in_at: null })];
     renderAt('/visitors/pending');

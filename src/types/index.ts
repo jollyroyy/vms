@@ -175,6 +175,10 @@ export type NotificationType =
   // its related_id is null because it is a summary, not a single visit.
   | 'visit_no_show'
   | 'visit_no_show_summary'
+  // A guard escalated a flagged watchlist match from /guard/watchlist, to every
+  // admin (migration 079). This replaced a write into `visits.remarks` — the
+  // HOD's approval note — which the escalation was overwriting outright.
+  | 'watchlist_escalation'
   | 'gate_pass_pending'
   | 'gate_pass_approved'
   | 'rgp_due_soon'

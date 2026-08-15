@@ -5,10 +5,9 @@ import { render, screen, cleanup, waitFor, fireEvent, within } from '@testing-li
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import GuardConsole from '../../../src/pages/Guard/Console';
 
-// The KPI rail and the card-return check-out gate, isolated from the segment
-// behaviour GuardConsole.test.tsx covers â€” one behaviour per file.
+// The KPI rail, isolated from the segment behaviour GuardConsole.test.tsx
+// covers â€” one behaviour per file.
 const mockVisitData = vi.hoisted(() => ({ current: [] as any[] }));
-const updateCalls = vi.hoisted(() => ({ current: [] as any[] }));
 
 vi.mock('../../../src/pages/Guard/CheckInPanel', () => ({
   default: () => <div>CheckInPanel</div>,
@@ -26,10 +25,6 @@ vi.mock('../../../src/supabaseClient', () => {
             order: vi.fn(() => Promise.resolve({ data: mockVisitData.current, error: null })),
           })),
         })),
-        update: vi.fn((payload: any) => {
-          updateCalls.current.push(payload);
-          return { eq: vi.fn(() => Promise.resolve({ error: null })) };
-        }),
       })),
       channel: vi.fn(() => ch),
       removeChannel: vi.fn(),
@@ -54,7 +49,6 @@ afterEach(() => {
   cleanup();
   vi.restoreAllMocks();
   mockVisitData.current = [];
-  updateCalls.current = [];
 });
 
 function istToday(): string {
@@ -107,9 +101,10 @@ describe('GuardConsole â€” KPI rail', () => {
   });
 
   // The board carries no Currently Inside tile (client instruction,
-  // 2026-08-13). The SEGMENT is untouched — /visitors/inside still routes, still
-  // lists and is still the only place a guard can check a visitor out (the
-  // check-out suite below renders there) — it is the tile that went.
+  // 2026-08-13). The SEGMENT is untouched — /visitors/inside still routes and
+  // still lists — it is the tile that went. The segment lists only: check-out
+  // lives on the Inside Now tab (/guard/inside-now), so a card here carries no
+  // button (client instruction, 2026-08-14).
   it('has no Currently Inside tile on the board', async () => {
     mockVisitData.current = [visit()];
     renderAt('/visitors');
@@ -118,13 +113,13 @@ describe('GuardConsole â€” KPI rail', () => {
     expect(screen.queryByRole('button', { name: /Currently Inside/i })).toBeNull();
   });
 
-  it('still lists and checks out the Inside segment with no tile for it', async () => {
+  it('still lists the Inside segment with no tile for it — and no check-out button', async () => {
     mockVisitData.current = [visit()];
     renderAt('/visitors/inside');
     await waitFor(() => expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Inside'));
 
     expect(screen.getByText('Alice Johnson')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Check Out/i })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Check Out/i })).not.toBeInTheDocument();
   });
 
   it('marks the tile of the current segment as expanded', async () => {
@@ -193,66 +188,5 @@ describe('GuardConsole â€” KPI rail', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /Booked ahead, not yet arrived/i }));
     await waitFor(() => expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Expected Visitors'));
-  });
-});
-
-describe('GuardConsole â€” card-return check-out gate', () => {
-  // The whole point of the gate: the guard sees the exact card they must
-  // collect, and the check-out cannot complete until it is ticked back.
-  it('shows the card number and refuses to check out until the card is ticked', async () => {
-    mockVisitData.current = [visit()];
-    renderAt('/visitors/inside');
-    await waitFor(() => expect(screen.getByText('Alice Johnson')).toBeInTheDocument());
-
-    fireEvent.click(screen.getByRole('button', { name: /Check Out/i }));
-    await waitFor(() => expect(screen.getByText('Confirm check-out')).toBeInTheDocument());
-    expect(screen.getByText('C-104')).toBeInTheDocument();
-
-    const confirm = screen.getByRole('button', { name: 'Complete Check Out' });
-    expect(confirm).toBeDisabled();
-    fireEvent.click(screen.getByLabelText(/card collected from visitor/i));
-    expect(confirm).not.toBeDisabled();
-    fireEvent.click(confirm);
-
-    await waitFor(() => expect(updateCalls.current.length).toBeGreaterThan(0));
-    const write = updateCalls.current[0];
-    expect(write.status).toBe('checked_out');
-    expect(write.exit_verified).toBe(true);
-    expect(write.visitor_card_returned_at).toBeTruthy();
-    expect(write.checked_out_at).toBeTruthy();
-  });
-
-  it('a visitor with no card on record has nothing to collect â€” no checkbox, direct confirm', async () => {
-    mockVisitData.current = [visit({ visitor_card_number: null })];
-    renderAt('/visitors/inside');
-    await waitFor(() => expect(screen.getByText('Alice Johnson')).toBeInTheDocument());
-
-    fireEvent.click(screen.getByRole('button', { name: /Check Out/i }));
-    await waitFor(() => expect(screen.getByText('Confirm check-out')).toBeInTheDocument());
-    expect(screen.getByText('No card on record')).toBeInTheDocument();
-    expect(screen.queryByLabelText('Card collected from visitor')).not.toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole('button', { name: 'Complete Check Out' }));
-    await waitFor(() => expect(updateCalls.current.length).toBeGreaterThan(0));
-    expect(updateCalls.current[0].visitor_card_returned_at).toBeNull();
-  });
-
-  it('undo clears the returned-at stamp along with the check-out', async () => {
-    mockVisitData.current = [visit()];
-    renderAt('/visitors/inside');
-    await waitFor(() => expect(screen.getByText('Alice Johnson')).toBeInTheDocument());
-
-    fireEvent.click(screen.getByRole('button', { name: /Check Out/i }));
-    fireEvent.click(screen.getByLabelText(/card collected from visitor/i));
-    fireEvent.click(screen.getByRole('button', { name: 'Complete Check Out' }));
-
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Undo check-out' })).toBeInTheDocument());
-    fireEvent.click(screen.getByRole('button', { name: 'Undo check-out' }));
-
-    await waitFor(() => expect(updateCalls.current.length).toBeGreaterThan(1));
-    const undo = updateCalls.current[1];
-    expect(undo.status).toBe('checked_in');
-    expect(undo.checked_out_at).toBeNull();
-    expect(undo.visitor_card_returned_at).toBeNull();
   });
 });

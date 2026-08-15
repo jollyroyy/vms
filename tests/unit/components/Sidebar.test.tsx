@@ -122,7 +122,7 @@ describe('Sidebar navigation links per role', () => {
 
   it('guard sees the reference console tabs plus Scan Pass and Visitors, and no Search', () => {
     renderSidebar('guard');
-    for (const label of ['Dashboard', 'Inside Now', 'Pre-Registered', 'Watchlist', 'Scan Pass', 'Visitors']) {
+    for (const label of ['Dashboard', 'Entry & Exit', 'Pre-Registered', 'Watchlist', 'Scan Pass', 'Visitors']) {
       expect(screen.getByText(label)).toBeInTheDocument();
     }
     expect(screen.queryByText('Search')).not.toBeInTheDocument();
@@ -131,7 +131,7 @@ describe('Sidebar navigation links per role', () => {
   it('the four console tabs link to their reference-screen routes', () => {
     renderSidebar('guard');
     expect(screen.getByRole('link', { name: /Dashboard/ })).toHaveAttribute('href', '/guard/dashboard');
-    expect(screen.getByRole('link', { name: /Inside Now/ })).toHaveAttribute('href', '/guard/inside-now');
+    expect(screen.getByRole('link', { name: /Entry & Exit/ })).toHaveAttribute('href', '/guard/inside-now');
     expect(screen.getByRole('link', { name: /Pre-Registered/ })).toHaveAttribute('href', '/guard/preregistered');
     expect(screen.getByRole('link', { name: /Watchlist/ })).toHaveAttribute('href', '/guard/watchlist');
   });

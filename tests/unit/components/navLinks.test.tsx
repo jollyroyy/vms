@@ -10,7 +10,7 @@ describe('navLinks: linksForRole', () => {
     const links = linksForRole('guard');
     expect(links.map((l) => l.label)).toEqual([
       'Dashboard',
-      'Inside Now',
+      'Entry & Exit',
       'Pre-Registered',
       'Watchlist',
       'Scan Pass',

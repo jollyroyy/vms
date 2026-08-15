@@ -106,11 +106,12 @@ describe('GuardDashboard (reference-screen frame)', () => {
     }
   });
 
-  it('renders the ID Verification card and links to Inside Now', () => {
+  it('renders the ID Verification card and no View Full Queue link', () => {
     renderDashboard();
     expect(screen.getByText('ID Verification')).toBeInTheDocument();
-    expect(screen.getByText('View Full Queue')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /View Full Queue/i })).toHaveAttribute('href', '/guard/inside-now');
+    // The "View Full Queue" shortcut under the Live Arrival Queue was removed
+    // 2026-08-14 (client instruction); the Inside Now nav item is the route.
+    expect(screen.queryByText('View Full Queue')).toBeNull();
   });
 
   it('shows the Empty / no-visitors states when there is no data', () => {

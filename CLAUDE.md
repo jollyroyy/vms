@@ -138,9 +138,8 @@
     `VisitorStackCard`, `VisitorStackList`, `VisitorSegmentContent` and
     the deleted `DashboardDrilldown`**, and `Console.tsx` no longer imports `VisitorDetails` at
     all — do not thread it back through. Consequence, and it is the point: a card
-    with no action now renders **no buttons at all**, so the only pressable thing on
-    the Visitors surface is the control that advances the visit, and a drill-down
-    card is completely inert. `VisitorStackCard.test.tsx` and
+    with no action renders **no buttons at all**, so the Visitors surface is
+    display-only end to end. `VisitorStackCard.test.tsx` and
     counts the buttons (`DashboardDrilldown.test.tsx` went with that component).
   - **The dashboard drill-down uses this same card**, via `KpiDrilldownSheet.tsx`
     (which superseded the deleted `DashboardDrilldown.tsx` in the 2026-08-14 rebuild).
@@ -178,11 +177,18 @@
   everywhere keeps the same guarantee without asking the guard to notice which
   format they got. A visit with no slot still reads **"Anytime"**, not a dash.
 
-- **Which action a row offers depends on the VISIT, not on the segment heading.**
-  `actionFor` in `VisitorSegmentContent.tsx`: `approved` → Check In,
-  `checked_in` → Check Out, everything else → no button. "All Visitors" mixes an
-  expected arrival and a departed one on one screen, and a button the guard
-  cannot honour is worse than no button.
+- **The Visitors surface is display-only — no card carries an action**
+  (client instruction, 2026-08-14). The tab only shows which visitor falls under
+  which category; Check In and Check Out are gone from every card on every
+  segment. `actionFor` was deleted from `VisitorSegmentContent.tsx` along with
+  the `action`/`actionFor` props on `VisitorGridCard` / `VisitorStackList`, and
+  `Console.tsx` no longer holds any check-in/check-out machinery (no
+  `checkingIn` flow, no `CardReturnConfirm`, no undo banner — its success toast
+  now only ever reports a walk-in check-in). Entry is the Scan Pass and
+  Pre-Approvals desks; exit is the Entry & Exit tab (`/guard/inside-now`), which
+  owns the card-return gate and the undo banner. Do not thread a row action back
+  into this surface — `VisitorStackList.test.tsx` asserts there is no button at
+  all.
 - **The walk-in register is untouched by all of this.** `/visitors/walk-in`
   renders `GuardWalkIns` exactly as before, with its own pending list, because
   registering an unannounced arrival is the one thing on this surface that
@@ -475,7 +481,7 @@
   the two dashboard hooks OR in `scheduled_for` within today. Keep the hooks in step —
   the count and the drill-down list must come from the same window. `useTodayVisits` also
   ORs in the open statuses unbounded, so a visitor still inside from last night is
-  counted in "Inside Now"; the invariant survives, because every row with
+  counted as inside; the invariant survives, because every row with
   `checked_in_at` is either `checked_in` or `checked_out`.
 - **A photo is mandatory on every check-in path.** `CheckInPanel` gates it structurally
   (the confirm step does not render until a photo exists), `GuardWalkInApproved`
@@ -507,23 +513,49 @@
   and do not put it into `GuardConsoleModeContent` — that component serves lists only,
   which has its own test.
 - **The Inside tab lists EVERY checked-in visitor, pre-approved ones included.** Only
-  the Walk-ins tab is walk-in-only. Inside is the exit lane, and it is the sole place
-  in the guard surface that checks a visitor out (`/guard/dashboard` reads, it does not
-  act) — filtering pre-approved arrivals out of it would mean they could never leave.
+  the Walk-ins tab is walk-in-only. The segment itself carries no exit action now
+  (display-only since 2026-08-14) — check-out happens on the **Entry & Exit** tab
+  (`/guard/inside-now`), which owns the card-return gate; `/guard/dashboard` reads,
+  it does not act. Filtering pre-approved arrivals out of the list would make them
+  invisible, which is the same problem in the other direction.
 - **Daily Staff, the Kiosk and Search were removed from the NAV but are still ROUTABLE.**
   `/guard/daily-staff`, `/kiosk` and `/guard/search` remain in `ROLE_ROUTES.guard` on
   purpose — the kiosk runs on its own device. They left the sidebar because neither is
   visitor check-in (Search duplicated lookups the Visitors tabs already cover), not
   because access was revoked. Do not "tidy up" `ROLE_ROUTES` by deleting them.
-- **The guard's second tab is "Inside Now" (`/guard/inside-now`), not "Live Queue".**
-  Renamed 2026-08-14 (client instruction). The tab lists visitors who are already CHECKED
-  IN — people who are not queuing, because they are through the gate — while the actual
-  queue, visitors still waiting, is the dashboard's **Live Arrival Queue**. The two names
-  were the wrong way round, and the page's own `<h2>` disagreed with the nav item that
-  opened it. `/guard/live-queue` stays routable to the same page: it is in guards' bookmarks
-  and in every `?verify=` link the dashboard has emitted. The FILE is still
-  `GuardLiveQueue.tsx` — renaming a component half the guard surface imports buys nothing
-  the route and the label do not already say.
+- **The guard's second tab is "Entry & Exit" (`/guard/inside-now`).** "Live Queue" until
+  2026-08-14, "Inside Now" until 2026-08-15, both renamed on client instruction. It lists
+  everyone who has been through the gate: visitors still inside, **plus visitors who have
+  checked out since the IST day began**. Neither older name survived — "Live Queue" named
+  the dashboard's **Live Arrival Queue** instead (visitors still waiting, who are not on
+  this page at all), and "Inside Now" stopped being true the moment the list carried
+  people who had left. Both `/guard/inside-now` and `/guard/live-queue` stay routable: they
+  are in guards' bookmarks and in every `?verify=` link the dashboard has emitted. The FILE
+  is still `GuardLiveQueue.tsx` — renaming a component half the guard surface imports buys
+  nothing the route and the label do not already say.
+  - **It has its own hook, `lib/useGateActivity.ts`, and that is not duplication.**
+    `useTodayVisits` could not be reused two ways over. It feeds the dashboard KPI tiles,
+    where a tile's count is the length of the list it opens, so widening its window
+    silently changes every tile; and its window was **wrong for this page anyway** — a
+    visitor who came in at 21:00 yesterday and left at 09:00 today was neither created
+    today nor scheduled today, and `checked_out` is not one of the open statuses it carries
+    unbounded, so the one exit most likely to be asked about, the one that crossed
+    midnight, is exactly the row that would have been missing. The window is stated
+    directly instead: `checked_in_at IS NOT NULL` **and** (`status = 'checked_in'`
+    unbounded **or** `checked_out_at >= istDayStart()`). `istDayStart`, never
+    `${dayKey}T00:00:00Z` — a UTC midnight drops every exit made between 00:00 and 05:30
+    IST.
+  - **Still-inside rows sort ABOVE departed ones**, inside by arrival (oldest first —
+    longest on site, closest to an overstay), departed by exit (most recent first). They
+    are the only rows a guard can still act on; a departure above them buries the page's
+    only action. The count line reads `N inside · M left today`, two numbers rather than a
+    total, because a single figure answers neither question the tab is opened with.
+  - **The table carries BOTH times, in an `In` column and an `Out` column.** A visitor
+    still on site shows an **em dash** under Out, never a blank cell: blank reads as "not
+    recorded", and here it means "still here", which is precisely the distinction being
+    looked for. A `checked_out` row offers no action at all — a grey "Left" tick where the
+    Check Out button sits on an inside row — because the only action this page has is the
+    exit and it has already happened.
   - **This page starts no check-in.** The "N arrivals still at the gate" banner and the
     photo + OCR overlay it was the only caller of were removed 2026-08-14. Check-in starts
     on the dashboard's Live Arrival Queue — one route in, not two that can disagree.
@@ -536,12 +568,38 @@
     CheckInFrame's "Host Notified" step is now `status === 'checked_in'` alone — every
     check-in path already notifies the host (`lib/checkInFlow.ts`), so a checked-in visit IS
     a notified host.
-  - **The Check-In Details values are TEXT, not `readOnly` inputs.** An input is a
-    single-line box: a long vendor name, or a host with their department after it, was
-    clipped with no ellipsis and no scrollbar, so a guard could not tell a truncated value
-    from a complete one — on the one card whose entire job is identifying the person at the
-    gate. Same border/background/padding, plus `break-words`. Guarded by
-    `CheckInFrameLegibility.test.tsx`, which fails on any `<input>` in the frame.
+  - **There is NO "Check-In Details" card on the frame** (removed 2026-08-15, client
+    instruction). It listed Visitor Name, Company, Purpose and Host — the exact four
+    columns of the Entry & Exit table directly above it, on the row the guard clicked to
+    open the frame. That is the no-duplicate-renders rule: the same value twice on one
+    screen makes the eye check whether the two agree. The **Badge type** control went with
+    it, a disabled `<select>` holding one option, which was never a choice. The two things
+    the table does *not* carry — the **vehicle number** and the **Notify Host** button —
+    moved into the identity column, so nothing was lost with the card; an action was never
+    a duplicate of a table cell. `CheckInFrameTimeline.test.tsx` fails on any `<input>`,
+    any `<select>`, or the vendor/host/purpose appearing in the frame; it superseded
+    `CheckInFrameLegibility.test.tsx`, which guarded that card's text wrapping. The frame
+    is now two columns: identity (`xl:col-span-7`) and the pass rail (`xl:col-span-5`).
+  - **The frame carries a VISIT TIMELINE: approval, check-in, check-out.**
+    `lib/visitTimeline.ts` + `CheckInTimeline.tsx`, under the step tracker. The tracker
+    says *whether* each stage happened; this says *when* — and the times were previously
+    reachable only from Reports, a surface the guard has no route to. **The approval
+    instant shows for a PRE-APPROVED visitor only** (client instruction): a walk-in's
+    approval happened minutes ago at this gate in front of this guard, a pre-approval's
+    happened elsewhere and possibly days earlier. It comes from `approvalTimestamp()`,
+    never a column — there is no `visits.approved_at`.
+    - **The DATE is printed once, the TIME on every entry** (client instruction). The three
+      instants almost always fall on one day, so repeating it spends the line the guard
+      reads fastest on the fact that varies least. The exception is not collapsed: when the
+      entries span more than one IST day — an approval booked last week, a stay that
+      crossed midnight — `date` is null and **each entry carries its own**. A bare "08:15
+      AM" on a stay that crossed midnight is the same defect this file removed from every
+      `scheduled_for` line. IST is explicit (`timeZone: 'Asia/Kolkata'`), not the browser's
+      zone; this deployment is IST wherever the laptop is.
+    - It renders **nothing at all** when no stage has a usable time yet, and drops an
+      unparseable timestamp rather than printing "Invalid Date". Three em dashes would be
+      three claims of "no time recorded" where the honest answer is that the visit has not
+      reached those stages.
   - **"Identity verified" renders only when it is TRUE** — photo captured AND an ID type on
     the visitor. It used to render unconditionally, in green, with a green ring, for
     everyone. A claim about a person, on a screen someone may later be asked to account for,
@@ -554,6 +612,33 @@
   - **No fabricated facts on the frame.** The Vehicle row printed `"(parking slot B-12)"`
     after every vehicle number; there is no parking allocation anywhere in the schema.
     Removed.
+- **The Pre-Registered board is the WHOLE pre-registration record, not today's slice**
+  (client instruction, 2026-08-15). `/guard/preregistered` read `useTodayVisits`, so a
+  visitor pre-registered last week was simply absent from the tab named after them — the
+  page could not answer the question its own title asks. `lib/usePreRegisteredVisits.ts`
+  fetches every pre-approved visit whatever became of it, newest slot first, capped at
+  `PRE_REGISTERED_LIMIT` (500) with a line on screen saying so when the cap is hit; a
+  truncated record presented as the whole one is the sort of thing a guard is later asked
+  to account for. Membership is decided by **`visitOrigin(v) === 'pre_approved'`**, this
+  repo's one answer to pre-approved-vs-walk-in — the old local `isPreRegistered` counted
+  `walkin_approved` rows, which are definitively walk-ins.
+  - **Today-ness is a FILTER here, never the fetch.** `All` is the entire record; the other
+    four chips — Arriving Today, Arrived, Missed, Late — are today's board, which is what
+    their labels already claim. `lib/preRegisteredBoard.ts` holds **one predicate per
+    chip**, and a chip's badge is the length of the list it opens (the `guardTiles.ts`
+    rule). The board used to compute `arriving` as `all - arrived - missed - late`, which
+    is only ever a count and could never have been a list.
+  - **A pill reads the STATUS before it reads the clock.** Closed statuses map directly
+    (ARRIVED / DEPARTED / NO-SHOW / EXPIRED / CANCELLED / **DECLINED** — never "denied
+    entry", see the `Declined` rule below); only an open row is measured against its slot
+    for EXPECTED / MISSED / LATE. Clock-first was harmless while the board held today's
+    open rows and wrong the moment it held history: a visit swept `no_show` last month has
+    a slot far in the past, and LATE says the visitor is still expected.
+  - **A card's time carries its date unless the slot is today** (`slotLabel` in
+    `PreRegisteredCard.tsx`) — same rule as every other `scheduled_for` line in the app.
+    **Today at a Glance is fed today's rows, never the filtered board**, so switching a
+    chip cannot rewrite the day; its schedule list sorts ascending, because a schedule is
+    read forwards, while the board itself sorts newest-first.
 - **Dashboard reads, Console acts.** `/guard/dashboard` is situational awareness only;
   everything that changes a visit's state lives in `/visitors`. These two used to
   duplicate each other (both rendered an inside-list, both held their own realtime
@@ -970,8 +1055,9 @@ src/
                      #   Verification, watchlist banner), ArrivalQueueTable,
                      #   IdVerificationCard, KpiDrilldownSheet (the in-page KPI
                      #   expansion), WatchlistAlertBanner;
-                     # GuardLiveQueue = the "Inside Now" tab (/guard/inside-now)
-                     #   + LiveQueueTable, CheckInFrame, CheckInBadgeRail;
+                     # GuardLiveQueue = the "Entry & Exit" tab (/guard/inside-now)
+                     #   + LiveQueueTable, CheckInFrame,
+                     #   CheckInBadgeRail, CheckInTimeline;
                      # PreApprovals + PreApprovalRow; Search; Watchlist;
                      # CheckInPanel + CheckInMatchList, CheckInPhotoStep;
                      # VisitorForm + VisitorFormFields, VisitorFormAlerts,
@@ -1001,6 +1087,10 @@ src/
                      #   (the whole day, one fetch, feeds every drill-down),
                      # activeVisit (already-inside checks + guard-readable message),
                      # usePreApprovals, useWatchlist,
+                     # useGateActivity (Entry & Exit: inside + today's exits),
+                     # usePreRegisteredVisits (every pre-approval ever, capped),
+                     # preRegisteredBoard (one predicate per chip + the pills),
+                     # visitTimeline (approved/checked-in/checked-out instants),
                      # visitorSearch (pure query parsing),
                      # statusRail (VisitorCard only — the stacked card has no rail),
                      # visitOrigin (pre-approved vs walk-in, INFERRED — read the note),

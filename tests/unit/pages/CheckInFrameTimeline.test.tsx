@@ -1,0 +1,104 @@
+// The Inside Now check-in frame must show WHEN each stage happened, and must
+// not repeat what the table above it already prints.
+//
+// This replaced CheckInFrameLegibility.test.tsx, which guarded the wrapping of
+// the "Check-In Details" card's values. That card is gone (2026-08-15, client
+// instruction): Visitor Name, Company, Purpose and Host are the exact columns
+// of the Inside Now table directly above the frame, on the row the guard
+// clicked to open it, so the card rendered every one of them twice on one
+// screen.
+import React from 'react';
+import { describe, it, expect, afterEach } from 'vitest';
+import { render, screen, cleanup } from '@testing-library/react';
+import CheckInFrame from '../../../src/pages/Guard/CheckInFrame';
+import type { ReportVisit } from '../../../src/lib/reportRow';
+
+afterEach(cleanup);
+
+const LONG_VENDOR = 'Whitfield & Partners Facilities Management Private Limited';
+const LONG_HOST = 'Dharmendra Kumar Rajagopalan';
+
+function visit(over: Partial<ReportVisit> = {}): ReportVisit {
+  return {
+    id: 'v1',
+    ref_number: 'VIS-20260814-2417',
+    status: 'checked_in',
+    purpose: 'Meeting with D. Kumar',
+    created_at: '2026-08-14T03:00:00Z',
+    scheduled_for: '2026-08-14T05:00:00Z',
+    approvedAt: '2026-08-14T03:00:00Z',
+    checked_in_at: '2026-08-14T05:00:00Z',
+    checked_out_at: null,
+    photo_data: 'data:image/png;base64,abc',
+    visitor: { full_name: 'Sarah Whitfield', vendor_name: LONG_VENDOR, vehicle_number: 'KA 05 AB 1234', id_type: 'PAN' },
+    host: { full_name: LONG_HOST },
+    department: { name: 'Information Technology' },
+    ...over,
+  } as unknown as ReportVisit;
+}
+
+function renderFrame(v: ReportVisit = visit()) {
+  return render(
+    <CheckInFrame
+      activeVisit={v}
+      qrDataUrl={null}
+      onNotifyHost={() => {}}
+      onPrintBadge={() => {}}
+      onClose={() => {}}
+    />,
+  );
+}
+
+describe('CheckInFrame — visit timeline', () => {
+  it('shows the approval, check-in and check-out stages with their times', () => {
+    renderFrame(visit({ status: 'checked_out', checked_out_at: '2026-08-14T12:00:00Z' }));
+    expect(screen.getByText('Visit Timeline')).toBeInTheDocument();
+    expect(screen.getByText('Approved')).toBeInTheDocument();
+    expect(screen.getByText('Checked in')).toBeInTheDocument();
+    expect(screen.getByText('Checked out')).toBeInTheDocument();
+    // 05:00Z = 10:30 IST, 12:00Z = 17:30 IST.
+    expect(screen.getByText(/10:30/)).toBeInTheDocument();
+    expect(screen.getByText(/5:30|17:30/)).toBeInTheDocument();
+  });
+
+  it('prints the date exactly once when every stage falls on the same IST day', () => {
+    renderFrame(visit({ status: 'checked_out', checked_out_at: '2026-08-14T12:00:00Z' }));
+    expect(screen.getAllByText(/14 Aug 2026/).length).toBe(1);
+  });
+
+  it('omits the approval stage for a walk-in', () => {
+    renderFrame(visit({ scheduled_for: null, approvedAt: null } as never));
+    expect(screen.queryByText('Approved')).toBeNull();
+    expect(screen.getByText('Checked in')).toBeInTheDocument();
+  });
+
+  it('renders no timeline at all when no stage has a time yet', () => {
+    renderFrame(visit({ status: 'pending_approval', scheduled_for: null, approvedAt: null, checked_in_at: null } as never));
+    expect(screen.queryByText('Visit Timeline')).toBeNull();
+  });
+});
+
+describe('CheckInFrame — no Check-In Details card', () => {
+  it('does not repeat the table columns (name aside, which is on the pass)', () => {
+    renderFrame();
+    expect(screen.queryByText('Check-In Details')).toBeNull();
+    expect(screen.queryByText(LONG_VENDOR)).toBeNull();
+    expect(screen.queryByText(new RegExp(LONG_HOST))).toBeNull();
+    expect(screen.queryByText('Meeting with D. Kumar')).toBeNull();
+    // The visitor's name survives ONCE, on the printable pass — that is the
+    // pass's own content, not a restatement of the table.
+    expect(screen.getAllByText('Sarah Whitfield').length).toBe(1);
+  });
+
+  it('keeps the two things the table does not carry: the vehicle and Notify Host', () => {
+    renderFrame();
+    expect(screen.getByText('KA 05 AB 1234')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /notify host/i })).toBeInTheDocument();
+  });
+
+  it('drops the disabled one-option Badge type select with the card', () => {
+    const { container } = renderFrame();
+    expect(container.querySelectorAll('select').length).toBe(0);
+    expect(container.querySelectorAll('input').length).toBe(0);
+  });
+});

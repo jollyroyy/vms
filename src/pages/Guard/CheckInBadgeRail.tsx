@@ -50,6 +50,8 @@ type CheckInBadgeRailProps = {
   qrDataUrl: string | null;
   onPrintBadge: () => void;
   onClose: () => void;
+  /** Log this visitor's exit. Omitted, the rail is read-only. */
+  onCheckOut?: () => void;
 };
 
 export default function CheckInBadgeRail({
@@ -57,12 +59,13 @@ export default function CheckInBadgeRail({
   qrDataUrl,
   onPrintBadge,
   onClose,
+  onCheckOut,
 }: CheckInBadgeRailProps): React.ReactElement {
   const photo = activeVisit.photo_data;
   const name = activeVisit.visitor?.full_name ?? 'Visitor';
 
   return (
-    <div className="xl:col-span-4 rounded-2xl bg-surface-100/60 dark:bg-white/[0.03] border border-surface-200/60 dark:border-white/[0.07] p-5 shadow-glow-sm">
+    <div className="xl:col-span-5 rounded-2xl bg-surface-100/60 dark:bg-white/[0.03] border border-surface-200/60 dark:border-white/[0.07] p-5 shadow-glow-sm">
       {/* The pass, laid out exactly as the reference card: dark lanyard notch ·
           logo mark beside the issuing wordmark · FULL-BLEED blue VISITOR PASS
           band · circular photo in a blue ring · name · blue day-pass number ·
@@ -132,6 +135,20 @@ export default function CheckInBadgeRail({
       </div>
 
       <div className="mt-4 space-y-2">
+        {/* The exit. It leads the stack because it is the only thing on this
+            screen that changes the visit — printing is optional and Back to
+            Queue is navigation. /visitors/inside used to be the sole place a
+            visitor could leave; with that surface retired, this is it. */}
+        {onCheckOut && (
+          <button
+            onClick={onCheckOut}
+            className="w-full rounded-xl bg-danger-600 hover:bg-danger-500 text-white font-semibold text-sm px-4 py-2.5 flex items-center justify-center gap-2 transition-colors">
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75" />
+            </svg>
+            Check Out
+          </button>
+        )}
         <button
           onClick={onPrintBadge}
           className="w-full rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-semibold text-sm px-4 py-2.5 flex items-center justify-center gap-2 transition-colors shadow-glow-sm">

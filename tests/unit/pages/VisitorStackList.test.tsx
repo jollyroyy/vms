@@ -42,11 +42,11 @@ describe('VisitorStackList', () => {
   });
 
   it('renders one card per visit', () => {
-    const { container } = render(
+    render(
       <VisitorStackList segment="inside" loading={false}
         visits={[visit(), visit({ id: 'v2', ref_number: 'VIS-2' })]} />,
     );
-    expect(container.querySelectorAll('.stack-card')).toHaveLength(2);
+    expect(screen.getAllByText('Alice Johnson')).toHaveLength(2);
   });
 
   // Client instruction, 2026-08-13. Nothing sits between the heading and the
@@ -75,17 +75,18 @@ describe('VisitorStackList', () => {
   it('renders skeletons and no cards while loading', () => {
     const { container } = render(<VisitorStackList segment="inside" visits={[]} loading />);
     expect(container.querySelector('[aria-busy="true"]')).toBeInTheDocument();
-    expect(container.querySelectorAll('.stack-card')).toHaveLength(0);
+    expect(screen.queryAllByText('Alice Johnson')).toHaveLength(0);
     expect(screen.queryByText(SEGMENT_META.inside.empty)).toBeNull();
   });
 
-  it('renders the per-row action only where actionFor returns one', () => {
-    const onClick = vi.fn();
+  // The list passes NO action down (client instruction, 2026-08-14): the
+  // Visitors tab only shows which visitor falls under which category. There is
+  // no per-row action prop to wire, and one must not quietly come back.
+  it('renders no action button on any card', () => {
     render(
       <VisitorStackList segment="inside" loading={false}
-        visits={[visit({ id: 'a' }), visit({ id: 'b', status: 'checked_out' })]}
-        actionFor={(v) => (v.status === 'checked_in' ? { label: 'Check Out', onClick } : undefined)} />,
+        visits={[visit(), visit({ id: 'b', status: 'checked_out' })]} />,
     );
-    expect(screen.getAllByText('Check Out')).toHaveLength(1);
+    expect(screen.queryByRole('button')).toBeNull();
   });
 });

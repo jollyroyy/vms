@@ -3,7 +3,6 @@ import type { Visit } from '../../types/index';
 import VisitorStackList from './VisitorStackList';
 import GuardWalkIns from './GuardWalkIns';
 import GuardWalkInApproved, { type WalkInCheckIn } from './GuardWalkInApproved';
-import type { StackAction } from './VisitorStackCard';
 import { SEGMENT_META, segmentVisits, type ListSegment, type VisitorSegment } from '../../lib/visitorSegments';
 
 /** Heading + subtitle for a segment that is a flow rather than a list.
@@ -26,8 +25,6 @@ type Props = {
   visits: Visit[];
   loading: boolean;
   busyId: string | null;
-  onCheckIn: (v: Visit) => void;
-  onCheckOut: (v: Visit) => void;
   onWalkInCheckIn: (v: Visit, details: WalkInCheckIn) => void;
   onWalkInSubmitted: (name: string) => void;
 };
@@ -43,8 +40,10 @@ type Props = {
 //   walkinApproved — captures a photo at the gate before it can act, so it is
 //                    a flow with its own component, not a row with a button.
 //
-// The other six are the same stacked list with a different slice and a
-// different action, which is the point: one card, learned once.
+// The other six are the same stacked list with a different slice — a card grid
+// with NO action (client instruction, 2026-08-14): the Visitors tab only shows
+// which visitor falls under which category, and check-in / check-out happen on
+// their own desks, never from a card in a category list.
 export default function VisitorSegmentContent(props: Props): React.ReactElement {
   const { segment, visits, loading } = props;
 
@@ -84,23 +83,6 @@ export default function VisitorSegmentContent(props: Props): React.ReactElement 
       segment={segment as ListSegment}
       visits={rows}
       loading={loading}
-      actionFor={(v) => actionFor(v, props)}
     />
   );
-}
-
-// The action a row offers depends on the visit, not on the segment heading —
-// "All Visitors" mixes an expected arrival and a departed one on the same
-// screen, and each must offer what it can actually do.
-function actionFor(v: Visit, p: Props): StackAction | undefined {
-  if (v.status === 'approved') {
-    return { label: 'Check In', onClick: () => p.onCheckIn(v) };
-  }
-  if (v.status === 'checked_in') {
-    return { label: 'Check Out', onClick: () => p.onCheckOut(v), disabled: p.busyId === v.id };
-  }
-  // pending_approval waits on a host, walkin_approved needs the photo flow on
-  // its own segment, and a closed visit has nothing left to do. None of those
-  // get a button the guard cannot honour.
-  return undefined;
 }

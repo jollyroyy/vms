@@ -71,13 +71,14 @@ describe('CheckInFrame honesty fixes', () => {
     expect(screen.queryByText(/parking slot/i)).toBeNull();
   });
 
-  // Scope change: the Badge type fix was cancelled — no visual/control
-  // changes were to be made. The disabled select is left exactly as it was.
-  it('leaves the Badge type control as the original disabled select', () => {
-    renderFrame(visit());
-    const select = screen.getByDisplayValue('Temporary — Day Pass');
-    expect(select.tagName).toBe('SELECT');
-    expect(select).toBeDisabled();
+  // The Badge type control went with the Check-In Details card it lived in
+  // (2026-08-15, client instruction). It was a disabled select holding one
+  // option — a control that offered no choice, on a card whose other four rows
+  // duplicated the Inside Now table above it.
+  it('no longer renders the Badge type select', () => {
+    const { container } = renderFrame(visit());
+    expect(screen.queryByDisplayValue('Temporary — Day Pass')).toBeNull();
+    expect(container.querySelectorAll('select').length).toBe(0);
   });
 
   it('shows a real validity time on the pass, never the old hardcoded 06:00 PM', () => {

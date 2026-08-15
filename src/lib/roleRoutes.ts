@@ -19,8 +19,10 @@ export const ROLE_ROUTES: Record<UserRole, string[]> = {
   // revoked. Removing them here would be a regression, not a cleanup.
   // The four-tab guard surface from the approved reference design — Dashboard,
   // Live Queue, Pre-Registered, Watchlist — all of which link to each other
-  // from the dashboard ("View Full Queue", "Verify ID", the watchlist banner),
-  // so all three new paths must be allowed here or the sidebar tabs 404.
+  // from the dashboard ("Verify ID", the watchlist banner), so all three new
+  // paths must be allowed here or the sidebar tabs 404. The "View Full Queue"
+  // dashboard link was removed 2026-08-14 (client instruction); the Inside Now
+  // route stays for the nav item and for `?verify=` links in guards' bookmarks.
   guard:       ['/guard/dashboard', '/guard/inside-now', '/guard/live-queue', '/guard/preregistered', '/guard/watchlist',
                 '/guard/scan-pass', '/visitors', '/guard', '/guard/pre-approvals',
                 '/guard/search', '/guard/daily-staff', '/kiosk', '/whos-inside', '/profile', '/search'],

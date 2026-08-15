@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { supabase } from '../../supabaseClient';
 import { useTodayVisits } from '../../lib/useTodayVisits';
+import { escalateWatchlistMatch } from '../../lib/notifyWatchlistEscalation';
 import { istDateKey } from '../../lib/visitExpiry';
 import { safeErrorMessage } from '../../lib/errors';
 import WatchlistMatchCard, { type WatchlistMatch } from './WatchlistMatchCard';
@@ -75,31 +75,33 @@ export default function GuardWatchlist(): React.ReactElement {
 
   const act = async (row: WatchlistMatch, action: 'dispatch' | 'notify' | 'dismiss') => {
     setError('');
-    try {
-      // Dispatch / Notify are logged on the visit as remarks context — the
-      // schema has no incident table, so the action trail lives where the
-      // guard lanes already write context. Nothing else writes these suffixes.
-      const suffix =
-        action === 'dispatch'
-          ? ' - SECURITY DISPATCHED'
-          : action === 'notify'
-            ? ' - ADMIN NOTIFIED'
-            : ' - watchlist match dismissed by guard';
-      if (action === 'dismiss') {
-        setDismissed((prev) => new Set(prev).add(row.visitId));
-        setToast('Match dismissed.');
-      } else {
-        const { error: err } = await supabase
-          .from('visits')
-          .update({ remarks: ((row as unknown as { remarks?: string }).remarks && ' - ' ? '' : '') + suffix })
-          .eq('id', row.visitId);
-        if (err) throw err;
-        setToast(action === 'dispatch' ? 'Security team dispatched.' : 'Admin team notified.');
-      }
+    if (action === 'dismiss') {
+      setDismissed((prev) => new Set(prev).add(row.visitId));
+      setToast('Match dismissed on this screen.');
       setTimeout(() => setToast(null), 4000);
-    } catch (err) {
-      setError(safeErrorMessage(err, 'Could not log that action.'));
+      return;
     }
+
+    // Escalation is a message to a person, so it goes to the notifications
+    // table the bell already reads (migration 079). It used to overwrite
+    // `visits.remarks` — the HOD's approval note that Reports prints — with a
+    // magic suffix string. See lib/notifyWatchlistEscalation.ts.
+    const res = await escalateWatchlistMatch({
+      visitId: row.visitId,
+      visitorName: row.name,
+      reason: row.reason,
+      action,
+    });
+    if (!res.ok) { setError(res.message); return; }
+    // Say what actually happened. "Security team dispatched" claimed an event
+    // this system cannot cause; what it can do is put the alert in front of the
+    // people who can.
+    setToast(
+      action === 'dispatch'
+        ? `Dispatch requested — ${res.recipients} admin${res.recipients === 1 ? '' : 's'} alerted.`
+        : `Flagged for review — ${res.recipients} admin${res.recipients === 1 ? '' : 's'} alerted.`,
+    );
+    setTimeout(() => setToast(null), 4000);
   };
 
   const requestFullscreen = async (card: HTMLElement | null) => {

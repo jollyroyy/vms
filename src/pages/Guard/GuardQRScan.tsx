@@ -12,27 +12,12 @@ import React, { useCallback, useRef, useState } from 'react';
 import { decodeQrFile } from '../../lib/decodeQrImage';
 import { lookupVisitByQr } from '../../lib/qrLookup';
 import { useQrScanner } from '../../lib/useQrScanner';
-import type { QrGate } from '../../lib/qrToken';
 import type { Visit } from '../../types/index';
 
 type Props = {
   /** A pass that PASSED its gate and may proceed straight to check-in. */
   onResolved: (visit: Visit) => void;
   onCancel: () => void;
-  /** Every pass the token resolved to, gate or no gate.
-   *
-   *  When supplied it replaces the built-in refusal card entirely, because the
-   *  refusal card was the whole problem: a blocked scan rendered a red sentence
-   *  and a name, discarding the visit row it had just fetched. The guard was
-   *  left holding a visitor with no way to see who they were here to meet or
-   *  what had already happened to the visit. The Check-in / Check-out desk
-   *  passes this so it can show the record and the reason together — the reason
-   *  becomes one fact among many rather than the only one.
-   *
-   *  The gate still decides what may be DONE; it no longer decides what may be
-   *  SEEN. Callers that only ever act on a valid pass (ScanPass,
-   *  CheckInScanGate) omit this and keep the original behaviour. */
-  onFound?: (visit: Visit, gate: QrGate) => void;
 };
 
 type ScanMessage = {
@@ -57,7 +42,7 @@ const UPLOAD_FAIL_TEXT: Record<'no_code' | 'engine', string> = {
   engine: 'We could not read that file on this device — this is a fault in the app, not the pass. Search manually and report it; a clearer photo will not help.',
 };
 
-export default function GuardQRScan({ onResolved, onCancel, onFound }: Props): React.ReactElement {
+export default function GuardQRScan({ onResolved, onCancel }: Props): React.ReactElement {
   const videoRef = useRef<HTMLVideoElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const inFlightRef = useRef(false);
@@ -73,12 +58,7 @@ export default function GuardQRScan({ onResolved, onCancel, onFound }: Props): R
 
       switch (result.status) {
         case 'found':
-          // A caller that wants the whole record takes it, blocked or not, and
-          // owns the explaining from here. Nothing about the gate changes — the
-          // gate is handed over with the visit.
-          if (onFound) {
-            onFound(result.visit, result.gate);
-          } else if (result.gate.ok) {
+          if (result.gate.ok) {
             onResolved(result.visit);
           } else {
             setMessage({
@@ -103,7 +83,7 @@ export default function GuardQRScan({ onResolved, onCancel, onFound }: Props): R
       inFlightRef.current = false;
       setMessage({ kind: 'error', text: 'Could not read that code. Try again or search manually.' });
     });
-  }, [onResolved, onFound]);
+  }, [onResolved]);
 
   const { state } = useQrScanner({ videoRef, onDecode: handleDecode, paused: message !== null });
 

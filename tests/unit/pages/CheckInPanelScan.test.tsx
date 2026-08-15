@@ -95,8 +95,11 @@ beforeEach(() => {
           if (cols === 'id, visitor_id, status') {
             return { in: () => ({ gte: () => Promise.resolve({ data: [], error: null }) }) };
           }
-          if (cols === 'visitor_id') {
-            return { eq: () => ({ maybeSingle: vi.fn().mockResolvedValue({ data: { visitor_id: 'vis1' }, error: null }) }) };
+          // checkInScannedVisit's visitor lookup. It carries the blacklist
+          // columns because the watchlist gate reads them here — a valid pass
+          // is not the same as a visitor who is still welcome.
+          if (cols.startsWith('visitor_id')) {
+            return { eq: () => ({ maybeSingle: vi.fn().mockResolvedValue({ data: { visitor_id: 'vis1', visitor: { is_blacklisted: false, blacklist_reason: null } }, error: null }) }) };
           }
           // lib/activeVisit's "is this person already inside?" lookup —
           // chainable .eq() ending in .limit(). Returns whatever

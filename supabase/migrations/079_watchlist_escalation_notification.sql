@@ -1,0 +1,31 @@
+-- 079 — `watchlist_escalation` joins notification_type.
+--
+-- The guard's Watchlist page has two escalation buttons, Dispatch Security and
+-- Notify Admin. Until now they wrote to `visits.remarks`:
+--
+--     remarks = ((row.remarks && ' - ') ? '' : '') + ' - SECURITY DISPATCHED'
+--
+-- which always evaluates to the bare suffix, so pressing either button
+-- OVERWROTE the column. `visits.remarks` is the walk-in note an HOD reads when
+-- deciding an approval (migration 068) and Reports prints it — so a guard
+-- escalating a watchlist match silently destroyed a colleague's note, and the
+-- "flag" itself was a magic substring in free prose, which a genuine remark
+-- could contain by accident.
+--
+-- Escalation is a message to a person, so it belongs in `notifications`, the
+-- same conclusion migration 069/070 reached for the overdue nudge and 075 for
+-- the no-show notices. `related_id` is the visit, so the alert opens onto the
+-- record it is about.
+--
+-- Recipients are admins: there is no security-team entity and no paging
+-- integration in this schema, so the only honest claim the button can make is
+-- "the people who can act on this have been told".
+--
+-- Enum values cannot be added inside a transaction that then uses them in older
+-- PostgreSQL, but they can be added idempotently — same form as 069 and 075.
+
+alter type public.notification_type add value if not exists 'watchlist_escalation';
+
+-- No policy change is needed: `notifications` already lets an authenticated
+-- user insert a row addressed to another user (that is how every existing
+-- guard->host notice works) and lets a recipient read only their own.

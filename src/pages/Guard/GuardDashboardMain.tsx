@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
 
-import { Link } from 'react-router-dom';
 import { tileVisits, type GuardTileKey } from '../../lib/guardTiles';
 import { useTodayVisits } from '../../lib/useTodayVisits';
 import { istDateKey } from '../../lib/visitExpiry';
@@ -234,17 +233,6 @@ export default function GuardDashboardMain(): React.ReactElement {
               setDrillTile(null);
             }}
           />
-
-          <div className="mt-4 flex justify-center">
-            <Link
-              to="/guard/inside-now"
-              className="text-sm font-semibold text-brand-500 hover:text-brand-400 flex items-center gap-1 transition-colors">
-              View Full Queue
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
-              </svg>
-            </Link>
-          </div>
         </div>
 
         <IdVerificationCard idTarget={idTarget} initialsOf={initialsOf} />

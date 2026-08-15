@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { useTodayVisits } from '../../lib/useTodayVisits';
+import { useGateActivity } from '../../lib/useGateActivity';
 import { istDateKey } from '../../lib/visitExpiry';
 import type { ReportVisit } from '../../lib/reportRow';
 import { safeErrorMessage } from '../../lib/errors';
@@ -10,15 +10,24 @@ import SuccessToast from '../../components/SuccessToast';
 import { notifyHostOnCheckIn } from '../../lib/notifyHostCheckIn';
 import CheckInFrame from './CheckInFrame';
 import LiveQueueTable from './LiveQueueTable';
+import CardReturnConfirm from './CardReturnConfirm';
+import { logVisitExit } from '../../lib/checkOutFlow';
 
-// Inside Now — the guard's second tab (/guard/inside-now).
+// Entry & Exit — the guard's second tab (/guard/inside-now).
 //
-// Renamed from "Live Queue" 2026-08-14 (client instruction). It lists visitors
-// who are already CHECKED IN, and those people are not a queue — they are
-// through the gate. The queue proper, visitors still waiting, is the
-// dashboard's Live Arrival Queue, so the two names were the wrong way round.
-// The FILE keeps its old name: renaming a component half the guard surface
-// imports buys nothing that the route and the label do not already say.
+// Named "Live Queue" until 2026-08-14, then "Inside Now" until 2026-08-15. It
+// lists everyone who has been through the gate: those still inside, and those
+// who have checked out since the IST day began. Neither older name survived the
+// widening — "Live Queue" described the dashboard's Live Arrival Queue (people
+// still waiting, who are not on this page at all), and "Inside Now" was a claim
+// the list stopped making the moment it carried departures. "Entry & Exit" is
+// the two events the tab actually records and nothing more.
+//
+// The FILE keeps its old name, as it did through the last rename: renaming a
+// component half the guard surface imports buys nothing the route and the label
+// do not already say. Both /guard/inside-now and /guard/live-queue stay
+// routable — they are in guards' bookmarks and in every ?verify= link the
+// dashboard has emitted.
 //
 // SPLIT VIEW, exactly as the approved frame: the queue stays visible on the
 // LEFT while the SELECTED visitor's check-in frame renders on the RIGHT —
@@ -32,14 +41,31 @@ import LiveQueueTable from './LiveQueueTable';
 // STARTS no check-in: the "N arrivals still at the gate" banner and the
 // photo + OCR overlay it opened were removed 2026-08-14 (client instruction),
 // leaving one route into a check-in rather than two that could disagree.
+//
+// It does END one. /visitors/inside was the only place a visitor could be
+// checked out, so retiring that surface would have meant nobody could ever
+// leave. The exit lands here because this is the list of people who are
+// actually inside — and it goes through the same CardReturnConfirm dialog and
+// the same lib/checkOutFlow write the old surface used, so "did a human
+// witness this exit" and "did the card come back" keep one answer each.
 
+// The two times the tab is named for. A row always has an entry time (the
+// query requires `checked_in_at`); the exit is an em dash until it happens,
+// never a blank — blank reads as "not recorded", and on this list it means
+// "still here", which is the difference the guard is looking for.
 function timeOf(v: ReportVisit): string {
   if (v.checked_in_at) return new Date(v.checked_in_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
   if (v.scheduled_for) return new Date(v.scheduled_for).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
   return new Date(v.created_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
 }
 
+function exitTimeOf(v: ReportVisit): string {
+  if (!v.checked_out_at) return '—';
+  return new Date(v.checked_out_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+}
+
 function statusPill(v: ReportVisit) {
+  if (v.status === 'checked_out') return { label: 'CHECKED OUT', cls: 'bg-navy-500/15 text-navy-400 border-navy-400/30' };
   if (v.checked_in_at) return { label: 'CHECKED IN', cls: 'bg-success-600/15 text-success-500 border-success-500/30' };
   if (v.status === 'approved') return { label: 'PRE-REGISTERED', cls: 'bg-brand-600/15 text-brand-400 border-brand-500/30' };
   return { label: 'WAITING', cls: 'bg-warning-500/15 text-warning-400 border-warning-400/30' };
@@ -52,12 +78,17 @@ export default function GuardLiveQueue(): React.ReactElement {
   const [searchParams, setSearchParams] = useSearchParams();
   const [clock, setClock] = useState(() => new Date());
   const today = istDateKey(clock);
-  const { visits, loading: visitsLoading } = useTodayVisits(today);
+  const { visits, loading: visitsLoading } = useGateActivity(today);
 
   // The visitor whose details render in the right-hand frame. Selecting a
   // queue row updates it live; arriving at /guard/inside-now?verify=<id>
   // (from the dashboard's ID Verification card) preselects that visitor.
   const [activeVisit, setActiveVisit] = useState<ReportVisit | null>(null);
+
+  // The visitor the guard has asked to check out. Holding the visit here (not
+  // a boolean) means the confirm dialog always names the row that was clicked,
+  // even if the live subscription reorders the table underneath it.
+  const [exitTarget, setExitTarget] = useState<ReportVisit | null>(null);
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [error, setError] = useState('');
@@ -88,14 +119,24 @@ export default function GuardLiveQueue(): React.ReactElement {
       .catch(() => setQrDataUrl(null));
   }, [liveActive]);
 
-  // Inside Now = checked-in visitors only (un-checked-in arrivals live on the
-  // dashboard's Live Arrival Queue).
-  const queue = visits
+  // Entry & Exit = everyone through the gate: still inside, plus today's
+  // departures. Un-checked-in arrivals are not here at all — they live on the
+  // dashboard's Live Arrival Queue, which is where a check-in starts.
+  //
+  // STILL INSIDE FIRST, each group by its own clock: the people on site are the
+  // ones a guard can still act on, and putting a departure above them would
+  // bury the only actionable rows on the page. Inside sorts by arrival (oldest
+  // first — longest on site, closest to an overstay); departures sort by exit,
+  // most recent first, because "who just left?" is the question asked of them.
+  const inside = visits
     .filter((v) => v.status === 'checked_in')
     .sort((a, b) => (a.checked_in_at ?? a.created_at).localeCompare(b.checked_in_at ?? b.created_at));
+  const departed = visits
+    .filter((v) => v.status === 'checked_out')
+    .sort((a, b) => (b.checked_out_at ?? b.created_at).localeCompare(a.checked_out_at ?? a.created_at));
+  const queue = [...inside, ...departed];
 
   const selectVisit = (v: ReportVisit) => {
-    // Every row in this queue is checked in — show their completed frame.
     setActiveVisit(v);
   };
 
@@ -149,6 +190,22 @@ export default function GuardLiveQueue(): React.ReactElement {
     }
   };
 
+  // The exit WRITE, reached only through CardReturnConfirm — the dialog names
+  // the card the guard has to collect and stays disabled until it is ticked
+  // back, so a completed check-out is the record of a witnessed handover.
+  const confirmExit = async (visit: ReportVisit) => {
+    setError('');
+    const res = await logVisitExit(visit);
+    if (!res.ok) { setError(res.message); return; }
+    setExitTarget(null);
+    // The right-hand frame described someone who is no longer inside; the
+    // realtime subscription is about to drop them from the table too.
+    setActiveVisit(null);
+    setSearchParams({});
+    setToast(`"${visit.visitor?.full_name ?? 'Visitor'}" checked out.`);
+    setTimeout(() => setToast(null), 5000);
+  };
+
   const closeSplitSelection = () => {
     setActiveVisit(null);
     setSearchParams({});
@@ -173,10 +230,13 @@ export default function GuardLiveQueue(): React.ReactElement {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </span>
-            <h2 className="font-display text-h2 text-navy-950 dark:text-white">Inside Now</h2>
+            <h2 className="font-display text-h2 text-navy-950 dark:text-white">Entry &amp; Exit</h2>
           </div>
+          {/* Two numbers, not one total. "12 visitors" on a list holding both
+              groups answers neither of the questions this tab is opened with —
+              how many are on site, and how many have gone. */}
           <span className="text-sm text-navy-500 dark:text-navy-400 tabular-nums">
-            {visitsLoading ? '…' : queue.length} visitor{queue.length === 1 ? '' : 's'}
+            {visitsLoading ? '…' : `${inside.length} inside · ${departed.length} left today`}
           </span>
         </div>
 
@@ -186,8 +246,10 @@ export default function GuardLiveQueue(): React.ReactElement {
           initialsOf={initialsOf}
           statusPill={statusPill}
           timeOf={timeOf}
+          exitTimeOf={exitTimeOf}
           onSelect={selectVisit}
           selectedId={liveActive?.id ?? null}
+          onCheckOut={setExitTarget}
         />
       </div>
 
@@ -201,6 +263,18 @@ export default function GuardLiveQueue(): React.ReactElement {
           onNotifyHost={notifyHost}
           onPrintBadge={printBadge}
           onClose={closeSplitSelection}
+          // Only somebody actually inside can leave. Every row in this table is
+          // checked_in, but the frame is reused elsewhere, so the guard is
+          // explicit rather than assumed.
+          onCheckOut={liveActive.status === 'checked_in' ? () => setExitTarget(liveActive) : undefined}
+        />
+      )}
+
+      {exitTarget && (
+        <CardReturnConfirm
+          visit={exitTarget}
+          onConfirm={() => { void confirmExit(exitTarget); }}
+          onClose={() => setExitTarget(null)}
         />
       )}
     </div>

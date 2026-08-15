@@ -51,6 +51,23 @@ type Opts = {
 
 const EXPIRED_MESSAGE = 'Cannot check in — this pass was for an earlier day and has expired. Please request a new approval.';
 
+/** The blacklist columns as they arrive through the embedded to-one relation.
+    Supabase spells a to-one embed as an object on some client versions and a
+    single-element array on others; both have to close the gate. */
+type FlagRow = { is_blacklisted: boolean | null; blacklist_reason: string | null };
+
+function flagOf(embed: unknown): FlagRow | null {
+  const row = Array.isArray(embed) ? embed[0] : embed;
+  return (row as FlagRow | null | undefined) ?? null;
+}
+
+function blacklistMessage(name: string, reason: string | null): string {
+  // A blank reason is still a flag. Print the sentence without it rather than
+  // a dangling "watchlist: null" — the guard's next step is the same either way.
+  const why = reason?.trim();
+  return `Cannot check in — ${name} is on the watchlist${why ? `: ${why}` : ''}. Call the security supervisor before allowing entry.`;
+}
+
 export async function checkInScannedVisit({ match, visit, photoBlob, carrying, remarks, idScan, cardNumber }: Opts): Promise<CheckInOutcome> {
   // The tick box is the record. Remarks only survive if the box is ticked,
   // so a guard who types a list and then unticks cannot leave orphaned text
@@ -72,10 +89,27 @@ export async function checkInScannedVisit({ match, visit, photoBlob, carrying, r
   // can also land here with a visit that has been open across days.
   if (visit && isVisitExpired(visit)) return { ok: false, message: EXPIRED_MESSAGE };
 
-  const { photoPath, photoData } = await uploadPhoto(photoBlob);
   if (!match.visitId) return { ok: false, message: 'Missing visit ID for check-in' };
 
-  const { data: visitRec } = await supabase.from('visits').select('visitor_id').eq('id', match.visitId).maybeSingle();
+  // A valid pass says an APPROVER said yes; it does not say the person is
+  // still welcome. WalkInRequest and the kiosk refuse a flagged phone at
+  // REGISTRATION, but every scan-and-enter path skipped is_blacklisted
+  // entirely — so a visitor flagged after their pass was issued walked in
+  // clean and the watchlist page only reported it afterwards. The gate lives
+  // here, in the one write those paths share, and it runs BEFORE the photo
+  // upload: there is no point storing a picture for an entry that cannot
+  // happen.
+  const { data: visitRec } = await supabase
+    .from('visits')
+    .select('visitor_id, visitor:visitors(is_blacklisted, blacklist_reason)')
+    .eq('id', match.visitId)
+    .maybeSingle();
+
+  const flag = flagOf((visitRec as { visitor?: unknown } | null)?.visitor);
+  if (flag?.is_blacklisted) return { ok: false, message: blacklistMessage(match.visitorName, flag.blacklist_reason) };
+
+  const { photoPath, photoData } = await uploadPhoto(photoBlob);
+
   if (idScan?.idType || idScan?.idLast4) {
     await supabase.from('visitors').update({
       id_type: idScan.idType || null,

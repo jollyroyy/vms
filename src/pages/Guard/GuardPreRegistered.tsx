@@ -1,10 +1,19 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { useTodayVisits } from '../../lib/useTodayVisits';
+import { usePreRegisteredVisits } from '../../lib/usePreRegisteredVisits';
 import { istDateKey } from '../../lib/visitExpiry';
 import type { ReportVisit } from '../../lib/reportRow';
-import PreRegisteredCard, { type PreRegisteredPill } from './PreRegisteredCard';
+import {
+  chipCounts,
+  chipVisits,
+  isScheduledToday,
+  preRegisteredPill,
+  type PreRegisteredChip,
+} from '../../lib/preRegisteredBoard';
+import PreRegisteredCard from './PreRegisteredCard';
 import GlanceRail from './GlanceRail';
 import OverdueBanner from './OverdueBanner';
+import VisitorCheckInFlow from './VisitorCheckInFlow';
+import SuccessToast from '../../components/SuccessToast';
 
 // Pre-Registered Arrivals — reference screen 3.
 //
@@ -14,69 +23,48 @@ import OverdueBanner from './OverdueBanner';
 // and the right-rail "Today at a Glance" (morning arrivals, afternoon
 // expected, VIP count, schedule list) exactly as framed in the attachment.
 //
-// Data is the single today-visits subscription; chips and counts are derived
-// slices of it so the pills can never disagree with the rail numbers.
-// "Missed" = approved today whose scheduled time has already passed with no
-// check-in; "Late" = missed AND the slot is more than 30 minutes in the past.
+// THE BOARD IS THE WHOLE PRE-REGISTRATION RECORD, not today's slice (client
+// instruction, 2026-08-15). It read `useTodayVisits`, so a visitor who was
+// pre-registered last week was simply absent from the tab named after them.
+// `usePreRegisteredVisits` fetches every pre-approved visit, whatever became of
+// it, and today-ness moved to where it belongs: the four dated chips and the
+// Today at a Glance rail, each of which says "today" on its face.
+//
+// The chip predicates and the card pills live in `lib/preRegisteredBoard.ts` —
+// one rule per chip, so a badge's number is the length of the list it opens.
 
-type ChipKey = 'all' | 'arriving' | 'arrived' | 'missed' | 'late';
-
-const CHIP_ORDER: { key: ChipKey; label: string; cls: string }[] = [
-  { key: 'all', label: 'All', cls: '' },
-  { key: 'arriving', label: 'Arriving Today', cls: '' },
-  { key: 'arrived', label: 'Arrived', cls: '' },
-  { key: 'missed', label: 'Missed', cls: '' },
-  { key: 'late', label: 'Late', cls: '' },
+const CHIP_ORDER: { key: PreRegisteredChip; label: string }[] = [
+  { key: 'all', label: 'All' },
+  { key: 'arriving', label: 'Arriving Today' },
+  { key: 'arrived', label: 'Arrived' },
+  { key: 'missed', label: 'Missed' },
+  { key: 'late', label: 'Late' },
 ];
-
-const ARRIVAL = 'approved' as const;
-const WALKIN_APPROVED = 'walkin_approved' as const;
-const CHECKED_IN = 'checked_in' as const;
-
-function isPreRegistered(v: ReportVisit): boolean {
-  // Pre-registered = raised BEFORE walking in. approved slots and any slot the
-  // host already cleared (walkin_approved) are the pre-registered universe;
-  // pending_approval rows live on the HOD's desk, not at the gate's board.
-  return v.status === ARRIVAL || v.status === WALKIN_APPROVED || v.status === CHECKED_IN;
-}
-
-function pillFor(v: ReportVisit, now: Date): PreRegisteredPill {
-  if (v.status === CHECKED_IN) {
-    return { label: 'ARRIVED', cls: 'bg-success-600/15 text-success-500 border-success-500/30' };
-  }
-  const slot = v.scheduled_for ? new Date(v.scheduled_for).getTime() : null;
-  if (slot && slot < now.getTime()) {
-    const minutesPast = (now.getTime() - slot) / 60000;
-    return {
-      label: minutesPast > 30 ? 'LATE' : 'MISSED',
-      cls: minutesPast > 30 ? 'bg-warning-500/15 text-warning-400 border-warning-400/30' : 'bg-danger-600/15 text-danger-400 border-danger-500/30',
-    };
-  }
-  return { label: 'EXPECTED', cls: 'bg-brand-600/15 text-brand-400 border-brand-500/30' };
-}
 
 export default function GuardPreRegistered(): React.ReactElement {
   const [clock, setClock] = useState(() => new Date());
-  const [chip, setChip] = useState<ChipKey>('all');
+  const [chip, setChip] = useState<PreRegisteredChip>('all');
   const [query, setQuery] = useState('');
-  const today = istDateKey(clock);
-  const { visits, loading } = useTodayVisits(today);
+  // The visitor currently being checked in. It is a mode of this page rather
+  // than a separate route: the guard is standing in front of the person, and
+  // this board is where they were just reading that person's name.
+  // The hook subscribes to `visits`, so the board refreshes once check-in writes.
+  const [checkingIn, setCheckingIn] = useState<ReportVisit | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
+  const { visits: preReg, loading, truncated } = usePreRegisteredVisits();
 
   useEffect(() => {
     const t = setInterval(() => setClock(new Date()), 1000);
     return () => clearInterval(t);
   }, []);
 
-  const preReg = useMemo(() => visits.filter(isPreRegistered), [visits]);
-  const now = clock.getTime();
+  // Recomputed on the minute, not the second: every rule on this board turns on
+  // whole minutes past a slot, so a per-second identity would re-slice the whole
+  // list sixty times for nothing.
+  const minuteKey = `${istDateKey(clock)}T${clock.getHours()}:${clock.getMinutes()}`;
+  const now = useMemo(() => new Date(clock), [minuteKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const counts = useMemo(() => {
-    const arrived = preReg.filter((v) => v.status === CHECKED_IN).length;
-    const missed = preReg.filter((v) => v.status !== CHECKED_IN && v.scheduled_for && new Date(v.scheduled_for).getTime() < now && (now - new Date(v.scheduled_for).getTime()) / 60000 <= 30).length;
-    const late = preReg.filter((v) => v.status !== CHECKED_IN && v.scheduled_for && (now - new Date(v.scheduled_for).getTime()) / 60000 > 30).length;
-    const arriving = preReg.length - arrived - missed - late;
-    return { all: preReg.length, arriving, arrived, missed, late };
-  }, [preReg, now]);
+  const counts = useMemo(() => chipCounts(preReg, now), [preReg, now]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -86,33 +74,64 @@ export default function GuardPreRegistered(): React.ReactElement {
       (v.visitor?.vendor_name ?? '').toLowerCase().includes(q) ||
       (v.host?.full_name ?? '').toLowerCase().includes(q) ||
       (v.department?.name ?? '').toLowerCase().includes(q);
-    let list = preReg.filter(matchesQuery);
-    if (chip === 'arriving') list = list.filter((v) => v.status !== CHECKED_IN && v.scheduled_for && new Date(v.scheduled_for).getTime() >= now && (now - new Date(v.scheduled_for).getTime()) / 60000 <= 30);
-    else if (chip === 'arrived') list = list.filter((v) => v.status === CHECKED_IN);
-    else if (chip === 'missed') list = list.filter((v) => v.status !== CHECKED_IN && v.scheduled_for && new Date(v.scheduled_for).getTime() < now && (now - new Date(v.scheduled_for).getTime()) / 60000 <= 30);
-    else if (chip === 'late') list = list.filter((v) => v.status !== CHECKED_IN && v.scheduled_for && (now - new Date(v.scheduled_for).getTime()) / 60000 > 30);
-    // Board order: scheduled time asc, walk-ins without a slot last.
-    return [...list].sort((a, b) => (a.scheduled_for ?? a.created_at).localeCompare(b.scheduled_for ?? b.created_at));
+    const list = chipVisits(chip, preReg, now).filter(matchesQuery);
+    // Board order: most recent slot first, so the whole-history "All" view opens
+    // on the arrivals a guard is actually likely to be asked about.
+    return [...list].sort((a, b) => (b.scheduled_for ?? b.created_at).localeCompare(a.scheduled_for ?? a.created_at));
   }, [preReg, chip, query, now]);
 
-  // Today at a Glance: morning window (before noon), afternoon window (from
-  // noon), VIP = visits whose purpose mentions VIP/VIP-escorted/important.
-  const morning = preReg.filter((v) => v.scheduled_for && new Date(v.scheduled_for).getHours() < 12).length;
-  const afternoon = preReg.filter((v) => v.scheduled_for && new Date(v.scheduled_for).getHours() >= 12).length;
-  const vipCount = preReg.filter((v) => /(vip|important|executive)/i.test(v.purpose ?? '')).length;
+  // Today at a Glance is TODAY's, whatever chip is showing — the rail's own
+  // heading says so, and it is the one panel on this page that did not change
+  // meaning when the board widened to all history.
+  // Ascending, unlike the board: a schedule is read forwards.
+  const todays = useMemo(
+    () => preReg
+      .filter((v) => isScheduledToday(v, now))
+      .sort((a, b) => (a.scheduled_for ?? a.created_at).localeCompare(b.scheduled_for ?? b.created_at)),
+    [preReg, now],
+  );
+  const morning = todays.filter((v) => v.scheduled_for && new Date(v.scheduled_for).getHours() < 12).length;
+  const afternoon = todays.filter((v) => v.scheduled_for && new Date(v.scheduled_for).getHours() >= 12).length;
+  const vipCount = todays.filter((v) => /(vip|important|executive)/i.test(v.purpose ?? '')).length;
   const overdue = counts.missed + counts.late;
 
-  const chipBadgeCls = (k: ChipKey) =>
-    k === 'arriving' ? 'text-brand-400' : k === 'arrived' ? 'text-success-500' : k === 'missed' ? 'text-danger-400' : k === 'late' ? 'text-warning-400' : 'text-navy-400';
+  const chipBadgeCls = (k: PreRegisteredChip) =>
+    k === 'arriving' ? 'text-brand-400'
+      : k === 'arrived' ? 'text-success-500'
+        : k === 'missed' ? 'text-danger-400'
+          : k === 'late' ? 'text-warning-400' : 'text-navy-400';
+
+  if (checkingIn) {
+    return (
+      <div className="animate-fade-in pb-4">
+        <VisitorCheckInFlow
+          visit={checkingIn}
+          onDone={(name) => {
+            setCheckingIn(null);
+            setToast(`"${name}" checked in.`);
+            setTimeout(() => setToast(null), 4000);
+          }}
+          onCancel={() => setCheckingIn(null)}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-5 animate-fade-in pb-4">
+      <SuccessToast message={toast} onDismiss={() => setToast(null)} />
       <header className="revamp-greeting">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
             <p className="revamp-greeting-eyebrow">Pre-Registered</p>
             <p className="revamp-greeting-title">Pre-Registered Arrivals</p>
-            <p className="revamp-greeting-sub">{counts.all} visitors expected to arrive today.</p>
+            {/* Two numbers, because the board now holds two spans of time and a
+                single figure could only ever have been one of them. */}
+            <p className="revamp-greeting-sub">
+              {counts.all} pre-registered visitor{counts.all === 1 ? '' : 's'} on record
+              {' · '}
+              {todays.length} expected today.
+            </p>
           </div>
           <span className="flex items-center gap-3">
             <span className="glass-chip !py-1 !px-2.5 !gap-1.5">
@@ -133,7 +152,6 @@ export default function GuardPreRegistered(): React.ReactElement {
       <div className="flex flex-wrap items-center gap-2.5">
         {CHIP_ORDER.map((c) => {
           const active = chip === c.key;
-          const n = counts[c.key as keyof typeof counts];
           return (
             <button
               key={c.key}
@@ -144,7 +162,9 @@ export default function GuardPreRegistered(): React.ReactElement {
                   : 'border-surface-200/60 dark:border-white/[0.08] bg-surface-100/60 dark:bg-white/[0.03] text-navy-700 dark:text-navy-200 hover:bg-brand-600/10'
               }`}>
               {c.label}
-              <span className={`text-xs font-bold tabular-nums ${active ? 'text-white/90' : chipBadgeCls(c.key)}`}>{n}</span>
+              <span className={`text-xs font-bold tabular-nums ${active ? 'text-white/90' : chipBadgeCls(c.key)}`}>
+                {counts[c.key]}
+              </span>
             </button>
           );
         })}
@@ -170,7 +190,7 @@ export default function GuardPreRegistered(): React.ReactElement {
                 <div key={i} className="rounded-2xl border border-surface-200/60 dark:border-white/[0.07] bg-surface-100/60 dark:bg-white/[0.03] p-4 h-44 animate-pulse" />
               ))}
             {!loading && filtered.map((v, i) => (
-              <PreRegisteredCard key={v.id} visit={v} index={i} pill={pillFor(v, clock)} />
+              <PreRegisteredCard key={v.id} visit={v} index={i} pill={preRegisteredPill(v, now)} onCheckIn={setCheckingIn} />
             ))}
             {!loading && filtered.length === 0 && (
               <div className="col-span-full rounded-2xl border border-surface-200/60 dark:border-white/[0.07] bg-surface-100/60 dark:bg-white/[0.03] p-10 text-center text-navy-400 text-sm">
@@ -179,11 +199,28 @@ export default function GuardPreRegistered(): React.ReactElement {
             )}
           </div>
 
+          {/* The record is capped, and saying so is not optional: a truncated
+              list presented as the whole one is the sort of thing a guard would
+              later be asked to account for. */}
+          {!loading && truncated && (
+            <p className="mt-3 text-xs text-navy-400 dark:text-navy-500 text-center">
+              Showing the most recent pre-registrations. Older records are in Reports.
+            </p>
+          )}
+
           <OverdueBanner count={overdue} />
         </div>
 
-        {/* Right rail — Today at a Glance */}
-        <GlanceRail filtered={filtered} morning={morning} afternoon={afternoon} vipCount={vipCount} pillFor={pillFor} clock={clock} />
+        {/* Right rail — Today at a Glance. It is fed today's rows, never the
+            filtered board, so switching a chip cannot rewrite the day. */}
+        <GlanceRail
+          filtered={todays}
+          morning={morning}
+          afternoon={afternoon}
+          vipCount={vipCount}
+          pillFor={preRegisteredPill}
+          clock={now}
+        />
       </div>
     </div>
   );

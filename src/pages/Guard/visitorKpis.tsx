@@ -20,11 +20,12 @@ const PLUS = ['M12 4.5v15m7.5-7.5h-15'];
 // that one too.
 //
 // No **Currently Inside** tile either (removed 2026-08-13, client instruction).
-// Only the TILE went: `/visitors/inside` still routes, still lists and is still
-// the sole place in the guard surface that checks a visitor out, so the segment
-// itself must not follow it — delete that and nobody can ever leave. The type
-// below is what enforces the removal: `inside` is excluded from the record, so
-// re-adding the tile is a compile error rather than a silent edit.
+// Only the TILE went: `/visitors/inside` still routes and still lists, and the
+// segment itself must not follow it — check-out lives on the Inside Now tab
+// (/guard/inside-now), and deleting the segment would strand every visitor who
+// is inside right now in a list nobody can reach. The type below is what
+// enforces the removal: `inside` is excluded from the record, so re-adding the
+// tile is a compile error rather than a silent edit.
 export type VisitorKpiSegment = Exclude<VisitorSegment, 'inside'>;
 
 export const VISITOR_KPI_ORDER: VisitorKpiSegment[] = [

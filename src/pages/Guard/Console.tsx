@@ -7,9 +7,7 @@ import { safeErrorMessage } from '../../lib/errors';
 import { istDateKey } from '../../lib/visitExpiry';
 import { segmentFromSlug, visitorLoadFilter } from '../../lib/visitorSegments';
 import VisitorSegmentContent from './VisitorSegmentContent';
-import VisitorCheckInFlow from './VisitorCheckInFlow';
 import VisitorKpiRail from './VisitorKpiRail';
-import CardReturnConfirm from './CardReturnConfirm';
 import { type WalkInCheckIn } from './GuardWalkInApproved';
 import { uploadPhoto } from '../../lib/photoUpload';
 import { isAlreadyInsideError } from '../../lib/activeVisit';
@@ -18,6 +16,12 @@ import { notifyHostOnCheckIn } from '../../lib/notifyHostCheckIn';
 // canRoleShowPass in lib/passVisibility.ts for why. Badge draws a live QR
 // straight from visit.qr_token and has no role gate of its own, so wiring it
 // back in here would reintroduce the leak that gate exists to close.
+//
+// There is no check-in or check-out machinery here either (client instruction,
+// 2026-08-14): the Visitors tab only shows which visitor falls under which
+// category. Entry is the Scan Pass and Pre-Approvals desks; exit is the Inside
+// Now tab (/guard/inside-now), which owns the card-return gate and the undo
+// banner. This page lists, nothing more.
 
 // The Visitors surface. One page, one fetch, one realtime subscription — and a
 // segment picked off the URL (`/visitors`, `/visitors/expected`, …) deciding
@@ -42,14 +46,8 @@ export default function GuardConsole(): React.ReactElement {
   // was due. See lib/visitExpiry.
   const [today] = useState(() => istDateKey(new Date()));
   const [successMsg, setSuccessMsg] = useState('');
-  /** The visit the last check-out closed, while it is still reversible. */
-  const [undoTarget, setUndoTarget] = useState<Visit | null>(null);
   const [actionErr, setActionErr] = useState('');
   const [busyId, setBusyId] = useState<string | null>(null);
-  /** The expected visitor being checked in, if the flow is open. */
-  const [checkingIn, setCheckingIn] = useState<Visit | null>(null);
-  /** The inside visitor whose check-out is waiting on the card-return gate. */
-  const [exitTarget, setExitTarget] = useState<Visit | null>(null);
 
   // Today's visits PLUS every visit still open, whatever day it was raised on.
   //
@@ -82,69 +80,10 @@ export default function GuardConsole(): React.ReactElement {
     return () => { void supabase.removeChannel(channel); };
   }, [loadVisits]);
 
-  // Leaving a segment must not strand the guard inside a half-finished check-in
-  // for a visitor the new segment does not even list.
-  useEffect(() => { setCheckingIn(null); }, [segment]);
-
-  // The check-out WRITE. It is reached only through the card-return confirm
-  // (CardReturnConfirm) — the dialog shows the card number the guard must
-  // collect and its confirm button stays disabled until the card is ticked
-  // back, so `cardReturned` here is the record of a witnessed handover.
-  const logExit = async (visit: Visit) => {
-    if (visit.status !== 'checked_in') { setActionErr('Visitor is not checked in.'); return; }
-    setActionErr('');
-    try {
-      const now = new Date().toISOString();
-      // A card is returned only when one was issued. `visitor_card_returned_at`
-      // is the "did the card come back" answer (migration 076), distinct from
-      // checked_out_at, which says the visitor left.
-      const { error } = await supabase.from('visits')
-        .update({
-          status: 'checked_out',
-          checked_out_at: now,
-          exit_verified: true,
-          visitor_card_returned_at: visit.visitor_card_number ? now : null,
-        })
-        .eq('id', visit.id);
-      if (error) { setActionErr(safeErrorMessage(error, 'Failed to log exit.')); return; }
-      setExitTarget(null);
-      setSuccessMsg(`"${visit.visitor?.full_name ?? 'Visitor'}" checked out.`);
-      // The banner stays until dismissed rather than vanishing after 4s, because
-      // it now carries the only route to Undo. A mis-clicked check-out is noticed
-      // within seconds — the visitor is standing there — and before this there
-      // was no way back at all: the visit closes, and migration 060 then lets a
-      // re-check-in create a SECOND row for one continuous presence.
-      setUndoTarget(visit);
-      void loadVisits(true);
-    } catch (err) { setActionErr(safeErrorMessage(err, 'Failed to log exit.')); }
-  };
-
-  // Reverses the check-out just logged. The 15-minute limit is enforced in the
-  // database (migration 074), not here — this button simply disappears with the
-  // banner, and a stale attempt comes back as the trigger's own message.
-  // `visitor_card_returned_at` is cleared too: the card is no longer "returned"
-  // when its visitor is back inside (076's consistency CHECK says a returned
-  // card belongs to a closed visit).
-  const undoExit = async (visit: Visit) => {
-    setActionErr('');
-    try {
-      const { error, data: updated } = await supabase.from('visits')
-        .update({ status: 'checked_in', checked_out_at: null, exit_verified: null, visitor_card_returned_at: null })
-        .eq('id', visit.id)
-        .select('id, host_id')
-        .maybeSingle();
-      if (error) { setActionErr(safeErrorMessage(error, 'Could not undo the check-out.')); return; }
-      if (updated) void notifyHostOnCheckIn({ id: updated.id, host_id: (updated as { host_id: string | null }).host_id, visitor_name: visit.visitor?.full_name ?? undefined });
-      setSuccessMsg(`"${visit.visitor?.full_name ?? 'Visitor'}" is back on the inside list.`);
-      setUndoTarget(null);
-      void loadVisits(true);
-    } catch (err) { setActionErr(safeErrorMessage(err, 'Could not undo the check-out.')); }
-  };
-
-  // Check-in for a walk-in the host has approved. The visit row already exists
-  // (WalkInRequest created it), so this is an update, not an insert — and the
-  // photo is captured now rather than at registration, because at registration
-  // nobody knew yet whether this visitor was coming in.
+  // The check-in WRITE for a walk-in the host has approved. The visit row
+  // already exists (WalkInRequest created it), so this is an update, not an
+  // insert — and the photo is captured now rather than at registration, because
+  // at registration nobody knew yet whether this visitor was coming in.
   const checkInWalkIn = async (visit: Visit, details: WalkInCheckIn) => {
     setActionErr(''); setBusyId(visit.id);
     try {
@@ -184,25 +123,9 @@ export default function GuardConsole(): React.ReactElement {
 
   const onCheckInSuccess = useCallback((name: string) => {
     setSuccessMsg(`"${name}" checked in successfully.`);
-    setCheckingIn(null);
     void loadVisits(true);
     setTimeout(() => setSuccessMsg(''), 6000);
   }, [loadVisits]);
-
-  // The check-in flow takes the whole page: a guard mid-capture is doing one
-  // thing, and a list of other visitors underneath is a distraction they can
-  // mis-tap.
-  if (checkingIn) {
-    return (
-      <div className="max-w-4xl mx-auto animate-fade-in pb-4">
-        <VisitorCheckInFlow
-          visit={checkingIn}
-          onDone={onCheckInSuccess}
-          onCancel={() => setCheckingIn(null)}
-        />
-      </div>
-    );
-  }
 
   return (
     <div className="max-w-6xl mx-auto space-y-5 animate-fade-in pb-4">
@@ -210,16 +133,7 @@ export default function GuardConsole(): React.ReactElement {
         <div className="alert-success">
           <svg className="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
           <span className="flex-1 font-semibold">{successMsg}</span>
-          {undoTarget && (
-            <button
-              type="button"
-              onClick={() => void undoExit(undoTarget)}
-              className="text-xs font-bold underline underline-offset-2 hover:opacity-80"
-            >
-              Undo check-out
-            </button>
-          )}
-          <button onClick={() => { setSuccessMsg(''); setUndoTarget(null); }} className="text-xs font-bold opacity-70 hover:opacity-100">Dismiss</button>
+          <button onClick={() => setSuccessMsg('')} className="text-xs font-bold opacity-70 hover:opacity-100">Dismiss</button>
         </div>
       )}
       {actionErr && (
@@ -244,23 +158,10 @@ export default function GuardConsole(): React.ReactElement {
           visits={visits}
           loading={loading}
           busyId={busyId}
-          onCheckIn={setCheckingIn}
-          onCheckOut={(v) => setExitTarget(v)}
           onWalkInCheckIn={(v, details) => { void checkInWalkIn(v, details); }}
           onWalkInSubmitted={onCheckInSuccess}
         />
       </div>
-
-      {/* Every check-out passes through the card-return gate: the guard is
-          shown the card number to collect and the confirm stays disabled until
-          the card is ticked back (no card on record = nothing to collect). */}
-      {exitTarget && (
-        <CardReturnConfirm
-          visit={exitTarget}
-          onConfirm={() => { void logExit(exitTarget); }}
-          onClose={() => setExitTarget(null)}
-        />
-      )}
     </div>
   );
 }
