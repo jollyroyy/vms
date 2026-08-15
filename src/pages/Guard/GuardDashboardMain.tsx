@@ -281,7 +281,7 @@ export default function GuardDashboardMain(): React.ReactElement {
           visitor drops off this board on the live subscription. */}
       {verifyTarget && (
         <div
-          className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-navy-950/70 backdrop-blur-sm p-4 animate-fade-in"
+          className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-navy-950/70 p-4 animate-fade-in"
           role="dialog"
           aria-modal="true"
           aria-label="Verify ID">

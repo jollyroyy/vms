@@ -27,8 +27,7 @@ const ID_TYPE_LABELS: Record<IdDocumentType, string> = {
 type Phase = 'camera' | 'reading' | 'review' | 'error';
 
 // The overlay claims `fixed inset-0 z-50` — it must render at the DOCUMENT
-// root, never inside another modal. A `backdrop-filter` ancestor (the Verify
-// ID modal on the guard dashboard carries `backdrop-blur-sm`) becomes the
+// root, never inside another modal. A `backdrop-filter` ancestor becomes the
 // containing block for fixed descendants, which silently shrinks this
 // "full-screen" overlay to that modal's box and scrolls it with the modal's
 // content. The portal keeps it viewport-fixed wherever it is opened from.
