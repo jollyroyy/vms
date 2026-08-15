@@ -34,12 +34,12 @@ export default function ScanPassSearchBar({
         onSubmit={(e) => { e.preventDefault(); onQueryChange(input.trim()); }}
         className="flex gap-2"
       >
-        <div className="relative flex-1">
-          <svg
-            className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-navy-300 pointer-events-none"
-            fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
-          </svg>
+        {/* No magnifying-glass glyph in the field (client instruction,
+            2026-08-15). The button beside it already says Search, and the
+            placeholder already says what to type — a decorative icon inside the
+            box only ate the first 40px of a field a guard types a full name
+            into. */}
+        <div className="flex-1">
           <input
             type="search"
             aria-label="Search by visitor name or mobile number"
@@ -49,7 +49,7 @@ export default function ScanPassSearchBar({
             // otherwise the guard clears the field and the previous visitor's
             // pass is still sitting there, ready to be clicked.
             onChange={(e) => { setInput(e.target.value); if (!e.target.value.trim()) onQueryChange(''); }}
-            className="w-full pl-10 pr-3 py-2.5 bg-surface-50 border border-surface-200 rounded-xl text-sm font-medium text-navy-900 placeholder-navy-300 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all"
+            className="w-full px-3.5 py-2.5 bg-surface-50 border border-surface-200 rounded-xl text-sm font-medium text-navy-900 placeholder-navy-300 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all"
           />
         </div>
         <button
