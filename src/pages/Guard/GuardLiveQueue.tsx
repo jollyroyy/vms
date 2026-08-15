@@ -126,18 +126,54 @@ export default function GuardLiveQueue(): React.ReactElement {
   };
 
   const printBadge = () => {
-    // The printed pass is the existing Badge component in a print-only media
-    // query — the reference's white card is the same asset the kiosk prints,
-    // so guards and kiosk can never disagree about what a pass looks like.
+    // The print window has no Tailwind, so anything sized only with utility
+    // classes (photo ring, QR) renders at its natural — potentially huge —
+    // size. A small self-contained stylesheet fixes the sizes: the photo
+    // stays a circle with object-fit: cover, so its aspect ratio never
+    // distorts.
     if (!liveActive) return;
     const el = document.getElementById('vms-print-badge');
     if (el) {
       const w = window.open('', '_blank', 'width=480,height=720');
       if (w) {
-        w.document.write(`<html><head><title>Visitor Pass</title><style>body{margin:0}img{max-width:100%}</style></head><body>${el.outerHTML}</body></html>`);
+        const html = el.outerHTML
+          .replace('class="rounded-2xl bg-white p-5 shadow-lg border border-surface-200 dark:border-white/20 flex flex-col items-center"', 'class="bp-pass"')
+          .replace('class="w-16 h-3.5 rounded-full bg-[#111827] mb-3"', 'class="bp-notch"')
+          .replace('class="w-8 h-8"', 'class="bp-logo"')
+          .replace('class="w-20 h-20 rounded-full overflow-hidden border-[3px] border-brand-500 p-0.5 bg-white"', 'class="bp-photo"')
+          .replace('class="font-display font-bold text-[#111827] text-lg leading-tight text-center"', 'class="bp-name"')
+          .replace('class="text-[13px] font-bold text-brand-600"', 'class="bp-passnum"')
+          .replace('class="text-[11px] font-medium text-[#5a6070]"', 'class="bp-valid"')
+          .replace('class="mt-1 w-24 h-24"', 'class="bp-qr"')
+          .replace('class="mt-1 w-24 h-24 border-2 border-[#d9dde5] rounded-lg flex items-center justify-center text-xs font-bold text-[#8b93a5]"', 'class="bp-qrfallback"')
+          .replace('class="w-full h-full rounded-full overflow-hidden"', 'class="bp-photo-inner"')
+          .replace('class="w-full h-full object-cover"', 'class="bp-photo-img"')
+          .replace('class="w-full h-full flex items-center justify-center text-sm font-bold text-[#8b93a5]"', 'class="bp-photo-initials"');
+        w.document.write(`<html><head><title>Visitor Pass</title><style>
+body{margin:0;background:#fff;display:flex;justify-content:center;padding:16px}
+*{box-sizing:border-box}
+.bp-pass{width:280px;border-radius:16px;border:1px solid #e5e7eb;box-shadow:0 4px 24px -4px rgba(0,0,0,0.12);display:flex;flex-direction:column;align-items:center;padding:20px}
+.bp-notch{width:64px;height:14px;border-radius:9999px;background:#111827;margin:0 0 12px}
+.bp-logo{width:32px;height:32px;fill:#2563eb}
+.bp-brand{color:#111827;font-family:Poppins,ui-sans-serif,sans-serif;font-weight:800;font-size:18px;letter-spacing:0.04em}
+.bp-park{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.22em;color:#5a6070}
+.bp-band{margin-top:12px;width:100%;border-radius:8px;background:#1d4ed8;padding:10px 16px;text-align:center}
+.bp-band p{color:#fff;font-family:Poppins,ui-sans-serif,sans-serif;font-weight:700;letter-spacing:0.14em;font-size:16px;text-transform:uppercase}
+.bp-body{display:flex;flex-direction:column;align-items:center;gap:8px;padding-top:16px;width:100%}
+.bp-photo{width:80px;height:80px;border-radius:9999px;border:3px solid #3b82f6;padding:2px;background:#fff;overflow:hidden}
+.bp-photo-inner{width:100%;height:100%;border-radius:9999px;overflow:hidden;display:flex;align-items:center;justify-content:center}
+.bp-photo-img{width:100%;height:100%;object-fit:cover;display:block}
+.bp-photo-initials{font-size:14px;font-weight:700;color:#8b93a5}
+.bp-name{color:#111827;font-family:Poppins,ui-sans-serif,sans-serif;font-weight:700;font-size:18px;text-align:center}
+.bp-passnum{font-size:13px;font-weight:700;color:#2563eb}
+.bp-valid{font-size:11px;font-weight:500;color:#5a6070}
+.bp-qr{width:96px;height:96px}
+.bp-qrfallback{width:96px;height:96px;border:2px solid #d9dde5;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#8b93a5}
+@media print{body{padding:0}}
+</style></head><body>${html}</body></html>`);
         w.document.close();
         w.focus();
-        w.print();
+        setTimeout(() => w.print(), 400);
       }
     }
   };

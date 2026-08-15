@@ -9,6 +9,7 @@ import ArrivalQueueTable from './ArrivalQueueTable';
 import IdVerificationCard from './IdVerificationCard';
 import WatchlistAlertBanner from './WatchlistAlertBanner';
 import KpiDrilldownSheet, { type TileSpec } from './KpiDrilldownSheet';
+import VisitorDetails from '../../components/VisitorDetails';
 
 // Guard Dashboard — reference screen 1 ("Guard Console" main overview).
 //
@@ -45,6 +46,9 @@ export default function GuardDashboardMain(): React.ReactElement {
   // first awaiting visitor and switches live as rows are clicked — the
   // ID Verification panel renders this exact visitor.
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  // Full visitor details popup opened from a KPI drilldown card — restores
+  // the photo + ID document rows that the popup always showed.
+  const [detailVisit, setDetailVisit] = useState<ReportVisit | null>(null);
   const today = istDateKey(clock);
   const { stats, loading } = useGateStats(today);
   const { visits, loading: visitsLoading } = useTodayVisits(today);
@@ -200,6 +204,15 @@ export default function GuardDashboardMain(): React.ReactElement {
             setDetailVisit(v);
           }}
           onClose={() => setDrillTile(null)}
+        />
+      )}
+      {/* Full visitor details popup from a drilldown card — photo, ID
+          document and the rest of the record, same popup as everywhere else. */}
+      {detailVisit && (
+        <VisitorDetails
+          visit={detailVisit}
+          viewerRole="guard"
+          onClose={() => setDetailVisit(null)}
         />
       )}
 

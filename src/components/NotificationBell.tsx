@@ -60,10 +60,24 @@ export default function NotificationBell({ userId, role }: Props): React.ReactEl
 
   const markAllRead = async () => {
     if (loading) return;
-    const unreadIds = notifications.map((n) => n.id);
-    if (unreadIds.length === 0) return;
+    // Clear everything currently in the dropdown — the dropdown shows only
+    // today's unread rows, so marking them all read empties it for real.
+    const allIds = notifications.map((n) => n.id);
+    if (allIds.length === 0) return;
     setNotifications([]);
-    await supabase.from('notifications').update({ is_read: true }).in('id', unreadIds);
+    try {
+      const { error } = await supabase
+        .from('notifications')
+        .update({ is_read: true })
+        .in('id', allIds)
+        .eq('recipient_id', userId);
+      if (error) throw error;
+      void fetchNotifications();
+    } catch {
+      // UI already cleared locally; pull the server state back so a failed
+      // mark never lies about what is actually unread.
+      void fetchNotifications();
+    }
   };
 
   useEscapeKey(() => setOpen(false), open);
