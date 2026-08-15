@@ -69,9 +69,15 @@ export const ALL_LINKS: NavLink[] = [
 
   // ── Other roles ───────────────────────────────────────────────────────────
   { to: '/overview', label: 'Overview', roles: ['hod'], icon: icon(ICON_GRID) },
-  // "Pre-Approvals", not "Approvals": the pending walk-in decisions moved to the
-  // Overview, so this route is now only the form for booking a visitor ahead.
+  // "Pre-Approvals", not "Approvals": the pending walk-in decisions live on the
+  // Overview, so this route is the form for inviting a visitor ahead of time.
   { to: '/approvals', label: 'Pre-Approvals', roles: ['hod'], icon: icon(ICON_CHECK) },
+  // Walk-in Desk: the pending gate walk-ins the HOD must decide (same section
+  // that sits on top of the Overview). Visitor Schedule: today's booked
+  // arrivals. Both are query variants of /overview, so the Sidebar's active
+  // detection matches pathname AND search.
+  { to: '/overview?tab=walkins', label: 'Walk-in Desk', roles: ['hod'], icon: icon(ICON_USERS) },
+  { to: '/overview?tab=schedule', label: 'Visitor Schedule', roles: ['hod'], icon: icon(ICON_GRID) },
   { to: '/whos-inside', label: 'On-site', roles: ['staff'], icon: icon(ICON_USERS) },
   { to: '/analytics', label: 'Analytics', roles: ['hod', 'admin'], icon: icon(ICON_SPARKLE) },
   { to: '/reports', label: 'Reports', roles: ['hod', 'staff', 'admin'], icon: icon(ICON_REPORT) },

@@ -97,7 +97,13 @@ export default function Sidebar({ session, role, collapsed: collapsedProp, onCol
       <div className="flex-1 overflow-y-auto px-3 space-y-1.5 pb-4">
         {links.map((link) => {
           const { to, label, icon } = link;
-          const active = loc.pathname === to || (to !== '/' && loc.pathname.startsWith(to));
+          // Query-param links (e.g. /overview?tab=walkins) must match search
+          // too, otherwise every /overview variant would highlight Overview.
+          const linkUrl = new URL(to, window.location.origin);
+          const active =
+            linkUrl.search
+              ? loc.pathname === linkUrl.pathname && loc.search === linkUrl.search
+              : (loc.pathname === to || (to !== '/' && loc.pathname.startsWith(to)));
           return (
             <Link key={to} to={to} title={isCollapsed ? label : undefined}
               className={`sidebar-link px-3 py-2.5 ${isCollapsed ? 'justify-center !px-0' : ''} ${active ? 'sidebar-link-active' : ''}`}>

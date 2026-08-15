@@ -12,6 +12,15 @@ import OverviewFilteredView from './OverviewFilteredView';
 import OverviewPendingApprovals from './OverviewPendingApprovals';
 import VisitorDetails from '../../components/VisitorDetails';
 
+// The two sidebar panels (Walk-in Desk, Visitor Schedule) are query variants of
+// /overview. `tab` picks the section the HOD actually came to work on: the
+// pending walk-ins awaiting a decision, or the booked visitor schedule. The
+// page scrolls to that section on arrival so the panel behaves like a page.
+const FOCUS_TABS: Record<string, string> = {
+  walkins: 'hod-section-pending',
+  schedule: 'hod-section-schedule',
+};
+
 interface Stats {
   inside: number;
   approvedToday: number;
@@ -54,6 +63,19 @@ export default function HODOverview(): React.ReactElement {
   const [notifDetail, setNotifDetail] = useState<Visit | null>(null);
 
   const { acting, error: actionError, successMsg, reasons, onReasonChange, decide } = useVisitDecisions();
+
+  // Scroll to the focused section when arriving via a sidebar panel link.
+  useEffect(() => {
+    const tab = searchParams.get('tab');
+    const targetId = FOCUS_TABS[tab ?? ''] ?? null;
+    if (!targetId) return;
+    // Defer until paint so the section's layout is settled.
+    const timer = window.setTimeout(() => {
+      const el = document.getElementById(targetId);
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 60);
+    return () => window.clearTimeout(timer);
+  }, [searchParams]);
 
   useEffect(() => {
     supabase.auth.getUser().then(async ({ data }) => {
@@ -257,6 +279,7 @@ export default function HODOverview(): React.ReactElement {
         <>
           {/* Above everything else: this is the only section on the page that
               someone is actively waiting on. */}
+          <div id="hod-section-pending" className="scroll-mt-4">
           <OverviewPendingApprovals
             visits={pendingVisits}
             loading={loading}
@@ -265,6 +288,7 @@ export default function HODOverview(): React.ReactElement {
             onReasonChange={onReasonChange}
             onDecide={(id, approved) => void decide(id, approved)}
           />
+          </div>
 
           <OverviewOnSite loading={loading} onSite={onSite} />
 
@@ -277,7 +301,9 @@ export default function HODOverview(): React.ReactElement {
           )}
 
           <div className="grid grid-cols-1 xl:grid-cols-[1fr_340px] gap-3 items-start">
+            <div id="hod-section-schedule" className="scroll-mt-4">
             <OverviewUpcoming loading={loading} upcoming={upcoming} />
+            </div>
             <OverviewNotifications loading={loading} notifs={notifs} onMarkRead={markRead} onDismiss={dismiss} onOpenDetails={openNotifDetail} />
           </div>
         </>
