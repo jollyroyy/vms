@@ -763,6 +763,17 @@
   guard to a tab where the scan was either absent (`?verify=` on the Entry & Exit
   frame) or one click deep. The modal uses the same flow as everywhere else, so the
   mutation is never a third hand-rolled copy.
+  - **`IdScanOverlay` portals to `document.body` — never move it back inline.**
+    The overlay claims `fixed inset-0 z-50`, which is only true at the document
+    root. Inside the Verify ID modal (which carries `backdrop-blur-sm`), the
+    `backdrop-filter` ancestor becomes the containing block for fixed
+    descendants, so the "full-screen" scan shrank to the modal's `max-w-lg` box
+    and scrolled with the modal's content — the camera looked broken (client
+    report, 2026-08-15). All four phases render through the same
+    `createPortal(..., document.body)`; Escape still binds on `window`
+    (`useEscapeKey`) and the camera refs attach through the portal, so nothing
+    else changes. `IdScanOverlay.test.tsx` queries the backdrop via
+    `document.querySelector`, not the render container.
 - **The guard dashboard is `GuardDashboardMain.tsx`, and it is the ONLY one.** A
   previous implementation (`DashboardSummary`, `DashboardActivity`,
   `DashboardQuickActions`, `DashboardDrilldown`, `DashboardTile`, `lib/recentActivity.ts`)

@@ -1,4 +1,5 @@
 import React from 'react';
+import { createPortal } from 'react-dom';
 import ModalCloseButton from './ModalCloseButton';
 import { useEscapeKey } from '../lib/useEscapeKey';
 
@@ -14,7 +15,15 @@ type Props = {
 export default function SuccessPopup({ title, message, onClose, children }: Props): React.ReactElement {
   useEscapeKey(onClose);
 
-  return (
+  // PORTALED to document.body: this popup is rendered inside
+  // PreApproveForm's `card-premium` form (backdrop-filter), and a
+  // backdrop-filter ancestor becomes the containing block for `position:
+  // fixed` descendants — inline, the `modal-overlay` filled the form card
+  // instead of the viewport: the dark blur dimmed only the card, the rest of
+  // the page stayed lit and clickable, and outside clicks could not dismiss
+  // it. The pass printed inside still portals with it, so the copy a
+  // visitor shows never renders inside the form's box.
+  return createPortal(
     <div className="modal-overlay" onClick={onClose}>
       {/* Same discipline as VisitorDetails: `!overflow-hidden` + an inner
           scroller instead of letting .modal-content scroll itself. This popup
@@ -50,6 +59,7 @@ export default function SuccessPopup({ title, message, onClose, children }: Prop
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

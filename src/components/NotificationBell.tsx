@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { supabase } from '../supabaseClient';
 import type { UserRole, Notification } from '../types/index';
 import ModalCloseButton from './ModalCloseButton';
@@ -89,7 +90,18 @@ export default function NotificationBell({ userId, role }: Props): React.ReactEl
 
       {open && (
         <>
-          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
+          {/* The click-away backdrop is PORTALED to document.body. The bell
+              lives inside the app header (`card-glass`, backdrop-filter),
+              and a backdrop-filter ancestor becomes the containing block for
+              `position: fixed` descendants — inline, this `fixed inset-0`
+              scrim resolved against the 64px header strip, so clicking
+              anywhere below the topbar could not close the dropdown. The
+              panel itself stays inline: it is `absolute` against this
+              wrapper's `relative`. */}
+          {createPortal(
+            <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />,
+            document.body,
+          )}
           <div className="absolute right-0 top-full mt-2 w-80 sm:w-96 z-50 rounded-2xl shadow-modal border border-white/10 overflow-hidden animate-scale-in dark:bg-[rgb(20_18_14)] dark:bg-opacity-100 bg-white">
             {/* The × is an INLINE flex child here, not the absolute default.
                 This row is compact and already has content on its right, so an

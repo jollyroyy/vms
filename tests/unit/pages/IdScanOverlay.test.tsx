@@ -170,10 +170,13 @@ describe('M-AI-OCR-UI: IdScanOverlay close', () => {
 
   it('clicking the backdrop closes the overlay, clicking inside the card does not', () => {
     const onClose = vi.fn();
-    const { container } = render(<IdScanOverlay onScanned={vi.fn()} onClose={onClose} />);
+    render(<IdScanOverlay onScanned={vi.fn()} onClose={onClose} />);
     fireEvent.click(screen.getByText('Scan ID card'));
     expect(onClose).not.toHaveBeenCalled();
-    fireEvent.click(container.querySelector('.fixed.inset-0')!);
+    // The overlay portals to document.body (a backdrop-filter ancestor would
+    // otherwise become the containing block of its `fixed inset-0`), so the
+    // backdrop lives outside the render container.
+    fireEvent.click(document.querySelector('.fixed.inset-0')!);
     expect(onClose).toHaveBeenCalled();
   });
 

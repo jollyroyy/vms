@@ -1,4 +1,5 @@
 import React, { useCallback, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useCameraStream } from '../../lib/useCameraStream';
 import { getEngine } from '../../lib/ai/engine';
 import { parseIdDocument, type IdDocumentType } from '../../lib/ai/idParser';
@@ -24,6 +25,14 @@ const ID_TYPE_LABELS: Record<IdDocumentType, string> = {
 };
 
 type Phase = 'camera' | 'reading' | 'review' | 'error';
+
+// The overlay claims `fixed inset-0 z-50` — it must render at the DOCUMENT
+// root, never inside another modal. A `backdrop-filter` ancestor (the Verify
+// ID modal on the guard dashboard carries `backdrop-blur-sm`) becomes the
+// containing block for fixed descendants, which silently shrinks this
+// "full-screen" overlay to that modal's box and scrolls it with the modal's
+// content. The portal keeps it viewport-fixed wherever it is opened from.
+const SCAN_BACKDROP = 'fixed inset-0 z-50 bg-navy-950/80 flex items-center justify-center p-4';
 
 export default function IdScanOverlay({ onScanned, onClose }: Props): React.ReactElement {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -109,8 +118,8 @@ export default function IdScanOverlay({ onScanned, onClose }: Props): React.Reac
   useEscapeKey(close);
 
   if (phase === 'reading') {
-    return (
-      <div className="fixed inset-0 z-50 bg-navy-950/80 flex items-center justify-center p-4" onClick={close}>
+    return createPortal((
+      <div className={SCAN_BACKDROP} onClick={close}>
         <div className="bg-white rounded-2xl p-8 max-w-sm w-full text-center space-y-4 relative" onClick={(e) => e.stopPropagation()}>
           <ModalCloseButton onClose={close} />
           <div className="animate-spin h-10 w-10 border-4 border-brand-600 border-t-transparent rounded-full mx-auto" />
@@ -118,24 +127,24 @@ export default function IdScanOverlay({ onScanned, onClose }: Props): React.Reac
           <p className="text-sm text-navy-500 dark:text-navy-400">On-device OCR — nothing leaves this machine</p>
         </div>
       </div>
-    );
+    ), document.body);
   }
 
   if (phase === 'error') {
-    return (
-      <div className="fixed inset-0 z-50 bg-navy-950/80 flex items-center justify-center p-4" onClick={close}>
+    return createPortal((
+      <div className={SCAN_BACKDROP} onClick={close}>
         <div className="bg-white rounded-2xl p-6 max-w-sm w-full space-y-4 relative" onClick={(e) => e.stopPropagation()}>
           <ModalCloseButton onClose={close} />
           <p className="text-sm font-semibold text-danger-700 pr-8">{error}</p>
           <button onClick={retry} className="w-full bg-brand-600 hover:bg-brand-700 text-white font-bold rounded-xl py-2.5 text-sm">Retry</button>
         </div>
       </div>
-    );
+    ), document.body);
   }
 
   if (phase === 'review' && parsed) {
-    return (
-      <div className="fixed inset-0 z-50 bg-navy-950/80 flex items-center justify-center p-4" onClick={close}>
+    return createPortal((
+      <div className={SCAN_BACKDROP} onClick={close}>
         <div className="bg-white rounded-2xl p-6 max-w-sm w-full space-y-4 relative" onClick={(e) => e.stopPropagation()}>
           <ModalCloseButton onClose={close} />
           <h3 className="font-bold text-navy-900 pr-8">Review scanned details</h3>
@@ -151,13 +160,13 @@ export default function IdScanOverlay({ onScanned, onClose }: Props): React.Reac
           </div>
         </div>
       </div>
-    );
+    ), document.body);
   }
 
   const cameraDown = status === 'denied' || status === 'error';
 
-  return (
-    <div className="fixed inset-0 z-50 bg-navy-950/80 flex items-center justify-center p-4" onClick={close}>
+  return createPortal((
+    <div className={SCAN_BACKDROP} onClick={close}>
       <div className="bg-white rounded-2xl p-5 max-w-sm w-full space-y-4 relative" onClick={(e) => e.stopPropagation()}>
         <ModalCloseButton onClose={close} />
         <div className="flex items-center justify-between pr-8">
@@ -200,5 +209,5 @@ export default function IdScanOverlay({ onScanned, onClose }: Props): React.Reac
         )}
       </div>
     </div>
-  );
+  ), document.body);
 }
