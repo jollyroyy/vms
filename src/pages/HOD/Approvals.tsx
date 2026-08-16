@@ -28,7 +28,11 @@ export default function HODApprovals(): React.ReactElement {
       {/* The form already shows one green success popup. Dismissing it hands
           off straight to the pre-approved list rather than raising a second
           banner here, so there is exactly one success confirmation. */}
-      <PreApproveForm onPreApproved={() => navigate('/overview?filter=approved')} />
+      {/* Hands off to the Visitor Schedule, which lists approved and expected
+          visits — the pass just raised is the top row of it. `?filter=approved`
+          was a param nothing on the console reads, so it landed on a bare
+          Overview and the HOD had no confirmation their booking existed. */}
+      <PreApproveForm onPreApproved={() => navigate('/overview?tab=schedule')} />
     </div>
   );
 }

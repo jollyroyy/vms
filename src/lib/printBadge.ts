@@ -44,24 +44,67 @@ function styleTags(): string {
  *  The page box is portrait and badge-sized: print.css sets A4 LANDSCAPE for the
  *  reports register, which would set a 90mm card adrift on a sideways sheet. */
 const BADGE_PRINT_CSS = `
-  /* ONE SHEET (client report, 2026-08-15: "scattered across three pages").
-     The page box was 80mm x 120mm — narrower and much shorter than the card
-     itself, which is 320px (~85mm) wide and taller than 120mm once it carries
-     the photo, the identity block and the QR. Anything that does not fit a page
-     box does not shrink, it spills, so the pass came out of the printer in
-     strips. A4 portrait is the box every office printer actually has loaded;
-     the card is centred on it and break-inside:avoid keeps it whole. */
-  @page { size: A4 portrait; margin: 10mm; }
-  html, body { margin: 0; padding: 0; background: #fff; }
-  body { display: flex; justify-content: center; align-items: flex-start; padding: 6mm 0; }
+  /* FULL SHEET, not a business card centred on one (client instruction,
+     2026-08-16: the pass must "appear throughout the entire screen"). The card
+     is authored at max-w-[320px] because that is the width of the rail it
+     previews inside; on paper that constraint is meaningless and produced a
+     stamp-sized badge marooned in the middle of an A4 page. The width cap is
+     lifted and the card is allowed to fill the printable box.
+
+     It still has to stay on ONE sheet (2026-08-15 report: "scattered across
+     three pages"), which is why this is max-width plus height:100% and never a
+     transform:scale() — a scale factor is a guess that spills the moment a
+     visitor has a long name or an extra line renders. */
+  @page { size: A4 portrait; margin: 8mm; }
+  html, body { margin: 0; padding: 0; background: #fff; width: 100%; height: 100%; }
+  body { display: block; }
   .print-only { display: block !important; }
-  /* Keep the card whole: a badge split across two sheets is not a badge. */
-  #${PRINT_BADGE_ID} { break-inside: avoid; page-break-inside: avoid; }
+
+  #${PRINT_BADGE_ID} {
+    /* Override the rail's own mx-auto w-full max-w-[320px]. !important is
+       required: those are utility classes carried across from the app's real
+       stylesheet, and they are just as specific as anything written here. */
+    max-width: none !important;
+    width: 100% !important;
+    height: 100%;
+    margin: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
   #${PRINT_BADGE_ID} * { break-inside: avoid; page-break-inside: avoid; }
-  /* The one element that must not be allowed to grow: a percentage-height
-     image inside a circular frame can reflow taller on paper than on screen,
-     which is enough to push the QR onto a second sheet. */
+
+  /* Scale the type to the sheet. A card designed for a 320px column prints at
+     roughly 8pt if left alone, which is a pass nobody can read across a gate
+     desk. These are the same elements, addressed by the size classes the card
+     already uses, so the visual hierarchy is preserved rather than re-invented. */
+  #${PRINT_BADGE_ID} .text-xl  { font-size: 30pt !important; line-height: 1.15 !important; }
+  #${PRINT_BADGE_ID} .text-lg  { font-size: 22pt !important; }
+  #${PRINT_BADGE_ID} .text-base { font-size: 18pt !important; }
+  #${PRINT_BADGE_ID} .text-sm  { font-size: 15pt !important; }
+  #${PRINT_BADGE_ID} .text-\\[11px\\] { font-size: 14pt !important; }
+  #${PRINT_BADGE_ID} .text-\\[9px\\]  { font-size: 10pt !important; }
+
+  /* The blue band runs the full width of the sheet, as it does on the card. */
+  #${PRINT_BADGE_ID} > div:nth-child(2) { padding: 6mm 0 !important; }
+
+  /* The QR is the one element on the pass a machine reads. Give it a size that
+     survives being folded into a pocket and scanned off paper. */
+  #vms-print-badge-qr {
+    width: 62mm !important;
+    height: 62mm !important;
+    margin-top: 8mm !important;
+  }
+
   #${PRINT_BADGE_ID} img { max-width: 100%; }
+  /* The issuing wordmark's logo is fixed-size on screen; let it grow with the
+     rest rather than sitting as a thumbnail beside 30pt type. */
+  #${PRINT_BADGE_ID} .h-9 { height: 22mm !important; width: 24mm !important; }
+
   /* Paper cannot re-create a backdrop filter, and the browser drops background
      colour by default — the band and the QR quiet zone are load-bearing here,
      so ask for them explicitly. */

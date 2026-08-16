@@ -100,11 +100,18 @@ describe('CheckInFrame — no Check-In Details card', () => {
     renderFrame();
     expect(screen.queryByText('Check-In Details')).toBeNull();
     expect(screen.queryByText(LONG_VENDOR)).toBeNull();
-    expect(screen.queryByText(new RegExp(LONG_HOST))).toBeNull();
     expect(screen.queryByText('Meeting with D. Kumar')).toBeNull();
     // The visitor's name survives ONCE, on the printable pass — that is the
     // pass's own content, not a restatement of the table.
     expect(screen.getAllByText('Sarah Whitfield').length).toBe(1);
+    // The HOST survives once too, and for the same reason (client instruction,
+    // 2026-08-16). It is on the pass now — the piece of paper that leaves with
+    // the visitor and has to say who they came to see. That is the pass's own
+    // content, not the deleted Check-In Details card coming back: the rule was
+    // never "the host may not appear", it was "no second card restating the
+    // table". ONCE is what this asserts, and once is what makes it not a
+    // duplicate render.
+    expect(screen.getAllByText(new RegExp(LONG_HOST)).length).toBe(1);
   });
 
   it('keeps the one thing the table does not carry: the vehicle', () => {

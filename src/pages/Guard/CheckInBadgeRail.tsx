@@ -24,8 +24,17 @@ const PASS_BLUE = '#1d4ed8';
 const PASS_MUTED = '#5a6070';
 const WHITE = { backgroundColor: '#ffffff' } as const;
 
-const initialsOf = (name: string | null | undefined) =>
-  ((name ?? 'U').split(' ').filter(Boolean).slice(0, 2).map((w) => w[0]).join('').toUpperCase() || 'U');
+// THERE IS NO PHOTO ON THE PRINTED PASS (client instruction, 2026-08-16). The
+// headshot was the largest element on the card and the least useful thing on
+// it: the guard printing the pass has just met the person, and the QR is what
+// anybody downstream actually resolves the visitor by. Removing it is what
+// leaves room for the two facts the pass was missing — who the visitor is here
+// to see, and which department that person belongs to — without the card
+// spilling onto a second sheet.
+//
+// The initials fallback went with it. A grey monogram in a blue ring is a
+// placeholder for a photo; with no photo on the card there is nothing to hold
+// a place for.
 
 // THERE IS NO "VALID UNTIL" LINE (client instruction, 2026-08-15). The pass is
 // handed to somebody who is already inside, and its expiry is enforced by the
@@ -70,12 +79,6 @@ export default function CheckInBadgeRail({
   onClose,
   onCheckOut,
 }: CheckInBadgeRailProps): React.ReactElement {
-  // BOTH, in that order. `photo_data` is the raw column; the hooks that feed
-  // this screen (useTodayVisits, useGateActivity, useGateVisits) map it onto
-  // `photo_url` and hand the row on, so a rail reading only the raw column
-  // printed two grey initials for a visitor whose gate photo was captured
-  // perfectly well (client report, 2026-08-15).
-  const photo = activeVisit.photo_data ?? activeVisit.photo_url ?? null;
   const name = activeVisit.visitor?.full_name ?? 'Visitor';
   const phone = activeVisit.visitor?.phone?.trim();
 
@@ -123,18 +126,7 @@ export default function CheckInBadgeRail({
         </div>
 
         <div className="flex flex-col items-center px-5 pt-4 pb-5">
-          <div style={{ ...WHITE, borderColor: PASS_BLUE }} className="w-[104px] h-[104px] rounded-full overflow-hidden border-[3px] p-0.5">
-            <div className="w-full h-full rounded-full overflow-hidden">
-              {photo ? (
-                <img src={photo} alt={name} className="w-full h-full object-cover" />
-              ) : (
-                <span style={{ color: '#8b93a5' }} className="w-full h-full flex items-center justify-center text-xl font-bold">
-                  {initialsOf(activeVisit.visitor?.full_name)}
-                </span>
-              )}
-            </div>
-          </div>
-          <p style={{ color: PASS_INK }} className="mt-3 font-display font-bold text-xl leading-tight text-center">{name}</p>
+          <p style={{ color: PASS_INK }} className="font-display font-bold text-xl leading-tight text-center">{name}</p>
           <p style={{ color: PASS_BLUE }} className="mt-1.5 text-base font-bold">Day Pass #{activeVisit.ref_number.slice(-4)}</p>
           {/* THE PHYSICAL CARD, exactly as the guard typed it (client
               instruction, 2026-08-15). `visitor_card_number` is the number
@@ -163,6 +155,22 @@ export default function CheckInBadgeRail({
               complete one. */}
           <div className="mt-3 w-full" style={{ borderTop: '1px solid #e6e8ee' }}>
             {phone && <PassLine label="Mobile" value={phone} />}
+            {/* WHO THIS VISIT IS FOR, on the pass itself (client instruction,
+                2026-08-16). Until now the host and their department were only
+                on the Entry & Exit row and the visitor popup — never on the
+                piece of paper that travels with the visitor — so a pass found
+                on a corridor floor named the visitor and nothing about where
+                they were supposed to be. `host` is filled by `attachHostNames`
+                on the same hooks that feed this frame, so no extra query.
+                Both lines render only when known: a "Person to Meet —" row
+                claims the field was left blank, when the truth is that a
+                walk-in registered at the gate may genuinely not have one yet. */}
+            {activeVisit.host?.full_name && (
+              <PassLine label="Person to Meet" value={activeVisit.host.full_name} />
+            )}
+            {activeVisit.department?.name && (
+              <PassLine label="Department" value={activeVisit.department.name} />
+            )}
             {/* A walk-in has no slot: "Anytime", never a dash. Nobody booked
                 them a time, which is not the same as a time going unrecorded. */}
             <PassLine
@@ -179,12 +187,18 @@ export default function CheckInBadgeRail({
               <PassLine label="Checked out" value={formatDateTime(activeVisit.checked_out_at)} />
             )}
           </div>
+          {/* Bigger now the photo is gone, and it earns the space: with no
+              headshot on the card the QR is the only thing on the pass a
+              machine can read, and it has to scan off paper that has been
+              folded into a pocket. `id` so the print sheet can scale it to the
+              page without guessing at a selector. */}
           {qrDataUrl ? (
-            <img src={qrDataUrl} alt="QR code" className="mt-3 w-[104px] h-[104px]" />
+            <img id="vms-print-badge-qr" src={qrDataUrl} alt="QR code" className="mt-4 w-[150px] h-[150px]" />
           ) : (
             <div
+              id="vms-print-badge-qr"
               style={{ ...WHITE, borderColor: '#d9dde5', color: '#8b93a5' }}
-              className="mt-3 w-[104px] h-[104px] border-2 rounded-lg flex items-center justify-center text-xs font-bold">
+              className="mt-4 w-[150px] h-[150px] border-2 rounded-lg flex items-center justify-center text-xs font-bold">
               QR
             </div>
           )}

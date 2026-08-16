@@ -11,6 +11,29 @@ const mockFrom = vi.hoisted(() => vi.fn());
 const mockRpc = vi.hoisted(() => vi.fn());
 const visitsInsert = vi.hoisted(() => vi.fn());
 
+// The ID scan and the photo are both mandatory before the request can be sent
+// (client instruction, 2026-08-16). Stubbed rather than driven, for the same
+// reason this file has its own harness: capturing a face through a real
+// PhotoCapture needs a camera, a canvas and a blob, none of which say anything
+// about what lands in `visits.remarks`. WalkInRequestScan.test.tsx drives the
+// real component.
+vi.mock('../../../src/pages/Guard/WalkInIdentityStep', () => ({
+  default: ({ onScanned, onPhoto }: {
+    onScanned: (r: { idType: string; idLast4: string; name: string | null }) => void;
+    onPhoto: (b: Blob) => void;
+  }) => (
+    <div>
+      <button type="button" onClick={() => onScanned({ idType: 'PAN', idLast4: '234F', name: null })}>stub-scan</button>
+      <button type="button" onClick={() => onPhoto(new Blob(['face']))}>stub-photo</button>
+    </div>
+  ),
+}));
+// Hoisted + re-armed in beforeEach: afterEach's restoreAllMocks strips a
+// resolved value set at mock-factory time, which leaves the upload returning
+// undefined from the second test onward.
+const mockUploadPhoto = vi.hoisted(() => vi.fn());
+vi.mock('../../../src/lib/photoUpload', () => ({ uploadPhoto: mockUploadPhoto }));
+
 vi.mock('../../../src/supabaseClient', () => ({
   supabase: {
     from: mockFrom,
@@ -25,6 +48,7 @@ const mockHosts = [{ id: 'h1', full_name: 'Priya Sharma', email: 'hod.it@demo.vm
 
 beforeEach(() => {
   visitsInsert.mockResolvedValue({ error: null });
+  mockUploadPhoto.mockResolvedValue({ photoPath: 'visits/1.webp', photoData: 'data:image/webp;base64,x' });
   mockRpc.mockImplementation((name: string) => {
     if (name === 'get_hosts_for_department') return Promise.resolve({ data: mockHosts, error: null });
     if (name === 'get_active_visit_for_phone') return Promise.resolve({ data: null, error: null });
@@ -62,6 +86,8 @@ async function fillAndSubmit(remarks?: string): Promise<void> {
   fireEvent.change(selects[1], { target: { value: 'dept-it' } });
   await waitFor(() => expect(screen.getByRole('option', { name: 'Priya Sharma' })).toBeInTheDocument());
   fireEvent.change(screen.getAllByRole('combobox')[2], { target: { value: 'h1' } });
+  fireEvent.click(screen.getByRole('button', { name: 'stub-scan' }));
+  fireEvent.click(screen.getByRole('button', { name: 'stub-photo' }));
   if (remarks !== undefined) {
     fireEvent.change(screen.getByLabelText(/remarks/i), { target: { value: remarks } });
   }

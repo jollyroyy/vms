@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import HODConsole from './pages/HOD/HODConsole';
+import HODApprovals from './pages/HOD/Approvals';
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { supabase } from './supabaseClient';
 import type { Session } from '@supabase/supabase-js';
@@ -264,7 +265,14 @@ export default function App(): React.ReactElement {
             <Route path="/guard/search"    element={<ProtectedRoute role={role}><GuardSearch role={role} /></ProtectedRoute>} />
             <Route path="/search"          element={<ProtectedRoute role={role}><GuardSearch role={role} /></ProtectedRoute>} />
             <Route path="/kiosk"          element={<ProtectedRoute role={role}><KioskPage /></ProtectedRoute>} />
-            <Route path="/approvals"       element={<ProtectedRoute role={role}><HODConsole /></ProtectedRoute>} />
+            {/* /approvals is the pre-approval FORM — the one thing on the HOD
+                surface that CREATES a visit rather than deciding one, and the
+                only way an HOD can raise a pre-approved visitor pass. It was
+                lost when HODConsole took over both HOD routes (the console's
+                "preapprovals" tab is a decision desk, not the form), which left
+                an HOD with no route to invite a visitor at all. The desk now
+                lives at /overview?tab=preapprovals. */}
+            <Route path="/approvals"       element={<ProtectedRoute role={role}><HODApprovals /></ProtectedRoute>} />
             <Route path="/overview"        element={<ProtectedRoute role={role}><HODConsole /></ProtectedRoute>} />
             <Route path="/whos-inside"     element={<ProtectedRoute role={role}><WhosInside /></ProtectedRoute>} />
             <Route path="/reports"         element={<ProtectedRoute role={role}><ReportsPage /></ProtectedRoute>} />

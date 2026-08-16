@@ -101,10 +101,19 @@ describe('navLinks: linksForRole', () => {
   // Analytics went 2026-08-15 (admin-only now), and the HOD console's own tab
   // bar was deleted the same day — its Walk-in Desk and Visitor Schedule are
   // sidebar items here, so the left panel is the only navigation on screen.
-  it('hod gets Overview, Pre-Approvals, Walk-in Desk, Visitor Schedule, Reports', () => {
+  // Pre-Approvals and Approval Desk are two different surfaces and must both be
+  // listed (client report, 2026-08-16). HODConsole had taken over /approvals, so
+  // the pre-approval FORM — the only way an HOD raises a visitor pass — became
+  // unreachable behind the console's decision desk. The form keeps /approvals;
+  // every console desk is a ?tab= view of /overview.
+  it('hod gets Overview, Pre-Approvals, Approval Desk, Walk-in Desk, Visitor Schedule, Reports', () => {
     const links = linksForRole('hod');
-    expect(links.map((l) => l.label)).toEqual(['Overview', 'Pre-Approvals', 'Walk-in Desk', 'Visitor Schedule', 'Reports']);
+    expect(links.map((l) => l.label)).toEqual([
+      'Overview', 'Pre-Approvals', 'Approval Desk', 'Walk-in Desk', 'Visitor Schedule', 'Reports',
+    ]);
     expect(links.map((l) => l.label)).not.toContain('Analytics');
+    expect(links.find((l) => l.label === 'Pre-Approvals')?.to).toBe('/approvals');
+    expect(links.find((l) => l.label === 'Approval Desk')?.to).toBe('/overview?tab=preapprovals');
   });
 
   it('staff gets Visitors, On-site, Reports', () => {

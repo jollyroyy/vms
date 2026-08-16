@@ -19,6 +19,10 @@ function visit(overrides: Partial<ReportVisit> = {}): ReportVisit {
     created_at: '2026-08-14T04:12:00Z',
     photo_data: null,
     visitor: { full_name: 'Sarah Whitfield', vendor_name: 'Whitfield & Partners' },
+    // Filled by `attachHostNames` on the hooks that feed this frame, which is
+    // why the pass can print them without an extra query.
+    host: { full_name: 'D. Kumar' },
+    department: { name: 'Information Technology' },
     ...overrides,
   } as unknown as ReportVisit;
 }
@@ -122,19 +126,41 @@ describe('CheckInBadgeRail', () => {
     expect(screen.getByText('Checked out')).toBeInTheDocument();
   });
 
-  it('falls back to the visitor initials when no gate photo was captured', () => {
-    renderRail();
-    expect(screen.getByText('SW')).toBeInTheDocument();
+  // NO PHOTO ON THE PASS AT ALL (client instruction, 2026-08-16), and neither
+  // is there an initials monogram standing in for one — a placeholder holds a
+  // place for something that is coming, and nothing is coming. Asserted for
+  // both shapes of the column, because the row reaches this rail with the
+  // capture on `photo_data` (raw) or on `photo_url` (mapped by useTodayVisits /
+  // useGateActivity) depending on which hook fed it, and only checking one
+  // would let the other quietly print a headshot again.
+  it('prints no photo and no initials monogram, whichever column carries it', () => {
+    const { container, rerender } = renderRail({
+      activeVisit: visit({ photo_url: 'https://example.test/p.webp' }),
+    });
+    expect(screen.queryByAltText('Sarah Whitfield')).toBeNull();
+    expect(screen.queryByText('SW')).toBeNull();
+
+    rerender(
+      <CheckInBadgeRail
+        activeVisit={visit({ photo_data: 'data:image/png;base64,abc' })}
+        qrDataUrl={null}
+        onPrintBadge={() => {}}
+        onClose={() => {}}
+      />,
+    );
+    expect(screen.queryByAltText('Sarah Whitfield')).toBeNull();
+    expect(screen.queryByText('SW')).toBeNull();
+    // The only image the pass may carry is the QR (and the issuing wordmark).
+    const alts = Array.from(container.querySelectorAll('img')).map((i) => i.getAttribute('alt'));
+    expect(alts).not.toContain('Sarah Whitfield');
   });
 
-  // `photo_data` is the raw column and is often null on rows that came through
-  // a hook, which map the capture onto `photo_url` (useTodayVisits,
-  // useGateActivity). Reading only the raw column is why a visitor with a
-  // perfectly good gate photo printed as two grey initials.
-  it('shows the captured photo when the row carries it as photo_url', () => {
-    renderRail({ activeVisit: visit({ photo_url: 'https://example.test/p.webp' }) });
-    expect(screen.getByAltText('Sarah Whitfield')).toBeInTheDocument();
-    expect(screen.queryByText('SW')).toBeNull();
+  // The two facts the pass was missing until 2026-08-16: a badge found on a
+  // corridor floor named the visitor and nothing about where they were due.
+  it('carries the person to meet and their department', () => {
+    renderRail();
+    expect(screen.getByText('Person to Meet')).toBeInTheDocument();
+    expect(screen.getByText('Department')).toBeInTheDocument();
   });
 
   it('shows the QR when one has been generated, and a placeholder otherwise', () => {

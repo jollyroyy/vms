@@ -3,7 +3,9 @@ import { supabase } from '../../supabaseClient';
 import { normalizePhone, isBlacklisted } from '../../lib/blacklist';
 import { safeErrorMessage } from '../../lib/errors';
 import { useDepartments } from '../../lib/useDepartments';
-import IdScanOverlay, { type IdScanResult } from './IdScanOverlay';
+import { uploadPhoto } from '../../lib/photoUpload';
+import type { IdScanResult } from './idScanTypes';
+import WalkInIdentityStep from './WalkInIdentityStep';
 import type { Profile, VisitorPurpose } from '../../types/index';
 
 // Mirrors the visits_remarks_length CHECK in migration 068. The input caps the
@@ -37,8 +39,8 @@ export default function WalkInRequest({ onSubmitted, onCancel }: Props): React.R
   const [phone, setPhone] = useState('');
   const [fullName, setFullName] = useState('');
   const [vendorName, setVendorName] = useState('');
-  const [idType, setIdType] = useState('');
-  const [idLast4, setIdLast4] = useState('');
+  const [scan, setScan] = useState<IdScanResult | null>(null);
+  const [photoBlob, setPhotoBlob] = useState<Blob | null>(null);
   const [scanOpen, setScanOpen] = useState(false);
   const [purpose, setPurpose] = useState<VisitorPurpose>('meeting');
   const [remarks, setRemarks] = useState('');
@@ -73,8 +75,7 @@ export default function WalkInRequest({ onSubmitted, onCancel }: Props): React.R
   }, [deptId, loadHosts]);
 
   const applyScanResult = useCallback((r: IdScanResult) => {
-    if (r.idType) setIdType(r.idType);
-    if (r.idLast4) setIdLast4(r.idLast4);
+    setScan(r);
     if (r.name && !fullName.trim()) setFullName(r.name);
     setScanOpen(false);
   }, [fullName]);
@@ -95,6 +96,11 @@ export default function WalkInRequest({ onSubmitted, onCancel }: Props): React.R
     e.preventDefault();
     if (blacklistHit) return;
     if (!hostId) { setError('Please select a person to meet.'); return; }
+    // Both are structurally gated (the submit button is disabled without them),
+    // so these messages are the belt to that braces — a form submitted with
+    // Enter must not be able to skip the identity step either.
+    if (!scan) { setError('Scan the visitor’s ID card before sending the request.'); return; }
+    if (!photoBlob) { setError('Capture the visitor’s photo before sending the request.'); return; }
     setSubmitting(true); setError('');
     try {
       let normalized: string;
@@ -102,18 +108,23 @@ export default function WalkInRequest({ onSubmitted, onCancel }: Props): React.R
       const { data: existingVisit } = await (supabase as any).rpc('get_active_visit_for_phone', { p_phone: normalized });
       if (existingVisit) { throw new Error(`This phone has an active visit (Ref: ${existingVisit.ref_number}). Complete it first.`); }
       const { data: vis, error: visErr } = await supabase.from('visitors').upsert(
-        { phone: normalized, full_name: fullName, vendor_name: vendorName || null, id_type: idType || null, id_last4: idLast4 || null },
+        { phone: normalized, full_name: fullName, vendor_name: vendorName || null, id_type: scan.idType || null, id_last4: scan.idLast4 || null },
         { onConflict: 'phone' },
       ).select().single();
       if (visErr) throw visErr;
       if (!vis) throw new Error('Failed to create visitor record.');
+      // The photo goes up BEFORE the visit row, so a request never reaches an
+      // approver without the face it is asking them to clear. uploadPhoto falls
+      // back to a base64 data URL when storage hiccups, so a bucket outage
+      // degrades the record rather than blocking the gate.
+      const { photoPath, photoData } = await uploadPhoto(photoBlob);
       const { error: visitErr } = await supabase.from('visits').insert({
         visitor_id: vis.id, department_id: deptId, host_id: hostId, purpose,
         status: 'pending_approval', carrying_material: false,
         // Trimmed to null rather than stored as '': an empty note and no note
         // are the same fact, and only one of them should be in the column.
         remarks: remarks.trim() || null,
-        photo_path: null, photo_data: null,
+        photo_path: photoPath, photo_data: photoData,
         scheduled_for: null,
         checked_in_at: null, checked_out_at: null, exit_verified: null, rejection_reason: null,
       });
@@ -163,11 +174,6 @@ export default function WalkInRequest({ onSubmitted, onCancel }: Props): React.R
           <div>
             <label className="text-xs font-semibold text-navy-600 mb-1 block">Visitor Name *</label>
             <input type="text" required value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Visitor name" className="w-full px-4 py-2.5 bg-surface-50 border border-surface-200 rounded-xl text-sm text-navy-900 placeholder-navy-300 focus:outline-none focus:ring-2 focus:ring-brand-500 transition-all" />
-            <button type="button" onClick={() => setScanOpen(true)}
-              className="mt-1.5 w-full flex items-center justify-center gap-2 bg-surface-50 hover:bg-surface-100 border border-surface-200 rounded-xl px-4 py-2.5 text-sm font-semibold text-brand-700 transition-all">
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7zm13 5h.01M10 12a2.5 2.5 0 115 0 2.5 2.5 0 01-5 0z" /></svg>
-              Scan ID card
-            </button>
           </div>
           <div>
             <label className="text-xs font-semibold text-navy-600 mb-1 block">Vendor Name</label>
@@ -216,6 +222,17 @@ export default function WalkInRequest({ onSubmitted, onCancel }: Props): React.R
           />
           <p className="text-[10px] text-navy-400 mt-0.5 text-right tabular-nums">{remarks.length}/{REMARKS_MAX}</p>
         </div>
+
+        <WalkInIdentityStep
+          scan={scan}
+          scanOpen={scanOpen}
+          onOpenScan={() => setScanOpen(true)}
+          onCloseScan={() => setScanOpen(false)}
+          onScanned={applyScanResult}
+          onDiscardScan={() => setScan(null)}
+          photoTaken={photoBlob !== null}
+          onPhoto={setPhotoBlob}
+        />
       </div>
 
       {/* .btn-primary / .btn-secondary rather than a bespoke pair: this is the
@@ -227,7 +244,7 @@ export default function WalkInRequest({ onSubmitted, onCancel }: Props): React.R
         {onCancel && (
           <button type="button" onClick={onCancel} className="btn-secondary flex-1 py-3 font-semibold">Cancel</button>
         )}
-        <button type="submit" disabled={submitting || !!blacklistHit}
+        <button type="submit" disabled={submitting || !!blacklistHit || !scan || !photoBlob}
           className="btn-primary flex-1 py-3 text-[15px] font-bold flex items-center justify-center gap-2">
           {submitting ? (
             <><svg className="animate-spin h-4 w-4" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg> Sending request…</>
@@ -240,12 +257,6 @@ export default function WalkInRequest({ onSubmitted, onCancel }: Props): React.R
         </button>
       </div>
     </form>
-    {scanOpen && (
-      <IdScanOverlay
-        onScanned={applyScanResult}
-        onClose={() => setScanOpen(false)}
-      />
-    )}
     </>
   );
 }

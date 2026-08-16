@@ -46,7 +46,10 @@ const ICON_COG = 'M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11
 
 export const ALL_LINKS: NavLink[] = [
   { to: '/overview', label: 'Overview', roles: ['hod'], icon: icon(ICON_GRID) },
-  { to: '/approvals', label: 'Pre-Approvals', roles: ['hod'], icon: icon(ICON_CHECK) },
+  // The FORM — raise a pre-approved visitor pass. Not the same screen as the
+  // Approval Desk below it, which decides on requests that already exist.
+  { to: '/approvals', label: 'Pre-Approvals', roles: ['hod'], icon: icon(ICON_PLUS) },
+  { to: '/overview?tab=preapprovals', label: 'Approval Desk', roles: ['hod'], icon: icon(ICON_CHECK) },
   // The HOD console's other two desks. They used to be a SECOND navigation —
   // a horizontal `.hod-tabs` bar across the top of the console, listing these
   // four destinations while the sidebar beside it listed the same ones

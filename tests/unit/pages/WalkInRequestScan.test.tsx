@@ -20,6 +20,11 @@ vi.mock('../../../src/supabaseClient', () => ({
 }));
 vi.mock('../../../src/lib/useCameraStream', () => ({ useCameraStream: mockUseCameraStream }));
 vi.mock('../../../src/lib/ai/engine', () => ({ getEngine: mockGetEngine }));
+// A registration now uploads the visitor's photo before it inserts the visit
+// (client instruction, 2026-08-16). Storage is not part of this file's subject.
+vi.mock('../../../src/lib/photoUpload', () => ({
+  uploadPhoto: vi.fn().mockResolvedValue({ photoPath: 'visits/1.webp', photoData: 'data:image/webp;base64,x' }),
+}));
 
 const mockDepts = [
   { id: 'dept-it', name: 'Information Technology', code: 'IT', created_at: '2026-01-01' },
@@ -143,6 +148,12 @@ describe('M-AI-OCR-UI: WalkInRequest scan wiring', () => {
     });
     const hostSelect = screen.getByText('Person to Meet *').parentElement!.querySelector('select')!;
     fireEvent.change(hostSelect, { target: { value: 'h1' } });
+
+    // The photo is mandatory too, and PhotoCapture only hands the blob up on
+    // "Use Photo" — the scan alone no longer gets past the submit button.
+    fireEvent.click(await screen.findByText('Capture Photo'));
+    fireEvent.click(await screen.findByText('Use Photo'));
+
     fireEvent.click(screen.getByRole('button', { name: /send approval request/i }));
 
     await waitFor(() => {
@@ -151,6 +162,24 @@ describe('M-AI-OCR-UI: WalkInRequest scan wiring', () => {
       expect(upsertCall[0].id_type).toBe('PAN');
       expect(upsertCall[0].id_last4).toBe('234F');
     });
+  });
+
+  // Client instruction, 2026-08-16. The HOD approving a walk-in has never met
+  // this person; the request must carry a scanned document and a face before it
+  // can be handed to them.
+  it('keeps the submit disabled until both the ID and the photo are captured', async () => {
+    render(<WalkInRequest onSubmitted={vi.fn()} onCancel={vi.fn()} />);
+    const submit = await screen.findByRole('button', { name: /send approval request/i });
+    expect(submit).toBeDisabled();
+
+    fireEvent.click(screen.getByText('Scan ID card'));
+    fireEvent.click(await screen.findByText('Capture Card'));
+    fireEvent.click(await screen.findByText('Use Details'));
+    expect(submit).toBeDisabled();
+
+    fireEvent.click(await screen.findByText('Capture Photo'));
+    fireEvent.click(await screen.findByText('Use Photo'));
+    await waitFor(() => expect(submit).not.toBeDisabled());
   });
 
   it('closes the overlay without applying anything', async () => {

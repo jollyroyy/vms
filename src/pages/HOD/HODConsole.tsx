@@ -16,12 +16,21 @@ type ConsoleTab = 'overview' | 'preapprovals' | 'walkins' | 'schedule';
 type Stats = { inside: number; approvedToday: number; pending: number; rejectedToday: number; };
 
 const EMPTY_STATS: Stats = { inside: 0, approvedToday: 0, pending: 0, rejectedToday: 0 };
-const tabHref: Record<ConsoleTab, string> = { overview: '/overview', preapprovals: '/approvals', walkins: '/overview?tab=walkins', schedule: '/overview?tab=schedule' };
+// EVERY TAB HANGS OFF /overview. `preapprovals` used to be `/approvals`, which
+// is now the pre-approval FORM again (App.tsx) — the one HOD screen that raises
+// a visitor pass rather than deciding one. Two different surfaces cannot share a
+// URL, and of the two the form is the one an HOD has no other route to.
+const tabHref: Record<ConsoleTab, string> = {
+  overview: '/overview',
+  preapprovals: '/overview?tab=preapprovals',
+  walkins: '/overview?tab=walkins',
+  schedule: '/overview?tab=schedule',
+};
 
-const tabFromLocation = (pathname: string, search: string): ConsoleTab => {
+const tabFromLocation = (_pathname: string, search: string): ConsoleTab => {
   const requested = new URLSearchParams(search).get('tab');
   if (requested === 'overview' || requested === 'preapprovals' || requested === 'walkins' || requested === 'schedule') return requested;
-  return pathname.includes('approvals') ? 'preapprovals' : 'overview';
+  return 'overview';
 };
 
 const display = (value: string | null | undefined, options: Intl.DateTimeFormatOptions): string => {

@@ -95,8 +95,13 @@ describe('Entry & Exit tab (/guard/inside-now) — widened to entry + exit', () 
     renderTab();
     fireEvent.click(screen.getByRole('tab', { name: /Checked Out/i }));
     const row = screen.getByText('Meera Iyer').closest('tr') as HTMLElement;
-    // checked_out_at 2026-08-15T03:00:00Z -> 08:30 IST
-    expect(within(row).getByText('08:30 am')).toBeInTheDocument();
+    // checked_out_at 2026-08-15T03:00:00Z -> 08:30 IST.
+    // Matched as a substring, not an exact string: `formatStamp` prefixes the
+    // DATE whenever the instant is not today, and this fixture is pinned to a
+    // fixed day — so an exact "08:30 am" passed on 2026-08-15 and failed every
+    // day after it. The column's job is to carry the exit time, which is what
+    // this asserts; whether the date rides along is formatStamp's own test.
+    expect(within(row).getByText(/08:30 am/)).toBeInTheDocument();
   });
 
   it('shows an em dash, never a blank cell, for a visitor still on site', () => {

@@ -105,7 +105,17 @@ export default function VisitorDetails({
             below its content and the scrollbar never appears. */}
         <div className="flex-1 min-h-0 overflow-y-auto">
 
-        {/* ONE SURFACE, top to bottom (client report, 2026-08-15). This used to
+        {/* LIGHT THEME ONLY: the identity band is tinted (client report,
+            2026-08-16). The 2026-08-15 fix below flattened this row onto the
+            modal's own glass, which is right in dark mode — the complaint then
+            was a LIGHT patch sitting behind the visitor's name on a dark panel.
+            In light mode the same flattening left the photo and the name on
+            white-on-white with only a hairline under them, so the one thing the
+            popup opens with had no edge at all. `dark:bg-transparent` keeps dark
+            mode exactly as the client accepted it; only the light end gains the
+            step. Everything below is unchanged.
+
+            ONE SURFACE, top to bottom (client report, 2026-08-15). This used to
             open with a navy→brand gradient band carrying a radial highlight,
             with a white profile card lifted onto it — three tones stacked in
             the first 120px of the popup. In dark mode that read as a light
@@ -120,19 +130,19 @@ export default function VisitorDetails({
             No ref number here either. It is printed on the pass itself, one
             click away under View Pass — the copy the visitor shows and the
             guard reads back. */}
-        <div className="px-5 pt-5 pb-4 pr-14 flex gap-4 items-center border-b border-surface-200/50 dark:border-white/[0.07]">
+        <div className="px-5 pt-5 pb-4 pr-14 flex gap-4 items-center border-b border-surface-200/70 dark:border-white/[0.07] bg-surface-100/70 dark:bg-transparent">
           {v.photo_url ? (
-            <img src={v.photo_url} alt="" className="w-14 h-14 object-cover rounded-xl ring-2 ring-brand-500/20 shrink-0" />
+            <img src={v.photo_url} alt="" className="w-14 h-14 object-cover rounded-xl ring-2 ring-brand-500/30 dark:ring-brand-500/20 shrink-0 shadow-soft" />
           ) : (
-            <div className="w-14 h-14 rounded-xl bg-navy-950/[0.04] dark:bg-white/[0.06] flex items-center justify-center shrink-0">
+            <div className="w-14 h-14 rounded-xl bg-navy-950/[0.07] dark:bg-white/[0.06] flex items-center justify-center shrink-0">
               <svg className="w-6 h-6 text-brand-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0" />
               </svg>
             </div>
           )}
           <div className="min-w-0 flex-1">
-            <p className="text-h3 text-navy-950 truncate">{v.visitor?.full_name ?? '—'}</p>
-            {v.visitor?.vendor_name && <p className="text-caption text-navy-500 truncate mt-0.5">{v.visitor.vendor_name}</p>}
+            <p className="text-h3 font-bold text-navy-950 truncate">{v.visitor?.full_name ?? '—'}</p>
+            {v.visitor?.vendor_name && <p className="text-caption text-navy-600 truncate mt-0.5">{v.visitor.vendor_name}</p>}
             <div className="mt-1.5">
               <span className={`status-badge capitalize ${s.bg} ${s.text}`}>
                 <span className={`h-1.5 w-1.5 rounded-full ${s.dot} ${v.status === 'checked_in' ? 'animate-pulse' : ''}`} />

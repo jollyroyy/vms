@@ -114,10 +114,25 @@ export default function GuardLiveQueue(): React.ReactElement {
   const liveActive = activeVisit ? (visits.find((v) => v.id === activeVisit.id) ?? activeVisit) : null;
   useEffect(() => {
     if (!liveActive) return;
-    const payload = liveActive.qr_token
-      ? buildQrPayload(liveActive.qr_token)
-      : `vms://visit/${liveActive.ref_number}`;
-    QRCode.toDataURL(payload, { width: 128, color: { dark: '#111827', light: '#ffffff' } })
+    // THE SAME QR THE VISITOR IS HOLDING — byte for byte (client instruction,
+    // 2026-08-16). The payload, the pixel width and the ink colour all match
+    // `PreApprovalPass`, so the code on the guard's screen and the code on the
+    // HOD-issued pass are the same image, not merely two codes that happen to
+    // resolve to the same visit.
+    //
+    // There is NO `vms://visit/<ref>` fallback any more, and its removal is the
+    // point rather than a tidy-up. A visit with no `qr_token` used to get a
+    // second, invented payload that nothing in the app can parse — `parseQrPayload`
+    // rejects any `vms://` URL that is not `vms://checkin/`, so scanning it at
+    // the gate failed. That produced the exact complaint this change answers: a
+    // QR on the guard's screen that did not match the visitor's pass and could
+    // not be scanned. A visit with no token now renders no QR at all, which the
+    // rail already draws an honest placeholder for.
+    if (!liveActive.qr_token) { setQrDataUrl(null); return; }
+    QRCode.toDataURL(buildQrPayload(liveActive.qr_token), {
+      width: 240,
+      color: { dark: '#1e293b', light: '#ffffff' },
+    })
       .then(setQrDataUrl)
       .catch(() => setQrDataUrl(null));
   }, [liveActive]);

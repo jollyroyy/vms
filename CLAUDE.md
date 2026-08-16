@@ -361,6 +361,20 @@
   - `/visitors` is the **walk-in** lane, titled "Walk-in Visitors". `Mode` is
     `'walkins' | 'walkinApproved' | 'inside'`, defaulting to `walkins` — the three
     stages of a walk-in's life at the gate, in order.
+- **A walk-in registration REQUIRES an ID scan and a photo** (client instruction,
+  2026-08-16). `WalkInRequest` used to insert `photo_path` / `photo_data` as null and
+  treat the ID scan as an optional convenience button, on the reasoning that at
+  registration nobody yet knows whether the host will say yes. That left the HOD deciding
+  on a name the guard typed, with nothing tying the request to the person actually at
+  reception. `WalkInIdentityStep.tsx` owns both captures; the submit button is disabled
+  until `scan` and `photoBlob` both exist, and `handleSubmit` re-checks them so an
+  Enter-key submit cannot skip the step. The photo uploads via `uploadPhoto` **before**
+  the visit row is inserted, so a `pending_approval` row never reaches an approver
+  without the face it is asking them to clear. **ONE CAMERA AT A TIME**: `PhotoCapture` is
+  unmounted while `IdScanOverlay` is open, the same rule `CheckInPhotoStep` and
+  `GuardWalkInApproved` follow. `GuardWalkInApproved` still captures its own photo at the
+  moment of entry and that is not duplication — this one records who *asked*, that one
+  records who *walked through*.
 - **`walkinApproved` is a required tab, not a nicety.** `CheckInPanel` searches
   pre-approvals only, so once it moved off `/visitors` an approved walk-in had no
   route into `checked_in` at all. `GuardWalkInApproved.tsx` is that route: it captures
@@ -465,6 +479,15 @@
     from the right edge**, so anything on the modal's first row needs **`pr-14` (56px)** —
     `pr-8` is not enough, which is what `CardReturnConfirm` had. A centred heading takes
     symmetric `px-8` so it stays centred and still clears the button.
+- **The visitor popup's identity band is tinted in LIGHT MODE ONLY** (client report,
+  2026-08-16). The 2026-08-15 "one surface, top to bottom" fix flattened the header row
+  onto the modal's own glass, which was right for the complaint it answered — a *light*
+  patch behind the visitor's name on a *dark* panel. In light mode that same flattening
+  left the photo and the name white-on-white with only a hairline under them, so the
+  first thing the popup shows had no edge at all. The header row and the ID tab's
+  photo/verdict block both carry `bg-surface-100/70 dark:bg-transparent`: the light end
+  gains the step, dark mode stays exactly as the client accepted it. Never give either
+  block a tint that also paints in dark mode.
 - **The visitor popup's close button is OUTSIDE the scroll container.** `.modal-content`
   is the scroller; with the cross inside it, the guard's copy of the popup — the tallest,
   since a guard also sees the ID document, timeline and pass — scrolled the cross out of
@@ -918,6 +941,31 @@
   carried by a colour rail **and** a text badge — never colour alone.
 
 ### HOD surface
+- **`/approvals` is the FORM. Every HODConsole desk is a `?tab=` view of `/overview`.**
+  (client report, 2026-08-16). `HODConsole` had taken over **both** HOD routes, so
+  `/approvals` rendered the console's "preapprovals" **decision desk** and the
+  pre-approval form — the one HOD screen that *creates* a visit rather than deciding one —
+  became unreachable, leaving an HOD with no way to raise a visitor pass at all.
+  `App.tsx` routes `/approvals` back to `pages/HOD/Approvals.tsx` → `PreApproveForm`;
+  `tabHref.preapprovals` is `/overview?tab=preapprovals` and `tabFromLocation` no longer
+  keys on the pathname. The sidebar carries both, and the labels distinguish them:
+  **Pre-Approvals** (the form, plus icon) and **Approval Desk** (the decision surface,
+  tick icon). Two different surfaces must never share a URL.
+  On success the form navigates to `/overview?tab=schedule` — the list the new booking is
+  the top row of. `?filter=approved` was a param nothing on the console read, so the HOD
+  landed on a bare Overview with no confirmation their pass existed.
+- **`styles/hod-compact.css` is TOKEN-DRIVEN — no hardcoded hex neutrals**
+  (client report, 2026-08-16: "the right side is not matching with the left hand side,
+  it's kind of blue"). It shipped as a self-contained navy operations palette
+  (`#071522` panels, `#1677ff` accents, `#f4f8ff` text) that ignored the theme, so the
+  HOD's content area stayed a dark blue slab whatever the sidebar beside it was doing.
+  Every neutral now resolves through `--c-surface-*` / `--c-navy-*`, which **flip with
+  the theme**, so one token step is correct at both ends and there is no `.dark` override
+  for neutrals. The only `.dark .hod-console` block re-tints the four **status hues**
+  (blue/green/amber/red), which need a lighter value on a dark ground to hold contrast.
+  `.hod-console` paints **no background of its own** — the AppShell canvas is the surface
+  every other page sits on, and the old bordered slab was a second background inside the
+  first.
 - **`/approvals` is the pre-approval FORM only**, and the HOD nav calls it
   "Pre-Approvals". It has no tabs. The "Pending" tab
   that used to live there moved to `/overview`, because an HOD opens the Overview to

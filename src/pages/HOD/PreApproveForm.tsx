@@ -9,6 +9,7 @@ import { useDepartments } from '../../lib/useDepartments';
 import type { Visit, VisitorPurpose } from '../../types/index';
 import SuccessPopup from '../../components/SuccessPopup';
 import PreApprovalPass from '../../components/PreApprovalPass';
+import DateTimeField from '../../components/DateTimeField';
 
 const PURPOSES: { value: VisitorPurpose; label: string }[] = [
   { value: 'meeting',     label: 'Meeting' },
@@ -201,8 +202,13 @@ export default function PreApproveForm({ onPreApproved }: Props): React.ReactEle
         )}
 
         <div className="sm:col-span-2">
-          <label className="label">Schedule for *</label>
-          <input type="datetime-local" required value={scheduledFor} onChange={(e) => setScheduledFor(e.target.value)} className="input" />
+          <DateTimeField
+            id="scheduled-for"
+            label="Schedule for *"
+            required
+            value={scheduledFor}
+            onChange={setScheduledFor}
+          />
         </div>
         {/* Optional, and it must stay optional. Requiring it would put a second
             mandatory datetime in front of every routine meeting to serve the
@@ -211,19 +217,14 @@ export default function PreApproveForm({ onPreApproved }: Props): React.ReactEle
             Left blank, the overstay rule falls back to a fixed interval from
             check-in; filled in, this IS the deadline. */}
         <div className="sm:col-span-2">
-          <label className="label" htmlFor="expected-departure">Expected departure (optional)</label>
-          <input
+          <DateTimeField
             id="expected-departure"
-            type="datetime-local"
+            label="Expected departure (optional)"
             value={expectedDeparture}
             min={scheduledFor || undefined}
-            onChange={(e) => setExpectedDeparture(e.target.value)}
-            className="input"
+            onChange={setExpectedDeparture}
+            hint="Set this for visits running overnight or across several days, so the visitor is not flagged as overstaying while they are still expected on site."
           />
-          <p className="text-xs text-navy-500 dark:text-navy-400 mt-1">
-            Set this for visits running overnight or across several days, so the visitor is not
-            flagged as overstaying while they are still expected on site.
-          </p>
         </div>
       </div>
 

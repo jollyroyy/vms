@@ -42,7 +42,13 @@ export default function VisitorDetailsIdCard({ visit: v }: { visit: ReportVisit 
 
   return (
     <div className="px-5 pt-4 pb-3 space-y-3.5 animate-fade-in">
-      <div className="flex items-start gap-4">
+      {/* Tinted in LIGHT MODE ONLY (client report, 2026-08-16), for the reason
+          the popup's header band is: the captured face and the verdict beside
+          it are the whole point of this tab, and on a white modal they had no
+          edge separating them from the fields below. Dark mode keeps the flat
+          panel it already had — a lighter patch there is the exact complaint
+          the 2026-08-15 rebuild removed. */}
+      <div className="flex items-start gap-4 rounded-2xl bg-surface-100/70 dark:bg-transparent border border-surface-200/60 dark:border-transparent p-3.5 dark:p-0">
         {/* The face, at a size a face can be checked at. The 56px thumbnail on
             the profile card above identifies the row; this one is the record. */}
         {v.photo_url ? (
