@@ -8,15 +8,26 @@ import PassIdentity from '../../components/PassIdentity';
 import { formatDateTime } from '../../lib/formatDate';
 import type { MatchItem } from './checkInTypes';
 
+// THE TYPE OF VISITOR — walk-in or pre-approved — named in full on the one
+// screen EVERY check-in passes through (client instruction, 2026-08-16:
+// "whenever anybody's checking in they should be able to recognize by the field
+// type of visitor"). CheckInPhotoStep renders this summary for the
+// pre-approvals desk, the scan desk, the walk-in desk and the dashboard's
+// Verify ID modal, so labelling it here covers all four without a fifth copy of
+// the answer.
+//
+// The words are `lib/visitOrigin.ts`'s own, which is what makes this the same
+// fact the dashboard column, the Entry & Exit table and the visitor cards
+// print. It used to read "Walk-in approved" — the clearance, not the visitor.
 const APPROVAL_LABEL: Record<MatchItem['approvalType'], string> = {
   pre_approved: 'Pre-approved',
-  walkin_approved: 'Walk-in approved',
+  walk_in: 'Walk-in',
   recurring: 'Regular visitor',
 };
 
 const APPROVAL_BADGE: Record<MatchItem['approvalType'], string> = {
   pre_approved: 'bg-success-50 text-success-700',
-  walkin_approved: 'bg-amber-50 text-amber-700 dark:bg-amber-500/12 dark:text-amber-300',
+  walk_in: 'bg-amber-50 text-amber-700 dark:bg-amber-500/12 dark:text-amber-300',
   recurring: 'bg-accent-50 text-accent-700 dark:bg-accent-500/10 dark:text-accent-300',
 };
 
@@ -35,7 +46,13 @@ export default function CheckInVisitorSummary({ match }: Props): React.ReactElem
         idLast4={match.idLast4}
       />
 
+      {/* The field is NAMED, not left as a bare pill: a coloured badge reading
+          "Walk-in" is only legible to someone who already knows what that badge
+          is for, and this is the moment a guard is being asked to recognise it.
+          The pill stays as the value — it is what makes the answer glanceable
+          at a gate — so the fact is still rendered exactly once. */}
       <div className="flex items-center gap-2 flex-wrap">
+        <span className="text-xs text-navy-500 dark:text-navy-400">Type of Visitor</span>
         <span className={`inline-flex items-center text-xs font-semibold px-2 py-0.5 rounded-full ${APPROVAL_BADGE[match.approvalType]}`}>
           {label}
         </span>
@@ -52,7 +69,10 @@ export default function CheckInVisitorSummary({ match }: Props): React.ReactElem
         <Row term="Person to Meet" value={match.hostName} sub={match.departmentName} />
         {/* The exact instant of approval, not a relative "2 hours ago" — a guard
             challenged on why someone was let in needs the timestamp itself. */}
-        {match.approvedAt && <Row term={`${label} at`} value={formatDateTime(match.approvedAt)} />}
+        {/* "Approved at", not "<type> at": the type of visitor is the field
+            above, and repeating it here would be the same fact twice on one
+            summary. This row is about WHEN the clearance was given. */}
+        {match.approvedAt && <Row term="Approved at" value={formatDateTime(match.approvedAt)} />}
         {/* Date and time, never a bare time: an open pre-approval can be booked
             for any day, so the date is what says whether this one is due now. */}
         <Row term="Expected" value={match.scheduledFor ? formatDateTime(match.scheduledFor) : 'Anytime today'} />

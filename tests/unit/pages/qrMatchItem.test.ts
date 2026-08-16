@@ -76,14 +76,22 @@ describe('visitToMatchItem', () => {
     });
   });
 
-  it('maps walkin_approved status to the walkin_approved approval type', () => {
+  it('maps walkin_approved status to the walk_in type of visitor', () => {
     const item = visitToMatchItem(makeVisit({ status: 'walkin_approved' }));
-    expect(item.approvalType).toBe('walkin_approved');
+    expect(item.approvalType).toBe('walk_in');
   });
 
-  it('keeps approved status mapped to pre_approved approval type', () => {
+  it('keeps approved status mapped to pre_approved type of visitor', () => {
     const item = visitToMatchItem(makeVisit({ status: 'approved' }));
     expect(item.approvalType).toBe('pre_approved');
+  });
+
+  // Same rule as the search desk: the answer is lib/visitOrigin.ts, so a
+  // walk-in admitted by its approver (migration 080 — `checked_in`, no slot)
+  // does not read as a pre-approval on the scan lane.
+  it('still reads a converged walk-in (checked_in, no slot) as walk_in', () => {
+    const item = visitToMatchItem(makeVisit({ status: 'checked_in', scheduled_for: null }));
+    expect(item.approvalType).toBe('walk_in');
   });
 
   it('degrades a missing visitor join to empty strings, never "undefined"', () => {

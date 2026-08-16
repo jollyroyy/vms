@@ -5,10 +5,17 @@ import { CRISP_CARD_INTERACTIVE } from '../../lib/cardStyles';
 import type { MatchItem } from './checkInTypes';
 import type { VisitStatus } from '../../types/index';
 
+// THE TYPE OF VISITOR, in the same two words `lib/visitOrigin.ts` prints on the
+// dashboard column, the Entry & Exit table and the visitor cards (client
+// instruction, 2026-08-16). They used to read "Pre-Approved" / "Walk-in
+// Approved" — close enough to look deliberate, different enough that a guard
+// comparing this row against the board could not be sure it was the same fact.
+// "Walk-in Approved" was wrong in a second way as well: it named the clearance,
+// not the visitor, on a lane where an unapproved walk-in can also appear.
 const APPROVAL_META: Record<MatchItem['approvalType'], { label: string; badge: string }> = {
-  pre_approved:    { label: 'Pre-Approved',    badge: 'bg-success-50 text-success-700 border border-success-500/20' },
-  walkin_approved: { label: 'Walk-in Approved', badge: 'bg-amber-50 text-amber-700 border border-amber-500/20 dark:bg-amber-500/12 dark:text-amber-300 dark:border-amber-500/25' },
-  recurring:       { label: 'Regular',          badge: 'bg-accent-50 text-accent-700 border border-accent-500/20 dark:bg-accent-500/10 dark:text-accent-300 dark:border-accent-500/25' },
+  pre_approved: { label: 'Pre-approved', badge: 'bg-success-50 text-success-700 border border-success-500/20' },
+  walk_in:      { label: 'Walk-in',      badge: 'bg-amber-50 text-amber-700 border border-amber-500/20 dark:bg-amber-500/12 dark:text-amber-300 dark:border-amber-500/25' },
+  recurring:    { label: 'Regular',      badge: 'bg-accent-50 text-accent-700 border border-accent-500/20 dark:bg-accent-500/10 dark:text-accent-300 dark:border-accent-500/25' },
 };
 
 // Closed/non-actionable pass states, surfaced so a search hit that cannot be
@@ -112,7 +119,10 @@ export default function CheckInMatchCard({ match: m, disabled, isCheckedIn, expi
               <svg className="w-3.5 h-3.5 shrink-0 text-navy-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6l4 2m5-2a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
-              <span className="truncate">{approval.label} on <span className="font-semibold text-navy-700">{formatDateTime(m.approvedAt)}</span></span>
+              {/* "Approved on", not the type of visitor again: the badge above
+                  already says which desk this pass came through, and this line
+                  is about WHEN somebody cleared it. */}
+              <span className="truncate">Approved on <span className="font-semibold text-navy-700">{formatDateTime(m.approvedAt)}</span></span>
             </span>
           )}
         </div>

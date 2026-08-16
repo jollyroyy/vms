@@ -33,10 +33,23 @@ describe('buildMatchItems', () => {
       });
     });
 
-    it('maps walkin_approved status to walkin_approved approval type', () => {
+    it('maps walkin_approved status to the walk_in type of visitor', () => {
       const items = buildMatchItems([makeVisit({ status: 'walkin_approved' })], [], { search: '', deptFilter: '' });
-      expect(items[0].approvalType).toBe('walkin_approved');
+      expect(items[0].approvalType).toBe('walk_in');
     });
+
+    // The type of visitor comes from lib/visitOrigin.ts, not from a local
+    // `status === 'walkin_approved'` test. Since migration 080 the approver
+    // admits a walk-in in the same click, so a host-cleared walk-in rests in
+    // `checked_in` and never in `walkin_approved` — keyed on the status, the
+    // check-in desk called that visitor "Pre-approved", disagreeing with every
+    // other surface in the app about the same row.
+    //
+    // The CONVERGED case is asserted in qrMatchItem.test.ts, not here: this
+    // function only ever sees the open pre-approvals CheckInPanel fetched, and
+    // a `checked_in` row reaches a MatchItem exclusively through
+    // `visitToMatchItem` (useVisitHistorySearch maps every server-side search
+    // hit with it). Both derivations were fixed together.
 
     it('uses explicit approvedAt when present', () => {
       const items = buildMatchItems([makeVisit({ approvedAt: '2026-06-30T14:05:00Z' })], [], { search: '', deptFilter: '' });

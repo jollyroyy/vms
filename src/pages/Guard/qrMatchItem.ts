@@ -6,10 +6,13 @@
 import type { Visit } from '../../types/index';
 import { approvalTimestamp } from '../../lib/visitApproval';
 import { isDueToday } from '../../lib/visitExpiry';
+import { visitOrigin } from '../../lib/visitOrigin';
 import type { MatchItem } from './checkInTypes';
 
 export function visitToMatchItem(visit: Visit & { approvedAt?: string | null }): MatchItem {
-  const isWalkin = visit.status === 'walkin_approved';
+  // lib/visitOrigin.ts, never a local status test — see the note on
+  // ApprovalType in checkInTypes.ts for what the status test got wrong.
+  const isWalkin = visitOrigin(visit) === 'walk_in';
   return {
     id: `pre:${visit.id}`,
     source: 'pre_approved',
@@ -20,7 +23,7 @@ export function visitToMatchItem(visit: Visit & { approvedAt?: string | null }):
     purpose: visit.purpose,
     hostName: visit.host?.full_name ?? '',
     vendorName: visit.visitor?.vendor_name ?? '',
-    approvalType: isWalkin ? 'walkin_approved' : 'pre_approved',
+    approvalType: isWalkin ? 'walk_in' : 'pre_approved',
     approvedAt: approvalTimestamp(visit),
     scheduledFor: visit.scheduled_for,
     // Computed, not hardcoded true. The QR gate rejects an EXPIRED pass, but a

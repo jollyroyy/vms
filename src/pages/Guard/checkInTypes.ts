@@ -5,7 +5,21 @@
 import type { VisitStatus } from '../../types/index';
 
 export type MatchSource = 'pre_approved' | 'recurring';
-export type ApprovalType = 'pre_approved' | 'walkin_approved' | 'recurring';
+
+// WHICH DESK this visitor came through — the check-in flow's copy of the
+// dashboard's "Type of Visitor" column, and it must be the SAME answer.
+//
+// The member used to be named `walkin_approved`, after the status, and was
+// derived from `status === 'walkin_approved'`. Migration 080 ended that: the
+// approver admits a walk-in in the same click, so a host-cleared walk-in rests
+// in `checked_in` and the status test called them "Pre-Approved" at the gate —
+// disagreeing with every other surface about the same row. It is now derived
+// from `lib/visitOrigin.ts`, the one place that question is answered, and named
+// after the fact rather than after a status it no longer tracks.
+//
+// `recurring` is a genuine third case, not a third origin: a standing visitor
+// has no visit row at all until check-in creates one.
+export type ApprovalType = 'pre_approved' | 'walk_in' | 'recurring';
 
 export interface MatchItem {
   id: string;

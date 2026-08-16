@@ -6,6 +6,7 @@
 import type { Department, Profile, RecurringVisit, Visit } from '../../types/index';
 import { approvalTimestamp } from '../../lib/visitApproval';
 import { isDueToday } from '../../lib/visitExpiry';
+import { visitOrigin } from '../../lib/visitOrigin';
 import type { MatchItem } from './checkInTypes';
 
 export interface PreApprovedVisit extends Visit {
@@ -85,7 +86,9 @@ export function buildMatchItems(
     const due = isDueToday(v, now);
     // Not due today: shown only when the guard is actively looking for it.
     if (!due && !searching) return;
-    const isWalkin = v.status === 'walkin_approved';
+    // lib/visitOrigin.ts, never a local status test — see the note on
+    // ApprovalType in checkInTypes.ts for what the status test got wrong.
+    const isWalkin = visitOrigin(v) === 'walk_in';
     items.push({
       id: `pre:${v.id}`,
       source: 'pre_approved',
@@ -96,7 +99,7 @@ export function buildMatchItems(
       purpose: v.purpose,
       hostName: v.host?.full_name ?? '',
       vendorName: v.visitor?.vendor_name ?? '',
-      approvalType: isWalkin ? 'walkin_approved' : 'pre_approved',
+      approvalType: isWalkin ? 'walk_in' : 'pre_approved',
       approvedAt: approvalTimestamp(v),
       scheduledFor: v.scheduled_for,
       dueToday: due,

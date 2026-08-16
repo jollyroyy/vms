@@ -39,24 +39,30 @@ describe('CheckInVisitorSummary', () => {
     expect(screen.getByText('Priya Sharma')).toBeInTheDocument();
   });
 
+  // The one field every check-in path passes through (client instruction,
+  // 2026-08-16). This summary is rendered by CheckInPhotoStep, which serves the
+  // pre-approvals desk, the scan desk, the walk-in desk and the dashboard's
+  // Verify ID modal — so labelling it here answers "walk-in or pre-approved?"
+  // on every check-in there is, in the same words the dashboard column uses.
   it.each([
     ['pre_approved', 'Pre-approved'],
-    ['walkin_approved', 'Walk-in approved'],
+    ['walk_in', 'Walk-in'],
     ['recurring', 'Regular visitor'],
-  ] as const)('shows the "%s" approval as "%s"', (approvalType, label) => {
+  ] as const)('names the "%s" type of visitor as "%s"', (approvalType, label) => {
     render(<CheckInVisitorSummary match={match({ approvalType })} />);
+    expect(screen.getByText('Type of Visitor')).toBeInTheDocument();
     expect(screen.getByText(label)).toBeInTheDocument();
   });
 
-  it('shows the exact approval timestamp, labelled with the approval type, when approvedAt is set', () => {
+  it('shows the exact approval timestamp when approvedAt is set', () => {
     render(<CheckInVisitorSummary match={match({ approvalType: 'pre_approved', approvedAt: '2026-08-01T08:00:00Z' })} />);
-    expect(screen.getByText('Pre-approved at')).toBeInTheDocument();
+    expect(screen.getByText('Approved at')).toBeInTheDocument();
     expect(screen.getByText(formatDateTime('2026-08-01T08:00:00Z'))).toBeInTheDocument();
   });
 
   it('omits the approval-timestamp row entirely when approvedAt is null', () => {
     render(<CheckInVisitorSummary match={match({ approvedAt: null })} />);
-    expect(screen.queryByText('Pre-approved at')).not.toBeInTheDocument();
+    expect(screen.queryByText('Approved at')).not.toBeInTheDocument();
   });
 
   // Date AND time (client instruction, 2026-08-13): an open pre-approval can be

@@ -1088,6 +1088,30 @@
     beside it can no longer say which desk they came through.
   - **`WhosInsideVisitorCard`** adds it as a `CardField`, gated on `statusProvesOrigin`
     for the same non-duplication reason as the grid card below.
+  - **Every CHECK-IN says it too, on `CheckInVisitorSummary`** (client instruction,
+    2026-08-16: "whenever anybody's checking in they should be able to recognize by the
+    field type of visitor"). That summary is rendered by `CheckInPhotoStep`, which is the
+    one screen the pre-approvals desk, the scan desk, the walk-in desk and the dashboard's
+    Verify ID modal ALL pass through — so the field is labelled **"Type of Visitor"** once,
+    there, rather than copied onto four flows. The value stays a coloured pill (glanceable
+    at a gate); the label is what makes it legible to someone who has not learned the
+    badge. The approval row beside it reads **"Approved at"**, not "\<type\> at", or the
+    type would be printed twice on one summary.
+  - **`MatchItem.approvalType` is DERIVED FROM `visitOrigin`, and its walk-in member is
+    named `walk_in`.** It used to be `walkin_approved`, computed as
+    `status === 'walkin_approved'` in both `checkInMatches.ts` and `qrMatchItem.ts` — a
+    second, weaker inference of a question `lib/visitOrigin.ts` already answers. Migration
+    080 broke it: the approver admits a walk-in in the same click, so a host-cleared
+    walk-in rests in `checked_in`, and the check-in desk labelled that visitor
+    "Pre-Approved" while the dashboard column beside it said Walk-in. The labels are
+    `visitOrigin`'s own words on both `CheckInMatchCard` and `CheckInVisitorSummary` —
+    **Pre-approved / Walk-in / Regular** — so the desk and the board share one vocabulary.
+    `recurring` survives as a genuine third case: a standing visitor has no visit row at
+    all until check-in creates one. The converged case is asserted in
+    `qrMatchItem.test.ts`, not `checkInMatches.test.ts` — `buildMatchItems` only ever sees
+    the open pre-approvals the panel fetched, and a `checked_in` row becomes a `MatchItem`
+    exclusively through `visitToMatchItem` (`useVisitHistorySearch` maps every server-side
+    hit with it).
   - **`VisitorGridCard` carries the same answer as an outline chip**, and renders it
     only when `statusProvesOrigin(v.status)` is false. `STATUS_STYLES.approved` reads
     "Pre-approved" in so many words, so on an unconverged row the chip would be the same

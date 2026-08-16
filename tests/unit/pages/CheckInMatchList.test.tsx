@@ -123,21 +123,23 @@ describe('CheckInMatchList — host name and vendor name', () => {
   });
 });
 
-describe('CheckInMatchList — pre-approved vs walk-in-approved segregation', () => {
-  it('labels a pre-approved visit as Pre-Approved', () => {
+describe('CheckInMatchList — pre-approved vs walk-in segregation', () => {
+  // The same two words the dashboard's "Type of Visitor" column prints, so a
+  // guard reads one vocabulary across the board and the check-in desk.
+  it('labels a pre-approved visit as Pre-approved', () => {
     render(<CheckInMatchList {...baseProps({
       allMatches: [match({ approvalType: 'pre_approved' })],
     })} />);
-    expect(screen.getByText('Pre-Approved')).toBeInTheDocument();
-    expect(screen.queryByText('Walk-in Approved')).not.toBeInTheDocument();
+    expect(screen.getByText('Pre-approved')).toBeInTheDocument();
+    expect(screen.queryByText('Walk-in')).not.toBeInTheDocument();
   });
 
-  it('labels a walk-in-approved visit as Walk-in Approved, distinct from Pre-Approved', () => {
+  it('labels a walk-in as Walk-in, distinct from Pre-approved', () => {
     render(<CheckInMatchList {...baseProps({
-      allMatches: [match({ id: 'pre:2', approvalType: 'walkin_approved' })],
+      allMatches: [match({ id: 'pre:2', approvalType: 'walk_in' })],
     })} />);
-    expect(screen.getByText('Walk-in Approved')).toBeInTheDocument();
-    expect(screen.queryByText('Pre-Approved')).not.toBeInTheDocument();
+    expect(screen.getByText('Walk-in')).toBeInTheDocument();
+    expect(screen.queryByText('Pre-approved')).not.toBeInTheDocument();
   });
 
   it('labels a recurring visit as Regular', () => {
@@ -157,10 +159,10 @@ describe('CheckInMatchList — exact approval date and time', () => {
     expect(screen.getByText(new RegExp(formatDateTime(approvedAt).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')))).toBeInTheDocument();
   });
 
-  it('shows the formatted approval timestamp for a walk-in-approved visit', () => {
+  it('shows the formatted approval timestamp for a walk-in', () => {
     const approvedAt = '2026-07-30T14:42:00Z';
     render(<CheckInMatchList {...baseProps({
-      allMatches: [match({ approvalType: 'walkin_approved', approvedAt })],
+      allMatches: [match({ approvalType: 'walk_in', approvedAt })],
     })} />);
     expect(screen.getByText(new RegExp(formatDateTime(approvedAt).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')))).toBeInTheDocument();
   });
