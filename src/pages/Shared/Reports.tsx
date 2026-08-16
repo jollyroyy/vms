@@ -168,53 +168,64 @@ export default function ReportsPage(): React.ReactElement {
         {loading ? (
           <div className="card p-6 space-y-3 no-print">{[1, 2, 3].map((i) => <div key={i} className="h-8 skeleton" />)}</div>
         ) : (
-          <div className="card-premium overflow-hidden print:overflow-visible">
-            <div className="overflow-x-auto print:overflow-visible">
-              <table className="register-table w-full text-sm tabular-nums">
-                <thead>
-                  <tr className="bg-surface-50/80 border-b border-surface-200/60 dark:border-white/[0.06]">
-                    {['#', 'Ref', 'Photo', 'Visitor Name', 'Vendor', 'Phone', 'Dept', 'Person to Meet', 'ID Proof', 'Purpose', 'Carrying', 'Carrying Remarks', 'Approved', 'Check-in', 'Check-out', 'Status'].map((h) => (
-                      <th key={h} className="px-3.5 py-3.5 text-left text-micro uppercase text-navy-500 dark:text-navy-400 whitespace-nowrap">{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-surface-200/50 dark:divide-white/[0.05]">
-                  {shown.map((v, i) => (
-                    <tr key={v.id} className="hover:bg-surface-100/60 dark:hover:bg-white/[0.03] transition-colors">
-                      <td className="px-3.5 py-3 text-navy-300 tabular-nums">{i + 1}</td>
-                      <td className="px-3.5 py-3 text-[11px] font-mono text-navy-500 dark:text-navy-400">{v.ref_number}</td>
-                      <td className="px-3.5 py-3">
-                        {v.photo_url ? (
-                          <img src={v.photo_url} alt="Visitor photo" className="w-10 h-10 rounded-lg object-cover ring-1 ring-black/5" />
-                        ) : (
-                          <div className="w-10 h-10 rounded-lg bg-surface-100 flex items-center justify-center text-navy-300 ring-1 ring-black/5">
-                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0" /></svg>
-                          </div>
-                        )}
-                      </td>
-                      <td className="px-3.5 py-3 font-semibold text-navy-900">{v.visitor?.full_name}</td>
-                      <td className="px-3.5 py-3 text-navy-500">{v.visitor?.vendor_name}</td>
-                      <td className="px-3.5 py-3 text-navy-500 font-mono text-xs">{maskPhone(v.visitor?.phone)}</td>
-                      <td className="px-3.5 py-3 text-navy-500">{v.department?.name}</td>
-                      <td className="px-3.5 py-3 text-navy-500">{v.host?.full_name}</td>
-                      <td className="px-3.5 py-3 text-navy-500 font-mono text-xs whitespace-nowrap">{maskIdProof(v.visitor?.id_type, v.visitor?.id_last4)}</td>
-                      <td className="px-3.5 py-3 text-navy-500 capitalize">{v.purpose}</td>
-                      <td className="px-3.5 py-3 text-xs whitespace-nowrap">
-                        <span className={v.carrying_material ? 'font-bold text-accent-700 dark:text-accent-300' : 'text-navy-500 dark:text-navy-400'}>
-                          {carryingFlag(v)}
-                        </span>
-                      </td>
-                      <td className="px-3.5 py-3 text-xs text-navy-600 max-w-[14rem]">
-                        <span className="block truncate" title={v.carrying_remarks ?? undefined}>{carryingRemarks(v)}</span>
-                      </td>
-                      <td className="px-3.5 py-3 text-xs text-navy-700 whitespace-nowrap">{dateTime(approvalTimestamp(v))}</td>
-                      <td className="px-3.5 py-3 text-xs text-navy-700 whitespace-nowrap">{dateTime(v.checked_in_at)}</td>
-                      <td className="px-3.5 py-3 text-xs text-navy-700 whitespace-nowrap">{v.checked_out_at ? dateTime(v.checked_out_at) : v.exit_verified === false ? 'Auto-closed' : '—'}</td>
-                      <td className={`px-3.5 py-3 font-medium ${PLAIN_STATUS[v.status] ? 'capitalize' : ''} ${STATUS_COLORS[v.status] ?? 'text-navy-500'}`}>{visitStatusLabel(v)}</td>
+          /* The register is drawn in the DASHBOARD's row language (client
+             instruction, 2026-08-16): the same glass panel, the same uppercase
+             11px header band, the same hairline row rule and brand-tinted hover
+             as components/DashboardVisitorTable, so a report and the board it
+             was read off do not look like two products. The COLUMNS are
+             untouched — all sixteen, in order — because styles/print.css pins
+             the printed register's widths by `nth-child`, and the two must stay
+             in step. */
+          <div className="rounded-2xl bg-surface-100/60 dark:bg-white/[0.03] border border-surface-200/60 dark:border-white/[0.07] p-5 shadow-glow-sm print:p-0 print:border-0 print:bg-transparent print:shadow-none">
+            <div className="rounded-xl border border-surface-200/60 dark:border-white/[0.08] print:border-0">
+              <div className="overflow-x-auto print:overflow-visible">
+                <table className="register-table w-full text-sm tabular-nums">
+                  <thead>
+                    <tr className="text-left text-[11px] uppercase tracking-wider text-navy-500 bg-surface-100/50 dark:bg-white/[0.03]">
+                      {['#', 'Ref', 'Photo', 'Visitor Name', 'Vendor', 'Phone', 'Dept', 'Person to Meet', 'ID Proof', 'Purpose', 'Carrying', 'Carrying Remarks', 'Approved', 'Check-in', 'Check-out', 'Status'].map((h) => (
+                        <th key={h} className="px-4 py-3 font-semibold whitespace-nowrap">{h}</th>
+                      ))}
                     </tr>
-                  ))}
-                  {shown.length === 0 && (
-                    <tr><td colSpan={16} className="px-4 py-10">
+                  </thead>
+                  <tbody>
+                    {shown.map((v, i) => (
+                      <tr key={v.id} className="border-t border-surface-200/50 dark:border-white/[0.05] transition-colors hover:bg-brand-600/5">
+                        <td className="px-4 py-3 text-[#9aa3af] dark:text-[#b7c0cb] tabular-nums">{i + 1}</td>
+                        <td className="px-4 py-3 text-[11px] font-mono text-navy-500 dark:text-navy-400">{v.ref_number}</td>
+                        {/* Round, brand-ringed, and the same size as the board's
+                            face — a visitor is recognised the same way on both. */}
+                        <td className="px-4 py-3">
+                          {v.photo_url ? (
+                            <img src={v.photo_url} alt="Visitor photo" className="w-8 h-8 rounded-full object-cover ring-2 ring-brand-500/25" />
+                          ) : (
+                            <div className="w-8 h-8 rounded-full bg-surface-100 dark:bg-white/[0.06] flex items-center justify-center text-navy-500 ring-1 ring-black/5">
+                              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0" /></svg>
+                            </div>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 font-medium text-navy-950 dark:text-white">{v.visitor?.full_name}</td>
+                        <td className="px-4 py-3 text-[#9aa3af] dark:text-[#b7c0cb] font-medium">{v.visitor?.vendor_name}</td>
+                        <td className="px-4 py-3 text-[#9aa3af] dark:text-[#b7c0cb] font-mono text-xs">{maskPhone(v.visitor?.phone)}</td>
+                        <td className="px-4 py-3 text-[#9aa3af] dark:text-[#b7c0cb] font-medium">{v.department?.name}</td>
+                        <td className="px-4 py-3 text-[#9aa3af] dark:text-[#b7c0cb] font-medium">{v.host?.full_name}</td>
+                        <td className="px-4 py-3 text-[#9aa3af] dark:text-[#b7c0cb] font-mono text-xs whitespace-nowrap">{maskIdProof(v.visitor?.id_type, v.visitor?.id_last4)}</td>
+                        <td className="px-4 py-3 text-[#9aa3af] dark:text-[#b7c0cb] font-medium capitalize">{v.purpose}</td>
+                        <td className="px-4 py-3 text-xs whitespace-nowrap">
+                          <span className={v.carrying_material ? 'font-bold text-accent-700 dark:text-accent-300' : 'text-[#9aa3af] dark:text-[#b7c0cb]'}>
+                            {carryingFlag(v)}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-xs text-[#9aa3af] dark:text-[#b7c0cb] max-w-[14rem]">
+                          <span className="block truncate" title={v.carrying_remarks ?? undefined}>{carryingRemarks(v)}</span>
+                        </td>
+                        <td className="px-4 py-3 text-xs text-[#9aa3af] dark:text-[#b7c0cb] font-medium tabular-nums whitespace-nowrap">{dateTime(approvalTimestamp(v))}</td>
+                        <td className="px-4 py-3 text-xs text-[#9aa3af] dark:text-[#b7c0cb] font-medium tabular-nums whitespace-nowrap">{dateTime(v.checked_in_at)}</td>
+                        <td className="px-4 py-3 text-xs text-[#9aa3af] dark:text-[#b7c0cb] font-medium tabular-nums whitespace-nowrap">{v.checked_out_at ? dateTime(v.checked_out_at) : v.exit_verified === false ? 'Auto-closed' : '—'}</td>
+                        <td className={`px-4 py-3 font-medium ${PLAIN_STATUS[v.status] ? 'capitalize' : ''} ${STATUS_COLORS[v.status] ?? 'text-navy-500'}`}>{visitStatusLabel(v)}</td>
+                      </tr>
+                    ))}
+                    {shown.length === 0 && (
+                      <tr><td colSpan={16} className="px-4 py-10">
                       <div className="revamp-empty">
                         <div className="revamp-empty-medallion">
                           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.7}><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25H12" /></svg>
@@ -224,10 +235,11 @@ export default function ReportsPage(): React.ReactElement {
                           ? `No ${activeDept.name} visits between ${range.from} and ${range.to}`
                           : `No visits between ${range.from} and ${range.to}`}</p>
                       </div>
-                    </td></tr>
-                  )}
-                </tbody>
-              </table>
+                      </td></tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         )}

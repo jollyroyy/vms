@@ -7,7 +7,9 @@ import { useTodayVisits } from '../../lib/useTodayVisits';
 import { istDateKey } from '../../lib/visitExpiry';
 import { PANEL_SPEC } from '../../lib/dashboardColumns';
 import type { ReportVisit } from '../../lib/reportRow';
-import DashboardVisitorTable from './DashboardVisitorTable';
+import DashboardVisitorTable from '../../components/DashboardVisitorTable';
+import DashboardPanel from '../../components/DashboardPanel';
+import DashboardTile from '../../components/DashboardTile';
 import { TILE_ICONS, TILE_RING, sortForTile } from './dashboardTileMeta';
 import VisitorDetails from '../../components/VisitorDetails';
 
@@ -71,37 +73,23 @@ export default function GuardDashboardMain(): React.ReactElement {
       .join('')
       .toUpperCase() || 'U');
 
-  const renderTile = (key: GuardTileKey, compact: boolean) => {
-    const active = tile === key;
-    return (
-      <button
-        key={key}
-        type="button"
-        aria-pressed={active}
-        onClick={() => setTile(key)}
-        className={`rounded-2xl border ${compact ? 'px-4 py-3.5 gap-3' : 'px-5 py-5 gap-4'} flex items-center shadow-glow-sm text-left w-full transition-all duration-200 hover:-translate-y-0.5 hover:shadow-glow ${
-          active
-            ? 'bg-brand-600/10 dark:bg-brand-500/15 border-brand-500/40 ring-1 ring-brand-500/30'
-            : 'bg-surface-100/60 dark:bg-white/[0.03] border-surface-200/60 dark:border-white/[0.07]'
-        }`}>
-        <span className={`shrink-0 rounded-full border ${TILE_RING[key]} flex items-center justify-center ${compact ? 'w-9 h-9' : 'w-12 h-12'}`}>
-          <svg className={compact ? 'w-4.5 h-4.5' : 'w-6 h-6'} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.6} aria-hidden="true">
-            <path strokeLinecap="round" strokeLinejoin="round" d={TILE_ICONS[key]} />
-          </svg>
-        </span>
-        <span className="min-w-0">
-          {/* The tile's label IS the panel's heading (PANEL_SPEC), so the two
-              can never say different things about the same list. */}
-          <span className={`block font-medium text-navy-500 dark:text-navy-600 ${compact ? 'text-[12px]' : 'text-[13px]'}`}>
-            {PANEL_SPEC[key].heading}
-          </span>
-          <span className={`block font-display leading-tight font-medium tracking-tight tabular-nums text-navy-950 dark:text-white ${compact ? 'text-[1.5rem]' : 'text-[2rem]'}`}>
-            {visitsLoading ? '—' : drill[key].length}
-          </span>
-        </span>
-      </button>
-    );
-  };
+  // The card itself is components/DashboardTile — the same file the HOD board
+  // renders (client instruction, 2026-08-16: the two views must not look like
+  // different applications). The tile's label IS the panel's heading
+  // (PANEL_SPEC), so the two can never say different things about the same list.
+  const renderTile = (key: GuardTileKey, compact: boolean) => (
+    <DashboardTile
+      key={key}
+      label={PANEL_SPEC[key].heading}
+      value={drill[key].length}
+      icon={TILE_ICONS[key]}
+      ring={TILE_RING[key]}
+      active={tile === key}
+      loading={visitsLoading}
+      compact={compact}
+      onSelect={() => setTile(key)}
+    />
+  );
 
   return (
     <div className="space-y-4 animate-fade-in pb-4">
@@ -119,19 +107,7 @@ export default function GuardDashboardMain(): React.ReactElement {
       </div>
 
       {/* Row 3 — the one list. Heading and columns both follow the tile. */}
-      <div className="rounded-2xl bg-surface-100/60 dark:bg-white/[0.03] border border-surface-200/60 dark:border-white/[0.07] p-5 shadow-glow-sm">
-        <div className="flex items-center gap-3 mb-4">
-          <span className="text-brand-500">
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8} aria-hidden="true">
-              <path strokeLinecap="round" strokeLinejoin="round" d={TILE_ICONS[tile]} />
-            </svg>
-          </span>
-          <h2 className="font-display text-h2 text-navy-950 dark:text-white">{spec.heading}</h2>
-          <span className="text-sm font-semibold tabular-nums text-navy-700">
-            {visitsLoading ? '' : rows.length}
-          </span>
-        </div>
-
+      <DashboardPanel icon={TILE_ICONS[tile]} heading={spec.heading} count={rows.length} loading={visitsLoading}>
         <DashboardVisitorTable
           rows={rows}
           columns={spec.columns}
@@ -141,7 +117,7 @@ export default function GuardDashboardMain(): React.ReactElement {
           initialsOf={initialsOf}
           onOpen={setDetailVisit}
         />
-      </div>
+      </DashboardPanel>
 
       {detailVisit && (
         <VisitorDetails

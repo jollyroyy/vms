@@ -957,6 +957,43 @@
   carried by a colour rail **and** a text badge — never colour alone.
 
 ### HOD surface
+- **The HOD view is drawn in the GUARD's design, from the guard's own files**
+  (client instruction, 2026-08-16: "make the look and feel, font type and typography of
+  the HOD view exactly same as guard's view, so they should not look different style
+  wise, since they are part of same /vms app"). Every tile is
+  `components/DashboardTile.tsx`, every list is `components/DashboardVisitorTable.tsx`,
+  every card is `components/DashboardPanel.tsx`, and the guard dashboard renders those
+  same three. Sharing the components is the point: two files carrying identical Tailwind
+  are identical *until the next edit to one of them*, which is exactly the drift the
+  client was reporting. **`src/styles/hod-compact.css` is DELETED** — a self-contained
+  8-to-11px type scale in a private accent hue, scoped to one role. Do not reintroduce a
+  stylesheet scoped to a role; if a surface needs a treatment, it belongs in the shared
+  layers, where every role gets it.
+  - `lib/tileIcons.ts` holds the KPI glyph paths and `dashboardColumns.ts` exports the
+    `COLUMN` atoms, so a "people" glyph or a "Scheduled" cell cannot mean one thing on
+    the guard board and another on the HOD's. Composing a panel is picking from `COLUMN`;
+    it is not a licence to write a one-off column inline.
+  - **Reports is drawn in the same row language** (same instruction). The glass panel,
+    the uppercase 11px header band, the hairline row rule, the brand-tinted hover and the
+    round brand-ringed face are `DashboardVisitorTable`'s. Its **sixteen columns are
+    untouched and must stay so** — `styles/print.css` pins the printed register's widths
+    by `nth-child`, so adding or merging a column silently breaks the printed copy.
+- **There is NO Approval Desk** (removed 2026-08-16, client instruction). It sat at
+  `/overview?tab=preapprovals` and listed `pending_approval` rows carrying a
+  `scheduled_for` — a set that **cannot exist**: `WalkInRequest` and the kiosk are the
+  only writers of that status and both insert `scheduled_for: null`, while a pre-approval
+  is created already `approved` and never passes through it. The desk could never hold a
+  row, and every decision an HOD actually makes has always been on the **Walk-in Desk**
+  (`/overview?tab=walkins`, `HodWalkInDesk.tsx` + `HodDecisionPanel.tsx`). The `?tab=`
+  value degrades onto the dashboard rather than 404-ing — it is in bookmarks — and
+  `/approvals` is still the pre-approval FORM. `HODConsole`'s scheduled-decisions query
+  went with it.
+  - Consequence: the **`walkins` KPI tile went too**. With the scheduled lane gone,
+    "Awaiting decision" and "Walk-ins live" were two tiles opening one identical list,
+    which is the no-duplicate-renders rule. **The four are On Site Now · Approved Today ·
+    Awaiting Your Decision · Declined Today**, and no panel carries a Department column —
+    an HOD belongs to exactly one department, so it would print the same value on every
+    line.
 - **The HOD's landing page is the DASHBOARD, and every KPI on it drills down**
   (client instruction, 2026-08-16). The nav item reads **Dashboard**, not "Overview" —
   the route stays `/overview`, which is what the bookmarks and every `?tab=` link hold —
@@ -980,25 +1017,24 @@
   pre-approval form — the one HOD screen that *creates* a visit rather than deciding one —
   became unreachable, leaving an HOD with no way to raise a visitor pass at all.
   `App.tsx` routes `/approvals` back to `pages/HOD/Approvals.tsx` → `PreApproveForm`;
-  `tabHref.preapprovals` is `/overview?tab=preapprovals` and `tabFromLocation` no longer
-  keys on the pathname. The sidebar carries both, and the labels distinguish them:
-  **Pre-Approvals** (the form, plus icon) and **Approval Desk** (the decision surface,
-  tick icon). Two different surfaces must never share a URL.
+  `tabFromLocation` no longer keys on the pathname. The sidebar carries the form as
+  **Pre-Approvals** (plus icon). Two different surfaces must never share a URL. The
+  **Approval Desk** item that sat beside it was removed 2026-08-16 (see above), and
+  `tabHref` went with it — the console's one remaining shortcut navigates with a literal
+  path.
   On success the form navigates to `/overview?tab=schedule` — the list the new booking is
   the top row of. `?filter=approved` was a param nothing on the console read, so the HOD
   landed on a bare Overview with no confirmation their pass existed.
-- **`styles/hod-compact.css` is TOKEN-DRIVEN — no hardcoded hex neutrals**
-  (client report, 2026-08-16: "the right side is not matching with the left hand side,
-  it's kind of blue"). It shipped as a self-contained navy operations palette
-  (`#071522` panels, `#1677ff` accents, `#f4f8ff` text) that ignored the theme, so the
-  HOD's content area stayed a dark blue slab whatever the sidebar beside it was doing.
-  Every neutral now resolves through `--c-surface-*` / `--c-navy-*`, which **flip with
-  the theme**, so one token step is correct at both ends and there is no `.dark` override
-  for neutrals. The only `.dark .hod-console` block re-tints the four **status hues**
-  (blue/green/amber/red), which need a lighter value on a dark ground to hold contrast.
-  `.hod-console` paints **no background of its own** — the AppShell canvas is the surface
-  every other page sits on, and the old bordered slab was a second background inside the
-  first.
+- **The HOD surface has NO stylesheet of its own.** `styles/hod-compact.css` was deleted
+  2026-08-16 when the view was rebuilt on the guard's shared components (see above). It is
+  worth knowing why it existed and why token-driving it was not enough: it shipped as a
+  self-contained navy operations palette (`#071522` panels, `#1677ff` accents, `#f4f8ff`
+  text) that ignored the theme, so the HOD's content area stayed a dark blue slab whatever
+  the sidebar beside it was doing — "the right side is not matching with the left hand
+  side, it's kind of blue" (client report, 2026-08-16). Routing its neutrals through
+  `--c-surface-*` / `--c-navy-*` fixed the *colour* and left the **type** — an 8-to-11px
+  scale nothing else in /vms uses — which is what the follow-up report was about. A role
+  does not get a stylesheet; it gets the shared layers.
 - **`/approvals` is the pre-approval FORM only**, and the HOD nav calls it
   "Pre-Approvals". It has no tabs. The "Pending" tab
   that used to live there moved to `/overview`, because an HOD opens the Overview to
@@ -1298,8 +1334,13 @@ src/
                      # CheckInPanel + CheckInMatchList, CheckInPhotoStep;
                      # VisitorForm + VisitorFormFields, VisitorFormAlerts,
                      # VisitorFormPreApproved; WalkInRequest
-  pages/HOD/         # Approvals, ApprovalsPendingList, ApprovalsVisitList, HODOverview,
-                     # OverviewStatCards, OverviewUpcoming, OverviewNotifications, PreApproveForm
+  pages/HOD/         # HODConsole (shell: dashboard / walk-in desk / schedule, all
+                     #   ?tab= views of /overview) + HodKpiBoard, HodWalkInDesk,
+                     #   HodDecisionPanel, HodSchedule — ALL drawn with the shared
+                     #   components below, no hod-* CSS;
+                     # Approvals (the pre-approval FORM), ApprovalsPendingList,
+                     # ApprovalsVisitList, HODOverview, OverviewStatCards,
+                     # OverviewUpcoming, OverviewNotifications, PreApproveForm
   pages/Shared/      # Analytics (shell) + AnalyticsKPICards, AnalyticsCharts;
                      # WhosInside + WhosInsideVisitorCard;
                      # Reports + ReportsToolbar, VisitorsDashboard
@@ -1312,6 +1353,9 @@ src/
   pages/Kiosk/       # Kiosk (state machine) + KioskIdleScreen, KioskPhoneScreen,
                      # KioskFormScreen, KioskBadgeScreen, KioskAuroraBackdrop,
                      # useKioskAutoReset (idle timeout + badge countdown)
+  components/        # DashboardTile, DashboardPanel, DashboardVisitorTable — the
+                     #   guard board AND the HOD board render these same three, which
+                     #   is what stops the two views drifting apart visually
   components/layout/ # AppShell, Sidebar, navLinks (ALL_LINKS — the one
                      #   source of truth; SidebarNavGroup.tsx was deleted
                      #   2026-08-13, there are no nav groups),

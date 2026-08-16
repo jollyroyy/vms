@@ -260,7 +260,12 @@ describe('M12-REPORTS: Reports', () => {
   // Premium type-scale pass (2026-08-10): register headers sit at the micro
   // scale (11px/600 uppercase) and every numeral column stays tabular so
   // digits never jitter as rows load or filter.
-  it('renders the register header at the micro scale and keeps numerals tabular', async () => {
+  // The register is drawn in the DASHBOARD's row language (client instruction,
+  // 2026-08-16), so its header band is the same one components/
+  // DashboardVisitorTable draws: uppercase, tracked, semibold, at 11px. It was
+  // `text-micro` before, which is a scale nothing else in the app uses — a
+  // report and the board it was read off should not look like two products.
+  it('renders the register header in the shared dashboard band and keeps numerals tabular', async () => {
     mockOrder.mockResolvedValue({ data: [], error: null });
     mockIn.mockResolvedValue({ data: [], error: null });
     render(<MemoryRouter><ReportsPage /></MemoryRouter>);
@@ -269,7 +274,9 @@ describe('M12-REPORTS: Reports', () => {
     });
     const header = screen.getByText('Visitor Name');
     expect(header.tagName).toBe('TH');
-    expect(header.className).toContain('text-micro');
+    expect(header.className).toContain('font-semibold');
+    expect(header.parentElement!.className).toContain('uppercase');
+    expect(header.parentElement!.className).toContain('text-[11px]');
     const table = header.closest('table')!;
     expect(table.className).toContain('tabular-nums');
   });

@@ -52,10 +52,18 @@ export const ALL_LINKS: NavLink[] = [
   // ROUTE stays /overview: it is in bookmarks and in every `?tab=` link the
   // console emits.
   { to: '/overview', label: 'Dashboard', roles: ['hod'], icon: icon(ICON_GRID) },
-  // The FORM — raise a pre-approved visitor pass. Not the same screen as the
-  // Approval Desk below it, which decides on requests that already exist.
+  // The FORM — raise a pre-approved visitor pass. The one HOD screen that
+  // CREATES a visit rather than deciding one.
   { to: '/approvals', label: 'Pre-Approvals', roles: ['hod'], icon: icon(ICON_PLUS) },
-  { to: '/overview?tab=preapprovals', label: 'Approval Desk', roles: ['hod'], icon: icon(ICON_CHECK) },
+  // THERE IS NO APPROVAL DESK (removed 2026-08-16, client instruction). It sat
+  // at /overview?tab=preapprovals and listed `pending_approval` rows carrying a
+  // `scheduled_for` — a set that cannot exist, since WalkInRequest and the kiosk
+  // are the only writers of that status and both insert `scheduled_for: null`,
+  // while a pre-approval is created already approved and never passes through
+  // it. Every decision an HOD actually makes has always been on the Walk-in
+  // Desk below. The `?tab=` value degrades onto the dashboard (HODConsole's
+  // tabFromLocation) rather than 404-ing, because it is in bookmarks.
+  //
   // The HOD console's other two desks. They used to be a SECOND navigation —
   // a horizontal `.hod-tabs` bar across the top of the console, listing these
   // four destinations while the sidebar beside it listed the same ones

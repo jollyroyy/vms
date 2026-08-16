@@ -1,8 +1,8 @@
 import React from 'react';
 
-import type { ReportVisit } from '../../lib/reportRow';
-import type { DashboardColumn } from '../../lib/dashboardColumns';
-import GateChips from '../../components/GateChips';
+import type { ReportVisit } from '../lib/reportRow';
+import type { DashboardColumn } from '../lib/dashboardColumns';
+import GateChips from './GateChips';
 
 // The guard dashboard's ONE list. Whatever tile is pressed, this renders it.
 //
@@ -43,7 +43,7 @@ export default function DashboardVisitorTable({
       <div className="overflow-x-auto">
         <table className="w-full text-sm min-w-[720px]">
           <thead>
-            <tr className="text-left text-[11px] uppercase tracking-wider text-navy-500 dark:text-navy-400 bg-surface-100/50 dark:bg-white/[0.03]">
+            <tr className="text-left text-[11px] uppercase tracking-wider text-navy-500 bg-surface-100/50 dark:bg-white/[0.03]">
               {columns.map((c) => (
                 <th key={c.key} className="px-4 py-3 font-semibold whitespace-nowrap">{c.header}</th>
               ))}

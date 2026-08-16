@@ -1,71 +1,77 @@
 /**
- * HOD Console visual philosophy: compact dark-navy operations workspace.
- * The original BMS Sidebar remains the only application navigation; this
- * component renders the right-side decision content only.
+ * The HOD's decision workspace — the dashboard, the walk-in desk and the
+ * visitor schedule, all as `?tab=` views of /overview.
+ *
+ * IT IS DRAWN IN THE GUARD'S DESIGN, AND THAT IS THE POINT (client instruction,
+ * 2026-08-16: "make the look and feel, font type and typography of the HOD view
+ * exactly same as guard's view, so they should not look different style wise,
+ * since they are part of same /vms app"). Every tile is
+ * components/DashboardTile, every list is components/DashboardVisitorTable and
+ * every card is components/DashboardPanel — the same files the guard dashboard
+ * renders, not lookalikes. `styles/hod-compact.css` is DELETED: it was a
+ * self-contained 8-to-11px type scale with its own accent hue, which is what
+ * made an HOD moving between this screen and any other in /vms feel they had
+ * changed application. Do not reintroduce a stylesheet scoped to one role.
+ *
+ * THERE IS NO APPROVAL DESK (removed 2026-08-16, same instruction). It listed
+ * `pending_approval` rows carrying a `scheduled_for`, and no such row exists:
+ * WalkInRequest and the kiosk are the only writers of that status and both
+ * insert `scheduled_for: null`, while a pre-approval is created already
+ * approved. `?tab=preapprovals` degrades onto the dashboard rather than
+ * 404-ing — it is in bookmarks — and /approvals is still the pre-approval FORM.
  */
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { supabase } from '../../supabaseClient';
 import type { Visit } from '../../types/index';
+import type { ReportVisit } from '../../lib/reportRow';
 import { attachHostNames } from '../../lib/hostNames';
 import { usePreApprovals } from '../../lib/usePreApprovals';
 import { useVisitDecisions } from './useVisitDecisions';
-import { display, hostName, purposeLabel, visitDay, visitTime, visitorCompany, visitorName } from '../../lib/hodVisitLabels';
 import { hodTileVisits, type HodTileKey } from '../../lib/hodTiles';
 import HodKpiBoard from './HodKpiBoard';
-import '../../styles/hod-compact.css';
+import HodWalkInDesk from './HodWalkInDesk';
+import HodSchedule from './HodSchedule';
+import VisitorDetails from '../../components/VisitorDetails';
 
-type ConsoleTab = 'overview' | 'preapprovals' | 'walkins' | 'schedule';
-// EVERY TAB HANGS OFF /overview. `preapprovals` used to be `/approvals`, which
-// is now the pre-approval FORM again (App.tsx) — the one HOD screen that raises
-// a visitor pass rather than deciding one. Two different surfaces cannot share a
-// URL, and of the two the form is the one an HOD has no other route to.
-const tabHref: Record<ConsoleTab, string> = {
-  overview: '/overview',
-  preapprovals: '/overview?tab=preapprovals',
-  walkins: '/overview?tab=walkins',
-  schedule: '/overview?tab=schedule',
-};
+type ConsoleTab = 'overview' | 'walkins' | 'schedule';
 
-const tabFromLocation = (_pathname: string, search: string): ConsoleTab => {
+const tabFromLocation = (search: string): ConsoleTab => {
   const requested = new URLSearchParams(search).get('tab');
-  if (requested === 'overview' || requested === 'preapprovals' || requested === 'walkins' || requested === 'schedule') return requested;
+  // `preapprovals` is deliberately absent from this list, so the deleted desk's
+  // bookmarks land on the dashboard instead of a blank tab.
+  if (requested === 'walkins' || requested === 'schedule') return requested;
   return 'overview';
 };
 
-function Avatar({ name, tone = 0 }: { name: string; tone?: number }): React.ReactElement {
-  const initials = name.split(' ').filter(Boolean).map((part) => part[0]).join('').slice(0, 2).toUpperCase() || '?';
-  return <span className={`hod-avatar hod-avatar--${tone % 4}`}>{initials}</span>;
-}
+const initialsOf = (name: string | null | undefined): string =>
+  ((name ?? 'U').split(' ').filter(Boolean).slice(0, 2).map((w) => w[0]).join('').toUpperCase() || 'U');
 
-function StatusBadge({ children, tone = 'blue' }: { children: React.ReactNode; tone?: 'blue' | 'green' | 'amber' | 'slate' }): React.ReactElement {
-  return <span className={`hod-badge hod-badge--${tone}`}>{children}</span>;
-}
-
-function EmptyState({ children }: { children: React.ReactNode }): React.ReactElement {
-  return <div className="hod-empty">{children}</div>;
-}
+const SELECT = '*, visitor:visitors(*), department:departments(id, name, code, created_at)';
 
 export default function HODConsole(): React.ReactElement {
   const location = useLocation();
   const navigate = useNavigate();
-  const tab = useMemo(() => tabFromLocation(location.pathname, location.search), [location.pathname, location.search]);
+  const tab = useMemo(() => tabFromLocation(location.search), [location.search]);
   const [deptId, setDeptId] = useState<string | null>(null);
-  // Today's department visits, FULL ROWS. This used to be `select id, status`,
-  // which could only ever produce a number — so a KPI had nothing to drill into
-  // (client instruction, 2026-08-16). Counts are now list lengths, out of
-  // lib/hodTiles.ts.
+  // Today's department visits, FULL ROWS — the counts are list lengths, so the
+  // board must hold the rows it is counting (lib/hodTiles.ts).
   const [dayVisits, setDayVisits] = useState<Visit[]>([]);
-  const [openTile, setOpenTile] = useState<HodTileKey | null>(null);
-  const [scheduledDecisions, setScheduledDecisions] = useState<Visit[]>([]);
+  const [openTile, setOpenTile] = useState<HodTileKey>('pending');
   const [walkIns, setWalkIns] = useState<Visit[]>([]);
   const [onSite, setOnSite] = useState<Visit[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedScheduledId, setSelectedScheduledId] = useState<string | null>(null);
+  const [clock, setClock] = useState(() => new Date());
   const [selectedWalkInId, setSelectedWalkInId] = useState<string | null>(null);
+  const [detailVisit, setDetailVisit] = useState<ReportVisit | null>(null);
   const { visits: approvedToday } = usePreApprovals('today');
   const { visits: approvedUpcoming } = usePreApprovals('upcoming');
   const { acting, error, successMsg, reasons, onReasonChange, decide } = useVisitDecisions();
+
+  useEffect(() => {
+    const timer = setInterval(() => setClock(new Date()), 30_000);
+    return () => clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     let mounted = true;
@@ -88,20 +94,19 @@ export default function HODConsole(): React.ReactElement {
     if (!silent) setLoading(true);
     const today = new Date().toISOString().slice(0, 10);
     try {
-      const [todayResult, scheduledResult, walkInResult, onSiteResult] = await Promise.all([
-        supabase.from('visits').select('*, visitor:visitors(*), department:departments(id, name, code, created_at)').eq('department_id', deptId).gte('created_at', `${today}T00:00:00Z`).order('created_at', { ascending: false }).limit(200),
-        supabase.from('visits').select('*, visitor:visitors(*), department:departments(id, name, code, created_at)').eq('department_id', deptId).eq('status', 'pending_approval').not('scheduled_for', 'is', null).order('scheduled_for', { ascending: true }).limit(50),
-        supabase.from('visits').select('*, visitor:visitors(*), department:departments(id, name, code, created_at)').eq('department_id', deptId).eq('status', 'pending_approval').is('scheduled_for', null).order('created_at', { ascending: false }).limit(50),
-        supabase.from('visits').select('*, visitor:visitors(*), department:departments(id, name, code, created_at)').eq('department_id', deptId).eq('status', 'checked_in').gte('checked_in_at', `${today}T00:00:00Z`).order('checked_in_at', { ascending: false }).limit(20),
+      const [todayResult, walkInResult, onSiteResult] = await Promise.all([
+        supabase.from('visits').select(SELECT).eq('department_id', deptId).gte('created_at', `${today}T00:00:00Z`).order('created_at', { ascending: false }).limit(200),
+        // NOT day-bounded: a request raised at 11pm is still someone standing at
+        // reception at 12:05am.
+        supabase.from('visits').select(SELECT).eq('department_id', deptId).eq('status', 'pending_approval').order('created_at', { ascending: false }).limit(50),
+        supabase.from('visits').select(SELECT).eq('department_id', deptId).eq('status', 'checked_in').gte('checked_in_at', `${today}T00:00:00Z`).order('checked_in_at', { ascending: false }).limit(20),
       ]);
-      const [nextDay, nextScheduled, nextWalkIns, nextOnSite] = await Promise.all([
+      const [nextDay, nextWalkIns, nextOnSite] = await Promise.all([
         normaliseRows(todayResult.data as unknown as Visit[] | null),
-        normaliseRows(scheduledResult.data as unknown as Visit[] | null),
         normaliseRows(walkInResult.data as unknown as Visit[] | null),
         normaliseRows(onSiteResult.data as unknown as Visit[] | null),
       ]);
       setDayVisits(nextDay);
-      setScheduledDecisions(nextScheduled);
       setWalkIns(nextWalkIns);
       setOnSite(nextOnSite);
     } finally {
@@ -115,55 +120,90 @@ export default function HODConsole(): React.ReactElement {
     const channel = supabase.channel('hod-console-live').on('postgres_changes', { event: '*', schema: 'public', table: 'visits', filter: `department_id=eq.${deptId}` }, () => { void load(true); }).subscribe();
     return () => { void supabase.removeChannel(channel); };
   }, [deptId, load]);
-  useEffect(() => { setSelectedScheduledId((current) => scheduledDecisions.some((visit) => visit.id === current) ? current : (scheduledDecisions[0]?.id ?? null)); }, [scheduledDecisions]);
-  useEffect(() => { setSelectedWalkInId((current) => walkIns.some((visit) => visit.id === current) ? current : (walkIns[0]?.id ?? null)); }, [walkIns]);
+  useEffect(() => {
+    setSelectedWalkInId((current) => (walkIns.some((visit) => visit.id === current) ? current : (walkIns[0]?.id ?? null)));
+  }, [walkIns]);
 
+  // Soonest first — a list of people still to arrive is read forwards.
   const approvedAppointments = useMemo(() => {
     const unique = new Map<string, Visit>();
     [...approvedToday, ...approvedUpcoming].forEach((visit) => unique.set(visit.id, visit));
-    return Array.from(unique.values()).sort((a, b) => new Date(a.scheduled_for ?? a.created_at).getTime() - new Date(b.scheduled_for ?? b.created_at).getTime());
+    return Array.from(unique.values()).sort(
+      (a, b) => new Date(a.scheduled_for ?? a.created_at).getTime() - new Date(b.scheduled_for ?? b.created_at).getTime(),
+    );
   }, [approvedToday, approvedUpcoming]);
-  const selectedScheduled = scheduledDecisions.find((visit) => visit.id === selectedScheduledId) ?? null;
   const selectedWalkIn = walkIns.find((visit) => visit.id === selectedWalkInId) ?? null;
-  const coveredAppointments = useMemo(() => [...scheduledDecisions, ...approvedToday], [scheduledDecisions, approvedToday]);
-  const hostsConfirmed = coveredAppointments.filter((visit) => Boolean(visit.host?.full_name)).length;
-  const liveHostsReached = walkIns.filter((visit) => Boolean(visit.host?.full_name)).length;
   // ONE source for every KPI: the count is the length of the list the tile
-  // opens, and the desks below act on those same arrays.
-  const tiles = useMemo(
-    () => hodTileVisits({ day: dayVisits, onSite, walkIns, scheduled: scheduledDecisions }),
-    [dayVisits, onSite, walkIns, scheduledDecisions],
-  );
-  const go = (next: ConsoleTab) => navigate(tabHref[next]);
-  const runDecision = (visit: Visit, approved: boolean) => { void decide(visit.id, approved).then(() => { void load(true); }); };
+  // opens, and the desk below acts on those same rows.
+  const tiles = useMemo(() => hodTileVisits({ day: dayVisits, onSite, walkIns }), [dayVisits, onSite, walkIns]);
 
-  const decisionPanel = (visit: Visit | null, mode: 'scheduled' | 'walkin'): React.ReactElement => {
-    if (!visit) return <aside className="hod-decision-card"><span className="hod-kicker">{mode === 'scheduled' ? 'FINAL SCHEDULED DECISION' : 'WALK-IN CLEARANCE'}</span><EmptyState>No live request is awaiting a final HOD decision.</EmptyState></aside>;
-    const isActing = acting === visit.id;
-    return <aside className="hod-decision-card">
-      <div className="hod-decision-card__top"><span className="hod-kicker">{mode === 'scheduled' ? 'FINAL SCHEDULED DECISION' : 'WALK-IN CLEARANCE'}</span><StatusBadge tone="amber">Awaiting decision</StatusBadge></div>
-      <h2>{visitorName(visit)}</h2><p>{visitorCompany(visit)} · {visit.scheduled_for ? `${visitTime(visit)} arrival` : 'Arrival recorded at reception'}</p>
-      <div className="hod-details"><div><small>HOST</small><b>{hostName(visit)}</b></div><div><small>PURPOSE</small><b>{purposeLabel(visit)}</b></div><div><small>{mode === 'scheduled' ? 'VISIT WINDOW' : 'RECEPTION NOTE'}</small><b>{mode === 'scheduled' ? visitDay(visit) : (visit.remarks || 'Identity and reception details are on record')}</b></div></div>
-      <label className="hod-reason"><span>Rejection reason <em>required to decline</em></span><input value={reasons[visit.id] ?? ''} onChange={(event) => onReasonChange(visit.id, event.target.value)} placeholder="State the reason if declining" /></label>
-      <p className="hod-final-note">Your HOD decision is final. {mode === 'scheduled' ? 'Approval clears this guest for check-in.' : 'Clear entry creates the visitor’s active approval.'}</p>
-      <div className="hod-actions"><button type="button" className="hod-action hod-action--secondary" onClick={() => runDecision(visit, false)} disabled={isActing}>Decline{mode === 'walkin' ? ' entry' : ''}</button><button type="button" className="hod-action" onClick={() => runDecision(visit, true)} disabled={isActing}>{isActing ? 'Saving…' : mode === 'walkin' ? 'Clear entry ›' : 'Approve visit ›'}</button></div>
-    </aside>;
+  const runDecision = (approved: boolean) => {
+    if (!selectedWalkIn) return;
+    void decide(selectedWalkIn.id, approved).then(() => { void load(true); });
   };
 
-  // THERE IS NO TAB BAR HERE (removed 2026-08-15, client report). A `.hod-tabs`
-  // row sat across the top of this console listing Overview / Pre-approval desk
-  // / Walk-in desk / Visitor schedule — a second navigation, on the same screen
-  // as the sidebar that lists the same destinations, with nothing saying which
-  // was authoritative. All four now live in the one left-hand panel
-  // (components/layout/navLinks.tsx). `go()` stays: the Decision Pulse and the
-  // reception alert below still move the HOD between desks, and those are
-  // shortcuts out of content rather than a navigation bar.
+  return (
+    <div className="space-y-4 animate-fade-in pb-4">
+      {successMsg && <div className="alert-success">{successMsg}</div>}
+      {error && <div className="alert-error">{error}</div>}
 
-  return <div className="hod-console"><div className="hod-content">
-    {successMsg && <div className="hod-notice hod-notice--success">{successMsg}</div>}{error && <div className="hod-notice hod-notice--error">{error}</div>}
-    {tab === 'overview' && <><HodKpiBoard tiles={tiles} selected={openTile} onSelect={setOpenTile} loading={loading} /><section className="hod-two-col"><article className="hod-card hod-card--pulse"><div className="hod-card__head"><span>◷ &nbsp; DECISION PULSE</span><button type="button" onClick={() => go(scheduledDecisions.length ? 'preapprovals' : 'walkins')}>Open desk&nbsp; ›</button></div><h2>What needs your attention</h2>{[...scheduledDecisions, ...walkIns].slice(0, 5).map((visit) => <div className="hod-pulse-row" key={visit.id}><time>{visitTime(visit)}<b>{visit.scheduled_for ? 'Scheduled' : 'Walk-in'}</b></time><p><strong>{visitorName(visit)}</strong><small>{purposeLabel(visit)} · {hostName(visit)}</small></p><StatusBadge tone={visit.scheduled_for ? 'blue' : 'amber'}>{visit.scheduled_for ? 'Scheduled' : 'Walk-in'}</StatusBadge></div>)}{!loading && scheduledDecisions.length + walkIns.length === 0 && <EmptyState>No visitor decisions are waiting.</EmptyState>}</article><div className="hod-support-stack"><article className="hod-card hod-card--coverage"><span className="hod-kicker">♧ &nbsp; HOST COVERAGE</span><h2>Live host coverage</h2><p>Coverage is calculated from the visits currently in this department’s decision workspace.</p><div><small>Scheduled hosts confirmed</small><b>{hostsConfirmed} / {coveredAppointments.length}</b></div><div><small>Walk-in hosts reached</small><b>{liveHostsReached} / {walkIns.length}</b></div></article><button type="button" className="hod-alert" onClick={() => go('walkins')}>⚠ &nbsp; {walkIns.length ? `${walkIns.length} walk-in${walkIns.length === 1 ? '' : 's'} waiting at reception` : 'No walk-ins waiting at reception'} <b>›</b></button></div></section></>}
-    {tab === 'preapprovals' && <><header className="hod-page-title"><p>SCHEDULED VISITS ONLY</p><h1>Pre-approval desk</h1></header><section className="hod-approval-grid"><article className="hod-card hod-card--table"><div className="hod-segments"><button type="button" className="is-selected">Awaiting review <b>{scheduledDecisions.length}</b></button></div><div className="hod-table-head"><span>ARRIVAL</span><span>VISITOR</span><span>HOST</span><span>PURPOSE</span><span>FINAL ACTION</span></div>{scheduledDecisions.map((visit, index) => <div className={`hod-table-row ${visit.id === selectedScheduledId ? 'is-selected' : ''}`} key={visit.id}><time>{visitTime(visit)}</time><div className="hod-visitor"><Avatar name={visitorName(visit)} tone={index} /><p><b>{visitorName(visit)}</b><small>{visitorCompany(visit)}</small></p></div><span>{hostName(visit)}</span><span>{purposeLabel(visit)}</span><button type="button" onClick={() => setSelectedScheduledId(visit.id)}>Review&nbsp; ›</button></div>)}{!loading && scheduledDecisions.length === 0 && <EmptyState>No scheduled visits currently need approval.</EmptyState>}</article>{decisionPanel(selectedScheduled, 'scheduled')}</section></>}
-    {tab === 'walkins' && <><header className="hod-page-title"><p>LIVE RECEPTION REQUESTS</p><h1>Walk-in desk</h1></header><section className="hod-walkin-layout"><article className="hod-card hod-card--walkins"><div className="hod-card__head"><span>⌂ &nbsp; ARRIVALS WAITING FOR YOU</span><StatusBadge tone="amber">{walkIns.length} live</StatusBadge></div>{walkIns.map((visit, index) => <div className={`hod-walkin-row ${visit.id === selectedWalkInId ? 'is-selected' : ''}`} key={visit.id}><Avatar name={visitorName(visit)} tone={index} /><p><strong>{visitorName(visit)}</strong><small>{visitorCompany(visit)} · {purposeLabel(visit)}</small><em>{hostName(visit)} · received {visitTime(visit)}</em></p><time>{visitTime(visit)}</time><button type="button" onClick={() => setSelectedWalkInId(visit.id)}>Review&nbsp; ›</button></div>)}{!loading && walkIns.length === 0 && <EmptyState>No walk-in requests are waiting at reception.</EmptyState>}</article>{decisionPanel(selectedWalkIn, 'walkin')}</section></>}
-    {tab === 'schedule' && <><header className="hod-page-title"><p>APPROVED & EXPECTED VISITS</p><h1>Visitor schedule</h1></header><section className="hod-schedule-grid"><article className="hod-card hod-card--schedule"><div className="hod-card__head"><span>▣ &nbsp; {display(new Date().toISOString(), { weekday: 'long', month: 'short', day: 'numeric' }).toUpperCase()}</span><b className="hod-today">Today</b></div>{approvedAppointments.map((visit) => <div className="hod-schedule-row" key={visit.id}><time>{visitTime(visit)}</time><i className={visit.status === 'approved' ? 'is-approved' : ''}></i><p><strong>{visitorName(visit)}</strong><small>{visitorCompany(visit)} · {purposeLabel(visit)}</small></p><StatusBadge tone="green">Approved</StatusBadge></div>)}{approvedAppointments.length === 0 && <EmptyState>No approved appointments are scheduled in the current horizon.</EmptyState>}</article><aside className="hod-card hod-card--glance"><span className="hod-kicker">▧ &nbsp; TODAY AT A GLANCE</span><div><small>Approved appointments</small><b>{approvedToday.length}</b></div><div><small>On-site visitors</small><b>{onSite.length}</b></div><div><small>Hosts confirmed</small><b>{hostsConfirmed} / {coveredAppointments.length}</b></div><hr/><p>Schedule is read-only. Final decisions are made in the relevant approval desk.</p></aside></section></>}
-  </div></div>;
+      {tab === 'overview' && (
+        <HodKpiBoard
+          tiles={tiles}
+          selected={openTile}
+          onSelect={setOpenTile}
+          loading={loading}
+          now={clock}
+          initialsOf={initialsOf}
+          onOpen={setDetailVisit}
+        />
+      )}
+
+      {tab === 'walkins' && (
+        <HodWalkInDesk
+          walkIns={walkIns}
+          loading={loading}
+          now={clock}
+          initialsOf={initialsOf}
+          selected={selectedWalkIn}
+          onSelect={setSelectedWalkInId}
+          reason={selectedWalkIn ? (reasons[selectedWalkIn.id] ?? '') : ''}
+          onReasonChange={(value) => { if (selectedWalkIn) onReasonChange(selectedWalkIn.id, value); }}
+          acting={acting === selectedWalkIn?.id}
+          onDecide={runDecision}
+        />
+      )}
+
+      {tab === 'schedule' && (
+        <HodSchedule
+          visits={approvedAppointments}
+          onSiteCount={onSite.length}
+          approvedTodayCount={approvedToday.length}
+          loading={loading}
+          now={clock}
+          initialsOf={initialsOf}
+          onOpen={setDetailVisit}
+        />
+      )}
+
+      {/* The HOD never sees a visitor's ID proof — VisitorDetails hides the row
+          for this viewer role. An approver decides on who is visiting and why;
+          matching a document to a face is the gate's job. */}
+      {detailVisit && (
+        <VisitorDetails visit={detailVisit} viewerRole="hod" onClose={() => setDetailVisit(null)} />
+      )}
+
+      {/* `navigate` keeps the console's one shortcut out of content: the
+          dashboard's pending tile is a lane, not a destination, so an HOD who
+          wants to act on it still has to reach the desk. */}
+      {tab === 'overview' && tiles.pending.length > 0 && (
+        <button
+          type="button"
+          onClick={() => navigate('/overview?tab=walkins')}
+          className="w-full rounded-2xl border border-brand-500/40 bg-brand-600/10 dark:bg-brand-500/15 px-5 py-4 text-left text-sm font-semibold text-brand-600 dark:text-brand-400 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-glow">
+          {tiles.pending.length} walk-in{tiles.pending.length === 1 ? '' : 's'} waiting at reception — open the desk ›
+        </button>
+      )}
+    </div>
+  );
 }

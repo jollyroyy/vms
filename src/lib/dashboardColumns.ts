@@ -137,6 +137,28 @@ const REASON: DashboardColumn = {
   value: (v) => v.rejection_reason?.trim() || 'No reason recorded',
 };
 
+// The cells, addressable by name. Exported for the HOD dashboard (2026-08-16),
+// which draws its panels with the same table and therefore must draw them with
+// the same cells: "Scheduled" has to mean the same thing, print the same way
+// and fall back to the same word on both boards, or the two views are only
+// coincidentally alike. Composing a panel is picking from this record — it is
+// not a licence to write a one-off column inline.
+export const COLUMN = {
+  name: NAME,
+  purpose: PURPOSE,
+  host: HOST,
+  department: DEPARTMENT,
+  scheduled: SCHEDULED,
+  checkedIn: CHECKED_IN,
+  checkedOut: CHECKED_OUT,
+  requested: REQUESTED,
+  overstay: OVERSTAY,
+  idProof: ID_PROOF,
+  status: STATUS,
+  decidedBy: DECIDED_BY,
+  reason: REASON,
+} as const;
+
 export type DashboardPanelSpec = {
   /** The panel's heading — it IS the tile's label, so the two cannot drift. */
   heading: string;
