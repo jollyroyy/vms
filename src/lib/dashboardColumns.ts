@@ -61,11 +61,21 @@ const DEPARTMENT: DashboardColumn = {
 // The slot the PRE-APPROVER chose — the one time on a visit a human typed, and
 // the thing an arrival is judged early or late against. Headed "Scheduled", the
 // same word the pass and the visit timeline use, so the three cannot be read as
-// three different facts. A walk-in has no slot and prints "Anytime", not a dash:
-// nobody booked them a time, which is different from a time going unrecorded.
+// three different facts.
+//
+// A walk-in has no slot by construction (WalkInRequest inserts scheduled_for as
+// null) and reads "NA" (client instruction, 2026-08-16). It said "Anytime",
+// which is promise-shaped — it reads as a window this visit was granted, when
+// in fact nobody booked one, so there is no time the visitor can be early or
+// late against. NA says the field does not apply to this kind of visit.
+//
+// Still not an em dash, for the reason the old wording got right: a dash reads
+// as a slot that went unrecorded, and the honest answer is that this route
+// never has one. It sits directly after Type of Visitor, which is what makes
+// the NA legible — the pair reads "Walk-in / NA".
 const SCHEDULED: DashboardColumn = {
   key: 'scheduled', header: 'Scheduled',
-  value: (v, now) => (v.scheduled_for ? stamp(v.scheduled_for, now) : 'Anytime'),
+  value: (v, now) => (v.scheduled_for ? stamp(v.scheduled_for, now) : 'NA'),
 };
 
 /** When they actually came through the gate. */
@@ -135,7 +145,7 @@ const ID_PROOF: DashboardColumn = {
 //
 // It sits IMMEDIATELY BEFORE Scheduled on every lane that has both (client
 // instruction, 2026-08-16). The two are read together: a walk-in's slot prints
-// "Anytime" and a pre-approval's prints a time, so side by side the pair says
+// "NA" and a pre-approval's prints a time, so side by side the pair says
 // how the visit was raised and what was promised. It used to sit second, beside
 // the name, four columns away from its own evidence. Overstaying is the one
 // exception and only because it has no slot column — the overrun is measured

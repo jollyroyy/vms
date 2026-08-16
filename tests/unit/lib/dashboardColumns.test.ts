@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 
-import { PANEL_SPEC } from '../../../src/lib/dashboardColumns';
+import { PANEL_SPEC, COLUMN } from '../../../src/lib/dashboardColumns';
 import type { ReportVisit } from '../../../src/lib/reportRow';
 
 // The guard dashboard's stacked panel must say WHAT KIND of ID proof was taken
@@ -109,7 +109,7 @@ describe('PANEL_SPEC — visit type column', () => {
 
   // WHERE the column sits, not just whether it exists (client instruction,
   // 2026-08-16). It reads directly against Scheduled because the two answer one
-  // question together: a walk-in's slot prints "Anytime", a pre-approval's
+  // question together: a walk-in's slot prints "NA", a pre-approval's
   // prints a time, so side by side the pair says how the visit was raised AND
   // what was promised. It used to sit second, next to the name, where it was
   // separated from its own evidence by four columns.
@@ -128,5 +128,38 @@ describe('PANEL_SPEC — visit type column', () => {
     const keys = PANEL_SPEC.overstaying.columns.map((c) => c.key);
     expect(keys).not.toContain('scheduled');
     expect(keys.indexOf('origin')).toBe(keys.indexOf('checkedIn') - 1);
+  });
+});
+
+// A walk-in has no slot by construction — WalkInRequest inserts scheduled_for
+// as null — so the Scheduled cell has nothing to print for one. It said
+// "Anytime", which reads as a promise the visit does not carry: nobody booked
+// this person a window, so there is no time they are early or late against.
+// "NA" says the field does not apply (client instruction, 2026-08-16).
+describe('PANEL_SPEC — the Scheduled cell on a walk-in', () => {
+  const scheduledColumn = PANEL_SPEC.checked.columns.find((c) => c.key === 'scheduled')!;
+
+  it('reads NA when nobody booked the visitor a slot', () => {
+    expect(scheduledColumn.value({ ...base, scheduled_for: null } as ReportVisit, now)).toBe('NA');
+  });
+
+  it('is never the old promise-shaped wording', () => {
+    expect(scheduledColumn.value({ ...base, scheduled_for: null } as ReportVisit, now)).not.toBe('Anytime');
+  });
+
+  // Still not an em dash: a dash reads as a slot that went unrecorded, and the
+  // honest answer is that this kind of visit never has one.
+  it('is not a dash', () => {
+    expect(scheduledColumn.value({ ...base, scheduled_for: null } as ReportVisit, now)).not.toBe('—');
+  });
+
+  it('still prints the real slot for a pre-approval', () => {
+    expect(scheduledColumn.value(base, now)).not.toBe('NA');
+  });
+
+  // One cell, every board: the guard's panels and the HOD's are drawn from the
+  // same COLUMN.scheduled, so they cannot word this two ways.
+  it('is the same cell the HOD board draws', () => {
+    expect(COLUMN.scheduled.value({ ...base, scheduled_for: null } as ReportVisit, now)).toBe('NA');
   });
 });
