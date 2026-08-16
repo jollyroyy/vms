@@ -216,6 +216,8 @@ describe('GuardDashboard (reference-screen frame)', () => {
     mockToday.current = {
       visits: [
         visitRow({ id: 'a', status: 'approved', checked_in_at: null }),
+        // Cleared by the host, so admitted (migration 080) — Checked In, not
+        // expected. Counted below.
         visitRow({ id: 'b', status: 'walkin_approved', checked_in_at: null }),
         // Already arrived — no longer expected.
         visitRow({ id: 'c', status: 'checked_in', checked_in_at: '2026-08-14T09:00:00Z' }),
@@ -229,7 +231,11 @@ describe('GuardDashboard (reference-screen frame)', () => {
     // Scoped to the tile (a button), not the panel heading below it, which
     // shares the same text since 2026-08-15.
     const tile = screen.getAllByRole('button', { name: /Expected Today/ })[0];
-    expect(tile.textContent).toMatch(/2/);
+    expect(tile.textContent).toMatch(/1/);
+    // ...and the walk-in the host cleared is on Checked In instead, beside the
+    // visitor who was stamped through the gate.
+    const checked = screen.getAllByRole('button', { name: /Checked In Today/ })[0];
+    expect(checked.textContent).toMatch(/2/);
   });
 
   // The regression this whole rewiring exists to kill: the tile's number and

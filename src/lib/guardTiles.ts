@@ -64,15 +64,19 @@ export const VISITOR_TILE_KEYS: GuardTileKey[] = [
 const isGuardRefusal = (v: ReportVisit) => v.actor?.role === 'guard';
 
 // Which statuses mean "approved and still expected at the gate". A pre-approval
-// is INSERTed already `approved`; a walk-in becomes `walkin_approved` when the
-// HOD says yes. Lookup map rather than an includes() chain, per CLAUDE.md.
+// is INSERTed already `approved`. Lookup map rather than an includes() chain,
+// per CLAUDE.md.
 //
 // `pending_approval` is deliberately NOT here. That visitor is standing at the
 // gate with no decision made — they are not expected, they are *unanswered*, and
 // counting them as expected told the guard someone had been cleared who had not.
+//
+// `walkin_approved` was here until 2026-08-16 and is not any more, because the
+// host's yes IS the admission since migration 080 (see `checked` below). A row
+// cannot be "cleared but not yet through the gate" and "came through the gate"
+// on one board — the two tiles would contradict each other about one visitor.
 const IS_EXPECTED: Partial<Record<VisitStatus, true>> = {
   approved: true,
-  walkin_approved: true,
 };
 
 export const TILE_FILTER: Record<GuardTileKey, (v: ReportVisit, now?: Date) => boolean> = {
@@ -83,12 +87,22 @@ export const TILE_FILTER: Record<GuardTileKey, (v: ReportVisit, now?: Date) => b
   // 10am, was in neither term, so the tile showed 0 on a fully booked morning.
   expected: (v) => IS_EXPECTED[v.status] === true && !v.checked_in_at,
 
-  // Cumulative: everyone who came through the gate today, whether or not they
-  // are still here. `status` holds ONE value, so a visitor who came and left is
+  // Cumulative: everyone the gate has admitted today, whether or not they are
+  // still here. `status` holds ONE value, so a visitor who came and left is
   // `checked_out` — counting `status === 'checked_in'` would answer "who is
-  // still here", never "how many came through". The invariant this preserves:
-  // checked === inside + (those who have since left).
-  checked: (v) => v.checked_in_at !== null,
+  // still here", never "how many came through".
+  //
+  // `walkin_approved` counts too (client instruction, 2026-08-16). Since
+  // migration 080 the approver's click IS the admission, so a walk-in the host
+  // cleared has been let in whether or not a `checked_in_at` was ever stamped —
+  // and rows approved before 080's function went live rest in that status
+  // permanently with a null timestamp (VIS-20260816-0004 is one). Keyed on
+  // `checked_in_at` alone the tile silently omitted exactly those visitors, who
+  // are inside the building.
+  //
+  // The invariant this preserves: checked === inside + departed + host-cleared
+  // walk-ins the desk has not stamped.
+  checked: (v) => v.checked_in_at !== null || v.status === 'walkin_approved',
 
   // Live: still on the premises. This is the list you hand a fire marshal.
   inside: (v) => v.status === 'checked_in',

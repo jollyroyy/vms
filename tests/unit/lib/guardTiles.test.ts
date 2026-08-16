@@ -37,8 +37,11 @@ describe('Expected Today', () => {
     expect(TILE_FILTER.expected(v({ status: 'approved', scheduled_for: '2026-08-14T04:00:00Z' }), NOW)).toBe(true);
   });
 
-  it('counts a walk-in the HOD approved', () => {
-    expect(TILE_FILTER.expected(v({ status: 'walkin_approved' }), NOW)).toBe(true);
+  // Since migration 080 the host's yes IS the admission, so a cleared walk-in
+  // belongs to Checked In, not here. One visitor cannot be both "not yet through
+  // the gate" and "came through the gate" on the same board.
+  it('does NOT count a walk-in the HOD has already cleared', () => {
+    expect(TILE_FILTER.expected(v({ status: 'walkin_approved' }), NOW)).toBe(false);
   });
 
   // Standing at the gate with no decision made is not "expected" — nobody has
@@ -77,6 +80,19 @@ describe('Checked In vs In Premises', () => {
     const day = [arrivedAndLeft, stillHere, v({ status: 'approved' })];
     const t = tileVisits(day, NOW);
     expect(t.checked.length).toBe(t.inside.length + 1);
+  });
+
+  // The bug this fixes: a walk-in approved before migration 080's function went
+  // live rests in `walkin_approved` with a null `checked_in_at` forever, so a
+  // visitor who is in the building was on no arrival tile at all. The host's yes
+  // is the admission — count it.
+  it('counts a host-cleared walk-in that never got a check-in stamp', () => {
+    const cleared = v({ status: 'walkin_approved', scheduled_for: null, checked_in_at: null });
+    expect(TILE_FILTER.checked(cleared, NOW)).toBe(true);
+    // Not in premises, though: that list is `status === 'checked_in'` and is
+    // the one you hand a fire marshal — it stays exactly what the row says.
+    expect(TILE_FILTER.inside(cleared, NOW)).toBe(false);
+    expect(TILE_FILTER.expected(cleared, NOW)).toBe(false);
   });
 });
 
@@ -117,8 +133,9 @@ describe('tileVisits', () => {
       v({ id: 'e', status: 'pending_approval' }),
     ];
     const t = tileVisits(day, NOW);
-    expect(t.expected.map((x) => x.id)).toEqual(['a', 'b']);
-    expect(t.checked.map((x) => x.id)).toEqual(['c', 'd']);
+    expect(t.expected.map((x) => x.id)).toEqual(['a']);
+    // 'b' is a cleared walk-in: admitted by the approver's own click (080).
+    expect(t.checked.map((x) => x.id)).toEqual(['b', 'c', 'd']);
     expect(t.inside.map((x) => x.id)).toEqual(['c']);
   });
 });

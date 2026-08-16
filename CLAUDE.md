@@ -862,16 +862,32 @@
   sitting in it. One edit, in `PANEL_SPEC.pending.heading`: the tile's label IS the
   panel's heading.
 - **The four tiles are Expected Today · Checked In · In Premises · Overstaying.**
-  - `expected` is **approved and not yet through the gate** (`approved` /
-    `walkin_approved` with `checked_in_at IS NULL`). It used to be
+  - `expected` is **a PRE-APPROVAL not yet through the gate** (`approved` with
+    `checked_in_at IS NULL`). `walkin_approved` was in it until 2026-08-16 and is
+    not any more — the host's yes IS the admission since 080, so a cleared walk-in
+    belongs to `checked` below, and one visitor cannot be "not yet through the
+    gate" and "came through the gate" on one board. It used to be
     `awaitingApproval + overdue` — unapproved walk-in requests plus approved visitors
     already running late — which omitted the ordinary case completely: a visitor booked for
     3pm, read at 10am, was in neither term, so the tile showed **0 on a fully booked
     morning**. `pending_approval` is deliberately excluded: nobody has cleared that person,
     and counting them as expected claims somebody did.
-  - `checked` is `checked_in_at IS NOT NULL` (cumulative); `inside` is
+  - `checked` is `checked_in_at IS NOT NULL` **or `status = 'walkin_approved'`**
+    (cumulative — everyone the gate admitted today); `inside` is
     `status = 'checked_in'` (live). Same rule as the `entered` vs `inside` note below, and
-    just as load-bearing.
+    just as load-bearing. The walk-in clause is a **client instruction
+    (2026-08-16)** and it follows 080: the approver's click is the admission, so a
+    host-cleared walk-in has been let in whether or not a `checked_in_at` was ever
+    stamped — and a row approved before 080's function went live rests in that
+    status permanently with a null timestamp (`VIS-20260816-0004`, Tinku Das, is
+    one). Keyed on the timestamp alone the tile silently omitted exactly those
+    visitors, who are in the building. The invariant becomes
+    `checked === inside + departed + host-cleared walk-ins with no stamp`.
+    **`inside` gets no such clause** — that is the list you hand a fire marshal
+    and it stays exactly what the row says. The "Checked In" panel prints an em
+    dash under Checked In for a stamp-less row: the approval instant is NOT
+    printed there, because pre-080 an approval left the visitor at the gate, so
+    reusing it would fabricate an entry time.
   - `overstaying` was labelled **"Pending Check-out"** until 2026-08-14. The number was
     always `isOverstaying`; everyone inside is pending check-out, so the old label described
     the In Premises tile beside it and left this one's real meaning — a check-out the gate
