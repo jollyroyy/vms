@@ -1,5 +1,12 @@
 -- 080 — an approved walk-in IS a check-in, and every approval records its approver.
 --
+-- APPLIED LIVE 2026-08-16 and verified end to end: approving a probe
+-- `pending_approval` walk-in under a real HOD's JWT claims left it `checked_in`
+-- with `checked_in_at` stamped and BOTH audit rows written
+-- (`visit_approved,visit_checked_in`); `get_profile_names` returns
+-- `department_name` with EXECUTE on authenticated/service_role/postgres and
+-- PUBLIC/anon revoked. Probe rows deleted.
+--
 -- Client instruction, 2026-08-16: "as soon as the required person approves the
 -- walk-in, the status should be moved into the checked-in status … it should
 -- reflect somehow whether it was walk-in approved and by whom."

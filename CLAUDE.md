@@ -1312,6 +1312,42 @@ close:
   department-scoped human entry point. Verified by `tests/security/noShowWorkflow.test.ts`
   (live project; fails until this migration is applied).
 
+### `080` — the approver admits the visitor in the same click (2026-08-16, applied live)
+
+- **A walk-in the HOD approves goes straight to `checked_in`.** `approve_visit()`
+  writes `status = 'checked_in'` + `checked_in_at`, and the state machine learns
+  `pending_approval -> checked_in` gated on the APPROVER's roles. Safe only since
+  `WalkInRequest` began refusing a request without an ID scan, a photo and a card
+  number — everything the old gate step collected is already on the row by the time
+  an approver sees it, so the second click was re-photographing somebody standing at
+  the desk the whole time.
+- **`walkin_approved` is NOT retired.** Live rows rest in it, `/visitors/approved`
+  still lists and admits them, and `walkin_approved -> checked_in` still exists.
+  Nothing NEW enters it.
+- **One update, TWO audit rows.** `log_visit_approval` writes `visit_approved`
+  (with `admitted: true`) *and* `visit_checked_in`, because the click is a decision
+  and an entry: `approvalTimestamp()` and the "Approved By" column read the first,
+  the activity log reads the second. Collapsing them leaves one surface unable to
+  answer its own question.
+- **Every "did a host approve this?" lane is keyed on the CLEARANCE, not the
+  holding status.** `isApprovedWalkIn` / `isGivenPreApproval` in `lib/visitOrigin.ts`
+  — shared by the guard's tile, `/visitors/approved` and the HOD's board, because
+  they are one question. Keyed on `status === 'walkin_approved'` they all emptied
+  themselves the moment the shortcut landed. The same row therefore counts under
+  **Checked In** and under **Approved Walk-ins** at once, with Type reading Walk-in;
+  that is the design, not double-counting — the tiles answer different questions.
+  A tile labelled "given" that empties as visitors arrive is measuring attendance,
+  not issuance.
+- `pre_approve_visitor_v2` writes its own `visit_approved` row (a row born
+  `approved` never changes status, so the trigger never fired), and
+  `get_profile_names` gains `department_name` — a DROP/CREATE, so its ACL is
+  re-granted explicitly (the 073 lesson).
+- **Verified live 2026-08-16**, not just applied: a probe approval under a real
+  HOD's JWT claims landed `checked_in` with `checked_in_at` set and both audit rows
+  present. If a walk-in approval is ever seen resting in `walkin_approved` again,
+  check the LIVE function first — the app half shipped a commit before the DB half
+  was applied, and the symptom was exactly that.
+
 ### Migration drift
 - This project has always been migrated by hand, so
   `supabase_migrations.schema_migrations` is **not** authoritative and the 3-digit
