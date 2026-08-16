@@ -208,6 +208,26 @@
   owns the card-return gate and the undo banner. Do not thread a row action back
   into this surface — `VisitorStackList.test.tsx` asserts there is no button at
   all.
+- **The walk-in desk ends a visit as well as starting one** (client instruction,
+  2026-08-16). `/visitors/approved` is the one place on the Visitors surface that
+  carries actions, and since migration 080 it carries them in **both** directions.
+  A row still resting in `walkin_approved` gets **Check In**; a row the approver
+  admitted (`checked_in`) gets **Check Out**; a `checked_out` row gets neither.
+  The reason it was needed: 080 made the approver's click the admission, so a
+  walk-in no longer passes through this desk on the way in at all — the guard who
+  registered them was left watching a row they could not act on, having to know
+  that a different tab lets people out. **The exit is a REQUEST, not a second
+  implementation**: `Console.tsx` opens the same `CardReturnConfirm` and calls the
+  same `lib/checkOutFlow.logVisitExit` the Entry & Exit tab uses, so "did a human
+  witness this exit" and "did the card come back" keep one answer each. Do not
+  write a second exit mutation here. `GuardWalkInApprovedExit.test.tsx` guards all
+  four states, including that no exit button renders without a handler.
+  - **Known gap, inherited from 080:** `WalkInRequest` never collects a
+    `visitor_card_number`, so a walk-in admitted by the approver reaches this exit
+    with no card on record and `CardReturnConfirm` says so honestly. The card-return
+    control from migration 076 is absent on this route. Closing it means putting the
+    field on the registration form, which assigns a card before the host has
+    answered — a decision about the physical process at the gate.
 - **The walk-in register is untouched by all of this.** `/visitors/walk-in`
   renders `GuardWalkIns` exactly as before, with its own pending list, because
   registering an unannounced arrival is the one thing on this surface that

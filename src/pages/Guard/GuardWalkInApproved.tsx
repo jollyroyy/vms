@@ -35,9 +35,16 @@ type Props = {
   approved: Visit[];
   busyId: string | null;
   onCheckIn: (visit: Visit, details: WalkInCheckIn) => void;
+  /** Let an admitted walk-in leave. The parent opens the same
+   *  `CardReturnConfirm` and calls the same `lib/checkOutFlow.logVisitExit` the
+   *  Entry & Exit tab uses — this desk asks for the exit, it does not write it,
+   *  so "did a human witness this?" and "did the card come back?" keep one
+   *  answer each. Optional: without a handler the admitted rows stay read-only
+   *  rather than growing a button that resolves to nothing. */
+  onCheckOut?: (visit: Visit) => void;
 };
 
-export default function GuardWalkInApproved({ loading, approved, busyId, onCheckIn }: Props): React.ReactElement {
+export default function GuardWalkInApproved({ loading, approved, busyId, onCheckIn, onCheckOut }: Props): React.ReactElement {
   const [openId, setOpenId] = useState<string | null>(null);
   const [photoBlob, setPhotoBlob] = useState<Blob | null>(null);
   const [scanOpen, setScanOpen] = useState(false);
@@ -100,10 +107,16 @@ export default function GuardWalkInApproved({ loading, approved, busyId, onCheck
 
   // The lane holds every walk-in the host cleared, which since migration 080 is
   // mostly people already inside — the approver's click admits them. Only a row
-  // still resting in `walkin_approved` has anything left for this desk to do, so
-  // only that row gets a Check In button. An admitted row renders as a plain
-  // card: the visitor is through the gate, and a control the guard cannot honour
-  // is worse than no control (the same rule Deny Entry follows).
+  // still resting in `walkin_approved` has anything left for this desk to do on
+  // the way IN, so only that row gets a Check In button.
+  //
+  // An admitted row is not inert, though. It used to render read-only on the
+  // reasoning that the visitor is through the gate and there is nothing left to
+  // do — which was true of the ENTRY and forgot the exit. Under the shortcut a
+  // walk-in never passes through this desk at all, so a guard watching a
+  // visitor they registered themselves had to know that a different tab owns
+  // the way out. `checked_in` gets Check Out; `checked_out` gets neither, since
+  // the one action left has already happened.
   const waiting = approved.filter((v) => v.status === 'walkin_approved');
   const admitted = approved.filter((v) => v.status !== 'walkin_approved');
 
@@ -240,7 +253,13 @@ export default function GuardWalkInApproved({ loading, approved, busyId, onCheck
               </p>
               {admitted.map((v, i) => (
                 <div key={v.id} className="animate-slide-up" style={{ animationDelay: `${i * 0.03}s` }}>
-                  <VisitorCard visit={v} timeLabel={formatDateTime(v.checked_in_at ?? v.created_at)} />
+                  <VisitorCard
+                    visit={v}
+                    timeLabel={formatDateTime(v.checked_in_at ?? v.created_at)}
+                    action={onCheckOut && v.status === 'checked_in'
+                      ? { label: 'Check Out', onClick: () => onCheckOut(v) }
+                      : undefined}
+                  />
                 </div>
               ))}
             </>

@@ -28,6 +28,10 @@ type Props = {
   busyId: string | null;
   onWalkInCheckIn: (v: Visit, details: WalkInCheckIn) => void;
   onWalkInSubmitted: (name: string) => void;
+  /** Ends a walk-in's visit from the same desk that started it. See the note on
+   *  GuardWalkInApproved: the write stays in lib/checkOutFlow, shared with the
+   *  Entry & Exit tab. */
+  onWalkInCheckOut: (v: Visit) => void;
 };
 
 // Segment → what renders. Two of the eight are not lists at all:
@@ -72,6 +76,7 @@ export default function VisitorSegmentContent(props: Props): React.ReactElement 
           approved={segmentVisits(visits, 'walkinApproved')}
           busyId={props.busyId}
           onCheckIn={props.onWalkInCheckIn}
+          onCheckOut={props.onWalkInCheckOut}
         />
       </SegmentShell>
     );

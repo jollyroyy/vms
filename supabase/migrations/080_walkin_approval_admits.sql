@@ -16,10 +16,21 @@
 -- host's yes and the gate's photo: at registration nobody knew whether the
 -- visitor would be let in, so their face was captured at the moment of entry
 -- instead. Since 2026-08-16 `WalkInRequest` REFUSES to raise a request without
--- an ID scan and a photo, and the visitor card number is taken on the same
--- form — so by the time an approver sees the request, everything the old gate
--- step collected is already on the row. The second step had become a button
--- that re-photographed somebody who was standing at the desk the whole time.
+-- an ID scan and a photo — so by the time an approver sees the request, the
+-- identity the old gate step collected is already on the row. The second step
+-- had become a button that re-photographed somebody who was standing at the
+-- desk the whole time.
+--
+-- KNOWN GAP, stated here rather than left to be discovered: the VISITOR CARD
+-- NUMBER is *not* collected on that form (this header claimed it was, which was
+-- simply wrong). The old gate step took it, and the shortcut skips the old gate
+-- step, so a walk-in admitted this way reaches check-out with
+-- `visitor_card_number` null and `CardReturnConfirm` correctly reports "No card
+-- on record" — the card-return control migration 076 exists to enforce is
+-- therefore absent on this route. Closing it means adding the field to
+-- `WalkInRequest`, which assigns a card before the host has answered and burns
+-- one on every declined request; that is a decision about the physical process
+-- at the gate, not something to settle in a migration comment.
 --
 -- `walkin_approved` is NOT retired. Live rows sit in it, /visitors/approved
 -- still lists and admits them, and the state machine below still allows
