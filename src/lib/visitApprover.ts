@@ -37,6 +37,8 @@ const IMPLIES_APPROVAL: Record<VisitStatus, boolean> = {
   cancelled: true,
   no_show: true,
   expired: true,
+  // Nobody decided — the register reads "Not approved", which is the fact.
+  lapsed: false,
 };
 
 export type ApprovedVisit = {

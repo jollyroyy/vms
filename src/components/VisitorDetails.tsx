@@ -41,6 +41,10 @@ const STATUS_COLORS: Record<string, { bg: string; text: string; dot: string }> =
   rejected:         { bg: 'bg-danger-50',  text: 'text-danger-700',  dot: 'bg-danger-500' },
   cancelled:        { bg: 'bg-surface-100', text: 'text-navy-500',   dot: 'bg-navy-300' },
   no_show:          { bg: 'bg-warning-50', text: 'text-warning-700', dot: 'bg-orange-500' },
+  // Both are closed-without-arriving but neither is an incident: a pass granted
+  // and unused, and a request nobody answered. Muted, like cancelled.
+  expired:          { bg: 'bg-surface-100', text: 'text-navy-500',   dot: 'bg-navy-300' },
+  lapsed:           { bg: 'bg-surface-100', text: 'text-navy-500',   dot: 'bg-navy-300' },
 };
 
 // Two tabs, not three. The Timeline stays BELOW both rather than becoming one,

@@ -21,6 +21,7 @@ const CHECKABLE_BY_STATUS: Record<VisitStatus, boolean> = {
   cancelled: false,
   no_show: false,
   expired: false,
+  lapsed: false,
 };
 
 /**

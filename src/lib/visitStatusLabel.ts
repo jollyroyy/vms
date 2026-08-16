@@ -43,6 +43,10 @@ export function visitStatusLabel(visit: { status: VisitStatus; actor?: VisitActo
     case 'cancelled':
     case 'no_show':
     case 'expired':
+    // "lapsed" says it on its own — nobody answered and the day ended. It is
+    // deliberately not "expired": that word is spoken for by a pass that WAS
+    // granted (see the union in types/index.ts).
+    case 'lapsed':
       return status.replace(/_/g, ' ');
 
     default:

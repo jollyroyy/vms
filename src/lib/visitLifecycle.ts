@@ -10,7 +10,8 @@ export type VisitStatus =
   | 'checked_out'
   | 'rejected'
   | 'cancelled'
-  | 'no_show';
+  | 'no_show'
+  | 'lapsed';
 
 export type Visit = {
   id: string;
@@ -27,7 +28,11 @@ const TRANSITIONS: Record<VisitStatus, VisitStatus[]> = {
   // the card number that the old gate step existed to collect. Mirrors
   // `enforce_visit_update_rules` — this map and that trigger must not disagree
   // about what the database will accept.
-  pending_approval: ['approved', 'walkin_approved', 'checked_in', 'rejected'],
+  // `lapsed` is migration 082's day-end sweep: a request the host never
+  // answered, closed when the day it was needed for ended. Reachable from here
+  // and nowhere else — an approval that lapses is `expired`, which is a
+  // different fact and a different status.
+  pending_approval: ['approved', 'walkin_approved', 'checked_in', 'rejected', 'lapsed'],
   approved:         ['checked_in', 'cancelled', 'no_show'],
   walkin_approved:  ['checked_in'],
   checked_in:       ['checked_out'],
@@ -35,6 +40,10 @@ const TRANSITIONS: Record<VisitStatus, VisitStatus[]> = {
   rejected:         [],
   cancelled:        [],
   no_show:          ['approved'],  // HOD reactivate
+  // Back to the decision that was never made, never straight to an approval:
+  // reopening a request must put it in front of the host again, not invent the
+  // answer they did not give.
+  lapsed:           ['pending_approval'],
 };
 
 export function canTransition(from: VisitStatus, to: VisitStatus): boolean {

@@ -1,0 +1,40 @@
+-- 081 — `lapsed` joins visit_status.
+--
+-- Split out from 082 for the same reason 065 was split out of 066: Postgres
+-- will not let a new enum value be USED in the transaction that adds it. This
+-- migration adds the label and nothing else.
+--
+-- WHAT IT IS FOR
+--
+-- `pending_approval` was the one status the day-end sweep could not reach.
+-- 066 closes APPROVALS — `no_show` when a booked slot went unused, `expired`
+-- when an approval with no slot lapsed — and a request nobody ever answered has
+-- no approval to close. So a walk-in raised at the gate whose host simply never
+-- replied stayed pending for ever: `Console.loadVisits` carries
+-- `pending_approval` with no date bound (deliberately, so overnight work is not
+-- dropped at midnight), which means every unanswered request from every day
+-- since the app shipped is still on the HOD's desk, and Reports still describes
+-- it as a decision that is coming.
+--
+-- The rule 066 wrote down applies here unchanged: an open-ended list and a sweep
+-- that cannot close it are two halves of one design, and only one was shipped.
+--
+-- WHY NOT REUSE `expired`
+--
+-- `expired` means "somebody approved this and it was never used", and two
+-- surfaces depend on exactly that: `IMPLIES_PRIOR_APPROVAL` (visitApproval.ts)
+-- and `IMPLIES_APPROVAL` (visitApprover.ts) both map it to TRUE, so the admin's
+-- register prints the visit's own created_at as the approval instant and names
+-- the approver. Filing an unanswered request under it would make the register
+-- claim a host cleared a visitor they never saw — the same class of error as
+-- the hardcoded "Identity verified" this codebase already removed, on a record
+-- somebody may later be asked to account for.
+--
+-- So the three closed-without-arriving outcomes are drawn on what actually
+-- happened, not on which route created the visit:
+--
+--   no_show  — an appointment was made and missed.
+--   expired  — an approval was given and lapsed unused.
+--   lapsed   — no decision was ever made, and the day it was needed for ended.
+
+alter type public.visit_status add value if not exists 'lapsed';

@@ -35,6 +35,10 @@ export const STATUS_STYLES: Record<VisitStatus, StatusStyle> = {
   // approval that timed out unused; colouring it as strongly would make the
   // guard's history look full of incidents that never happened.
   expired:          { bg: 'bg-surface-100', text: 'text-navy-500 dark:text-navy-400',   dot: 'bg-navy-300',  label: 'Expired' },
+  // Muted for the same reason as expired, and named apart from it because the
+  // two are different facts: an expired pass was granted and went unused, a
+  // lapsed request was never answered at all (migration 081).
+  lapsed:           { bg: 'bg-surface-100', text: 'text-navy-500 dark:text-navy-400',   dot: 'bg-navy-300',  label: 'Lapsed' },
 };
 
 export const STATUS_COLORS = {

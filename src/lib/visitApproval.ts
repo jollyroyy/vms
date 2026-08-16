@@ -38,6 +38,11 @@ const IMPLIES_PRIOR_APPROVAL: Record<VisitStatus, boolean> = {
   // approval instant for an expired pass, which is the interesting part —
   // somebody approved this and it was never used.
   expired: true,
+  // The one closed status that does NOT imply an approval. A lapsed request is
+  // one the host never answered (migration 082), so falling back to created_at
+  // here would print the moment the visitor walked up to the desk as the moment
+  // somebody cleared them.
+  lapsed: false,
 };
 
 export type ApprovableVisit = {

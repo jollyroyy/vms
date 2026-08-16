@@ -83,6 +83,7 @@ export default function ReportsPage(): React.ReactElement {
   // CSS capitalize would upper-case every word ("By", "Host"), so only plain statuses get it.
   const PLAIN_STATUS: Record<string, boolean> = {
     pending_approval: true, checked_in: true, checked_out: true, cancelled: true, no_show: true,
+    expired: true, lapsed: true,
   };
 
   // Carrying is two columns, not one — the flag is a yes/no fact the admin can

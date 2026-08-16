@@ -1437,6 +1437,62 @@ close:
   check the LIVE function first — the app half shipped a commit before the DB half
   was applied, and the symptom was exactly that.
 
+### `081`/`082` — an unanswered walk-in request lapses at 10 PM (2026-08-17, applied live)
+
+- **`pending_approval` was the one status the day-end sweep could not reach.** 066 closes
+  APPROVALS — `no_show` when a booked slot went unused, `expired` when an approval with no
+  slot lapsed — and a request nobody ever answered has no approval to close. Meanwhile
+  `Console.loadVisits` carries `pending_approval` with **no date bound**, deliberately, so
+  overnight work is not dropped at midnight. That is the exact pair 066 warned about: an
+  open-ended list and a sweep that cannot close it are two halves of one design, and only
+  one had shipped. Every unanswered request since the app went live was still sitting on
+  the HOD's desk, and Reports still described it as a decision that was coming.
+- **`lapsed` is a TENTH status, not a reuse of `expired`.** `expired` means "somebody
+  approved this and it was never used", and two maps depend on exactly that:
+  `IMPLIES_PRIOR_APPROVAL` (`lib/visitApproval.ts`) and `IMPLIES_APPROVAL`
+  (`lib/visitApprover.ts`) both hold it TRUE, so the admin register prints the visit's own
+  `created_at` as the approval instant and names an approver. Filing an unanswered request
+  there would make the register claim a host cleared a visitor they never saw — the same
+  class of error as the hardcoded "Identity verified" this file already removed, on a
+  record somebody may later be asked to account for. **`lapsed` maps FALSE in both**, and
+  Reports prints "Not approved" with an empty Approved column. The three closed-without-
+  arriving outcomes are drawn on what happened, never on the route in:
+  - `no_show` — an appointment was made and missed.
+  - `expired` — an approval was given and lapsed unused.
+  - `lapsed` — **no decision was ever made**, and the day it was needed for ended.
+- **The predicate is 077's, unchanged in shape**: `now() >= vms_day_end_ist(coalesce(
+  scheduled_for, created_at))`, i.e. the day containing the VISIT's own moment has ended
+  (22:00 IST, 075). A pending row never has a `scheduled_for` — `WalkInRequest` and the
+  kiosk are its only writers and both insert null — so `created_at`, the moment the visitor
+  stood at the gate, is its moment. Comparing against the visit's own day rather than
+  today's close is what keeps the sweep safe at any hour and idempotent (verified live: a
+  second run returns 0).
+- **It writes NO audit row and NO notification, and that is the design.**
+  `log_visit_approval` has no branch for the transition (there is no actor and no instant
+  to record), `trg_notify_no_show` fires on `no_show` alone, and `notify_guard_on_decision`
+  returns early on anything but approved/rejected. 070's nudge and 075's 8 PM summary both
+  key on `scheduled_for`, which these rows do not have — there is no slot to be late for.
+  A host who never answered gets no new message; the request simply stops claiming a
+  decision is coming. `lapsed` is therefore also **out of `DECIDED_STATUSES`** in
+  `lib/visitActors.ts` — querying audit_logs for it could only ever come back empty.
+- **The way back is `lapsed -> pending_approval`, never to an approved state.** The rule
+  066 set down (a status written by a machine must be reversible by a human) with the
+  obvious constraint: reopening puts the decision back in front of the host, it does not
+  invent the answer they never gave. `approved -> lapsed` and `walkin_approved -> lapsed`
+  do not exist — an approval that lapses is `expired`.
+- **`lapsed` proves a walk-in origin on its own** (`DEFINITIVE` in `lib/visitOrigin.ts`),
+  since only a `pending_approval` row can reach it and only a walk-in ever passes through
+  that status. No `scheduled_for` guess, and `statusProvesOrigin` is true, so no origin
+  chip beside a badge that has already said it.
+- **Verified live 2026-08-17**, not just applied: `sweep_no_shows_daily()` closed the one
+  real stale request (`VIS-20260816-0003`) and returned 0 on the second run; a request made
+  today does not lapse until 22:00 IST. `tests/security/lapsedRequests.test.ts` covers the
+  department scoping, today's row surviving, the absent audit/notification, the
+  idempotency and the service-role-only ACL. Its fixtures **age a row with a service-role
+  UPDATE, not on the insert** — `generate_visit_ref` is a BEFORE INSERT trigger that stamps
+  `new.created_at := now()` unconditionally, which is why `noShowWorkflow.test.ts` ages its
+  rows through `scheduled_for` and this one cannot.
+
 ### Migration drift
 - This project has always been migrated by hand, so
   `supabase_migrations.schema_migrations` is **not** authoritative and the 3-digit

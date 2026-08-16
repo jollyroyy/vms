@@ -18,6 +18,10 @@ export type VisitOrigin = 'pre_approved' | 'walk_in';
 // than silently falling through to the guess.
 const DEFINITIVE: Record<VisitStatus, VisitOrigin | null> = {
   pending_approval: 'walk_in',
+  // Only a `pending_approval` row can lapse (migration 082), and only a walk-in
+  // ever passes through that status — so this one proves its origin outright,
+  // no `scheduled_for` guess needed.
+  lapsed: 'walk_in',
   walkin_approved: 'walk_in',
   approved: 'pre_approved',
   // Both routes converge on these — the proof is gone and only the guess is
@@ -68,9 +72,10 @@ export function statusProvesOrigin(status: VisitStatus): boolean {
 // The lane is "the host cleared this walk-in", not "the walk-in is waiting at
 // the gate": `walkin_approved` is a clearance not yet used, `checked_in` one
 // being used, `checked_out` one that was. `pending_approval` is absent because
-// nobody has decided yet, and `rejected` because the answer was no. The closed
-// outcomes (`no_show`, `expired`, `cancelled`) are absent too — a clearance
-// that lapsed unused is not a visitor anybody is looking for on this lane.
+// nobody has decided yet, `lapsed` because nobody ever did, and `rejected`
+// because the answer was no. The closed outcomes (`no_show`, `expired`,
+// `cancelled`) are absent too — a clearance that lapsed unused is not a visitor
+// anybody is looking for on this lane.
 const WALKIN_CLEARANCE_STANDS: Partial<Record<VisitStatus, true>> = {
   walkin_approved: true,
   checked_in: true,

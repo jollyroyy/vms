@@ -18,6 +18,7 @@ export const STATUS_RAIL: Record<VisitStatus, string> = {
   cancelled:        'rail-out',
   no_show:          'rail-out',
   expired:          'rail-out',
+  lapsed:           'rail-out',
   rejected:         'rail-flagged',
 };
 

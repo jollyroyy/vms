@@ -19,11 +19,15 @@ export type VisitActorFields = {
   approvedAt?: string | null;
 };
 
-// Every status except `pending_approval` means a decision was already taken, so
-// every one of them can carry an audit trail worth showing. This deliberately
-// includes `checked_in`/`checked_out`: the reports register has to state the
-// exact approval time for visits that have since moved on, and that timestamp
-// only exists in audit_logs.
+// Every status except `pending_approval` and `lapsed` means a decision was
+// already taken, so every one of them can carry an audit trail worth showing.
+// This deliberately includes `checked_in`/`checked_out`: the reports register
+// has to state the exact approval time for visits that have since moved on, and
+// that timestamp only exists in audit_logs.
+//
+// `lapsed` is out for the reason it exists at all (migration 081): nobody ever
+// decided, so there is no actor and no instant, and `log_visit_approval` writes
+// no row for that transition. Querying for one would only ever come back empty.
 const DECIDED_STATUSES = new Set([
   'approved', 'walkin_approved', 'checked_in', 'checked_out',
   'rejected', 'cancelled', 'no_show',

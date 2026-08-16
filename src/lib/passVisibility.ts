@@ -31,6 +31,9 @@ const PASS_AVAILABLE: Record<VisitStatus, boolean> = {
   // hand out a badge for entry that is no longer granted — the sweep closed
   // this visit precisely so it stops being usable.
   expired: false,
+  // Nothing was ever granted, so there is nothing to reprint — the same reason
+  // `pending_approval` above is false, one day later.
+  lapsed: false,
 };
 
 /** True when this visit should still offer its entry pass. */

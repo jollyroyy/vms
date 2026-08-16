@@ -43,12 +43,19 @@ export type Visitor = {
   created_at: string;
 };
 
-// `no_show` and `expired` are both "approved, never arrived", split on whether
-// an appointment existed to be missed — see migration 065. no_show means a
-// booked slot went unused (a fact about the visitor and the host who booked
-// them); expired means an approval with no slot simply lapsed, which is every
-// walk-in, since that path never sets scheduled_for.
-export type VisitStatus = 'pending_approval' | 'approved' | 'walkin_approved' | 'checked_in' | 'checked_out' | 'rejected' | 'cancelled' | 'no_show' | 'expired';
+// `no_show`, `expired` and `lapsed` are the three "closed without arriving"
+// outcomes, drawn on what actually happened — see migrations 065 and 081:
+//
+//   no_show — a booked slot went unused. A fact about the visitor and the host
+//             who booked them, and the number a report should show.
+//   expired — an approval with no slot lapsed unused. Every walk-in the host
+//             cleared but who never came in, since that path never sets
+//             scheduled_for.
+//   lapsed  — nobody ever decided. A walk-in request raised at the gate whose
+//             host never answered, closed when the day it was needed for ended.
+//             It must NEVER imply an approval (visitApproval.ts,
+//             visitApprover.ts): no host cleared this visitor.
+export type VisitStatus = 'pending_approval' | 'approved' | 'walkin_approved' | 'checked_in' | 'checked_out' | 'rejected' | 'cancelled' | 'no_show' | 'expired' | 'lapsed';
 
 export type Visit = {
   id: string;

@@ -49,6 +49,10 @@ const STATUS_BLOCK_REASON: Record<VisitStatus, string | null> = {
   // pass was good for its day and that day has ended. "The time has passed"
   // would invite the guard to wave through someone who is merely late.
   expired: 'This pass was for an earlier day and has expired.',
+  // Says why, not just no. The visitor is holding a request, never a pass, and
+  // the answer they are waiting for is not coming from this desk — the host has
+  // to raise a new one.
+  lapsed: 'This request was never approved and has lapsed. Please raise a new walk-in request.',
 };
 
 /** Gates a QR check-in: expiry is checked before status, so an expired QR always reports as expired first. */
