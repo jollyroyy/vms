@@ -50,6 +50,11 @@ export default function WalkInRequest({ onSubmitted, onCancel }: Props): React.R
   const [error, setError] = useState('');
   const [hostError, setHostError] = useState<string | null>(null);
   const [blacklistHit, setBlacklistHit] = useState<string | null>(null);
+  // Bumped on every successful submit to REMOUNT the identity step. Nulling
+  // `photoBlob` is not enough on its own: PhotoCapture owns the frozen preview
+  // internally, so the previous visitor's face would stay on screen under a
+  // "Use Photo" button while the parent believed no photo was attached.
+  const [identityKey, setIdentityKey] = useState(0);
 
   useEffect(() => {
     supabase.from('visitors').select('phone, blacklist_reason').eq('is_blacklisted', true).then(({ data }) => {
@@ -92,6 +97,23 @@ export default function WalkInRequest({ onSubmitted, onCancel }: Props): React.R
     } catch { /* ignore */ }
   }, [phone, blacklist]);
 
+  // A submitted request is finished business, and the next person at the gate is
+  // a different visitor. On /guard/walk-in the form IS the page and never
+  // unmounts, so without this the guard registered them on top of the last
+  // visitor's name, phone, vendor and remarks — with the mandatory ID scan and
+  // photo still reading as satisfied, which is the half that could have sent an
+  // approver a face belonging to somebody else. Only called on success: a failed
+  // insert must leave every typed value where it is, since the visitor is still
+  // standing there.
+  const resetForm = useCallback(() => {
+    setPhone(''); setFullName(''); setVendorName('');
+    setPurpose('meeting'); setRemarks('');
+    setDeptId(''); setHostId('');
+    setScan(null); setPhotoBlob(null); setScanOpen(false);
+    setError(''); setBlacklistHit(null);
+    setIdentityKey((k) => k + 1);
+  }, []);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (blacklistHit) return;
@@ -129,6 +151,7 @@ export default function WalkInRequest({ onSubmitted, onCancel }: Props): React.R
         checked_in_at: null, checked_out_at: null, exit_verified: null, rejection_reason: null,
       });
       if (visitErr) throw visitErr;
+      resetForm();
       onSubmitted(fullName);
     } catch (err) { setError(safeErrorMessage(err, 'Request failed.')); }
     finally { setSubmitting(false); }
@@ -224,6 +247,7 @@ export default function WalkInRequest({ onSubmitted, onCancel }: Props): React.R
         </div>
 
         <WalkInIdentityStep
+          key={identityKey}
           scan={scan}
           scanOpen={scanOpen}
           onOpenScan={() => setScanOpen(true)}

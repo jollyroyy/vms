@@ -69,11 +69,20 @@
 .hod-page-title h1 { margin: 0; color: var(--hod-text); font-size: 27px; line-height: 1.1; font-weight: 650; letter-spacing: -.04em; }
 
 /* ── Stat row ─────────────────────────────────────────────── */
-.hod-metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-bottom: 11px; }
+.hod-metrics { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; margin-bottom: 11px; }
 .hod-stat { min-height: 89px; display: flex; align-items: center; gap: 13px; padding: 13px; border: 1px solid var(--hod-line); border-radius: 12px; background: var(--hod-panel); }
 .hod-stat__icon { display: grid; width: 37px; height: 37px; flex: 0 0 auto; place-items: center; border: 1px solid var(--hod-blue); border-radius: 50%; background: var(--hod-blue-soft); color: var(--hod-blue); font-weight: 800; font-size: 18px; }
 .hod-stat--green .hod-stat__icon { border-color: var(--hod-green); background: var(--hod-green-soft); color: var(--hod-green); }
 .hod-stat--amber .hod-stat__icon { border-color: var(--hod-amber); background: var(--hod-amber-soft); color: var(--hod-amber); }
+.hod-stat--red .hod-stat__icon { border-color: var(--hod-red); background: var(--hod-red-soft); color: var(--hod-red); }
+/* Every KPI drills down (client instruction, 2026-08-16), so every tile is a
+   button. The pressed state is a ring, never a border swap: a thicker edge on
+   one card in a row of five re-flows the whole row by a pixel. */
+.hod-stat--button { width: 100%; text-align: left; font: inherit; cursor: pointer; transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease; }
+.hod-stat--button:hover { transform: translateY(-2px); border-color: var(--hod-blue); }
+.hod-stat--button.is-selected { border-color: var(--hod-blue); box-shadow: 0 0 0 2px var(--hod-blue-soft); }
+.hod-card--drill { margin-bottom: 11px; }
+.hod-card--drill .hod-pulse-row:first-of-type { border-top: 0; }
 .hod-stat small, .hod-stat em { display: block; color: var(--hod-muted); font-size: 11px; font-style: normal; }
 .hod-stat strong { display: block; margin: 2px 0; color: var(--hod-text); font-size: 25px; line-height: 1.05; font-variant-numeric: tabular-nums; }
 
@@ -205,5 +214,6 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .hod-action, .hod-table-row, .hod-walkin-row { transition: none; }
+  .hod-action, .hod-table-row, .hod-walkin-row, .hod-stat--button { transition: none; }
+  .hod-stat--button:hover { transform: none; }
 }

@@ -223,6 +223,42 @@ describe('M12-NOTIFICATION: NotificationBell', () => {
     expect(screen.queryByText('Notifications')).not.toBeInTheDocument();
   });
 
+  // Client report, 2026-08-16: "Read" and "Mark all read" did nothing. The
+  // click-away used to be a `fixed inset-0 z-40` scrim portaled to document.body,
+  // which paints ABOVE the whole app-shell subtree (`relative z-10`) and
+  // therefore above this panel's z-50 — every click aimed at a button in the
+  // dropdown landed on the scrim, closing it and marking nothing.
+  it('renders no full-screen scrim that could swallow the panel’s own buttons', async () => {
+    setupMocks();
+    render(<NotificationBell userId="user-1" role="hod" />);
+    const bell = document.querySelector('button');
+    if (bell) fireEvent.click(bell);
+    await waitFor(() => expect(screen.getByText('Mark all read')).toBeInTheDocument());
+    expect(document.querySelectorAll('.fixed.inset-0').length).toBe(0);
+  });
+
+  it('keeps the dropdown open when a notification is marked read', async () => {
+    setupMocks();
+    render(<NotificationBell userId="user-1" role="hod" />);
+    const bell = document.querySelector('button');
+    if (bell) fireEvent.click(bell);
+    const readBtns = await screen.findAllByText('Read');
+    fireEvent.mouseDown(readBtns[0]!);
+    fireEvent.click(readBtns[0]!);
+    await waitFor(() => expect(screen.queryAllByText('Read').length).toBe(1));
+    expect(screen.getByText('Notifications')).toBeInTheDocument();
+  });
+
+  it('closes when the click lands outside the bell', async () => {
+    setupMocks([]);
+    render(<NotificationBell userId="user-1" role="hod" />);
+    const bell = document.querySelector('button');
+    if (bell) fireEvent.click(bell);
+    await waitFor(() => expect(screen.getByText('Notifications')).toBeInTheDocument());
+    fireEvent.mouseDown(document.body);
+    await waitFor(() => expect(screen.queryByText('Notifications')).not.toBeInTheDocument());
+  });
+
   it('unsubscribes on unmount', async () => {
     setupMocks([]);
     const { unmount } = render(<NotificationBell userId="user-1" role="hod" />);

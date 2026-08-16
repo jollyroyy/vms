@@ -375,6 +375,16 @@
   `GuardWalkInApproved` follow. `GuardWalkInApproved` still captures its own photo at the
   moment of entry and that is not duplication — this one records who *asked*, that one
   records who *walked through*.
+- **The walk-in form's camera is OFF until the guard asks for it** (client report,
+  2026-08-16). `PhotoCapture` starts its stream on mount, and a submitted request
+  remounts the identity step (`WalkInRequest` bumps `identityKey` to clear the previous
+  visitor's frozen frame) — so on `/guard/walk-in`, where the form IS the page, the
+  webcam light came straight back on and stayed lit at an empty form pointed at whoever
+  was next in the queue. `WalkInIdentityStep` holds an `armed` flag: false on mount and
+  after every accepted photo, so the remount cannot request the device, and attaching a
+  photo unmounts `PhotoCapture`, which is what releases it. The control mirrors "Scan ID
+  card" directly above it. ONE CAMERA AT A TIME still holds — `live = armed && !scanOpen`,
+  so the scan overlay always wins.
 - **`walkinApproved` is a required tab, not a nicety.** `CheckInPanel` searches
   pre-approvals only, so once it moved off `/visitors` an approved walk-in had no
   route into `checked_in` at all. `GuardWalkInApproved.tsx` is that route: it captures
@@ -825,6 +835,12 @@
   everyone inside who had a departure time set, so a tile reading 1 opened onto five cards.
   Never reintroduce a second source for a count. A new rule is one edit in `guardTiles.ts`
   and both halves follow.
+- **The pending lane reads "Pending Walk-in Approvals"** (client instruction,
+  2026-08-16). `pending_approval` is only ever reached from the gate's walk-in register —
+  a pre-approval is created already approved and never passes through that status — so
+  the old "Pending Approval" left a guard wondering whether a booked visitor could be
+  sitting in it. One edit, in `PANEL_SPEC.pending.heading`: the tile's label IS the
+  panel's heading.
 - **The four tiles are Expected Today · Checked In · In Premises · Overstaying.**
   - `expected` is **approved and not yet through the gate** (`approved` /
     `walkin_approved` with `checked_in_at IS NULL`). It used to be
@@ -941,6 +957,23 @@
   carried by a colour rail **and** a text badge — never colour alone.
 
 ### HOD surface
+- **The HOD's landing page is the DASHBOARD, and every KPI on it drills down**
+  (client instruction, 2026-08-16). The nav item reads **Dashboard**, not "Overview" —
+  the route stays `/overview`, which is what the bookmarks and every `?tab=` link hold —
+  and the `HOD COMMAND VIEW / Department overview` page header is **gone**: the sidebar
+  item they just clicked already says it, the same rule that took the heading off the
+  guard dashboard. The four stat cards were counted from a `select id, status`, so the
+  number was all there could ever be and an HOD reading "3 awaiting decision" had to go
+  looking for the three. `lib/hodTiles.ts` now owns one entry per tile and one slicer;
+  `HodKpiBoard.tsx` renders `tiles[key].length` as the number and `tiles[key]` as the
+  panel, so **a tile's count is the length of the list it opens** here exactly as it is
+  on the guard board. The five are On-site now · Approvals today · Awaiting decision ·
+  Walk-ins live · Declined today. The day query fetches full rows (limit 200); the
+  pending tiles reuse the console's own unbounded desk lists, so a tile and the desk it
+  belongs to can never act on different rows. **The panel is display-only** — approving
+  and declining stay on the two decision desks, where the reason box and the audit row
+  are. `lib/hodVisitLabels.ts` holds the shared row labels so the board and the desks
+  name a visitor, an hour and a host identically.
 - **`/approvals` is the FORM. Every HODConsole desk is a `?tab=` view of `/overview`.**
   (client report, 2026-08-16). `HODConsole` had taken over **both** HOD routes, so
   `/approvals` rendered the console's "preapprovals" **decision desk** and the
@@ -1086,6 +1119,18 @@
   confirm without one, while the format CHECK stays a backstop. Check-out records the
   return (074's undo nulls it again — the visitor never left). `lib/cardNumber.ts`
   mirrors the CHECK.
+
+### Notifications bell
+- **The dropdown's click-away is a LISTENER, not an overlay** (client report,
+  2026-08-16: "Read" and "Mark all read" did nothing). It used to close via a
+  `fixed inset-0 z-40` scrim portaled to `document.body`. That scrim beats the whole app:
+  the panel's `z-50` is resolved INSIDE AppShell's `app-shell-content` stacking context
+  (`relative z-10`), so at the root it is a z-10 subtree sitting under a z-40 sibling —
+  every click aimed at a button in the dropdown landed on the scrim, which closed the
+  panel and marked nothing. A `mousedown`/`touchstart` listener on `document`, filtered
+  by `dropdownRef.contains`, has no paint order to lose. `NotificationBell.test.tsx`
+  fails on any `.fixed.inset-0` while the panel is open. Both writes also re-read on
+  error, so a refused update does not leave the badge lying until the 30s poll.
 
 ### Live shared data
 - `src/lib/useDepartments.ts` and `src/lib/useHods.ts` fetch **and** subscribe to

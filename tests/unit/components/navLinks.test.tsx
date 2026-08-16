@@ -106,10 +106,12 @@ describe('navLinks: linksForRole', () => {
   // the pre-approval FORM — the only way an HOD raises a visitor pass — became
   // unreachable behind the console's decision desk. The form keeps /approvals;
   // every console desk is a ?tab= view of /overview.
-  it('hod gets Overview, Pre-Approvals, Approval Desk, Walk-in Desk, Visitor Schedule, Reports', () => {
+  it('hod gets Dashboard, Pre-Approvals, Approval Desk, Walk-in Desk, Visitor Schedule, Reports', () => {
     const links = linksForRole('hod');
     expect(links.map((l) => l.label)).toEqual([
-      'Overview', 'Pre-Approvals', 'Approval Desk', 'Walk-in Desk', 'Visitor Schedule', 'Reports',
+      // "Dashboard", not "Overview" (client instruction, 2026-08-16) — the
+      // route is still /overview, which is what the bookmarks hold.
+      'Dashboard', 'Pre-Approvals', 'Approval Desk', 'Walk-in Desk', 'Visitor Schedule', 'Reports',
     ]);
     expect(links.map((l) => l.label)).not.toContain('Analytics');
     expect(links.find((l) => l.label === 'Pre-Approvals')?.to).toBe('/approvals');

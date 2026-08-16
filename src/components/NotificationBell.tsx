@@ -1,5 +1,4 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
 import { supabase } from '../supabaseClient';
 import type { UserRole, Notification } from '../types/index';
 import ModalCloseButton from './ModalCloseButton';
@@ -53,10 +52,16 @@ export default function NotificationBell({ userId, role }: Props): React.ReactEl
     };
   }, [fetchNotifications, userId]);
 
+  // Both writes drop the row optimistically and then RE-READ if the write came
+  // back with an error. Without that, a refused update (RLS, a dropped
+  // connection) leaves the badge reading one fewer than the database holds until
+  // the 30s poll quietly puts it back — the bell would look like it worked and
+  // then undo itself.
   const markRead = async (id: string) => {
     if (loading) return;
     setNotifications((prev) => prev.filter((n) => n.id !== id));
-    await supabase.from('notifications').update({ is_read: true }).eq('id', id);
+    const { error } = await supabase.from('notifications').update({ is_read: true }).eq('id', id);
+    if (error) void fetchNotifications();
   };
 
   const markAllRead = async () => {
@@ -64,10 +69,35 @@ export default function NotificationBell({ userId, role }: Props): React.ReactEl
     const unreadIds = notifications.map((n) => n.id);
     if (unreadIds.length === 0) return;
     setNotifications([]);
-    await supabase.from('notifications').update({ is_read: true }).in('id', unreadIds);
+    const { error } = await supabase.from('notifications').update({ is_read: true }).in('id', unreadIds);
+    if (error) void fetchNotifications();
   };
 
   useEscapeKey(() => setOpen(false), open);
+
+  // CLICK-AWAY IS A LISTENER, NOT AN OVERLAY (client report, 2026-08-16: "Read"
+  // and "Mark all read" did nothing). The dropdown used to close via a
+  // `fixed inset-0 z-40` scrim portaled to document.body. That scrim wins the
+  // paint order against the whole app: the panel's z-50 is resolved INSIDE
+  // AppShell's `app-shell-content` stacking context (`relative z-10`), so at the
+  // root it is a z-10 subtree sitting under a z-40 sibling. Every click aimed at
+  // a button in the panel landed on the scrim instead — the dropdown closed and
+  // nothing was ever marked read. A document listener has no paint order to lose:
+  // the ref wraps the bell and the panel, so anything outside it closes.
+  useEffect(() => {
+    if (!open) return;
+    const onPointerDown = (event: MouseEvent | TouchEvent) => {
+      const target = event.target as Node | null;
+      if (target && dropdownRef.current?.contains(target)) return;
+      setOpen(false);
+    };
+    document.addEventListener('mousedown', onPointerDown);
+    document.addEventListener('touchstart', onPointerDown);
+    return () => {
+      document.removeEventListener('mousedown', onPointerDown);
+      document.removeEventListener('touchstart', onPointerDown);
+    };
+  }, [open]);
 
   if (!isEligible) return null;
 
@@ -89,19 +119,6 @@ export default function NotificationBell({ userId, role }: Props): React.ReactEl
       </button>
 
       {open && (
-        <>
-          {/* The click-away backdrop is PORTALED to document.body. The bell
-              lives inside the app header (`card-glass`, backdrop-filter),
-              and a backdrop-filter ancestor becomes the containing block for
-              `position: fixed` descendants — inline, this `fixed inset-0`
-              scrim resolved against the 64px header strip, so clicking
-              anywhere below the topbar could not close the dropdown. The
-              panel itself stays inline: it is `absolute` against this
-              wrapper's `relative`. */}
-          {createPortal(
-            <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />,
-            document.body,
-          )}
           <div className="absolute right-0 top-full mt-2 w-80 sm:w-96 z-50 rounded-2xl shadow-modal border border-white/10 overflow-hidden animate-scale-in dark:bg-[rgb(20_18_14)] dark:bg-opacity-100 bg-white">
             {/* The × is an INLINE flex child here, not the absolute default.
                 This row is compact and already has content on its right, so an
@@ -166,7 +183,6 @@ export default function NotificationBell({ userId, role }: Props): React.ReactEl
               )}
             </div>
           </div>
-        </>
       )}
     </div>
   );

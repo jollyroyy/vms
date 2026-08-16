@@ -179,8 +179,14 @@ export const PANEL_SPEC: Record<GuardTileKey, DashboardPanelSpec> = {
   },
   // A walk-in with nobody's decision on it. It has no slot and no entry — only
   // the moment it was raised, which is what the host is late against.
+  //
+  // The heading says WALK-IN (client instruction, 2026-08-16): `pending_approval`
+  // is only ever reached from the gate's walk-in register — a pre-approval is
+  // created already approved and never passes through that status — so "Pending
+  // Approval" left a guard wondering whether a booked visitor could be sitting in
+  // it too.
   pending: {
-    heading: 'Pending Approval',
+    heading: 'Pending Walk-in Approvals',
     empty: 'Nothing waiting on a host.',
     columns: [NAME, PURPOSE, HOST, DEPARTMENT, REQUESTED, STATUS],
   },

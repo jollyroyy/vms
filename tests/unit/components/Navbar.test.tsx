@@ -149,7 +149,7 @@ describe('Sidebar: navigation links', () => {
 
   it('renders correct nav links for HOD role', () => {
     renderWithRouter(<Sidebar session={hodSession} role="hod" />);
-    expect(screen.getByText('Overview')).toBeInTheDocument();
+    expect(screen.getByText('Dashboard')).toBeInTheDocument();
     expect(screen.getByText('Pre-Approvals')).toBeInTheDocument();
     expect(screen.getByText('Reports')).toBeInTheDocument();
     // The HOD console's own tab bar was deleted 2026-08-15 — its two other

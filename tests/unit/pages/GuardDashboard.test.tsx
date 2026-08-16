@@ -91,7 +91,10 @@ describe('GuardDashboard (reference-screen frame)', () => {
     renderDashboard();
     // Row 2 (client instruction, 2026-08-15): the Visitors tab's KPI cards moved
     // onto this board, compact, plus the two refusal lanes.
-    for (const label of ['All Visitors', 'Pending Approval', 'Approved Walk-ins',
+    // "Pending Walk-in Approvals", not "Pending Approval" (client instruction,
+    // 2026-08-16): pending_approval is only ever reached from the walk-in
+    // register, so the lane names the arrival route it can only contain.
+    for (const label of ['All Visitors', 'Pending Walk-in Approvals', 'Approved Walk-ins',
       'Declined by Host', 'Entry Refused at the Gate']) {
       expect(screen.getAllByText(label).length).toBeGreaterThan(0);
     }

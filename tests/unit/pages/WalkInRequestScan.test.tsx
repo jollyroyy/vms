@@ -151,6 +151,10 @@ describe('M-AI-OCR-UI: WalkInRequest scan wiring', () => {
 
     // The photo is mandatory too, and PhotoCapture only hands the blob up on
     // "Use Photo" — the scan alone no longer gets past the submit button.
+    // The camera is armed by hand on this form (client report, 2026-08-16) —
+    // PhotoCapture only mounts once the guard asks for it, so it cannot be left
+    // streaming at a cleared form.
+    fireEvent.click(await screen.findByText('Turn on camera'));
     fireEvent.click(await screen.findByText('Capture Photo'));
     fireEvent.click(await screen.findByText('Use Photo'));
 
@@ -177,6 +181,10 @@ describe('M-AI-OCR-UI: WalkInRequest scan wiring', () => {
     fireEvent.click(await screen.findByText('Use Details'));
     expect(submit).toBeDisabled();
 
+    // The camera is armed by hand on this form (client report, 2026-08-16) —
+    // PhotoCapture only mounts once the guard asks for it, so it cannot be left
+    // streaming at a cleared form.
+    fireEvent.click(await screen.findByText('Turn on camera'));
     fireEvent.click(await screen.findByText('Capture Photo'));
     fireEvent.click(await screen.findByText('Use Photo'));
     await waitFor(() => expect(submit).not.toBeDisabled());

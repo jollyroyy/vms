@@ -85,7 +85,7 @@ describe('Sidebar navigation links per role', () => {
     expect(screen.getByText('Settings')).toBeInTheDocument();
     expect(screen.queryByText('Visitors')).not.toBeInTheDocument();
     expect(screen.queryByText('Approvals')).not.toBeInTheDocument();
-    expect(screen.queryByText('Overview')).not.toBeInTheDocument();
+    expect(screen.queryByText('Dashboard')).not.toBeInTheDocument();
     expect(screen.queryByText('Self-Service Kiosk')).not.toBeInTheDocument();
     expect(screen.queryByText('Daily Staff')).not.toBeInTheDocument();
     expect(screen.queryByText('On-site')).not.toBeInTheDocument();
