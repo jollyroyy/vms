@@ -30,7 +30,8 @@ import type { WalkInCheckIn } from '../../lib/checkInWalkInApproved';
 
 type Props = {
   loading: boolean;
-  /** Walk-ins the host approved, not yet at the gate. */
+  /** Every walk-in the host cleared — those still at the gate AND those already
+   *  admitted. The component splits them; only the first group is actionable. */
   approved: Visit[];
   busyId: string | null;
   onCheckIn: (visit: Visit, details: WalkInCheckIn) => void;
@@ -97,10 +98,19 @@ export default function GuardWalkInApproved({ loading, approved, busyId, onCheck
     );
   };
 
+  // The lane holds every walk-in the host cleared, which since migration 080 is
+  // mostly people already inside — the approver's click admits them. Only a row
+  // still resting in `walkin_approved` has anything left for this desk to do, so
+  // only that row gets a Check In button. An admitted row renders as a plain
+  // card: the visitor is through the gate, and a control the guard cannot honour
+  // is worse than no control (the same rule Deny Entry follows).
+  const waiting = approved.filter((v) => v.status === 'walkin_approved');
+  const admitted = approved.filter((v) => v.status !== 'walkin_approved');
+
   return (
     <div>
       <div className="flex items-center justify-between mb-2.5">
-        <h2 className="gate-section-title">Approved, waiting to enter</h2>
+        <h2 className="gate-section-title">Approved walk-ins</h2>
         <span className="glass-chip !py-1 tabular-nums">{approved.length}</span>
       </div>
 
@@ -110,14 +120,14 @@ export default function GuardWalkInApproved({ loading, approved, busyId, onCheck
         </div>
       ) : approved.length === 0 ? (
         <div className="card empty-state !py-14">
-          <p className="text-sm font-semibold text-navy-500">No approved walk-ins waiting.</p>
+          <p className="text-sm font-semibold text-navy-500">No walk-ins have been approved.</p>
           <p className="text-xs text-navy-500 dark:text-navy-400 mt-1">
-            Once a person to meet approves a walk-in, they appear here ready to check in.
+            Once a person to meet approves a walk-in they appear here, and stay here after they enter.
           </p>
         </div>
       ) : (
         <div className="space-y-2">
-          {approved.map((v, i) => (
+          {waiting.map((v, i) => (
             <div key={v.id} className="animate-slide-up" style={{ animationDelay: `${i * 0.03}s` }}>
               <VisitorCard
                 visit={v}
@@ -217,6 +227,24 @@ export default function GuardWalkInApproved({ loading, approved, busyId, onCheck
               )}
             </div>
           ))}
+
+          {/* Cleared AND already through the gate. They stay on this lane
+              because "who did the host approve?" is not answered by a list that
+              deletes people the moment they walk in — that is the complaint this
+              section exists to answer. Read-only, and labelled, so the guard is
+              never in doubt which rows still need them. */}
+          {admitted.length > 0 && (
+            <>
+              <p className="gate-section-title !text-[11px] pt-3 pb-0.5">
+                Already checked in ({admitted.length})
+              </p>
+              {admitted.map((v, i) => (
+                <div key={v.id} className="animate-slide-up" style={{ animationDelay: `${i * 0.03}s` }}>
+                  <VisitorCard visit={v} timeLabel={formatDateTime(v.checked_in_at ?? v.created_at)} />
+                </div>
+              ))}
+            </>
+          )}
         </div>
       )}
     </div>

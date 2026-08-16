@@ -43,14 +43,25 @@ function makeVisit(overrides: Partial<Visit> = {}): Visit {
 
 describe('reportRow', () => {
   describe('toReportRow', () => {
-    it('includes exactly 15 keys in the correct order', () => {
+    // 16 by default. "Type" joined on 2026-08-16 (client instruction: everybody
+    // should be able to see who is a walk-in and who was pre-approved) and sits
+    // beside the visitor's own details, not among the timestamps.
+    it('includes exactly 16 keys in the correct order', () => {
       const row = toReportRow(makeVisit(), 0);
       const keys = Object.keys(row);
       expect(keys).toEqual([
-        '#', 'Ref', 'Visitor Name', 'Vendor', 'Phone', 'Department', 'Person to Meet', 'ID Proof',
+        '#', 'Ref', 'Visitor Name', 'Vendor', 'Phone', 'Type', 'Department', 'Person to Meet', 'ID Proof',
         'Purpose', 'Approved At', 'Checked In At', 'Checked Out At',
         'Carrying', 'Carrying Remarks', 'Status',
       ]);
+    });
+
+    // The admin's register names who cleared each visitor; a department-scoped
+    // export does not, because an HOD is reading their own decisions.
+    it('adds "Approved By" after "Approved At" only when asked', () => {
+      const keys = Object.keys(toReportRow(makeVisit(), 0, { withApprover: true }));
+      expect(keys).toHaveLength(17);
+      expect(keys[keys.indexOf('Approved At') + 1]).toBe('Approved By');
     });
 
     it('formats # as 1-based index', () => {

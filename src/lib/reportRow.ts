@@ -3,15 +3,14 @@
 // qr_token, any raw phone number, or any nested object — all are redacted here.
 
 import type { Visit } from '../types/index';
+import type { VisitActorFields } from './visitActors';
 import { maskPhone, maskIdProof } from './pii';
 import { visitStatusLabel } from './visitStatusLabel';
 import { approvalTimestamp } from './visitApproval';
+import { visitOrigin, visitOriginLabel } from './visitOrigin';
+import { approverLabel } from './visitApprover';
 
-export type ReportVisit = Visit & {
-  actor?: { name: string; role: string } | null;
-  actorAt?: string | null;
-  approvedAt?: string | null;
-};
+export type ReportVisit = Visit & VisitActorFields;
 
 export type ReportRow = Record<string, string>;
 
@@ -23,14 +22,26 @@ function formatStamp(iso: string | null | undefined): string {
   return `${d.toLocaleDateString('en-IN')} ${d.toLocaleTimeString('en-IN')}`;
 }
 
-/** Convert a single Visit to a flat ReportRow with exactly 15 string keys, in order. */
-export function toReportRow(visit: ReportVisit, index: number): ReportRow {
+export type ReportRowOptions = {
+  /** Include the "Approved By" column. Off for a department-scoped viewer: an
+   *  HOD exporting their own register is exporting their own decisions. */
+  withApprover?: boolean;
+};
+
+/** Convert a single Visit to a flat ReportRow, in column order. */
+export function toReportRow(
+  visit: ReportVisit, index: number, opts: ReportRowOptions = {},
+): ReportRow {
   return {
     '#': String(index + 1),
     'Ref': visit.ref_number ?? '',
     'Visitor Name': visit.visitor?.full_name ?? '',
     'Vendor': visit.visitor?.vendor_name ?? '',
     'Phone': maskPhone(visit.visitor?.phone),
+    // Booked ahead or turned up unannounced. In the CSV unconditionally: a
+    // register that cannot be filtered by arrival route cannot answer the one
+    // question a month of visits is usually opened with.
+    'Type': visitOriginLabel(visitOrigin(visit)),
     'Department': visit.department?.name ?? '',
     'Person to Meet': visit.host?.full_name ?? '',
     'ID Proof': maskIdProof(visit.visitor?.id_type, visit.visitor?.id_last4),
@@ -38,6 +49,9 @@ export function toReportRow(visit: ReportVisit, index: number): ReportRow {
     // Resolved here rather than read straight off the row so the CSV and the
     // on-screen register can never disagree about when a visit was approved.
     'Approved At': formatStamp(approvalTimestamp(visit)),
+    // The approver's name AND their department — see lib/visitApprover.ts for
+    // why the second half is there and why an HOD's export omits the pair.
+    ...(opts.withApprover ? { 'Approved By': approverLabel(visit, { withDepartment: true }) } : {}),
     'Checked In At': formatStamp(visit.checked_in_at),
     'Checked Out At': formatStamp(visit.checked_out_at),
     // Two columns, not one. The flag and the description answer different
@@ -53,6 +67,6 @@ export function toReportRow(visit: ReportVisit, index: number): ReportRow {
 }
 
 /** Convert an array of Visits to an array of ReportRows, numbered 1-indexed. */
-export function toReportRows(visits: ReportVisit[]): ReportRow[] {
-  return visits.map((v, i) => toReportRow(v, i));
+export function toReportRows(visits: ReportVisit[], opts: ReportRowOptions = {}): ReportRow[] {
+  return visits.map((v, i) => toReportRow(v, i, opts));
 }

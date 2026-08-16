@@ -20,11 +20,14 @@ export function visitStatusLabel(visit: { status: VisitStatus; actor?: VisitActo
     case 'approved':
       return 'Pre-approved';
 
+    // No "by <name>" here any more (client instruction, 2026-08-16). WHO
+    // cleared a visitor is now a column of its own — lib/visitApprover.ts —
+    // which is what lets the HOD's register drop it (they are reading their own
+    // decisions) while the admin's register keeps it with the approver's
+    // department attached. Folding it into the status meant every surface that
+    // printed a status inherited the name whether or not it wanted it, and
+    // there was no way to ask for one without the other.
     case 'walkin_approved':
-      if (actor) {
-        const roleLabel = getRoleLabel(actor.role);
-        return `Walk-in approved by ${actor.name} (${roleLabel})`;
-      }
       return 'Walk-in approved';
 
     case 'rejected':

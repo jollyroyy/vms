@@ -1,6 +1,7 @@
 import type { ReportVisit } from './reportRow';
 import type { VisitStatus } from '../types/index';
 import { isOverstaying } from './visitExpiry';
+import { isApprovedWalkIn } from './visitOrigin';
 
 // The guard dashboard's four KPI tiles, as PREDICATES over the day's visits.
 //
@@ -112,9 +113,13 @@ export const TILE_FILTER: Record<GuardTileKey, (v: ReportVisit, now?: Date) => b
   // "expected" (nobody cleared them) and not refused — simply unanswered.
   pending: (v) => v.status === 'pending_approval',
 
-  // The host said yes at the gate; the visitor still has to have their photo
-  // taken and be let in.
-  walkinApproved: (v) => v.status === 'walkin_approved',
+  // Every walk-in the host cleared, whether they are still at the gate or have
+  // since been let in. Keyed on the CLEARANCE, not on the holding status: since
+  // migration 080 the approver admits the visitor in the same click, so a row
+  // passes straight from `pending_approval` to `checked_in` and would never be
+  // seen by a `status === 'walkin_approved'` test. Shared with SEGMENT_FILTER
+  // and the HOD's own tile — one question, one answer.
+  walkinApproved: (v) => isApprovedWalkIn(v),
 
   // The host said no, usually before the visitor set off. NOT "entry denied".
   declinedByHost: (v) => v.status === 'rejected' && !isGuardRefusal(v),

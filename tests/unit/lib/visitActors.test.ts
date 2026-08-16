@@ -45,7 +45,7 @@ describe('M-VISIT-ACTORS: attachVisitActors', () => {
     mockRpc.mockResolvedValue({ data: [{ id: 'u1', full_name: 'Jane HOD', role: 'hod' }], error: null });
     const rows = [{ id: 'v1', status: 'rejected' }];
     const result = await attachVisitActors(rows as any);
-    expect(result[0]!.actor).toEqual({ name: 'Jane HOD', role: 'hod' });
+    expect(result[0]!.actor).toEqual({ name: 'Jane HOD', role: 'hod', department: null });
     expect(mockRpc).toHaveBeenCalledWith('get_profile_names', { profile_ids: ['u1'] });
   });
 
@@ -102,7 +102,7 @@ describe('M-VISIT-ACTORS: attachVisitActors', () => {
     const result = await attachVisitActors(rows as any);
     expect(result[0]!.actor).toBeNull();
     expect(result[0]!.approvedAt).toBeNull();
-    expect(result[1]!.actor).toEqual({ name: 'A', role: 'guard' });
+    expect(result[1]!.actor).toEqual({ name: 'A', role: 'guard', department: null });
   });
 
   it('surfaces the visit_approved log time as approvedAt', async () => {

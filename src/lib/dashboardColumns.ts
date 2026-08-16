@@ -3,6 +3,7 @@ import type { ReportVisit } from './reportRow';
 import { formatStamp } from './formatDate';
 import { maskIdProof } from './pii';
 import { visitOrigin, visitOriginLabel } from './visitOrigin';
+import { approverLabel } from './visitApprover';
 import { overstayMs } from './visitExpiry';
 
 // What the guard dashboard's one panel is CALLED, and which columns it shows,
@@ -149,6 +150,21 @@ const DECIDED_BY: DashboardColumn = {
 // The justification. On a guard's refusal it is mandatory by construction; on
 // an HOD's decline it is whatever they typed. Never truncated to a fixed width
 // here — a clipped reason is indistinguishable from a complete one.
+// WHO cleared this visitor (client instruction, 2026-08-16). Since migration
+// 080 an approved walk-in lands in `checked_in` in the approver's own click, so
+// the "Walk-in approved" badge that used to carry the fact is gone by the time
+// a guard reads the row — and nothing else on the board said a host had said
+// yes, or which host. This is that answer.
+//
+// The NAME only, no department: every row on the guard's board is one gate's
+// traffic and the department is already its own column, so the extra words buy
+// nothing and cost the readability the client asked to protect. The admin
+// register calls the same function with `withDepartment` (see reportColumns).
+const APPROVED_BY: DashboardColumn = {
+  key: 'approvedBy', header: 'Approved By',
+  value: (v) => approverLabel(v),
+};
+
 const REASON: DashboardColumn = {
   key: 'reason', header: 'Reason',
   value: (v) => v.rejection_reason?.trim() || 'No reason recorded',
@@ -174,6 +190,7 @@ export const COLUMN = {
   idProof: ID_PROOF,
   status: STATUS,
   decidedBy: DECIDED_BY,
+  approvedBy: APPROVED_BY,
   reason: REASON,
 } as const;
 
@@ -197,14 +214,14 @@ export const PANEL_SPEC: Record<GuardTileKey, DashboardPanelSpec> = {
   checked: {
     heading: 'Checked In Today',
     empty: 'Nobody has come through the gate yet today.',
-    columns: [NAME, ORIGIN, ID_PROOF, PURPOSE, HOST, SCHEDULED, CHECKED_IN, CHECKED_OUT, STATUS],
+    columns: [NAME, ORIGIN, APPROVED_BY, ID_PROOF, PURPOSE, HOST, SCHEDULED, CHECKED_IN, CHECKED_OUT, STATUS],
   },
   // The list you hand a fire marshal. No exit column — by definition none of
   // them has one.
   inside: {
     heading: 'In Premises',
     empty: 'Nobody is inside right now.',
-    columns: [NAME, ORIGIN, ID_PROOF, PURPOSE, HOST, DEPARTMENT, SCHEDULED, CHECKED_IN, STATUS],
+    columns: [NAME, ORIGIN, APPROVED_BY, ID_PROOF, PURPOSE, HOST, DEPARTMENT, SCHEDULED, CHECKED_IN, STATUS],
   },
   // The overrun is why the row is here, so it sits last, where the eye lands.
   overstaying: {
@@ -215,7 +232,7 @@ export const PANEL_SPEC: Record<GuardTileKey, DashboardPanelSpec> = {
   all: {
     heading: 'All Visitors',
     empty: 'No visitor activity yet today.',
-    columns: [NAME, ORIGIN, ID_PROOF, PURPOSE, HOST, DEPARTMENT, SCHEDULED, CHECKED_IN, CHECKED_OUT, STATUS],
+    columns: [NAME, ORIGIN, APPROVED_BY, ID_PROOF, PURPOSE, HOST, DEPARTMENT, SCHEDULED, CHECKED_IN, CHECKED_OUT, STATUS],
   },
   // A walk-in with nobody's decision on it. It has no slot and no entry — only
   // the moment it was raised, which is what the host is late against.
@@ -230,11 +247,22 @@ export const PANEL_SPEC: Record<GuardTileKey, DashboardPanelSpec> = {
     empty: 'Nothing waiting on a host.',
     columns: [NAME, PURPOSE, HOST, DEPARTMENT, REQUESTED, STATUS],
   },
-  // Cleared at the gate, not yet let in. Same shape as pending: still no entry.
+  // Every walk-in a host cleared — still at the gate, and already inside.
+  //
+  // It used to be "cleared, not yet let in", which shared pending's shape
+  // because neither lane could hold a row with an entry time. Migration 080
+  // ended that: the approver admits the visitor in the same click, so most rows
+  // here now DO have one. CHECKED_IN and APPROVED_BY are what that costs and
+  // what it buys — when they came through, and which host said yes, the fact the
+  // status badge used to carry before the row stopped resting in
+  // `walkin_approved` long enough for anyone to read it.
+  //
+  // Still no Type column: every row on this lane is a walk-in by definition, so
+  // it would print one word on every line.
   walkinApproved: {
     heading: 'Approved Walk-ins',
-    empty: 'No approved walk-ins waiting.',
-    columns: [NAME, PURPOSE, HOST, DEPARTMENT, REQUESTED, STATUS],
+    empty: 'No walk-ins have been approved.',
+    columns: [NAME, APPROVED_BY, PURPOSE, HOST, DEPARTMENT, REQUESTED, CHECKED_IN, STATUS],
   },
   // The two refusal lanes. Both carry the REASON, because a refusal without one
   // is an assertion nobody can check, and `visits.rejection_reason` is the only

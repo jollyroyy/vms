@@ -11,8 +11,13 @@ describe('S1/S2a: visit lifecycle', () => {
     expect(canTransition('checked_in', 'checked_out')).toBe(true);
   });
 
-  it('a visitor cannot be checked in before approval', () => {
-    expect(canTransition('pending_approval', 'checked_in')).toBe(false);
+  // Migration 080: the approver ADMITS the walk-in in the same act as the
+  // decision, so this edge is now legal — it is not "skipping approval", it is
+  // the approval. What must stay impossible is reaching `checked_in` without
+  // anybody having decided, which is the `rejected` case just below and the
+  // `no_show` case further down.
+  it('the approver can admit a walk-in in the same act as the decision', () => {
+    expect(canTransition('pending_approval', 'checked_in')).toBe(true);
   });
 
   it('rejection is terminal', () => {
@@ -107,8 +112,12 @@ describe('M2-VISIT: edge cases', () => {
     expect(canTransition('approved', 'rejected')).toBe(false);
   });
 
-  it('pending → checked_in is NOT valid (skip approval not allowed)', () => {
-    expect(canTransition('pending_approval', 'checked_in')).toBe(false);
+  // Was "skip approval not allowed". Migration 080 made this the approver's own
+  // shortcut — see the note on the same edge above. The rule it must not weaken
+  // is that an UNDECIDED or REFUSED visit can never reach the gate, which the
+  // rejected/no_show cases in this block still pin.
+  it('pending → checked_in IS valid — it is the approver admitting them', () => {
+    expect(canTransition('pending_approval', 'checked_in')).toBe(true);
   });
 
   it('rejected → rejected (same state) is NOT valid — no no-op transitions', () => {

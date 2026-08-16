@@ -1,6 +1,11 @@
 import { supabase } from '../supabaseClient';
 
-export type VisitActor = { name: string; role: string };
+// `department` is the desk the actor speaks for, not the visit's department —
+// they are usually the same and occasionally are not (an admin clearing a
+// request on someone else's behalf). The admin register prints both halves,
+// because one name means little across an org with many desks. Null whenever
+// the profile carries no department, which is normal for an admin.
+export type VisitActor = { name: string; role: string; department: string | null };
 type HasId = { id: string; status: string };
 
 export type VisitActorFields = {
@@ -8,6 +13,8 @@ export type VisitActorFields = {
   actor?: VisitActor | null;
   /** When that most recent decision was taken. */
   actorAt?: string | null;
+  /** Who cleared this visitor — the author of the `visit_approved` row. */
+  approvedBy?: VisitActor | null;
   /** When the visit was approved, specifically — null if the only decision was a rejection. */
   approvedAt?: string | null;
 };
@@ -42,34 +49,42 @@ export async function attachVisitActors<T extends HasId>(
 
   // Rows arrive newest-first, so the first sighting of a visit id is its latest
   // decision. The approval map is kept separate because a rejection that came
-  // *after* an approval must not overwrite the approval's timestamp.
+  // *after* an approval must not overwrite the approval's timestamp — nor its
+  // author. `actor` answers "who decided this last"; `approvedBy` answers "who
+  // cleared this visitor", and on a visit that was approved and later refused
+  // those are two different people. The register asks the second question.
   const latestByVisit = new Map<string, { userId: string | null; createdAt: string }>();
-  const approvedAtByVisit = new Map<string, string>();
+  const approvedByVisit = new Map<string, { userId: string | null; createdAt: string }>();
   for (const log of logs as AuditRow[]) {
     if (!latestByVisit.has(log.entity_id)) {
       latestByVisit.set(log.entity_id, { userId: log.user_id, createdAt: log.created_at });
     }
-    if (log.action === 'visit_approved' && !approvedAtByVisit.has(log.entity_id)) {
-      approvedAtByVisit.set(log.entity_id, log.created_at);
+    if (log.action === 'visit_approved' && !approvedByVisit.has(log.entity_id)) {
+      approvedByVisit.set(log.entity_id, { userId: log.user_id, createdAt: log.created_at });
     }
   }
 
-  const userIds = [...new Set([...latestByVisit.values()].map((v) => v.userId).filter(Boolean))] as string[];
+  const userIds = [...new Set(
+    [...latestByVisit.values(), ...approvedByVisit.values()].map((v) => v.userId).filter(Boolean),
+  )] as string[];
   const profileMap = new Map<string, VisitActor>();
   if (userIds.length > 0) {
     const { data: profiles } = await (supabase as any).rpc('get_profile_names', { profile_ids: userIds });
-    for (const p of (profiles ?? []) as { id: string; full_name: string; role: string }[]) {
-      profileMap.set(p.id, { name: p.full_name, role: p.role });
+    type ProfileRow = { id: string; full_name: string; role: string; department_name?: string | null };
+    for (const p of (profiles ?? []) as ProfileRow[]) {
+      profileMap.set(p.id, { name: p.full_name, role: p.role, department: p.department_name ?? null });
     }
   }
 
   return visits.map((v) => {
     const entry = latestByVisit.get(v.id);
+    const approval = approvedByVisit.get(v.id);
     return {
       ...v,
       actor: entry?.userId ? (profileMap.get(entry.userId) ?? null) : null,
       actorAt: entry?.createdAt ?? null,
-      approvedAt: approvedAtByVisit.get(v.id) ?? null,
+      approvedBy: approval?.userId ? (profileMap.get(approval.userId) ?? null) : null,
+      approvedAt: approval?.createdAt ?? null,
     };
   });
 }

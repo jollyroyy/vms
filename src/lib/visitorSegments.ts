@@ -13,6 +13,7 @@
 // never exist in the nav without existing on the page, or be counted by a rule
 // different from the one that lists it. Adding a segment is one edit here.
 import type { Visit } from '../types/index';
+import { isApprovedWalkIn } from './visitOrigin';
 
 export type VisitorSegment =
   | 'all'
@@ -137,9 +138,9 @@ export const SEGMENT_META: Record<VisitorSegment, SegmentMeta> = {
   walkinApproved: {
     navLabel: 'Approved Walk-ins',
     title: 'Approved Walk-ins',
-    subtitle: 'The host said yes — capture a photo and let them in',
-    empty: 'No approved walk-ins waiting.',
-    emptyHint: 'Once a host approves a walk-in, it appears here to be checked in.',
+    subtitle: 'Walk-ins the host cleared — waiting at the gate, and already inside',
+    empty: 'No walk-ins have been approved.',
+    emptyHint: 'Once a host approves a walk-in it appears here, and stays here after they enter.',
     showCount: true,
   },
   walkin: {
@@ -165,7 +166,15 @@ export const SEGMENT_FILTER: Record<ListSegment, (v: Visit) => boolean> = {
   // an arrival due now is exactly the mistake this list must not invite.
   inside: (v) => v.status === 'checked_in',
   pending: (v) => v.status === 'pending_approval',
-  walkinApproved: (v) => v.status === 'walkin_approved',
+  // Every walk-in the host cleared — waiting at the gate AND already inside.
+  //
+  // This was `status === 'walkin_approved'`, which stopped listing anything the
+  // moment migration 080 made the approver's click admit the visitor outright:
+  // the row jumps `pending_approval -> checked_in` and never rests in the status
+  // this lane was keyed on. The rule is now the clearance, not the holding
+  // state — see `isApprovedWalkIn`, shared with the guard tile and the HOD tile
+  // that ask the same question.
+  walkinApproved: isApprovedWalkIn,
 };
 
 /** The rows behind a segment, most recent activity first. */

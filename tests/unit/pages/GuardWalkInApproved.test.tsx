@@ -58,9 +58,9 @@ function openAndFillCard(value = 'C-104') {
 }
 
 describe('GuardWalkInApproved', () => {
-  it('renders the "Approved, waiting to enter" heading and the count', () => {
+  it('renders the "Approved walk-ins" heading and the count', () => {
     render(<GuardWalkInApproved {...baseProps({ approved: [visit(), visit({ id: 'v2' })] })} />);
-    expect(screen.getByText('Approved, waiting to enter')).toBeInTheDocument();
+    expect(screen.getByText('Approved walk-ins')).toBeInTheDocument();
     expect(screen.getByText('2')).toBeInTheDocument();
   });
 
@@ -79,7 +79,7 @@ describe('GuardWalkInApproved', () => {
 
   it('shows the empty state when there are no approved walk-ins and loading is false', () => {
     render(<GuardWalkInApproved {...baseProps({ approved: [], loading: false })} />);
-    expect(screen.getByText('No approved walk-ins waiting.')).toBeInTheDocument();
+    expect(screen.getByText('No walk-ins have been approved.')).toBeInTheDocument();
   });
 
   it('clicking Check In opens the photo step', () => {

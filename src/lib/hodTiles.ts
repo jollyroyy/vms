@@ -32,6 +32,7 @@
 import type { Visit } from '../types/index';
 import { COLUMN, type DashboardPanelSpec } from './dashboardColumns';
 import { ICON_CALENDAR, ICON_CLOCK, ICON_PEOPLE, ICON_WALKING, ICON_X_CIRCLE } from './tileIcons';
+import { isApprovedWalkIn, isGivenPreApproval } from './visitOrigin';
 
 export type HodTileKey =
   | 'inside' | 'preApprovedToday' | 'walkInApprovedToday' | 'pending' | 'rejectedToday';
@@ -78,18 +79,31 @@ export const HOD_PANEL_SPEC: Record<HodTileKey, DashboardPanelSpec> = {
   // Passes this HOD raised in advance. Every row has a slot — that is what
   // makes it a pre-approval — so SCHEDULED is the subject, and no Type column:
   // the tile's own label has already said what these are.
+  //
+  // CHECKED IN earns its place now that the lane keeps a row after the visitor
+  // arrives: it is what separates a pass still outstanding from one that has
+  // been used, and an em dash in that column says "issued, nobody has come
+  // through it yet" — the single most useful thing this list can tell an HOD.
   preApprovedToday: {
     heading: 'Pre-Approvals Given',
     empty: 'No pre-approval has been issued today.',
-    columns: [COLUMN.name, COLUMN.purpose, COLUMN.host, COLUMN.scheduled, COLUMN.status],
+    columns: [
+      COLUMN.name, COLUMN.purpose, COLUMN.host,
+      COLUMN.scheduled, COLUMN.checkedIn, COLUMN.status,
+    ],
   },
   // Walk-ins this HOD cleared. They have no slot, so REQUESTED — when the gate
-  // raised the request — is the only time on the row, exactly as on the guard's
-  // Approved Walk-ins panel.
+  // raised the request — is the time they are read against, exactly as on the
+  // guard's Approved Walk-ins panel. CHECKED IN for the same reason as above:
+  // since migration 080 most rows here were admitted in the HOD's own click, and
+  // the ones that were not are precisely the ones worth spotting.
   walkInApprovedToday: {
     heading: 'Walk-ins Approved',
     empty: 'No walk-in has been approved today.',
-    columns: [COLUMN.name, COLUMN.purpose, COLUMN.host, COLUMN.requested, COLUMN.status],
+    columns: [
+      COLUMN.name, COLUMN.purpose, COLUMN.host,
+      COLUMN.requested, COLUMN.checkedIn, COLUMN.status,
+    ],
   },
   // A walk-in with nobody's decision on it. It has no slot and no entry — only
   // the moment it was raised at reception, which is what the visitor standing
@@ -129,14 +143,20 @@ export type HodTileSources = {
 export function hodTileVisits({ day, onSite, walkIns }: HodTileSources): Record<HodTileKey, Visit[]> {
   return {
     inside: onSite,
-    // Split on the STATUS, not on `visitOrigin`: at this point in a visit's
-    // life the status still proves which desk it came through (`approved` can
-    // only be a pre-approval, `walkin_approved` can only be a walk-in), so the
-    // two lanes are exact rather than inferred. `visitOrigin` is for the rows
-    // that have converged on `checked_in`, which is why the Type column exists
-    // on the On Site lane and not here.
-    preApprovedToday: day.filter((v) => v.status === 'approved'),
-    walkInApprovedToday: day.filter((v) => v.status === 'walkin_approved'),
+    // These two count CLEARANCES GIVEN, and a clearance is not undone by the
+    // visitor turning up. Both lanes used to be keyed on the status alone
+    // (`approved` for one, `walkin_approved` for the other) on the reasoning
+    // that the status still proved the desk at that point in a visit's life.
+    // Migration 080 ended that: the approver's click now admits the walk-in
+    // outright, so the row goes `pending_approval -> checked_in` and the
+    // walk-in lane emptied itself the instant the shortcut shipped — an HOD who
+    // had just approved somebody found their own decision counted nowhere.
+    //
+    // Keyed on the clearance instead, via `visitOrigin`, both lanes keep the
+    // row after entry. That is also why they now carry a Type column's worth of
+    // ambiguity and rely on the inference — see the caveat in lib/visitOrigin.ts.
+    preApprovedToday: day.filter(isGivenPreApproval),
+    walkInApprovedToday: day.filter(isApprovedWalkIn),
     pending: walkIns,
     rejectedToday: day.filter((v) => v.status === 'rejected'),
   };

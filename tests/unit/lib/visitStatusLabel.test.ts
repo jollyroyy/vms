@@ -8,10 +8,16 @@ describe('visitStatusLabel', () => {
     expect(result).toBe('Pre-approved');
   });
 
-  it('returns "Walk-in approved by [name] ([role])" for walkin_approved with actor', () => {
-    const actor: VisitActor = { name: 'Jane Doe', role: 'hod' };
+  // WHO cleared a visitor is a column of its own now (lib/visitApprover.ts), so
+  // the status must NOT fold the name in as well. Folding it here meant every
+  // surface that printed a status inherited the approver whether it wanted them
+  // or not — and the HOD's own register, where every row is that HOD's decision,
+  // wanted them least. The name is still available; it is just asked for
+  // separately.
+  it('does NOT name the approver for walkin_approved, even with an actor', () => {
+    const actor: VisitActor = { name: 'Jane Doe', role: 'hod', department: 'Facilities' };
     const result = visitStatusLabel({ status: 'walkin_approved', actor });
-    expect(result).toBe('Walk-in approved by Jane Doe (Person to Meet)');
+    expect(result).toBe('Walk-in approved');
   });
 
   it('returns "Walk-in approved" for walkin_approved without actor', () => {
@@ -25,7 +31,7 @@ describe('visitStatusLabel', () => {
   });
 
   it('returns "Rejected by [name] ([role])" for rejected with actor', () => {
-    const actor: VisitActor = { name: 'John Smith', role: 'guard' };
+    const actor: VisitActor = { name: 'John Smith', role: 'guard', department: null };
     const result = visitStatusLabel({ status: 'rejected', actor });
     expect(result).toBe('Rejected by John Smith (Guard)');
   });
@@ -66,38 +72,38 @@ describe('visitStatusLabel', () => {
   });
 
   it('maps guard role to "Guard"', () => {
-    const actor: VisitActor = { name: 'Alice', role: 'guard' };
+    const actor: VisitActor = { name: 'Alice', role: 'guard', department: null };
     const result = visitStatusLabel({ status: 'rejected', actor });
     expect(result).toContain('(Guard)');
   });
 
   it('maps hod role to "Person to Meet"', () => {
-    const actor: VisitActor = { name: 'Bob', role: 'hod' };
-    const result = visitStatusLabel({ status: 'walkin_approved', actor });
+    const actor: VisitActor = { name: 'Bob', role: 'hod', department: 'Facilities' };
+    const result = visitStatusLabel({ status: 'rejected', actor });
     expect(result).toContain('(Person to Meet)');
   });
 
   it('maps admin role to "Admin"', () => {
-    const actor: VisitActor = { name: 'Charlie', role: 'admin' };
+    const actor: VisitActor = { name: 'Charlie', role: 'admin', department: null };
     const result = visitStatusLabel({ status: 'rejected', actor });
     expect(result).toContain('(Admin)');
   });
 
   it('maps super_admin role to "Admin"', () => {
-    const actor: VisitActor = { name: 'Dave', role: 'super_admin' };
-    const result = visitStatusLabel({ status: 'walkin_approved', actor });
+    const actor: VisitActor = { name: 'Dave', role: 'super_admin', department: null };
+    const result = visitStatusLabel({ status: 'rejected', actor });
     expect(result).toContain('(Admin)');
   });
 
   it('maps staff role to "Staff"', () => {
-    const actor: VisitActor = { name: 'Eve', role: 'staff' };
+    const actor: VisitActor = { name: 'Eve', role: 'staff', department: null };
     const result = visitStatusLabel({ status: 'rejected', actor });
     expect(result).toContain('(Staff)');
   });
 
   it('falls back to raw role string for unrecognized role', () => {
-    const actor: VisitActor = { name: 'Frank', role: 'delegate' };
-    const result = visitStatusLabel({ status: 'walkin_approved', actor });
-    expect(result).toBe('Walk-in approved by Frank (delegate)');
+    const actor: VisitActor = { name: 'Frank', role: 'delegate', department: null };
+    const result = visitStatusLabel({ status: 'rejected', actor });
+    expect(result).toBe('Rejected by Frank (delegate)');
   });
 });

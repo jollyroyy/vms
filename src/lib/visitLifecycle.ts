@@ -21,7 +21,13 @@ export type Visit = {
 };
 
 const TRANSITIONS: Record<VisitStatus, VisitStatus[]> = {
-  pending_approval: ['approved', 'walkin_approved', 'rejected'],
+  // `checked_in` direct from `pending_approval` is migration 080's shortcut: the
+  // approver admits the walk-in in the same act as the decision, because since
+  // 2026-08-16 the registration form already carries the ID scan, the photo and
+  // the card number that the old gate step existed to collect. Mirrors
+  // `enforce_visit_update_rules` — this map and that trigger must not disagree
+  // about what the database will accept.
+  pending_approval: ['approved', 'walkin_approved', 'checked_in', 'rejected'],
   approved:         ['checked_in', 'cancelled', 'no_show'],
   walkin_approved:  ['checked_in'],
   checked_in:       ['checked_out'],
