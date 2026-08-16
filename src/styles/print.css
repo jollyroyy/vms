@@ -100,25 +100,29 @@
   /* Date cells stack date over time already — keep the pair together. */
   .register-table td .block { display: block; }
 
-  /* 16 columns, summing to 100% of the printable width. Order must track the
-     header array in Reports.tsx: # Ref Photo Name Vendor Phone Dept Host
-     ID-Proof Purpose Carrying Remarks Approved Check-in Check-out Status. */
+  /* 17 columns, summing to 100% of the printable width. Order must track the
+     header array in Reports.tsx: # Ref Photo Name Vendor Phone Type-of-Visitor
+     Dept Host ID-Proof Purpose Carrying Remarks Approved Check-in Check-out
+     Status. "Type of Visitor" joined on 2026-08-16 (client instruction) and
+     its 5% came off the widest text columns, not off a timestamp — a clipped
+     date is indistinguishable from a complete one. */
   .register-table th:nth-child(1),  .register-table td:nth-child(1)  { width: 2%; }
   .register-table th:nth-child(2),  .register-table td:nth-child(2)  { width: 5.5%; }
   .register-table th:nth-child(3),  .register-table td:nth-child(3)  { width: 4%; }
-  .register-table th:nth-child(4),  .register-table td:nth-child(4)  { width: 8.5%; }
-  .register-table th:nth-child(5),  .register-table td:nth-child(5)  { width: 7%; }
+  .register-table th:nth-child(4),  .register-table td:nth-child(4)  { width: 8%; }
+  .register-table th:nth-child(5),  .register-table td:nth-child(5)  { width: 6%; }
   .register-table th:nth-child(6),  .register-table td:nth-child(6)  { width: 6.5%; }
-  .register-table th:nth-child(7),  .register-table td:nth-child(7)  { width: 7%; }
-  .register-table th:nth-child(8),  .register-table td:nth-child(8)  { width: 7%; }
-  .register-table th:nth-child(9),  .register-table td:nth-child(9)  { width: 6.5%; }
-  .register-table th:nth-child(10), .register-table td:nth-child(10) { width: 7%; }
-  .register-table th:nth-child(11), .register-table td:nth-child(11) { width: 4%; }
-  .register-table th:nth-child(12), .register-table td:nth-child(12) { width: 8%; }
-  .register-table th:nth-child(13), .register-table td:nth-child(13) { width: 7%; }
+  .register-table th:nth-child(7),  .register-table td:nth-child(7)  { width: 5%; }
+  .register-table th:nth-child(8),  .register-table td:nth-child(8)  { width: 6%; }
+  .register-table th:nth-child(9),  .register-table td:nth-child(9)  { width: 7%; }
+  .register-table th:nth-child(10), .register-table td:nth-child(10) { width: 6.5%; }
+  .register-table th:nth-child(11), .register-table td:nth-child(11) { width: 6%; }
+  .register-table th:nth-child(12), .register-table td:nth-child(12) { width: 4%; }
+  .register-table th:nth-child(13), .register-table td:nth-child(13) { width: 6.5%; }
   .register-table th:nth-child(14), .register-table td:nth-child(14) { width: 7%; }
   .register-table th:nth-child(15), .register-table td:nth-child(15) { width: 7%; }
-  .register-table th:nth-child(16), .register-table td:nth-child(16) { width: 6%; }
+  .register-table th:nth-child(16), .register-table td:nth-child(16) { width: 7%; }
+  .register-table th:nth-child(17), .register-table td:nth-child(17) { width: 6%; }
 
   /* Photo: 40px on screen is too tall for a 3pt-padded print row. */
   .register-table td img,

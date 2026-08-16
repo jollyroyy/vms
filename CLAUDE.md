@@ -1050,15 +1050,44 @@
     `HOD_PANEL_SPEC.pending`, so the desk and the tile cannot be named two things.
   - The board is five wide (`grid-cols-2 lg:grid-cols-3 xl:grid-cols-5`), the same
     breakpoints as the guard board's five-wide secondary row.
+- **The presence chip says "Checked in", not "Still inside"** (client instruction,
+  2026-08-16). `presenceChip` in `lib/visitGateChips.ts` is the Status cell on the guard
+  dashboard's panel *and* on the Entry & Exit table, so its wording is read at the exact
+  moment a guard has pressed a tile — and pressing **Checked In** opened onto rows whose
+  Status said anything but that. A **`walkin_approved`** row reads "Checked in" as well,
+  because since migration 080 the approver's click IS the admission, which is why
+  `TILE_FILTER.checked` counts those rows: a row counted as admitted must not report
+  itself as something else. **"Checked out" survives unchanged** — it is the whole basis
+  of the Entry & Exit tab's two lanes. Known seam: `/visitors/approved` still offers a
+  **Check In** button on a `walkin_approved` row (the pre-080 rows resting there), so that
+  desk can act on a visitor the board already calls checked in. Guarded by
+  `tests/unit/lib/visitGateChips.test.ts`.
 - **WHO WALKED IN AND WHO WAS BOOKED IS SAID ON EVERY MIXED LIST** (client instruction,
   2026-08-16: "always everybody should be able to see who is walk-in and who is
-  pre-approved"). `COLUMN.origin` (header **Type**) resolves through
+  pre-approved"). `COLUMN.origin` (header **Type of Visitor** — the full words, on
+  every surface, since the client asked for the column by that name) resolves through
   `lib/visitOrigin.ts`, so no screen can disagree with another about a visitor's origin.
-  - It goes **only on a lane that can hold both kinds**: the guard's `checked`, `inside`
-    and `all` panels, and the HOD's `inside` and `rejectedToday`. Not on `pending` or
-    `walkinApproved` (every row is a walk-in by definition) nor on the two new HOD
-    clearance lanes. `dashboardColumns.test.ts` and `HodKpiBoard.test.tsx` assert both
-    halves of that.
+  - It goes **only on a lane that can hold both kinds**, which after the 2026-08-16
+    "maintain the same everywhere" instruction is every lane except the four whose
+    membership rule fixes the answer. The guard's `checked`, `inside`, `all`,
+    `overstaying`, `declinedByHost` and `refusedByGuard` panels carry it; the HOD's
+    `inside` and `rejectedToday` do. **Not** on `pending` or `walkinApproved` (every row
+    is a walk-in by definition), not on `expected` (`approved` with no entry stamp can
+    only be a pre-approval) and not on the two HOD clearance lanes. A column printing one
+    word on every line says nothing, and the tile's own label has already said it.
+    `dashboardColumns.test.ts` and `HodKpiBoard.test.tsx` assert both halves.
+  - **The admin register carries it on screen, not only in the CSV.** `toReportRow` has
+    had the key since the column was added; `Reports.tsx`'s table did not, so the one
+    surface an admin actually reads was the one that could not answer it without
+    exporting. The register is now **seventeen** columns and `styles/print.css` pins their
+    widths by `nth-child` — the header array and that block must always be edited
+    together, or the printed copy silently mis-columns.
+  - **The Entry & Exit table carries it too** (`LiveQueueTable`), between Name and
+    Company. That tab lists everyone the gate let through today, so both kinds are on it
+    by definition, and by then every route has converged on `checked_in` — the Status chip
+    beside it can no longer say which desk they came through.
+  - **`WhosInsideVisitorCard`** adds it as a `CardField`, gated on `statusProvesOrigin`
+    for the same non-duplication reason as the grid card below.
   - **`VisitorGridCard` carries the same answer as an outline chip**, and renders it
     only when `statusProvesOrigin(v.status)` is false. `STATUS_STYLES.approved` reads
     "Pre-approved" in so many words, so on an unconverged row the chip would be the same

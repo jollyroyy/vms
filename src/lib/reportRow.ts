@@ -41,7 +41,7 @@ export function toReportRow(
     // Booked ahead or turned up unannounced. In the CSV unconditionally: a
     // register that cannot be filtered by arrival route cannot answer the one
     // question a month of visits is usually opened with.
-    'Type': visitOriginLabel(visitOrigin(visit)),
+    'Type of Visitor': visitOriginLabel(visitOrigin(visit)),
     'Department': visit.department?.name ?? '',
     'Person to Meet': visit.host?.full_name ?? '',
     'ID Proof': maskIdProof(visit.visitor?.id_type, visit.visitor?.id_last4),

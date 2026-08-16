@@ -109,8 +109,10 @@ describe('Entry & Exit tab (/guard/inside-now) — widened to entry + exit', () 
     renderTab();
     const row = screen.getByText('Ishaan Rao').closest('tr') as HTMLElement;
     const cells = within(row).getAllByRole('cell');
-    // Out is the 6th column (Name, Company, Purpose, Host, In, Out, Status, action)
-    expect(cells[5].textContent).toBe('—');
+    // Out is the 7th column: Name, Type of Visitor, Company, Purpose, Host,
+    // In, Out, Status, action. "Type of Visitor" joined on 2026-08-16 (client
+    // instruction) — both origins are on this tab by definition.
+    expect(cells[6].textContent).toBe('—');
   });
 
   it('offers a Check Out button on a checked-in row (default Checked In lane)', () => {

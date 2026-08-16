@@ -49,9 +49,17 @@ export function isLateArrival(v: ReportVisit): boolean {
 /** Where this visit stands at the gate, in one word. */
 function presenceChip(v: ReportVisit): GateChip {
   if (v.status === 'checked_out') return { key: 'presence', label: 'Checked out', tone: 'left' };
-  if (v.status === 'checked_in') return { key: 'presence', label: 'Still inside', tone: 'inside' };
+  // "Checked in", not "Still inside" (client instruction, 2026-08-16). The
+  // guard's Checked In tile opens onto rows whose Status column read anything
+  // but the word the tile was pressed for, so the board contradicted itself at
+  // the one altitude where a guard is scanning rather than reading.
+  if (v.status === 'checked_in') return { key: 'presence', label: 'Checked in', tone: 'inside' };
   if (v.status === 'pending_approval') return { key: 'presence', label: 'Awaiting approval', tone: 'warn' };
-  if (v.status === 'walkin_approved') return { key: 'presence', label: 'Approved walk-in', tone: 'neutral' };
+  // A host-cleared walk-in reads the same, because since migration 080 the
+  // approver's click IS the admission — this is why `TILE_FILTER.checked`
+  // counts these rows, and a row counted as admitted must not say otherwise.
+  // Live rows resting here are pre-080 clearances the desk never stamped.
+  if (v.status === 'walkin_approved') return { key: 'presence', label: 'Checked in', tone: 'inside' };
   if (v.status === 'approved') return { key: 'presence', label: 'Pre-registered', tone: 'neutral' };
   if (v.status === 'rejected') return { key: 'presence', label: 'Refused', tone: 'left' };
   return { key: 'presence', label: 'Not arrived', tone: 'neutral' };

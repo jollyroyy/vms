@@ -4,6 +4,7 @@ import { useLiveElapsed } from '../../lib/useLiveElapsed';
 import { approvalTimestamp } from '../../lib/visitApproval';
 import type { ReportVisit } from '../../lib/reportRow';
 import { STATUS_STYLES } from '../../lib/statusStyles';
+import { visitOrigin, visitOriginLabel, statusProvesOrigin } from '../../lib/visitOrigin';
 import CardField from '../../components/CardField';
 import { CRISP_CARD_INTERACTIVE, CARD_FOOTER_BAND } from '../../lib/cardStyles';
 
@@ -86,6 +87,15 @@ export default function WhosInsideVisitorCard({ visit: v, index: idx, onClick }:
           phone at the gate. */}
       <div className="px-4 pb-3 grid grid-cols-1 sm:grid-cols-2 gap-x-3 gap-y-2.5 border-t border-surface-200/60 dark:border-white/[0.06] pt-3">
         <CardField label="Vendor" value={v.visitor?.vendor_name} />
+        {/* Booked ahead or turned up unannounced (client instruction,
+            2026-08-16). Rendered only once the STATUS has stopped saying it:
+            STATUS_STYLES.approved already reads "Pre-approved", so on an
+            unconverged row this would be the same fact twice on one card. It is
+            the converged statuses — checked_in and after — where the badge goes
+            quiet, which is the whole population of this page. */}
+        {!statusProvesOrigin(v.status) && (
+          <CardField label="Type of Visitor" value={visitOriginLabel(visitOrigin(v))} />
+        )}
         <CardField label="Person to Meet" value={v.host?.full_name} />
         <CardField label="Department" value={v.department?.name} />
         <CardField label="Ref" value={v.ref_number} className="font-mono" />

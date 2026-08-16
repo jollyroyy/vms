@@ -1,6 +1,7 @@
 import React from 'react';
 
 import type { ReportVisit } from '../../lib/reportRow';
+import { visitOrigin, visitOriginLabel } from '../../lib/visitOrigin';
 import GateChips from '../../components/GateChips';
 
 // The Entry & Exit table. Row click or the Verify button selects the visit and
@@ -56,6 +57,7 @@ export default function LiveQueueTable({
         <thead>
           <tr className="text-left text-[11px] uppercase tracking-wider text-navy-500 dark:text-navy-400 bg-surface-100/50 dark:bg-white/[0.03]">
             <th className="px-4 py-3 font-semibold">Name</th>
+            <th className="px-4 py-3 font-semibold">Type of Visitor</th>
             <th className="px-4 py-3 font-semibold">Company</th>
             <th className="px-4 py-3 font-semibold">Purpose</th>
             <th className="px-4 py-3 font-semibold">Host</th>
@@ -68,14 +70,14 @@ export default function LiveQueueTable({
         <tbody>
           {loading && (
             <tr>
-              <td colSpan={8} className="px-4 py-10 text-center text-[#9aa3af] dark:text-[#b7c0cb]">
+              <td colSpan={9} className="px-4 py-10 text-center text-[#9aa3af] dark:text-[#b7c0cb]">
                 Loading queue…
               </td>
             </tr>
           )}
           {!loading && queue.length === 0 && (
             <tr>
-              <td colSpan={8} className="px-4 py-10 text-center text-[#9aa3af] dark:text-[#b7c0cb]">
+              <td colSpan={9} className="px-4 py-10 text-center text-[#9aa3af] dark:text-[#b7c0cb]">
                 {emptyMessage ?? 'Nobody is on site, and nobody has checked out today.'}
               </td>
             </tr>
@@ -102,6 +104,14 @@ export default function LiveQueueTable({
                       <span className="text-navy-950 dark:text-white font-medium">{v.visitor?.full_name ?? 'Unknown'}</span>
                     </span>
                   </td>
+                  {/* Booked ahead or turned up unannounced (client instruction,
+                      2026-08-16). Both kinds are on this tab by definition — it
+                      lists everyone the gate let through today — and by then
+                      every route has converged on `checked_in`, so the Status
+                      chip beside it can no longer say which desk they came
+                      through. lib/visitOrigin.ts, the same answer the dashboard
+                      panel and the admin register print. */}
+                  <td className="px-4 py-3 text-[#9aa3af] dark:text-[#b7c0cb] font-medium whitespace-nowrap">{visitOriginLabel(visitOrigin(v))}</td>
                   {/* Company — soft silver, legible but secondary to the name */}
                   <td className="px-4 py-3 text-[#9aa3af] dark:text-[#b7c0cb]">{v.visitor?.vendor_name ?? '—'}</td>
                   {/* Purpose of meeting — blue, reads as context next to the host */}

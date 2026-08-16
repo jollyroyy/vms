@@ -43,14 +43,16 @@ function makeVisit(overrides: Partial<Visit> = {}): Visit {
 
 describe('reportRow', () => {
   describe('toReportRow', () => {
-    // 16 by default. "Type" joined on 2026-08-16 (client instruction: everybody
-    // should be able to see who is a walk-in and who was pre-approved) and sits
-    // beside the visitor's own details, not among the timestamps.
+    // 16 by default. "Type of Visitor" joined on 2026-08-16 (client
+    // instruction: everybody should be able to see who is a walk-in and who was
+    // pre-approved) and sits beside the visitor's own details, not among the
+    // timestamps. It is headed in full, the same words the on-screen register,
+    // the guard board and the HOD board use.
     it('includes exactly 16 keys in the correct order', () => {
       const row = toReportRow(makeVisit(), 0);
       const keys = Object.keys(row);
       expect(keys).toEqual([
-        '#', 'Ref', 'Visitor Name', 'Vendor', 'Phone', 'Type', 'Department', 'Person to Meet', 'ID Proof',
+        '#', 'Ref', 'Visitor Name', 'Vendor', 'Phone', 'Type of Visitor', 'Department', 'Person to Meet', 'ID Proof',
         'Purpose', 'Approved At', 'Checked In At', 'Checked Out At',
         'Carrying', 'Carrying Remarks', 'Status',
       ]);

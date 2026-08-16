@@ -74,18 +74,20 @@ describe('PANEL_SPEC — visit type column', () => {
   const originColumn = (key: keyof typeof PANEL_SPEC) =>
     PANEL_SPEC[key].columns.find((c) => c.key === 'origin');
 
-  it.each(['checked', 'inside', 'all'] as const)(
+  it.each(['checked', 'inside', 'all', 'overstaying', 'declinedByHost', 'refusedByGuard'] as const)(
     'the %s panel says whether each row was booked ahead or walked in',
     (key) => {
-      expect(originColumn(key)?.header).toBe('Type');
+      expect(originColumn(key)?.header).toBe('Type of Visitor');
     },
   );
 
-  // Every row in these two is a walk-in by definition — `pending_approval` and
-  // `walkin_approved` are only ever reached from the gate's register — so the
-  // column would print one word on every line, and the heading has said it.
-  it.each(['pending', 'walkinApproved'] as const)(
-    'the %s panel does not carry one — its whole lane is walk-ins',
+  // Every row in these lanes is fixed by the lane's own membership rule —
+  // `pending_approval` and `walkin_approved` are only ever reached from the
+  // gate's register, and `expected` is `approved` with no entry stamp, which
+  // only a pre-approval can be. The column would print one word on every line,
+  // and the heading has already said it.
+  it.each(['pending', 'walkinApproved', 'expected'] as const)(
+    'the %s panel does not carry one — its whole lane is one kind',
     (key) => {
       expect(originColumn(key)).toBeUndefined();
     },

@@ -9,6 +9,7 @@ import { attachVisitActors } from '../../lib/visitActors';
 import { visitStatusLabel } from '../../lib/visitStatusLabel';
 import { maskPhone, maskIdProof } from '../../lib/pii';
 import { approvalTimestamp } from '../../lib/visitApproval';
+import { visitOrigin, visitOriginLabel } from '../../lib/visitOrigin';
 import { computeDateRange, type RangePreset } from '../../lib/reportsDateRange';
 import type { ReportVisit } from '../../lib/reportRow';
 import { ALL_DEPTS, deptOptions, filterVisitsByDept } from '../../lib/reportsDeptFilter';
@@ -172,17 +173,18 @@ export default function ReportsPage(): React.ReactElement {
              instruction, 2026-08-16): the same glass panel, the same uppercase
              11px header band, the same hairline row rule and brand-tinted hover
              as components/DashboardVisitorTable, so a report and the board it
-             was read off do not look like two products. The COLUMNS are
-             untouched — all sixteen, in order — because styles/print.css pins
-             the printed register's widths by `nth-child`, and the two must stay
-             in step. */
+             was read off do not look like two products. SEVENTEEN columns
+             since 2026-08-16 — "Type of Visitor" joined them on client
+             instruction — and styles/print.css pins the printed register's
+             widths by `nth-child`, so the header array below and that block
+             must be edited together, always. */
           <div className="rounded-2xl bg-surface-100/60 dark:bg-white/[0.03] border border-surface-200/60 dark:border-white/[0.07] p-5 shadow-glow-sm print:p-0 print:border-0 print:bg-transparent print:shadow-none">
             <div className="rounded-xl border border-surface-200/60 dark:border-white/[0.08] print:border-0">
               <div className="overflow-x-auto print:overflow-visible">
                 <table className="register-table w-full text-sm tabular-nums">
                   <thead>
                     <tr className="text-left text-[11px] uppercase tracking-wider text-navy-500 bg-surface-100/50 dark:bg-white/[0.03]">
-                      {['#', 'Ref', 'Photo', 'Visitor Name', 'Vendor', 'Phone', 'Dept', 'Person to Meet', 'ID Proof', 'Purpose', 'Carrying', 'Carrying Remarks', 'Approved', 'Check-in', 'Check-out', 'Status'].map((h) => (
+                      {['#', 'Ref', 'Photo', 'Visitor Name', 'Vendor', 'Phone', 'Type of Visitor', 'Dept', 'Person to Meet', 'ID Proof', 'Purpose', 'Carrying', 'Carrying Remarks', 'Approved', 'Check-in', 'Check-out', 'Status'].map((h) => (
                         <th key={h} className="px-4 py-3 font-semibold whitespace-nowrap">{h}</th>
                       ))}
                     </tr>
@@ -206,6 +208,14 @@ export default function ReportsPage(): React.ReactElement {
                         <td className="px-4 py-3 font-medium text-navy-950 dark:text-white">{v.visitor?.full_name}</td>
                         <td className="px-4 py-3 text-[#9aa3af] dark:text-[#b7c0cb] font-medium">{v.visitor?.vendor_name}</td>
                         <td className="px-4 py-3 text-[#9aa3af] dark:text-[#b7c0cb] font-mono text-xs">{maskPhone(v.visitor?.phone)}</td>
+                        {/* Booked ahead or turned up unannounced (client
+                            instruction, 2026-08-16). The CSV has carried it
+                            since the column was added; the on-screen register
+                            did not, so the admin's own view was the one surface
+                            that could not answer it without exporting. Resolved
+                            through lib/visitOrigin.ts, the same inference the
+                            guard's board and the HOD's board make. */}
+                        <td className="px-4 py-3 text-[#9aa3af] dark:text-[#b7c0cb] font-medium whitespace-nowrap">{visitOriginLabel(visitOrigin(v))}</td>
                         <td className="px-4 py-3 text-[#9aa3af] dark:text-[#b7c0cb] font-medium">{v.department?.name}</td>
                         <td className="px-4 py-3 text-[#9aa3af] dark:text-[#b7c0cb] font-medium">{v.host?.full_name}</td>
                         <td className="px-4 py-3 text-[#9aa3af] dark:text-[#b7c0cb] font-mono text-xs whitespace-nowrap">{maskIdProof(v.visitor?.id_type, v.visitor?.id_last4)}</td>
@@ -225,7 +235,7 @@ export default function ReportsPage(): React.ReactElement {
                       </tr>
                     ))}
                     {shown.length === 0 && (
-                      <tr><td colSpan={16} className="px-4 py-10">
+                      <tr><td colSpan={17} className="px-4 py-10">
                       <div className="revamp-empty">
                         <div className="revamp-empty-medallion">
                           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.7}><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25H12" /></svg>

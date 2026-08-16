@@ -125,13 +125,15 @@ const ID_PROOF: DashboardColumn = {
 // the same inference the guard's card makes, so a visitor cannot read as a
 // walk-in on one screen and a pre-approval on another.
 //
-// It goes ONLY on a lane whose rows can be of both kinds. On the pending and
-// approved-walk-in lanes every row is a walk-in by definition, and on the
-// pre-approval lane every row is a pre-approval, so the column would print one
-// value on every line — a column that says nothing, and the tile's own label
-// has already said it.
+// It is headed "Type of Visitor" in full (client instruction, 2026-08-16) and
+// goes on EVERY lane whose rows can be of both kinds — which, after that
+// instruction, is every lane except the four whose membership rule fixes the
+// answer. On the pending and approved-walk-in lanes every row is a walk-in by
+// definition, and on the expected and pre-approval lanes every row is a
+// pre-approval, so the column would print one value on every line — a column
+// that says nothing, and the tile's own label has already said it.
 const ORIGIN: DashboardColumn = {
-  key: 'origin', header: 'Type',
+  key: 'origin', header: 'Type of Visitor',
   value: (v) => visitOriginLabel(visitOrigin(v)),
 };
 
@@ -227,7 +229,7 @@ export const PANEL_SPEC: Record<GuardTileKey, DashboardPanelSpec> = {
   overstaying: {
     heading: 'Overstaying',
     empty: 'Nobody is overstaying.',
-    columns: [NAME, ID_PROOF, PURPOSE, HOST, CHECKED_IN, OVERSTAY, STATUS],
+    columns: [NAME, ORIGIN, ID_PROOF, PURPOSE, HOST, CHECKED_IN, OVERSTAY, STATUS],
   },
   all: {
     heading: 'All Visitors',
@@ -270,11 +272,11 @@ export const PANEL_SPEC: Record<GuardTileKey, DashboardPanelSpec> = {
   declinedByHost: {
     heading: 'Declined by Host',
     empty: 'No requests were declined.',
-    columns: [NAME, PURPOSE, HOST, DEPARTMENT, SCHEDULED, DECIDED_BY, REASON],
+    columns: [NAME, ORIGIN, PURPOSE, HOST, DEPARTMENT, SCHEDULED, DECIDED_BY, REASON],
   },
   refusedByGuard: {
     heading: 'Entry Refused at the Gate',
     empty: 'Nobody was refused entry.',
-    columns: [NAME, PURPOSE, HOST, DEPARTMENT, SCHEDULED, DECIDED_BY, REASON],
+    columns: [NAME, ORIGIN, PURPOSE, HOST, DEPARTMENT, SCHEDULED, DECIDED_BY, REASON],
   },
 };

@@ -94,7 +94,7 @@ describe('HOD dashboard KPI board', () => {
   it('names each visitor’s origin on the lanes that mix them', () => {
     renderBoard('inside');
     const panel = document.getElementById('hod-kpi-drill')!;
-    expect(within(panel).getByRole('columnheader', { name: 'Type' })).toBeInTheDocument();
+    expect(within(panel).getByRole('columnheader', { name: 'Type of Visitor' })).toBeInTheDocument();
     expect(within(panel).getByText('Pre-approved')).toBeInTheDocument();
     expect(within(panel).getByText('Walk-in')).toBeInTheDocument();
   });
