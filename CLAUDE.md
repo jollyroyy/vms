@@ -990,10 +990,47 @@
   went with it.
   - Consequence: the **`walkins` KPI tile went too**. With the scheduled lane gone,
     "Awaiting decision" and "Walk-ins live" were two tiles opening one identical list,
-    which is the no-duplicate-renders rule. **The four are On Site Now · Approved Today ·
-    Awaiting Your Decision · Declined Today**, and no panel carries a Department column —
+    which is the no-duplicate-renders rule. No panel carries a Department column —
     an HOD belongs to exactly one department, so it would print the same value on every
     line.
+- **The five HOD tiles are On Site Now · Pre-Approvals Given · Walk-ins Approved ·
+  Awaiting Walk-in Approval · Declined Today** (client instruction, 2026-08-16).
+  - **The two clearances are two tiles.** "Approved Today" carried `approved` and
+    `walkin_approved` in one number, and those are two different acts by two different
+    routes: a pre-approval is a pass this HOD raised in advance on `/approvals`, a
+    walk-in approval is a decision they made on a request the gate pushed at them
+    minutes ago. One tile gave one answer to both questions and neither list could be
+    opened on its own. `hodTileVisits` splits on the **status**, not on `visitOrigin` —
+    at this point in a visit's life the status still proves the desk (`approved` can
+    only be a pre-approval, `walkin_approved` only a walk-in), so the two lanes are
+    exact rather than inferred. The glyphs are the calendar and the walking figure from
+    `lib/tileIcons.ts`, since the hue is shared and must never be the only carrier.
+    Their panels carry **no Type column** — the tile's own label has said it, and a
+    column printing one word on every line says nothing.
+  - **"Awaiting Walk-in Approval"**, not "Awaiting Your Decision" — the same edit the
+    guard's pending lane took: `pending_approval` is only ever reached from the gate's
+    walk-in register, so the old label left an HOD wondering whether a booked visitor
+    could be sitting in it. `HodWalkInDesk` reads its heading from
+    `HOD_PANEL_SPEC.pending`, so the desk and the tile cannot be named two things.
+  - The board is five wide (`grid-cols-2 lg:grid-cols-3 xl:grid-cols-5`), the same
+    breakpoints as the guard board's five-wide secondary row.
+- **WHO WALKED IN AND WHO WAS BOOKED IS SAID ON EVERY MIXED LIST** (client instruction,
+  2026-08-16: "always everybody should be able to see who is walk-in and who is
+  pre-approved"). `COLUMN.origin` (header **Type**) resolves through
+  `lib/visitOrigin.ts`, so no screen can disagree with another about a visitor's origin.
+  - It goes **only on a lane that can hold both kinds**: the guard's `checked`, `inside`
+    and `all` panels, and the HOD's `inside` and `rejectedToday`. Not on `pending` or
+    `walkinApproved` (every row is a walk-in by definition) nor on the two new HOD
+    clearance lanes. `dashboardColumns.test.ts` and `HodKpiBoard.test.tsx` assert both
+    halves of that.
+  - **`VisitorGridCard` carries the same answer as an outline chip**, and renders it
+    only when `statusProvesOrigin(v.status)` is false. `STATUS_STYLES.approved` reads
+    "Pre-approved" in so many words, so on an unconverged row the chip would be the same
+    fact twice on one card. It is exactly the converged statuses — `checked_in` and
+    everything after — where the badge stops saying, which is why the card needed this
+    at all. The chip is an **outline**, never the filled status pill's shape: one says
+    what kind of visit it is, the other says where the visit has got to.
+    `VisitorStackList.test.tsx` guards both the presence and the non-duplication.
 - **The HOD's landing page is the DASHBOARD, and every KPI on it drills down**
   (client instruction, 2026-08-16). The nav item reads **Dashboard**, not "Overview" —
   the route stays `/overview`, which is what the bookmarks and every `?tab=` link hold —
@@ -1004,8 +1041,8 @@
   looking for the three. `lib/hodTiles.ts` now owns one entry per tile and one slicer;
   `HodKpiBoard.tsx` renders `tiles[key].length` as the number and `tiles[key]` as the
   panel, so **a tile's count is the length of the list it opens** here exactly as it is
-  on the guard board. The five are On-site now · Approvals today · Awaiting decision ·
-  Walk-ins live · Declined today. The day query fetches full rows (limit 200); the
+  on the guard board. (For the five tiles themselves, see the entry above.)
+  The day query fetches full rows (limit 200); the
   pending tiles reuse the console's own unbounded desk lists, so a tile and the desk it
   belongs to can never act on different rows. **The panel is display-only** — approving
   and declining stay on the two decision desks, where the reason box and the audit row

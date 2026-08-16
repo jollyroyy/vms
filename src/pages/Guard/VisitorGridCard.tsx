@@ -2,6 +2,7 @@ import React from 'react';
 import type { Visit } from '../../types/index';
 import { STATUS_STYLES } from '../../lib/statusStyles';
 import { formatDateTime } from '../../lib/formatDate';
+import { visitOrigin, visitOriginLabel, statusProvesOrigin } from '../../lib/visitOrigin';
 
 // The Visitors card, in the reference console's card language.
 //
@@ -92,6 +93,31 @@ export default function VisitorGridCard({ visit: v, index }: Props): React.React
         </svg>
         <span className="truncate">{v.purpose ?? '—'}</span>
       </p>
+
+      {/* WHICH DESK this visitor came through (client instruction, 2026-08-16:
+          "always everybody should be able to see who is walk-in and who is
+          pre-approved"). The All Visitors list mixes the two in one grid, and
+          once a visit reaches `checked_in` both routes have converged — the
+          status badge below says "On-site" for a pre-booked visitor and for a
+          walk-in alike, so from that point on nothing on this card said how the
+          person got in.
+
+          It renders ONLY while the badge does not already carry the answer:
+          `STATUS_STYLES.approved` reads "Pre-approved" in so many words, so on
+          an unconverged row this chip would be the same fact twice on one card.
+          `statusProvesOrigin` is the test, in lib/visitOrigin.ts beside the
+          inference itself.
+
+          It is an OUTLINE chip, deliberately unlike the filled status pill, so
+          the two never read as two statuses — this says what kind of visit it
+          is, that one says where the visit has got to. */}
+      {!statusProvesOrigin(v.status) && (
+        <p className="mt-3">
+          <span className="inline-flex items-center rounded-md border border-surface-200/80 dark:border-white/[0.12] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-navy-700">
+            {visitOriginLabel(visitOrigin(v))}
+          </span>
+        </p>
+      )}
 
       <div className="mt-3 flex items-center justify-between gap-2">
         <span className="flex items-center gap-1.5 text-xs tabular-nums text-navy-700 dark:text-navy-200 min-w-0">

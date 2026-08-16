@@ -122,4 +122,31 @@ describe('VisitorStackList', () => {
     expect(screen.getAllByText(/Host: Bob Sharma/)).toHaveLength(1);
     expect(screen.queryAllByText(/Host: Finance/)).toHaveLength(0);
   });
+
+  // Client instruction, 2026-08-16: "always everybody should be able to see who
+  // is walk-in and who is pre-approved". Both routes converge on `checked_in`,
+  // so from the gate onwards the status badge reads the same for either and the
+  // card had stopped saying how the person got in.
+  it('says which desk a checked-in visitor came through', () => {
+    const first = render(
+      <VisitorStackList segment="inside" loading={false}
+        visits={[visit({ scheduled_for: '2026-08-13T04:00:00Z' })]} />,
+    );
+    expect(screen.getByText('Pre-approved')).toBeInTheDocument();
+    first.unmount();
+
+    render(<VisitorStackList segment="inside" loading={false} visits={[visit()]} />);
+    expect(screen.getByText('Walk-in')).toBeInTheDocument();
+  });
+
+  // The badge already spells it out on an unconverged row —
+  // STATUS_STYLES.approved reads "Pre-approved" — and the same value twice on
+  // one card is what the no-duplicate-renders rule exists to stop.
+  it('does not repeat an origin the status badge has already given', () => {
+    render(
+      <VisitorStackList segment="all" loading={false}
+        visits={[visit({ status: 'approved', checked_in_at: null, scheduled_for: '2026-08-13T04:00:00Z' })]} />,
+    );
+    expect(screen.getAllByText('Pre-approved')).toHaveLength(1);
+  });
 });

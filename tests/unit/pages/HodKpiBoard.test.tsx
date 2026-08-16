@@ -24,11 +24,17 @@ const visit = (over: Partial<Visit> & { id: string }): Visit => ({
   ...over,
 } as unknown as Visit);
 
-const onSite = [visit({ id: 'in-1', status: 'checked_in' })];
+const onSite = [
+  // Scheduled — a pre-approval who arrived. Its neighbour below has no slot,
+  // so the On Site lane holds one of each origin.
+  visit({ id: 'in-1', status: 'checked_in', scheduled_for: '2026-08-16T05:00:00Z' }),
+  visit({ id: 'in-2', status: 'checked_in', visitor: { full_name: 'Sunil Das', vendor_name: 'Acme' } }),
+];
 const walkIns = [visit({ id: 'w-1' }), visit({ id: 'w-2' })];
 const day = [
-  visit({ id: 'a-1', status: 'approved' }),
+  visit({ id: 'a-1', status: 'approved', scheduled_for: '2026-08-16T09:00:00Z' }),
   visit({ id: 'a-2', status: 'walkin_approved' }),
+  visit({ id: 'a-3', status: 'walkin_approved' }),
   visit({ id: 'r-1', status: 'rejected' }),
 ];
 
@@ -54,12 +60,43 @@ afterEach(cleanup);
 describe('HOD dashboard KPI board', () => {
   it('renders every tile with the length of the list it opens', () => {
     renderBoard();
-    expect(tileButton('On Site Now')).toHaveTextContent('1');
-    expect(tileButton('Approved Today')).toHaveTextContent('2');
+    expect(tileButton('On Site Now')).toHaveTextContent('2');
     expect(tileButton('Declined Today')).toHaveTextContent('1');
-    // "Awaiting Your Decision" is both the tile label and the open panel's
+    // "Awaiting Walk-in Approval" is both the tile label and the open panel's
     // heading, so it appears twice — take the tile.
-    expect(screen.getAllByText('Awaiting Your Decision')[0]!.closest('button')!).toHaveTextContent('2');
+    expect(screen.getAllByText('Awaiting Walk-in Approval')[0]!.closest('button')!).toHaveTextContent('2');
+  });
+
+  // Client instruction, 2026-08-16: the two clearances are two cards. A
+  // pre-approval is a pass this HOD raised in advance; a walk-in approval is a
+  // decision they made on a request the gate pushed at them. One tile could
+  // only ever give one answer to both questions, and neither list could be
+  // opened on its own.
+  it('counts pre-approvals given and walk-ins approved as two separate tiles', () => {
+    renderBoard();
+    expect(tileButton('Pre-Approvals Given')).toHaveTextContent('1');
+    expect(tileButton('Walk-ins Approved')).toHaveTextContent('2');
+    expect(screen.queryByText('Approved Today')).toBeNull();
+  });
+
+  // Every row in those two lanes has one origin by definition, so a Type column
+  // there would print the same word on every line — the tile's label said it.
+  it.each(['preApprovedToday', 'walkInApprovedToday', 'pending'] as const)(
+    'the %s lane carries no Type column, its label already says what it holds',
+    (key) => {
+      expect(HOD_PANEL_SPEC[key].columns.some((c) => c.key === 'origin')).toBe(false);
+    },
+  );
+
+  // The lanes that MIX the two origins must say which is which, on every row
+  // (client instruction: "always everybody should be able to see who is walk-in
+  // and who is pre-approved").
+  it('names each visitor’s origin on the lanes that mix them', () => {
+    renderBoard('inside');
+    const panel = document.getElementById('hod-kpi-drill')!;
+    expect(within(panel).getByRole('columnheader', { name: 'Type' })).toBeInTheDocument();
+    expect(within(panel).getByText('Pre-approved')).toBeInTheDocument();
+    expect(within(panel).getByText('Walk-in')).toBeInTheDocument();
   });
 
   it('every tile is a button, so no KPI is a dead number', () => {

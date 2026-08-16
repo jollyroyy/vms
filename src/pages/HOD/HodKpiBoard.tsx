@@ -44,7 +44,11 @@ export default function HodKpiBoard({
 
   return (
     <>
-      <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
+      {/* Five since the clearance tile split in two (client instruction,
+          2026-08-16). Same breakpoints as the guard board's secondary row,
+          which is also five wide, so the two boards still step at the same
+          widths. */}
+      <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
         {HOD_TILE_KEYS.map((key) => (
           <DashboardTile
             key={key}

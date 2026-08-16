@@ -65,3 +65,43 @@ describe('PANEL_SPEC — ID proof column', () => {
     expect(idColumn('all')!.value(withId(null, '123456'), now)).toBe('Not recorded');
   });
 });
+
+// Client instruction, 2026-08-16: "always everybody should be able to see who
+// is walk-in and who is pre-approved". Every route converges on `checked_in`,
+// so from the gate onwards the status says nothing about which desk a visitor
+// came through — and these are exactly the lanes that hold both kinds at once.
+describe('PANEL_SPEC — visit type column', () => {
+  const originColumn = (key: keyof typeof PANEL_SPEC) =>
+    PANEL_SPEC[key].columns.find((c) => c.key === 'origin');
+
+  it.each(['checked', 'inside', 'all'] as const)(
+    'the %s panel says whether each row was booked ahead or walked in',
+    (key) => {
+      expect(originColumn(key)?.header).toBe('Type');
+    },
+  );
+
+  // Every row in these two is a walk-in by definition — `pending_approval` and
+  // `walkin_approved` are only ever reached from the gate's register — so the
+  // column would print one word on every line, and the heading has said it.
+  it.each(['pending', 'walkinApproved'] as const)(
+    'the %s panel does not carry one — its whole lane is walk-ins',
+    (key) => {
+      expect(originColumn(key)).toBeUndefined();
+    },
+  );
+
+  it('reads the origin off the status where the status proves it', () => {
+    const column = originColumn('all')!;
+    expect(column.value({ ...base, status: 'walkin_approved' } as ReportVisit, now)).toBe('Walk-in');
+    expect(column.value({ ...base, status: 'approved' } as ReportVisit, now)).toBe('Pre-approved');
+  });
+
+  // Once a visit is `checked_in` both routes have converged and only the slot
+  // is left to infer from — the walk-in path never sets one.
+  it('falls back to the slot once the routes have converged', () => {
+    const column = originColumn('inside')!;
+    expect(column.value(base, now)).toBe('Pre-approved');
+    expect(column.value({ ...base, scheduled_for: null } as ReportVisit, now)).toBe('Walk-in');
+  });
+});

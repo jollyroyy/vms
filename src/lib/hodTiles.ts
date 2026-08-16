@@ -19,13 +19,26 @@
 // live" were two tiles opening one identical list. That is the no-duplicate-
 // renders rule: the same value twice on one screen makes the eye check whether
 // the two agree.
+//
+// THE TWO CLEARANCES ARE TWO TILES (client instruction, 2026-08-16). "Approved
+// Today" carried `approved` and `walkin_approved` in one number, and those are
+// two different acts by two different people: a pre-approval is a pass THIS HOD
+// raised in advance on /approvals, a walk-in approval is a decision they made
+// on a request the gate pushed at them minutes ago. An HOD asking "how many
+// passes did I issue today?" and "how many people did I clear at the door?" was
+// getting one answer to both questions, and neither list could be opened on its
+// own. The split is not a duplicate of the Type column below it — the column
+// tells you what a row IS, these tiles are the two lanes you can open.
 import type { Visit } from '../types/index';
 import { COLUMN, type DashboardPanelSpec } from './dashboardColumns';
-import { ICON_CHECK_CIRCLE, ICON_CLOCK, ICON_PEOPLE, ICON_X_CIRCLE } from './tileIcons';
+import { ICON_CALENDAR, ICON_CLOCK, ICON_PEOPLE, ICON_WALKING, ICON_X_CIRCLE } from './tileIcons';
 
-export type HodTileKey = 'inside' | 'approvedToday' | 'pending' | 'rejectedToday';
+export type HodTileKey =
+  | 'inside' | 'preApprovedToday' | 'walkInApprovedToday' | 'pending' | 'rejectedToday';
 
-export const HOD_TILE_KEYS: HodTileKey[] = ['inside', 'approvedToday', 'pending', 'rejectedToday'];
+export const HOD_TILE_KEYS: HodTileKey[] = [
+  'inside', 'preApprovedToday', 'walkInApprovedToday', 'pending', 'rejectedToday',
+];
 
 export type HodTileMeta = {
   /** SVG path, from the shared glyph set. */
@@ -34,9 +47,13 @@ export type HodTileMeta = {
   ring: string;
 };
 
+// The glyph is what tells the two clearance tiles apart — a calendar for the
+// pass booked in advance, a walking figure for the person who turned up. The
+// hue is never the only carrier: each tile's label says which lane it is.
 export const HOD_TILE_META: Record<HodTileKey, HodTileMeta> = {
-  inside: { icon: ICON_PEOPLE, ring: 'border-brand-400/30 text-brand-400' },
-  approvedToday: { icon: ICON_CHECK_CIRCLE, ring: 'border-success-500/40 text-success-500' },
+  inside: { icon: ICON_PEOPLE, ring: 'border-success-500/40 text-success-500' },
+  preApprovedToday: { icon: ICON_CALENDAR, ring: 'border-brand-400/30 text-brand-400' },
+  walkInApprovedToday: { icon: ICON_WALKING, ring: 'border-brand-400/30 text-brand-400' },
   pending: { icon: ICON_CLOCK, ring: 'border-warning-400/40 text-warning-400' },
   rejectedToday: { icon: ICON_X_CIRCLE, ring: 'border-danger-500/30 text-danger-400' },
 };
@@ -46,31 +63,54 @@ export const HOD_TILE_META: Record<HodTileKey, HodTileMeta> = {
 // belongs to exactly one department and every row on this board is already
 // scoped to it, so the column would print the same value on every line.
 export const HOD_PANEL_SPEC: Record<HodTileKey, DashboardPanelSpec> = {
+  // Both origins end up here, so this lane carries the Type column. Same cells
+  // as the guard's In Premises panel, minus the ID proof (an HOD never sees a
+  // visitor's document — VisitorDetails hides it for this viewer role, and a
+  // column would put it back on the board) and minus the department.
   inside: {
     heading: 'On Site Now',
     empty: 'No visitor from this department is on site.',
-    columns: [COLUMN.name, COLUMN.purpose, COLUMN.host, COLUMN.scheduled, COLUMN.checkedIn, COLUMN.status],
+    columns: [
+      COLUMN.name, COLUMN.origin, COLUMN.purpose, COLUMN.host,
+      COLUMN.scheduled, COLUMN.checkedIn, COLUMN.status,
+    ],
   },
-  approvedToday: {
-    heading: 'Approved Today',
-    empty: 'No visit has been approved today.',
+  // Passes this HOD raised in advance. Every row has a slot — that is what
+  // makes it a pre-approval — so SCHEDULED is the subject, and no Type column:
+  // the tile's own label has already said what these are.
+  preApprovedToday: {
+    heading: 'Pre-Approvals Given',
+    empty: 'No pre-approval has been issued today.',
     columns: [COLUMN.name, COLUMN.purpose, COLUMN.host, COLUMN.scheduled, COLUMN.status],
+  },
+  // Walk-ins this HOD cleared. They have no slot, so REQUESTED — when the gate
+  // raised the request — is the only time on the row, exactly as on the guard's
+  // Approved Walk-ins panel.
+  walkInApprovedToday: {
+    heading: 'Walk-ins Approved',
+    empty: 'No walk-in has been approved today.',
+    columns: [COLUMN.name, COLUMN.purpose, COLUMN.host, COLUMN.requested, COLUMN.status],
   },
   // A walk-in with nobody's decision on it. It has no slot and no entry — only
   // the moment it was raised at reception, which is what the visitor standing
   // there is waiting against.
+  //
+  // It says WALK-IN (client instruction, 2026-08-16), the same edit the guard's
+  // pending lane took: `pending_approval` is only ever reached from the gate's
+  // walk-in register, so "Awaiting Your Decision" left an HOD wondering whether
+  // a booked visitor could be sitting in it too.
   pending: {
-    heading: 'Awaiting Your Decision',
+    heading: 'Awaiting Walk-in Approval',
     empty: 'No walk-in requests are waiting at reception.',
     columns: [COLUMN.name, COLUMN.purpose, COLUMN.host, COLUMN.requested, COLUMN.status],
   },
   // The REASON is carried, because a refusal without one is an assertion nobody
   // can check, and `visits.rejection_reason` is the only place the decision's
-  // justification is written down.
+  // justification is written down. Both origins can be declined, so Type again.
   rejectedToday: {
     heading: 'Declined Today',
     empty: 'Nothing was declined today.',
-    columns: [COLUMN.name, COLUMN.purpose, COLUMN.host, COLUMN.scheduled, COLUMN.reason],
+    columns: [COLUMN.name, COLUMN.origin, COLUMN.purpose, COLUMN.host, COLUMN.scheduled, COLUMN.reason],
   },
 };
 
@@ -89,7 +129,14 @@ export type HodTileSources = {
 export function hodTileVisits({ day, onSite, walkIns }: HodTileSources): Record<HodTileKey, Visit[]> {
   return {
     inside: onSite,
-    approvedToday: day.filter((v) => v.status === 'approved' || v.status === 'walkin_approved'),
+    // Split on the STATUS, not on `visitOrigin`: at this point in a visit's
+    // life the status still proves which desk it came through (`approved` can
+    // only be a pre-approval, `walkin_approved` can only be a walk-in), so the
+    // two lanes are exact rather than inferred. `visitOrigin` is for the rows
+    // that have converged on `checked_in`, which is why the Type column exists
+    // on the On Site lane and not here.
+    preApprovedToday: day.filter((v) => v.status === 'approved'),
+    walkInApprovedToday: day.filter((v) => v.status === 'walkin_approved'),
     pending: walkIns,
     rejectedToday: day.filter((v) => v.status === 'rejected'),
   };

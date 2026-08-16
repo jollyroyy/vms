@@ -2,6 +2,7 @@ import type { GuardTileKey } from './guardTiles';
 import type { ReportVisit } from './reportRow';
 import { formatStamp } from './formatDate';
 import { maskIdProof } from './pii';
+import { visitOrigin, visitOriginLabel } from './visitOrigin';
 import { overstayMs } from './visitExpiry';
 
 // What the guard dashboard's one panel is CALLED, and which columns it shows,
@@ -117,6 +118,22 @@ const ID_PROOF: DashboardColumn = {
   },
 };
 
+// WHICH DESK this visitor came through — booked ahead, or turned up
+// unannounced (client instruction, 2026-08-16: "always everybody should be able
+// to see who is walk-in and who is pre-approved"). It is `lib/visitOrigin.ts`,
+// the same inference the guard's card makes, so a visitor cannot read as a
+// walk-in on one screen and a pre-approval on another.
+//
+// It goes ONLY on a lane whose rows can be of both kinds. On the pending and
+// approved-walk-in lanes every row is a walk-in by definition, and on the
+// pre-approval lane every row is a pre-approval, so the column would print one
+// value on every line — a column that says nothing, and the tile's own label
+// has already said it.
+const ORIGIN: DashboardColumn = {
+  key: 'origin', header: 'Type',
+  value: (v) => visitOriginLabel(visitOrigin(v)),
+};
+
 const STATUS: DashboardColumn = { key: 'status', header: 'Status', value: () => '' };
 
 // WHO refused, resolved from the `visit_rejected` audit row — the same field
@@ -153,6 +170,7 @@ export const COLUMN = {
   checkedOut: CHECKED_OUT,
   requested: REQUESTED,
   overstay: OVERSTAY,
+  origin: ORIGIN,
   idProof: ID_PROOF,
   status: STATUS,
   decidedBy: DECIDED_BY,
@@ -179,14 +197,14 @@ export const PANEL_SPEC: Record<GuardTileKey, DashboardPanelSpec> = {
   checked: {
     heading: 'Checked In Today',
     empty: 'Nobody has come through the gate yet today.',
-    columns: [NAME, ID_PROOF, PURPOSE, HOST, SCHEDULED, CHECKED_IN, CHECKED_OUT, STATUS],
+    columns: [NAME, ORIGIN, ID_PROOF, PURPOSE, HOST, SCHEDULED, CHECKED_IN, CHECKED_OUT, STATUS],
   },
   // The list you hand a fire marshal. No exit column — by definition none of
   // them has one.
   inside: {
     heading: 'In Premises',
     empty: 'Nobody is inside right now.',
-    columns: [NAME, ID_PROOF, PURPOSE, HOST, DEPARTMENT, SCHEDULED, CHECKED_IN, STATUS],
+    columns: [NAME, ORIGIN, ID_PROOF, PURPOSE, HOST, DEPARTMENT, SCHEDULED, CHECKED_IN, STATUS],
   },
   // The overrun is why the row is here, so it sits last, where the eye lands.
   overstaying: {
@@ -197,7 +215,7 @@ export const PANEL_SPEC: Record<GuardTileKey, DashboardPanelSpec> = {
   all: {
     heading: 'All Visitors',
     empty: 'No visitor activity yet today.',
-    columns: [NAME, ID_PROOF, PURPOSE, HOST, DEPARTMENT, SCHEDULED, CHECKED_IN, CHECKED_OUT, STATUS],
+    columns: [NAME, ORIGIN, ID_PROOF, PURPOSE, HOST, DEPARTMENT, SCHEDULED, CHECKED_IN, CHECKED_OUT, STATUS],
   },
   // A walk-in with nobody's decision on it. It has no slot and no entry — only
   // the moment it was raised, which is what the host is late against.

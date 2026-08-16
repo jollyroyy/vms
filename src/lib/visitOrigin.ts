@@ -45,6 +45,18 @@ export function visitOrigin(v: Pick<Visit, 'status' | 'scheduled_for'>): VisitOr
   return DEFINITIVE[v.status] ?? (v.scheduled_for ? 'pre_approved' : 'walk_in');
 }
 
+/** Does the STATUS on its own already say which desk this visit came through?
+ *
+ *  A card that carries a status badge must ask this before it prints an origin
+ *  label of its own: `STATUS_STYLES.approved` reads "Pre-approved", so on a
+ *  row that has not converged yet the two would be the same fact twice on one
+ *  card, which CLAUDE.md's no-duplicate-renders rule forbids. It is the
+ *  converged statuses — `checked_in` and everything after — where the origin is
+ *  no longer legible from the badge and therefore has to be said. */
+export function statusProvesOrigin(status: VisitStatus): boolean {
+  return DEFINITIVE[status] !== null;
+}
+
 const LABEL: Record<VisitOrigin, string> = {
   pre_approved: 'Pre-approved',
   walk_in: 'Walk-in',

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { visitOrigin, visitOriginLabel } from '../../../src/lib/visitOrigin';
+import { visitOrigin, visitOriginLabel, statusProvesOrigin } from '../../../src/lib/visitOrigin';
 import type { Visit } from '../../../src/types/index';
 
 function visit(over: Partial<Visit>): Visit {
@@ -43,6 +43,25 @@ describe('visitOrigin', () => {
     expect(visitOrigin(visit({ status: 'walkin_approved', scheduled_for: '2026-08-13T04:00:00Z' })))
       .toBe('walk_in');
   });
+});
+
+// A card that already carries a status badge must not print the origin twice.
+// `STATUS_STYLES.approved` reads "Pre-approved" in so many words, so this is
+// what tells VisitorGridCard when its own origin chip would be a duplicate.
+describe('statusProvesOrigin', () => {
+  it.each(['pending_approval', 'walkin_approved', 'approved'] as const)(
+    'is true for %s — the badge already says which desk it came through',
+    (status) => {
+      expect(statusProvesOrigin(status)).toBe(true);
+    },
+  );
+
+  it.each(['checked_in', 'checked_out', 'no_show', 'expired', 'cancelled', 'rejected'] as const)(
+    'is false for %s — both routes converge here and the badge stops saying',
+    (status) => {
+      expect(statusProvesOrigin(status)).toBe(false);
+    },
+  );
 });
 
 describe('visitOriginLabel', () => {
