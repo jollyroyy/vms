@@ -3,6 +3,7 @@ import { formatDateTime } from '../lib/formatDate';
 import { canRoleShowPass, canShowPass } from '../lib/passVisibility';
 import type { ReportVisit } from '../lib/reportRow';
 import type { UserRole } from '../types/index';
+import { visitOrigin, visitOriginLabel } from '../lib/visitOrigin';
 import PreApprovalPass from './PreApprovalPass';
 
 // The Overview tab of the visitor popup — who is visiting, who they are here to
@@ -36,6 +37,8 @@ const ICON = {
   person: <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0" />,
   tag: <path strokeLinecap="round" strokeLinejoin="round" d="M9.568 3H5.25A2.25 2.25 0 003 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 005.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 009.568 3z" />,
   clock: <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />,
+  // A door with an arrow going in — which way this visitor came through.
+  route: <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l3 3m0 0l-3 3m3-3H2.25" />,
   exit: <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 9V5.25A2.25 2.25 0 0110.5 3h6a2.25 2.25 0 012.25 2.25v13.5A2.25 2.25 0 0116.5 21h-6a2.25 2.25 0 01-2.25-2.25V15m-3 0l-3-3m0 0l3-3m-3 3H15" />,
   box: <path strokeLinecap="round" strokeLinejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z" />,
 };
@@ -63,6 +66,30 @@ export default function VisitorDetailsOverview({
           icon={<Ico d={ICON.person} />}
         />
         <InfoRow label="Purpose" value={v.purpose ?? '—'} icon={<Ico d={ICON.tag} />} />
+        {/* WHICH DESK this visitor came through (client instruction,
+            2026-08-16: "always everybody should be able to see who is walk-in
+            and who is pre-approved"). Every LIST already carried the answer —
+            the guard board's Type of Visitor column, the grid card's outline
+            chip, the Entry & Exit table, the check-in summary — but the popup
+            those lists open did not, so clicking a visitor to read their record
+            lost the one fact the row beside them had just stated.
+
+            UNCONDITIONAL here, unlike VisitorGridCard, which hides its chip
+            whenever `statusProvesOrigin` says the status badge has already
+            spoken. That gate exists because `STATUS_STYLES.approved` reads
+            "Pre-approved" in so many words. This popup's badge does not: it
+            prints the raw status ("approved", "checked in"), so there is no
+            duplicate to avoid, and a record opened from nine different surfaces
+            has no lane label above it to fall back on either.
+
+            Same lib/visitOrigin.ts the lists use, so the popup and the row that
+            opened it cannot disagree about a visitor — read the INFERRED caveat
+            there before trusting it on a pre-2026-08 row. */}
+        <InfoRow
+          label="Type of Visitor"
+          value={visitOriginLabel(visitOrigin(v))}
+          icon={<Ico d={ICON.route} />}
+        />
         {/* The time the HOD booked the visitor for. It is the one field the
             approver chose themselves, and it is what tells anyone reading this
             whether the visitor is early, expected or overdue — none of which is

@@ -106,4 +106,27 @@ describe('PANEL_SPEC — visit type column', () => {
     expect(column.value(base, now)).toBe('Pre-approved');
     expect(column.value({ ...base, scheduled_for: null } as ReportVisit, now)).toBe('Walk-in');
   });
+
+  // WHERE the column sits, not just whether it exists (client instruction,
+  // 2026-08-16). It reads directly against Scheduled because the two answer one
+  // question together: a walk-in's slot prints "Anytime", a pre-approval's
+  // prints a time, so side by side the pair says how the visit was raised AND
+  // what was promised. It used to sit second, next to the name, where it was
+  // separated from its own evidence by four columns.
+  it.each(['checked', 'inside', 'all', 'declinedByHost', 'refusedByGuard'] as const)(
+    'the %s panel puts Type of Visitor immediately before Scheduled',
+    (key) => {
+      const keys = PANEL_SPEC[key].columns.map((c) => c.key);
+      expect(keys.indexOf('origin')).toBe(keys.indexOf('scheduled') - 1);
+    },
+  );
+
+  // Overstaying is the exception, and only because it has no Scheduled column
+  // at all — the lane is about the overrun from ENTRY, so Checked In is its
+  // time column and the origin sits against that instead.
+  it('puts it against Checked In on the overstaying lane, which has no slot', () => {
+    const keys = PANEL_SPEC.overstaying.columns.map((c) => c.key);
+    expect(keys).not.toContain('scheduled');
+    expect(keys.indexOf('origin')).toBe(keys.indexOf('checkedIn') - 1);
+  });
 });

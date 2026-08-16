@@ -132,6 +132,15 @@ const ID_PROOF: DashboardColumn = {
 // definition, and on the expected and pre-approval lanes every row is a
 // pre-approval, so the column would print one value on every line — a column
 // that says nothing, and the tile's own label has already said it.
+//
+// It sits IMMEDIATELY BEFORE Scheduled on every lane that has both (client
+// instruction, 2026-08-16). The two are read together: a walk-in's slot prints
+// "Anytime" and a pre-approval's prints a time, so side by side the pair says
+// how the visit was raised and what was promised. It used to sit second, beside
+// the name, four columns away from its own evidence. Overstaying is the one
+// exception and only because it has no slot column — the overrun is measured
+// from entry, so there the origin sits against Checked In instead. Guarded by
+// dashboardColumns.test.ts, which asserts the adjacency rather than the index.
 const ORIGIN: DashboardColumn = {
   key: 'origin', header: 'Type of Visitor',
   value: (v) => visitOriginLabel(visitOrigin(v)),
@@ -216,25 +225,27 @@ export const PANEL_SPEC: Record<GuardTileKey, DashboardPanelSpec> = {
   checked: {
     heading: 'Checked In Today',
     empty: 'Nobody has come through the gate yet today.',
-    columns: [NAME, ORIGIN, APPROVED_BY, ID_PROOF, PURPOSE, HOST, SCHEDULED, CHECKED_IN, CHECKED_OUT, STATUS],
+    columns: [NAME, APPROVED_BY, ID_PROOF, PURPOSE, HOST, ORIGIN, SCHEDULED, CHECKED_IN, CHECKED_OUT, STATUS],
   },
   // The list you hand a fire marshal. No exit column — by definition none of
   // them has one.
   inside: {
     heading: 'In Premises',
     empty: 'Nobody is inside right now.',
-    columns: [NAME, ORIGIN, APPROVED_BY, ID_PROOF, PURPOSE, HOST, DEPARTMENT, SCHEDULED, CHECKED_IN, STATUS],
+    columns: [NAME, APPROVED_BY, ID_PROOF, PURPOSE, HOST, DEPARTMENT, ORIGIN, SCHEDULED, CHECKED_IN, STATUS],
   },
   // The overrun is why the row is here, so it sits last, where the eye lands.
+  // No slot column on this lane — the overrun is measured from ENTRY — so the
+  // origin sits against Checked In, this lane's time column, instead.
   overstaying: {
     heading: 'Overstaying',
     empty: 'Nobody is overstaying.',
-    columns: [NAME, ORIGIN, ID_PROOF, PURPOSE, HOST, CHECKED_IN, OVERSTAY, STATUS],
+    columns: [NAME, ID_PROOF, PURPOSE, HOST, ORIGIN, CHECKED_IN, OVERSTAY, STATUS],
   },
   all: {
     heading: 'All Visitors',
     empty: 'No visitor activity yet today.',
-    columns: [NAME, ORIGIN, APPROVED_BY, ID_PROOF, PURPOSE, HOST, DEPARTMENT, SCHEDULED, CHECKED_IN, CHECKED_OUT, STATUS],
+    columns: [NAME, APPROVED_BY, ID_PROOF, PURPOSE, HOST, DEPARTMENT, ORIGIN, SCHEDULED, CHECKED_IN, CHECKED_OUT, STATUS],
   },
   // A walk-in with nobody's decision on it. It has no slot and no entry — only
   // the moment it was raised, which is what the host is late against.
@@ -272,11 +283,11 @@ export const PANEL_SPEC: Record<GuardTileKey, DashboardPanelSpec> = {
   declinedByHost: {
     heading: 'Declined by Host',
     empty: 'No requests were declined.',
-    columns: [NAME, ORIGIN, PURPOSE, HOST, DEPARTMENT, SCHEDULED, DECIDED_BY, REASON],
+    columns: [NAME, PURPOSE, HOST, DEPARTMENT, ORIGIN, SCHEDULED, DECIDED_BY, REASON],
   },
   refusedByGuard: {
     heading: 'Entry Refused at the Gate',
     empty: 'Nobody was refused entry.',
-    columns: [NAME, ORIGIN, PURPOSE, HOST, DEPARTMENT, SCHEDULED, DECIDED_BY, REASON],
+    columns: [NAME, PURPOSE, HOST, DEPARTMENT, ORIGIN, SCHEDULED, DECIDED_BY, REASON],
   },
 };
