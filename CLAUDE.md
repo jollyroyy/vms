@@ -566,11 +566,38 @@
     missing — it was one tab away on `/visitors/approved`, which is exactly the
     kind of "learn which other screen owns this" the walk-in exit note above
     already fixed once in the other direction.
-  - **ONE form, TWO screens: `WalkInCheckInForm.tsx` + `PendingGateCheckIn.tsx`.**
+  - **`/guard/walk-in` (`RegisterWalkIn.tsx`) STACKS THE TWO WAITS IN ITS LEFT
+    COLUMN: "Awaiting host approval", then "Awaiting gate check-in" DIRECTLY
+    BELOW IT** (client instruction, 2026-08-17). Both headings are the client's
+    words. "Awaiting approval" left unsaid *whose* — this desk waits on two
+    different people in sequence — and the gate lane used to be a separate
+    `GuardWalkInApproved` block at the foot of the page, below the register form,
+    so a row crossing from one wait to the other jumped the width of the screen.
+    A guard now reads one column downwards in the order the visit moves. This is
+    the OPPOSITE ordering to `GuardWalkIns` above, and deliberately: there the
+    two boxes are the whole page and the actionable one leads; here the form is
+    the page's subject and the column beside it is a timeline.
+  - **THAT PAGE LISTS NOBODY WHO IS ALREADY THROUGH THE GATE** (same
+    instruction: remove "Already checked in (N)"). It renders
+    `PendingGateCheckIn` directly rather than `GuardWalkInApproved`, filtering
+    with `isAwaitingGateCheckIn`, so every row in the box has a Check In button
+    under it — the `guardTiles.ts` rule, a count being the length of the list it
+    opens. An admitted visitor is the **Entry & Exit** tab's subject, which holds
+    their entry time, their exit time and the only exit control; the same
+    one-visitor-on-two-surfaces reasoning that took Checked Out off the Visitors
+    segments. **`GuardWalkInApproved` keeps its "Already checked in" section** —
+    it still serves `/visitors/approved`, where the lane's job is answering "who
+    did the host clear?" (a record of issuance, not of attendance) and where the
+    walk-in exit lives. `RegisterWalkIn.test.tsx` pins both headings, their
+    order, and the absence of any already-checked-in row.
+  - **ONE form, THREE screens: `WalkInCheckInForm.tsx` + `PendingGateCheckIn.tsx`.**
     The photo / ID scan / card-number / carrying step was inline in
     `GuardWalkInApproved`; it moved out rather than being pasted onto the
     register, because a second copy of a form that ends in a status write is the
-    drift `lib/checkInWalkInApproved.ts` exists to prevent one layer down. The
+    drift `lib/checkInWalkInApproved.ts` exists to prevent one layer down.
+    `PendingGateCheckIn` now has three callers — `GuardWalkIns`,
+    `GuardWalkInApproved` and `RegisterWalkIn` — and that is the point: it is
+    the same control wherever a cleared walk-in is admitted. The
     form owns the CAPTURE state only and never touches supabase — both screens
     route through `Console.checkInWalkIn` → `checkInApprovedWalkIn`, so there is
     still exactly one route from `walkin_approved` to `checked_in`.

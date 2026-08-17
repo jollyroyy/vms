@@ -6,8 +6,9 @@ import { TILE_FILTER } from '../../lib/guardTiles';
 import { formatStamp } from '../../lib/formatDate';
 import VisitorCard from './VisitorCard';
 import WalkInRequest from './WalkInRequest';
-import GuardWalkInApproved from './GuardWalkInApproved';
+import PendingGateCheckIn from './PendingGateCheckIn';
 import SuccessToast from '../../components/SuccessToast';
+import { isAwaitingGateCheckIn } from '../../lib/visitOrigin';
 import { checkInApprovedWalkIn } from '../../lib/checkInWalkInApproved';
 import type { Visit } from '../../types/index';
 
@@ -30,14 +31,24 @@ import type { Visit } from '../../types/index';
 // queue builds at the gate, which is why they were on one screen before and
 // stay on one screen now.
 //
-// It also carries the APPROVED walk-ins waiting to come in, below both. That
-// lane used to be /visitors/approved, and it is the ONLY route from
-// `walkin_approved` to `checked_in` — CheckInPanel searches pre-approvals, so
-// nothing else can let an approved walk-in through the gate. When the Visitors
-// tab left the sidebar on 2026-08-15 that route had to land somewhere, and this
-// is the page that already owns the walk-in's whole life: raise it, watch for
-// the host's answer, then take the photo and let them in. The write is shared
-// with the old console route (lib/checkInWalkInApproved.ts), never re-hosted.
+// The left column is the walk-in's two waits, stacked in the order they happen:
+// **Awaiting host approval**, then **Awaiting gate check-in** directly below it
+// (client instruction, 2026-08-17). A row moves from the first box to the second
+// the moment the host answers, so the guard reads one column downwards rather
+// than hunting a second lane at the bottom of the page.
+//
+// The second box is the ONLY route from `walkin_approved` to `checked_in` on
+// this page — CheckInPanel searches pre-approvals, so nothing else can let an
+// approved walk-in through the gate. It renders PendingGateCheckIn, the same
+// rows /visitors/approved renders, and the write is shared
+// (lib/checkInWalkInApproved.ts), never re-hosted.
+//
+// It carries NO "already checked in" list (same instruction). A visitor who is
+// through the gate is the Entry & Exit tab's subject — that page holds their
+// entry time, their exit time and the only exit control — and listing them here
+// as well put one visitor on two surfaces with nothing saying which was
+// authoritative. Every row in this box has a Check In button under it, which is
+// the guardTiles.ts rule: the count is the length of the list it opens.
 
 export default function RegisterWalkIn(): React.ReactElement {
   const [clock, setClock] = useState(() => new Date());
@@ -53,9 +64,12 @@ export default function RegisterWalkIn(): React.ReactElement {
     .filter((v) => TILE_FILTER.pending(v, clock))
     .sort((a, b) => b.created_at.localeCompare(a.created_at));
 
-  // The SAME predicate the dashboard's Approved Walk-ins tile counts on.
-  const approved = visits
-    .filter((v) => TILE_FILTER.walkinApproved(v, clock))
+  // The SAME predicate the dashboard's Approved Walk-ins tile counts on,
+  // narrowed to the ones still OUTSIDE: isAwaitingGateCheckIn is the half of
+  // isApprovedWalkIn that answers "who is still standing at the gate?", so the
+  // count on this box is the number of Check In buttons under it.
+  const awaitingCheckIn = visits
+    .filter((v) => TILE_FILTER.walkinApproved(v, clock) && isAwaitingGateCheckIn(v))
     .sort((a, b) => b.created_at.localeCompare(a.created_at));
 
   const letThemIn = async (visit: Visit, details: Parameters<typeof checkInApprovedWalkIn>[1]) => {
@@ -77,34 +91,72 @@ export default function RegisterWalkIn(): React.ReactElement {
       <SuccessToast message={toast} onDismiss={() => setToast(null)} />
 
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-5 items-start">
-        {/* Left — what is already waiting on a host. */}
-        <div className="xl:col-span-5 rounded-2xl bg-surface-100/60 dark:bg-white/[0.03] border border-surface-200/60 dark:border-white/[0.07] p-5 shadow-glow-sm">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="font-display text-h2 text-navy-950 dark:text-white">Awaiting approval</h2>
-            {/* The count IS the length of the list beside it. */}
-            <span className="glass-chip !py-1 tabular-nums">{pending.length}</span>
+        {/* Left — the walk-in's two waits, in the order they happen. */}
+        <div className="xl:col-span-5 space-y-5">
+          <div className="rounded-2xl bg-surface-100/60 dark:bg-white/[0.03] border border-surface-200/60 dark:border-white/[0.07] p-5 shadow-glow-sm">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="font-display text-h2 text-navy-950 dark:text-white">Awaiting host approval</h2>
+              {/* The count IS the length of the list beside it. */}
+              <span className="glass-chip !py-1 tabular-nums">{pending.length}</span>
+            </div>
+
+            {loading ? (
+              <div className="space-y-2">
+                {[0, 1].map((i) => <div key={i} className="skeleton h-[68px] w-full rounded-2xl" />)}
+              </div>
+            ) : pending.length === 0 ? (
+              <div className="card empty-state !py-12">
+                <p className="text-sm font-semibold text-navy-500">Nothing waiting on a person to meet.</p>
+                <p className="text-xs text-navy-500 dark:text-navy-400 mt-1">
+                  Walk-ins you register will appear here until the person to meet responds.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {pending.map((v) => (
+                  // formatStamp, not formatTime: this list is not date-bounded —
+                  // a walk-in raised at 23:50 is still open at 00:05 — so a bare
+                  // time would say when but not whether that when was today.
+                  <VisitorCard key={v.id} visit={v} timeLabel={formatStamp(v.created_at, clock)} />
+                ))}
+              </div>
+            )}
           </div>
 
-          {loading ? (
-            <div className="space-y-2">
-              {[0, 1].map((i) => <div key={i} className="skeleton h-[68px] w-full rounded-2xl" />)}
+          {/* Approved and still outside. The photo, the ID scan and the card
+              number are captured HERE rather than at registration, because when
+              a walk-in is raised nobody yet knows whether the host will say
+              yes — and the card physically changes hands at this moment. */}
+          <div className="rounded-2xl bg-surface-100/60 dark:bg-white/[0.03] border border-surface-200/60 dark:border-white/[0.07] p-5 shadow-glow-sm">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="font-display text-h2 text-navy-950 dark:text-white">Awaiting gate check-in</h2>
+              <span className="glass-chip !py-1 tabular-nums">{awaitingCheckIn.length}</span>
             </div>
-          ) : pending.length === 0 ? (
-            <div className="card empty-state !py-12">
-              <p className="text-sm font-semibold text-navy-500">Nothing waiting on a person to meet.</p>
-              <p className="text-xs text-navy-500 dark:text-navy-400 mt-1">
-                Walk-ins you register will appear here until the person to meet responds.
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {pending.map((v) => (
-                // formatStamp, not formatTime: this list is not date-bounded —
-                // a walk-in raised at 23:50 is still open at 00:05 — so a bare
-                // time would say when but not whether that when was today.
-                <VisitorCard key={v.id} visit={v} timeLabel={formatStamp(v.created_at, clock)} />
-              ))}
-            </div>
+
+            {loading ? (
+              <div className="space-y-2">
+                {[0, 1].map((i) => <div key={i} className="skeleton h-[68px] w-full rounded-2xl" />)}
+              </div>
+            ) : awaitingCheckIn.length === 0 ? (
+              <div className="card empty-state !py-12">
+                <p className="text-sm font-semibold text-navy-500">Nobody is waiting to be checked in.</p>
+                <p className="text-xs text-navy-500 dark:text-navy-400 mt-1">
+                  Once the person to meet approves a walk-in they appear here with a Check In button.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <PendingGateCheckIn
+                  waiting={awaitingCheckIn}
+                  busyId={busyId}
+                  onCheckIn={(v, details) => { void letThemIn(v, details); }}
+                />
+              </div>
+            )}
+          </div>
+
+          {error && (
+            <p className="rounded-xl border border-danger-500/30 bg-danger-600/10 px-4 py-3 text-sm text-danger-400">{error}</p>
           )}
         </div>
 
@@ -117,22 +169,6 @@ export default function RegisterWalkIn(): React.ReactElement {
             }}
           />
         </div>
-      </div>
-
-      {error && (
-        <p className="rounded-xl border border-danger-500/30 bg-danger-600/10 px-4 py-3 text-sm text-danger-400">{error}</p>
-      )}
-
-      {/* Approved and waiting to come in. It captures the photo here rather
-          than at registration, because when a walk-in is raised nobody yet
-          knows whether the host will say yes. */}
-      <div className="rounded-2xl bg-surface-100/60 dark:bg-white/[0.03] border border-surface-200/60 dark:border-white/[0.07] p-5 shadow-glow-sm">
-        <GuardWalkInApproved
-          loading={loading}
-          approved={approved}
-          busyId={busyId}
-          onCheckIn={(v, details) => { void letThemIn(v, details); }}
-        />
       </div>
     </div>
   );
