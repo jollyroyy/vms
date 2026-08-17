@@ -35,8 +35,41 @@ export type VisitWindow =
    *  05:30 IST a UTC window reports yesterday, which is when a night shift is
    *  most likely to be reading the screen. */
   | { kind: 'today' }
-  /** An inclusive IST date range, both ends as `YYYY-MM-DD`. */
-  | { kind: 'range'; from: string; to: string }
+  /** An inclusive IST date range, both ends as `YYYY-MM-DD`.
+   *
+   *  `limit` caps the rows fetched. It is OPTIONAL but every ranged tab passes
+   *  one, because PostgREST applies a default maximum of its own when none is
+   *  given — and a silent truncation is the worst failure this console can
+   *  have: an admin who selects "Last 1 Year", finds no Mr Mehta and concludes
+   *  the visit never happened has been misled by a cap nobody told them about.
+   *  Passing it explicitly is what lets the page compare `rows.length` against
+   *  a number it knows and say so on screen.
+   *
+   *  `includeUpcoming` ORs in every still-open pre-approval booked for a
+   *  future moment, whatever the range says. The range clauses below are on
+   *  `created_at` and `checked_in_at` ONLY — there is no `scheduled_for`
+   *  clause — so without this a booking raised forty days ago for next week
+   *  falls out of a thirty-day window entirely: it was not created in the
+   *  period and it has not arrived. That is a visitor the building is
+   *  expecting, dropped off the one screen whose job is listing them, and it
+   *  is invisible rather than merely absent — the admin has no reason to widen
+   *  a range to look for something they have not been told is missing. Only
+   *  the Pre-Registration tab asks for it; a log of what happened must not
+   *  quietly gain rows for things that have not.
+   *
+   *  `includeInside` ORs in everyone currently `checked_in`, whatever the range
+   *  says. Only the Blacklist & Security tab asks for it, and it is not a
+   *  convenience: that tab's overstay alerts are LIVE by definition — somebody
+   *  is in the building past their deadline right now — but the predicate can
+   *  only see rows the query loaded, so an admin who narrowed the range to a
+   *  past week would have been shown an empty Security Alerts panel while a
+   *  visitor was overdue in the building. A screen that reports "nobody is
+   *  overstaying" when somebody is, is the one failure mode this tab exists to
+   *  prevent. */
+  | {
+      kind: 'range'; from: string; to: string; limit?: number;
+      includeUpcoming?: boolean; includeInside?: boolean;
+    }
   /** The most recent `limit` visits in any state, newest first — the Visitors
    *  Log, which is a register and not a day. */
   | { kind: 'recent'; limit: number };
@@ -85,8 +118,13 @@ export function useAdminVisits(win: VisitWindow): State & { reload: () => void }
       // was booked last week and walked in today belongs to today's screens.
       // Without the second clause the Live Check-In tab loses exactly the
       // pre-approvals it exists to show.
-      if (from && to) q = q.or(`and(created_at.gte.${from},created_at.lt.${to}),and(checked_in_at.gte.${from},checked_in_at.lt.${to})`);
+      const extra = parsed.kind !== 'range' ? '' : [
+        parsed.includeUpcoming ? `and(status.eq.approved,scheduled_for.gte.${new Date().toISOString()})` : '',
+        parsed.includeInside ? 'status.eq.checked_in' : '',
+      ].filter(Boolean).map((clause) => `,${clause}`).join('');
+      if (from && to) q = q.or(`and(created_at.gte.${from},created_at.lt.${to}),and(checked_in_at.gte.${from},checked_in_at.lt.${to})${extra}`);
       else if (from) q = q.or(`created_at.gte.${from},checked_in_at.gte.${from},status.in.(pending_approval,walkin_approved,checked_in)`);
+      if (parsed.kind === 'range' && parsed.limit) q = q.limit(parsed.limit);
     }
 
     const { data, error } = await q;

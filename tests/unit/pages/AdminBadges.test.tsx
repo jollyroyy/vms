@@ -8,13 +8,19 @@ import AdminBadges from '../../../src/pages/Admin/AdminBadges';
 // rather than the supabase query chain underneath it, keeps this suite
 // focused on what the page composes — the same choice EntryExitTab.test.tsx
 // makes for `useGateActivity`.
+//
+// The tab went from today-only to a ranged historical window (client
+// instruction, 2026-08-17), the same change AdminVisitorsLog already took —
+// the mock hook does not need to know the real date math, since the page
+// derives the range and passes it straight to `useBadgePrints`; the mock
+// just has to return prints regardless of what range it was called with.
 
 afterEach(cleanup);
 
 const mockPrints = vi.hoisted(() => ({ current: { prints: [] as any[], loading: false } }));
 
 vi.mock('../../../src/lib/useBadgePrints', () => ({
-  useBadgePrints: () => mockPrints.current,
+  useBadgePrints: (..._args: unknown[]) => mockPrints.current,
 }));
 
 // Supabase is not read directly by this page, but VisitorDetails and other
@@ -56,8 +62,16 @@ describe('AdminBadges', () => {
 
   it('shows an explanatory empty state, not an error, when nothing was printed', () => {
     render(<AdminBadges />);
-    expect(screen.getAllByText(/No badge has been printed today/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/No badge was printed in this window/i).length).toBeGreaterThan(0);
     expect(screen.getAllByText('0').length).toBeGreaterThan(0);
+  });
+
+  it('marks the tab historical and renders the range bar above the tiles', () => {
+    render(<AdminBadges />);
+    expect(screen.getByText('Historical')).toBeInTheDocument();
+    // AdminRangeBar's own preset control — "Last 30 Days" is AdminBadges's default.
+    expect(screen.getByRole('button', { name: 'Last 30 Days' })).toBeInTheDocument();
+    expect(screen.getByText(/Showing badge prints from/i)).toBeInTheDocument();
   });
 
   it('renders a print as a row, with the visitor, company, host, type, time and printer', () => {
@@ -90,7 +104,7 @@ describe('AdminBadges', () => {
       loading: false,
     };
     render(<AdminBadges />);
-    // Printed Today: 3 prints. Reprints Today: 1. Visitors Badged: 2 distinct visits.
+    // Printed: 3 prints. Reprints: 1. Visitors Badged: 2 distinct visits.
     expect(screen.getByText('3')).toBeInTheDocument();
     expect(screen.getAllByText('1').length).toBeGreaterThan(0);
     expect(screen.getAllByText('2').length).toBeGreaterThan(0);

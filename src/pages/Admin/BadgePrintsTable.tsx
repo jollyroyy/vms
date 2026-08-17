@@ -3,7 +3,7 @@ import type { BadgePrintRow } from '../../lib/useBadgePrints';
 import { formatTime } from '../../lib/formatDate';
 import { initialsOf } from '../../lib/initials';
 
-// Today's badge prints, newest first. A plain table rather than
+// Badge prints for the selected window, newest first. A plain table rather than
 // `DashboardVisitorTable`, which takes `ReportVisit[]` and composes from
 // `COLUMN` — the atoms there describe a VISIT (Checked In, Scheduled,
 // Status…), and a badge print is a different row shape hung off a visit, not
@@ -50,8 +50,9 @@ export default function BadgePrintsTable({ prints, loading }: Props): React.Reac
                 <td colSpan={6} className="px-4 py-10 text-center text-[#9aa3af] dark:text-[#b7c0cb]">
                   {/* Explains the empty box rather than leaving it ambiguous:
                       an empty table here reads exactly like a broken query, so
-                      it says outright that nothing has happened yet. */}
-                  No badge has been printed today.
+                      it says outright that nothing happened in this window —
+                      the range bar above states which window that is. */}
+                  No badge was printed in this window.
                 </td>
               </tr>
             )}

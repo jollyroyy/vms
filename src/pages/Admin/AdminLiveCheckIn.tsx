@@ -1,14 +1,12 @@
 import React, { useMemo, useState } from 'react';
 import AdminPageHeader from './AdminPageHeader';
-import AdminKpiTile from '../../components/AdminKpiTile';
 import LiveCheckInTabs, { type LiveCheckInLane } from './LiveCheckInTabs';
 import DashboardVisitorTable from '../../components/DashboardVisitorTable';
 import VisitorDetails from '../../components/VisitorDetails';
 import { useAdminVisits } from '../../lib/useAdminVisits';
-import { liveCheckInKpis, insideLane, departedLane } from '../../lib/adminLiveCheckIn';
+import { insideLane, departedLane, pendingLane } from '../../lib/adminLiveCheckIn';
 import { COLUMN } from '../../lib/dashboardColumns';
 import { initialsOf } from '../../lib/initials';
-import { ICON_PEOPLE, ICON_CHECK_CIRCLE, ICON_EXIT, ICON_CALENDAR } from '../../lib/tileIcons';
 import type { ReportVisit } from '../../lib/reportRow';
 
 // The admin's Live Check-In tab — a read-only mirror of the guard's Entry &
@@ -19,11 +17,21 @@ import type { ReportVisit } from '../../lib/reportRow';
 // comment at the top of that file), and clicking a row opens `VisitorDetails`
 // with no approve/reject/check-in/check-out handlers — a record, not a desk.
 //
-// ONE FETCH FEEDS BOTH THE FOUR TILES AND THE TWO LANES. `liveCheckInKpis`,
-// `insideLane` and `departedLane` all take the same `visits` array this page
-// fetches once, so a tile's count and the lane it sits above can never
-// disagree — `guardTiles.ts`'s rule, applied here exactly as it is on the
-// guard board and the Badge Printing tab.
+// THIS TAB IS A ROSTER AND CARRIES NO KPI TILES (2026-08-17). It had four; two
+// restated the lane badges directly below them, one restated the Dashboard tab's
+// headline figure, and the fourth was a count with no list to open. The full
+// reasoning is in the header of `lib/adminLiveCheckIn.ts`. The split that
+// survives is worth stating: the Dashboard tab reads today's SHAPE — the trend
+// against yesterday, the hourly flow, the purpose split, the host ranking —
+// and this tab reads today's PEOPLE, by name, in the three states they can be
+// in. Neither screen states the other's numbers.
+//
+// ONE FETCH FEEDS ALL THREE LANES, so a badge and the list it opens can never
+// disagree — `guardTiles.ts`'s rule, applied here as it is on the guard board.
+// The `today` window carries the open statuses UNBOUNDED (see
+// `useAdminVisits`), which is what puts a visitor still inside from last night
+// in the Inside lane and a walk-in registered at 23:50 in the Awaiting
+// Approval lane rather than dropping both at midnight.
 
 export default function AdminLiveCheckIn(): React.ReactElement {
   const now = useMemo(() => new Date(), []);
@@ -31,56 +39,43 @@ export default function AdminLiveCheckIn(): React.ReactElement {
   const [lane, setLane] = useState<LiveCheckInLane>('inside');
   const [selected, setSelected] = useState<ReportVisit | null>(null);
 
-  const kpis = useMemo(() => liveCheckInKpis(visits, now), [visits, now]);
   const inside = useMemo(() => insideLane(visits) as ReportVisit[], [visits]);
   const departed = useMemo(() => departedLane(visits, now) as ReportVisit[], [visits, now]);
+  const pending = useMemo(() => pendingLane(visits) as ReportVisit[], [visits]);
 
-  const rows = lane === 'inside' ? inside : departed;
+  const rows = lane === 'inside' ? inside : lane === 'departed' ? departed : pending;
+
+  // Each lane states its own fact. "Nobody is inside", "nobody has left yet"
+  // and "every request has been answered" are three different claims and must
+  // not share one sentence — the same rule the guard's two lanes follow.
+  const empty = lane === 'inside'
+    ? 'Nobody is inside right now.'
+    : lane === 'departed'
+      ? 'Nobody has checked out yet today.'
+      : 'Every walk-in request has been answered.';
+
+  // The Awaiting Approval lane has no arrival to print — that is what it means
+  // to be waiting — so it swaps the two arrival stamps for the moment the
+  // request was raised, which is the figure the delay is measured from. An
+  // em dash under "Checked In" on every row would state "not recorded" where
+  // the truth is "has not happened yet".
+  const columns = lane === 'pending'
+    ? [COLUMN.name, COLUMN.host, COLUMN.department, COLUMN.purpose, COLUMN.requested, COLUMN.status]
+    : [COLUMN.name, COLUMN.origin, COLUMN.host, COLUMN.department,
+       COLUMN.checkedIn, COLUMN.checkedOut, COLUMN.status];
 
   return (
     <div className="p-6 max-w-[1600px] mx-auto">
-      <AdminPageHeader title="Live Check-In" blurb="Everyone the gate has handled today." />
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <AdminKpiTile
-          label="Arrived Today"
-          value={String(kpis.arrivedToday)}
-          icon={ICON_PEOPLE}
-          tone="brand"
-          loading={loading}
-          caption="Came through the gate"
-        />
-        <AdminKpiTile
-          label="Currently Inside"
-          value={String(kpis.currentlyInside)}
-          icon={ICON_CHECK_CIRCLE}
-          tone="success"
-          loading={loading}
-          caption="Live in facility"
-        />
-        <AdminKpiTile
-          label="Departed Today"
-          value={String(kpis.departedToday)}
-          icon={ICON_EXIT}
-          tone="brand"
-          loading={loading}
-          caption="Checked out since the day began"
-        />
-        <AdminKpiTile
-          label="Awaiting Approval"
-          value={String(kpis.awaitingApproval)}
-          icon={ICON_CALENDAR}
-          tone="warning"
-          loading={loading}
-          captionToned={kpis.awaitingApproval > 0}
-          caption="Walk-ins with no decision yet"
-        />
-      </div>
+      <AdminPageHeader
+        title="Live Check-In"
+        scope="live"
+        blurb="Everyone the gate is handling right now, by name. The Dashboard tab has today's totals and trends."
+      />
 
       <LiveCheckInTabs
         lane={lane}
         onSelect={setLane}
-        counts={{ inside: inside.length, departed: departed.length }}
+        counts={{ inside: inside.length, departed: departed.length, pending: pending.length }}
         loading={loading}
       />
 
@@ -89,12 +84,9 @@ export default function AdminLiveCheckIn(): React.ReactElement {
           "—", never a blank cell, with no override needed here. */}
       <DashboardVisitorTable
         rows={rows}
-        columns={[COLUMN.name, COLUMN.origin, COLUMN.host, COLUMN.department, COLUMN.checkedIn, COLUMN.checkedOut, COLUMN.status]}
+        columns={columns}
         loading={loading}
-        // Each lane states its own fact — "nobody is inside" and "nobody has
-        // checked out yet" are different claims and must not share one
-        // sentence, the same rule the guard's two lanes follow.
-        empty={lane === 'inside' ? 'Nobody is inside right now.' : 'Nobody has checked out yet today.'}
+        empty={empty}
         now={now}
         initialsOf={initialsOf}
         onOpen={(v) => setSelected(v)}

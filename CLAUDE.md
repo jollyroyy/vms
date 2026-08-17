@@ -38,6 +38,100 @@
     Blacklisting is security administration, not a visitor-record action, and the reason
     box is mandatory — the confirm stays disabled until one is typed, so the
     justification is the only route to the write.
+- **EVERY ADMIN TAB SAYS WHETHER IT IS SHOWING NOW OR SHOWING THE PAST**
+  (client instruction, 2026-08-17: "whatever is showing the historical data,
+  mention that"). `AdminPageHeader` takes `scope?: 'live' | 'historical'` and
+  renders a chip beside the title. A table of visits carries no clue on its own
+  face about which of the two it is — every row looks the same — so an admin
+  reading a quiet Denied Entries panel cannot otherwise tell "nothing happened
+  today" apart from "nothing happened in the ninety days you selected". Live:
+  **Live Check-In**. Historical: **Pre-Registration, Visitors Log, Hosts, Badge
+  Printing, Blacklist & Security**. The **Dashboard passes no header at all**,
+  and that is deliberate and unchanged — it has no toolbar, so the row would be
+  a title and nothing else, and its panels name their own window ("Visitor Flow
+  — Today", "Top Hosts Today").
+  - **`lib/reportsDateRange.ts` is the ONE range vocabulary**, shared by Reports
+    and every ranged admin tab: `today | 7d | 30d | 60d | 90d | 1y`, spanning
+    back from a **chosen end date** rather than from today — that is what makes
+    the "date-wise" half of the instruction work. `today` is therefore a
+    single-day span on whichever date is picked, which is why it reads
+    **"Selected Day"** and not "Today"; the old label was a lie the moment an
+    admin picked another date. **`3m` was REPLACED by `60d`/`90d`, not joined by
+    them**: a calendar month is a different length depending on which one you
+    are standing in, so a three-month figure is not comparable with itself
+    across the year, while ninety days always is. Nothing persists a preset, so
+    there is no stored `3m` to degrade.
+  - **`AdminRangeBar` is its own row, never a header action.** Six preset
+    buttons plus a date input is wider than a title's trailing edge can hold and
+    `AdminPageHeader`'s action slot is `shrink-0`, so putting it there pushes
+    the controls off the right of the page on anything narrower than a desktop.
+    It prints **the resolved dates as well as the lit preset**, because those
+    are different facts — a "Last 90 Days" pill says nothing about whether the
+    visit an admin is hunting for falls inside the window.
+  - **Every ranged fetch passes an explicit `limit` and every ranged tab states
+    it when hit.** PostgREST applies a maximum of its own when none is given,
+    and a silent truncation is the worst failure this console can have: an admin
+    who selects "Last 1 Year", finds no Mr Mehta and concludes the visit never
+    happened has been misled by a cap nobody named. The Visitors Log's old
+    footer pointing at Reports "which takes a date range" is gone — this tab
+    takes one itself now. `Activity` states its 200-row cap for the same reason;
+    it used to say "all visit actions" over a truncated list.
+  - **Pre-Registration's window is on when a booking was MADE, and it ORs in
+    every upcoming pass regardless.** The range clauses are `created_at` /
+    `checked_in_at` only — there is no `scheduled_for` clause — so a pass raised
+    forty days ago for next week falls out of a thirty-day window entirely: not
+    created in the period, not yet arrived. That is a visitor the building is
+    expecting, dropped off the one screen whose job is listing them, and
+    *invisibly* — nothing tells the admin to widen the range and look. Hence
+    `includeUpcoming` on the range window (`and(status.eq.approved,
+    scheduled_for.gte.now)`). **Only this tab passes it**; a log of what happened
+    must not quietly gain rows for things that have not.
+  - **Blacklist & Security is HALF ranged and half live, and each half says
+    which it is.** Ranged: **Denied Entries** and the **blacklist half** of
+    Security Alerts — both are events that happened on a date. Live: the
+    **Blacklist roster** (`useVisitorDirectory`, never touched by the range —
+    `visitors` records no history of the flag being set, so "who was flagged 60
+    days ago" is not a thing this schema can answer) and the **overstay half**
+    of Security Alerts. `deniedEntriesToday` / `securityAlertsToday` are renamed
+    to `deniedEntries` / `securityAlerts` and **no longer date-filter
+    internally** — the fetch window does that now, and re-testing today's date
+    key inside the function would intersect the two and return nothing for every
+    past range.
+    - **`includeInside` is what makes the live half actually live.** The
+      overstay predicate carries no date test, but a predicate can only see the
+      rows its query loaded — so without it, an admin who narrowed to a past day
+      read an **empty Security Alerts panel while somebody was overdue in the
+      building**. Reporting "nobody is overstaying" when somebody is, is the one
+      failure this tab exists to prevent, and it is not a gap a comment can
+      discharge. The flag ORs every `checked_in` row into the fetch whatever the
+      dates say.
+  - **Hosts is historical with NO picker**, by scope decision. Its window is the
+    fixed trailing 7 IST days, so the blurb states it in words instead — a
+    "Historical" chip over a board whose period is never named would be the same
+    silent-window defect the Visitors Log's cap was.
+- **The Live Check-In tab is a ROSTER and carries no KPI tiles** (2026-08-17).
+  It had four, and three of them restated a figure already on screen:
+  `currentlyInside` was the Inside lane's badge four inches higher up,
+  `departedToday` was the Checked Out lane's badge likewise, and `arrivedToday`
+  was the Dashboard's "Visitors Today" computed from the same imported
+  `arrivedOn` — one number under two labels. `liveCheckInKpis` is **deleted**,
+  not merely unused. The fourth, `awaitingApproval`, was the only unique figure
+  and was a **count with no list to open** — the inverse of the rule
+  `guardTiles.ts` states — so it is a **third lane** now (Inside / Checked Out /
+  Awaiting Approval), where the count and its rows are the same thing. That lane
+  is deliberately **not date-bounded** (the same call `HODOverview`'s pending
+  query makes: a request raised at 23:50 is somebody still standing at the gate
+  at 00:05) and it swaps the two arrival stamps for `COLUMN.requested`, since an
+  em dash under "Checked In" would state "not recorded" where the truth is "has
+  not happened yet".
+  - **The two tabs stay SEPARATE and must not be merged** (client instruction,
+    2026-08-17, after considering a merge and reversing). The split that makes
+    them both worth having: the **Dashboard reads today's SHAPE** — the trend
+    against yesterday, the hourly flow, the purpose split, the host ranking —
+    and **Live Check-In reads today's PEOPLE**, by name, in the three states
+    they can be in. Neither screen states the other's figures any more, which is
+    what the de-duplication above bought. `AdminLiveCheckIn.test.tsx` fails on
+    any of the three deleted tile labels reappearing.
 - **There is NO `/analytics`. It was DELETED, not unlinked** (client instruction,
   2026-08-17). `pages/Shared/Analytics.tsx`, `AnalyticsCharts.tsx`, `AnalyticsKPICards.tsx`,
   the unrouted `pages/Admin/Analytics.tsx` and the sidebar's `SidebarAnalytics` widget are

@@ -11,10 +11,20 @@ const KIND_LABEL: Record<SecurityAlert['kind'], string> = {
 
 type Props = { alerts: SecurityAlert[]; loading: boolean };
 
-// Today's alerts, built from REAL rows only (lib/adminSecurity.ts): a
-// blacklisted visitor on today's activity, or a visitor past their overstay
-// deadline. Nothing here is invented — there is no gates table and no alert
-// type this app cannot actually detect.
+// Alerts, built from REAL rows only (lib/adminSecurity.ts): a blacklisted
+// visitor on the selected window's activity, or a visitor past their
+// overstay deadline right now. Nothing here is invented — there is no gates
+// table and no alert type this app cannot actually detect.
+//
+// THIS PANEL HOLDS BOTH A RANGED HALF AND A LIVE HALF, and says so — the one
+// blurb below is what stops a reader guessing which is which (client
+// instruction, 2026-08-17). Blacklist alerts follow the `AdminRangeBar`
+// above the tab; overstay alerts never do, because an overstay is a fact
+// about this instant and cannot be dated into the past (lib/adminSecurity.ts
+// header). `KIND_LABEL` on each row is the row-level half of the same
+// disclosure — "Blacklisted visitor" is a dated event, "Overstaying" is a
+// live one — but the blurb states the rule once up front rather than making
+// every reader infer it row by row.
 //
 // NO "Resolve" BUTTON. Nothing in the schema records an alert being
 // resolved — there is no alerts table at all, this list is recomputed from
@@ -25,8 +35,11 @@ type Props = { alerts: SecurityAlert[]; loading: boolean };
 export default function AdminSecurityAlertsPanel({ alerts, loading }: Props): React.ReactElement {
   return (
     <DashboardPanel icon={ICON_WARN} heading="Security Alerts" count={alerts.length} loading={loading}>
+      <p className="text-xs text-navy-500 mb-3">
+        Blacklisted visitors seen in the selected period, plus anyone overstaying right now.
+      </p>
       {!loading && alerts.length === 0 && (
-        <p className="text-sm text-navy-500 py-6 text-center">Nothing needs attention today.</p>
+        <p className="text-sm text-navy-500 py-6 text-center">Nothing needs attention.</p>
       )}
       {loading && <p className="text-sm text-navy-500 py-6 text-center">Loading…</p>}
       {!loading && alerts.length > 0 && (

@@ -39,7 +39,12 @@ export default function ActivityPage(): React.ReactElement {
           </div>
           <div>
             <h1 className="page-title">Activity Log</h1>
-            <p className="page-subtitle">Audit trail of all visit actions</p>
+            {/* NOT "all visit actions" — the query below is capped at 200 rows.
+                Saying "all" over a truncated list is the same failure the
+                Visitors Log's silent 500-row cap was: an admin who cannot find
+                an action concludes it never happened, when the truth is that it
+                fell off the end of a window nobody named. */}
+            <p className="page-subtitle">The 200 most recent visit actions, newest first</p>
           </div>
         </div>
         {!loading && logs.length > 0 && (

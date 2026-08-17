@@ -4,11 +4,12 @@ import { render, screen, cleanup, fireEvent, waitFor } from '@testing-library/re
 import { MemoryRouter } from 'react-router-dom';
 import AdminSecurity from '../../../src/pages/Admin/AdminSecurity';
 
-// AdminSecurity composes two live queries (useAdminVisits for today's visits,
-// useVisitorDirectory for the visitors table) plus attachVisitActors, which
-// all touch Supabase. Each is mocked at the module boundary, the same
-// approach GuardDashboard.test.tsx takes with useTodayVisits — a channel mock
-// is unnecessary here because the hooks themselves are replaced outright.
+// AdminSecurity composes two live queries (useAdminVisits for the ranged
+// visits window, useVisitorDirectory for the visitors table) plus
+// attachVisitActors, which all touch Supabase. Each is mocked at the module
+// boundary, the same approach GuardDashboard.test.tsx takes with
+// useTodayVisits — a channel mock is unnecessary here because the hooks
+// themselves are replaced outright.
 
 const mockVisits = vi.hoisted(() => ({ current: { visits: [] as any[], loading: false } }));
 const mockVisitors = vi.hoisted(() => ({ current: { visitors: [] as any[], loading: false } }));
@@ -49,6 +50,18 @@ function visitorRow(over: Record<string, any> = {}) {
   };
 }
 
+function visitRow(over: Record<string, any> = {}) {
+  return {
+    id: 'v1', ref_number: 'REF-1', visitor_id: 'p1', department_id: 'd1', host_id: 'h1',
+    status: 'rejected', checked_in_at: null, checked_out_at: null, exit_verified: null,
+    rejection_reason: 'Not on the guest list', carrying_material: false,
+    created_at: '2026-08-17T08:00:00Z', scheduled_for: null, purpose: 'meeting',
+    visitor: { full_name: 'A. Kapoor', phone: '', vendor_name: null, is_blacklisted: false, blacklist_reason: null, id_type: null, id_last4: null, created_at: '' },
+    department: { name: 'HR' }, host: { full_name: 'S. Verma' },
+    ...over,
+  };
+}
+
 describe('AdminSecurity', () => {
   afterEach(() => {
     cleanup();
@@ -63,11 +76,23 @@ describe('AdminSecurity', () => {
     expect(screen.getByRole('heading', { name: 'Blacklist & Security' })).toBeInTheDocument();
   });
 
+  // Client instruction 2026-08-17: every tab showing historical data must say
+  // so. This tab is a mix, but its own fetch is the ranged one, so the
+  // header chip reads "historical" the same way Visitors Log's does.
+  it('carries the Historical scope chip and a date range bar', () => {
+    renderPage();
+    expect(screen.getByText('Historical')).toBeInTheDocument();
+    // AdminRangeBar's own "Up to" date input and preset group.
+    expect(screen.getByLabelText('Up to')).toBeInTheDocument();
+    expect(screen.getByRole('group', { name: 'Date range' })).toBeInTheDocument();
+    expect(screen.getByText(/showing security events from/i)).toBeInTheDocument();
+  });
+
   it('shows the empty state of every panel when there is nothing to show', () => {
     renderPage();
     expect(screen.getByText('No visitor is currently blacklisted.')).toBeInTheDocument();
-    expect(screen.getByText('Nothing needs attention today.')).toBeInTheDocument();
-    expect(screen.getByText('No entry was denied today.')).toBeInTheDocument();
+    expect(screen.getByText('Nothing needs attention.')).toBeInTheDocument();
+    expect(screen.getByText('No entry was denied in this window.')).toBeInTheDocument();
     // The Watchlist panel never fabricates a row — it says so honestly.
     expect(screen.getByText(/not recorded separately from the blacklist/i)).toBeInTheDocument();
   });
@@ -78,6 +103,13 @@ describe('AdminSecurity', () => {
     expect(screen.getByText('Priya Nair')).toBeInTheDocument();
     expect(screen.getByText('Repeated policy violation')).toBeInTheDocument();
     expect(screen.getByText('Active')).toBeInTheDocument();
+  });
+
+  // The Blacklist panel is live state and must say the range does not touch
+  // it, distinct from Denied Entries below which is explicitly ranged.
+  it('labels the Blacklist panel as unaffected by the date range', () => {
+    renderPage();
+    expect(screen.getAllByText(/flagged right now.*not affected by the date range/i).length).toBeGreaterThan(0);
   });
 
   // There is no `visitors` column for who set the flag, so the panel must
@@ -117,21 +149,41 @@ describe('AdminSecurity', () => {
   // exception and it writes to `visitors`, never `visits`. No visit-state
   // control may appear anywhere on this page.
   it('offers no check-in, check-out or approval control', () => {
-    mockVisits.current = {
-      visits: [{
-        id: 'v1', ref_number: 'REF-1', visitor_id: 'p1', department_id: 'd1', host_id: 'h1',
-        status: 'rejected', checked_in_at: null, checked_out_at: null, exit_verified: null,
-        rejection_reason: 'Not on the guest list', carrying_material: false,
-        created_at: '2026-08-17T08:00:00Z', scheduled_for: null, purpose: 'meeting',
-        visitor: { full_name: 'A. Kapoor', phone: '', vendor_name: null, is_blacklisted: false, blacklist_reason: null, id_type: null, id_last4: null, created_at: '' },
-        department: { name: 'HR' }, host: { full_name: 'S. Verma' },
-      }],
-      loading: false,
-    };
+    mockVisits.current = { visits: [visitRow()], loading: false };
     renderPage();
     expect(screen.queryByRole('button', { name: /check in/i })).toBeNull();
     expect(screen.queryByRole('button', { name: /check out/i })).toBeNull();
     expect(screen.queryByRole('button', { name: /approve/i })).toBeNull();
     expect(screen.queryByRole('button', { name: /^reject$/i })).toBeNull();
+  });
+
+  // The whole point of the rename: a rejected visit from well outside "today"
+  // must still show up in Denied Entries, because the range — not a same-day
+  // filter inside the pure function — decides what is in `visits` at all.
+  it('lists a rejected visit from a past day in Denied Entries', async () => {
+    mockVisits.current = {
+      visits: [visitRow({ id: 'old', created_at: '2026-07-01T08:00:00Z' })],
+      loading: false,
+    };
+    renderPage();
+    await waitFor(() => expect(screen.getByText('A. Kapoor')).toBeInTheDocument());
+    expect(screen.getByText('Not on the guest list')).toBeInTheDocument();
+  });
+
+  // Overstay alerts must NEVER be date-filtered — an overstaying visitor
+  // whose check-in falls outside "today" still needs to appear, because the
+  // alert describes a fact about right now, not about when they arrived.
+  it('surfaces an overstaying visitor as an alert regardless of when they checked in', () => {
+    mockVisits.current = {
+      visits: [visitRow({
+        id: 'overstay', status: 'checked_in', checked_in_at: '2026-08-10T20:00:00Z',
+        rejection_reason: null, visitor: { ...visitRow().visitor, is_blacklisted: false },
+      })],
+      loading: false,
+    };
+    renderPage();
+    expect(screen.getByText(/blacklisted visitors seen in the selected period, plus anyone overstaying right now/i))
+      .toBeInTheDocument();
+    expect(screen.getByText(/Overstaying/)).toBeInTheDocument();
   });
 });

@@ -1,6 +1,7 @@
 import React from 'react';
 
-// The Live Check-In tab's two lanes: who is on site, and who has left today.
+// The Live Check-In tab's three lanes: who is on site, who has left today, and
+// who is still waiting on a host's answer.
 //
 // Modelled directly on the guard's `EntryExitTabs` (`pages/Guard/EntryExitTabs.tsx`)
 // and its reasoning, not imported from it: that component is styled with the
@@ -12,16 +13,28 @@ import React from 'react';
 // THE COUNT LIVES ON EACH TAB, not in a summary line above them — a lane's
 // number is the length of the list that lane opens, the same rule
 // `lib/guardTiles.ts` holds for the dashboard tiles. Printing a total above
-// the tabs as well would be the same fact stated twice on one screen.
+// the tabs as well would be the same fact stated twice on one screen, which is
+// precisely what the four KPI tiles that used to sit here were doing: two of
+// them restated these badges verbatim (see the header of
+// `lib/adminLiveCheckIn.ts`).
+//
+// AWAITING APPROVAL IS A LANE, not the tile it used to be, because a walk-in
+// nobody has answered is a PERSON at the gate and this tab is the roster of
+// people. As a tile it was a count with no list to open — the inverse of the
+// rule above — so an admin could see that three visitors were waiting and had
+// no route on this screen to find out who.
 
-export type LiveCheckInLane = 'inside' | 'departed';
+export type LiveCheckInLane = 'inside' | 'departed' | 'pending';
 
 export const LANE_LABEL: Record<LiveCheckInLane, string> = {
   inside: 'Inside',
   departed: 'Checked Out',
+  pending: 'Awaiting Approval',
 };
 
-const LANES: LiveCheckInLane[] = ['inside', 'departed'];
+// Order is the order a visitor passes through the gate as the admin meets
+// them: still here, already gone, not yet cleared.
+const LANES: LiveCheckInLane[] = ['inside', 'departed', 'pending'];
 
 type Props = {
   lane: LiveCheckInLane;
@@ -32,7 +45,7 @@ type Props = {
 
 export default function LiveCheckInTabs({ lane, onSelect, counts, loading }: Props): React.ReactElement {
   return (
-    <div role="tablist" aria-label="Live check-in" className="flex gap-2 mb-4">
+    <div role="tablist" aria-label="Live check-in" className="flex flex-wrap gap-2 mb-4">
       {LANES.map((key) => {
         const active = lane === key;
         return (

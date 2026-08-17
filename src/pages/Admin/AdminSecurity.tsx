@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import AdminPageHeader from './AdminPageHeader';
+import AdminRangeBar from './AdminRangeBar';
 import AdminSecurityKpis from './AdminSecurityKpis';
 import AdminBlacklistPanel from './AdminBlacklistPanel';
 import AdminSecurityAlertsPanel from './AdminSecurityAlertsPanel';
@@ -11,9 +12,13 @@ import { useAdminVisits } from '../../lib/useAdminVisits';
 import { useVisitorDirectory } from '../../lib/useVisitorDirectory';
 import { attachVisitActors } from '../../lib/visitActors';
 import {
-  blacklistedVisitors, deniedEntriesToday, securityAlertsToday,
+  blacklistedVisitors, deniedEntries, securityAlerts,
 } from '../../lib/adminSecurity';
 import type { ReportVisit } from '../../lib/reportRow';
+import { istDateKey } from '../../lib/visitExpiry';
+import { computeDateRange, type RangePreset } from '../../lib/reportsDateRange';
+
+const SECURITY_LIMIT = 1000;
 
 // The admin "Blacklist & Security" tab.
 //
@@ -23,17 +28,44 @@ import type { ReportVisit } from '../../lib/reportRow';
 // `visitors`, never a write to `visits` — no check-in, check-out, approve,
 // reject or deny-entry control exists anywhere on this page.
 //
+// THIS TAB IS A MIX OF LIVE STATE AND HISTORICAL STATE (client instruction,
+// 2026-08-17), and getting that mix labelled honestly is the whole reason it
+// looks the way it does below. `lib/adminSecurity.ts`'s header comment holds
+// the full reasoning; the short version: Denied Entries and the blacklist
+// half of Security Alerts are EVENTS that happened on a date, so they follow
+// the range bar. The Blacklist roster and the overstay half of Security
+// Alerts are facts about RIGHT NOW — who is flagged, who is still inside
+// past their deadline — and ranging either would be meaningless, not merely
+// unhelpful: `visitors` keeps no history of when a flag was set, and an
+// overstay is by definition a this-instant fact.
+//
 // TWO QUERIES, EACH FEEDING ONE HALF OF THE SCREEN. `useAdminVisits({kind:
-// 'today'})` is the visits window — it feeds Alerts Today, Denied Entries and
-// the overstay half of Security Alerts. `useVisitorDirectory()` is the
-// visitors table itself — it feeds Blacklisted and the Blacklist panel. They
-// are different tables answering different questions, so unlike the admin
-// Dashboard's single query this tab has two; each is still the ONLY source
-// for the figures derived from it (lib/adminSecurity.ts), so a count and its
-// panel can never disagree.
+// 'range', ...})` is the ranged visits window — it feeds Denied Entries and
+// the blacklist half of Security Alerts. `useVisitorDirectory()` is the
+// visitors table itself — it feeds Blacklisted and the Blacklist panel, and is
+// never touched by the range.
+//
+// `includeInside` IS WHAT MAKES THE LIVE HALF ACTUALLY LIVE. The overstay
+// predicate carries no date test, but a predicate can only ever see the rows
+// its query loaded — so without that flag, an admin who narrowed the range to
+// a past day would read an empty Security Alerts panel while a visitor was
+// overdue in the building right now. Telling somebody nobody is overstaying
+// when somebody is, is the one failure this tab exists to prevent, and it is
+// not the kind of gap a comment can discharge: the flag ORs every `checked_in`
+// row into the fetch regardless of the dates, so the live half is complete at
+// any range setting.
 export default function AdminSecurity(): React.ReactElement {
   const now = useMemo(() => new Date(), []);
-  const { visits, loading: visitsLoading } = useAdminVisits({ kind: 'today' });
+  const today = useMemo(() => istDateKey(now), [now]);
+
+  const [preset, setPreset] = useState<RangePreset>('30d');
+  const [endDate, setEndDate] = useState<string>(today);
+  const range = useMemo(() => computeDateRange(preset, endDate), [preset, endDate]);
+
+  const { visits, loading: visitsLoading } = useAdminVisits({
+    kind: 'range', from: range.from, to: range.to, limit: SECURITY_LIMIT,
+    includeInside: true,
+  });
   const { visitors, loading: visitorsLoading } = useVisitorDirectory();
 
   // `attachVisitActors` resolves WHO refused each row from the
@@ -42,12 +74,12 @@ export default function AdminSecurity(): React.ReactElement {
   // that name lives only in audit_logs, never on the visit row itself.
   const [deniedRows, setDeniedRows] = useState<ReportVisit[]>([]);
   useEffect(() => {
-    const denied = deniedEntriesToday(visits, now);
+    const denied = deniedEntries(visits);
     void attachVisitActors(denied).then((rows) => setDeniedRows(rows as ReportVisit[]));
-  }, [visits, now]);
+  }, [visits]);
 
   const blacklisted = useMemo(() => blacklistedVisitors(visitors), [visitors]);
-  const alerts = useMemo(() => securityAlertsToday(visits, now), [visits, now]);
+  const alerts = useMemo(() => securityAlerts(visits, now), [visits, now]);
 
   const [showForm, setShowForm] = useState(false);
   const [selected, setSelected] = useState<ReportVisit | null>(null);
@@ -56,6 +88,7 @@ export default function AdminSecurity(): React.ReactElement {
     <div className="p-6 max-w-[1600px] mx-auto">
       <AdminPageHeader
         title="Blacklist & Security"
+        scope="historical"
         action={(
           <button
             type="button"
@@ -67,10 +100,19 @@ export default function AdminSecurity(): React.ReactElement {
         )}
       />
 
+      <AdminRangeBar
+        preset={preset}
+        endDate={endDate}
+        today={today}
+        onPresetChange={setPreset}
+        onEndDateChange={setEndDate}
+        noun="security events"
+      />
+
       <AdminSecurityKpis
         blacklisted={blacklisted.length}
-        alertsToday={alerts.length}
-        deniedToday={deniedRows.length}
+        alerts={alerts.length}
+        denied={deniedRows.length}
         loading={visitsLoading || visitorsLoading}
       />
 

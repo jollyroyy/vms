@@ -1,13 +1,14 @@
 import { describe, it, expect } from 'vitest';
 import {
-  blacklistedVisitors, blacklistedCount, deniedEntriesToday, deniedEntriesTodayCount,
-  securityAlertsToday,
+  blacklistedVisitors, blacklistedCount, deniedEntries, deniedEntriesCount,
+  securityAlerts,
 } from '../../../src/lib/adminSecurity';
 import type { Visit, Visitor } from '../../../src/types/index';
 
 const NOW = new Date('2026-08-17T10:00:00Z');
 const TODAY = '2026-08-17T08:00:00Z';
 const YESTERDAY = '2026-08-16T08:00:00Z';
+const SIXTY_DAYS_AGO = '2026-06-18T08:00:00Z';
 
 function visitor(over: Partial<Visitor> = {}): Visitor {
   return {
@@ -43,44 +44,56 @@ describe('blacklistedVisitors / blacklistedCount', () => {
   });
 });
 
-describe('deniedEntriesToday / deniedEntriesTodayCount', () => {
-  it('keeps rejected visits created today, regardless of who refused', () => {
+// `deniedEntries` no longer takes a `now` or re-filters on a date at all —
+// the caller (`useAdminVisits({ kind: 'range', ... })`) has already narrowed
+// `visits` to the chosen window, so these tests feed it rows from several
+// different days and assert it keeps every rejected one regardless. A
+// same-day-only assertion would no longer prove anything: the function does
+// not look at dates any more.
+describe('deniedEntries / deniedEntriesCount', () => {
+  it('keeps every rejected visit it is given, whichever day it fell on', () => {
     const visits = [
       visit({ id: 'a', status: 'rejected', created_at: TODAY }),
-      visit({ id: 'b', status: 'rejected', created_at: YESTERDAY }),
+      visit({ id: 'b', status: 'rejected', created_at: SIXTY_DAYS_AGO }),
       visit({ id: 'c', status: 'checked_in', created_at: TODAY }),
     ];
-    expect(deniedEntriesToday(visits, NOW).map((v) => v.id)).toEqual(['a']);
-    expect(deniedEntriesTodayCount(visits, NOW)).toBe(1);
+    expect(deniedEntries(visits).map((v) => v.id)).toEqual(['a', 'b']);
+    expect(deniedEntriesCount(visits)).toBe(2);
   });
 
-  it('is zero on a day with no refusals', () => {
-    expect(deniedEntriesTodayCount([visit({ status: 'checked_in' })], NOW)).toBe(0);
+  it('is zero when nothing in the window was refused', () => {
+    expect(deniedEntriesCount([visit({ status: 'checked_in' })])).toBe(0);
   });
 });
 
-describe('securityAlertsToday', () => {
-  it('includes a blacklisted visitor on a visit created today', () => {
-    const visits = [visit({ id: 'a', visitor: visitor({ is_blacklisted: true, blacklist_reason: 'Theft' }), created_at: TODAY })];
-    const alerts = securityAlertsToday(visits, NOW);
+describe('securityAlerts', () => {
+  it('includes a blacklisted visitor on any visit it is given, not just today\'s', () => {
+    const visits = [visit({
+      id: 'a', visitor: visitor({ is_blacklisted: true, blacklist_reason: 'Theft' }), created_at: SIXTY_DAYS_AGO,
+    })];
+    const alerts = securityAlerts(visits, NOW);
     expect(alerts).toHaveLength(1);
     expect(alerts[0].kind).toBe('blacklist');
     expect(alerts[0].detail).toBe('Theft');
   });
 
-  it('excludes a blacklisted visitor whose visit was created yesterday', () => {
-    const visits = [visit({ visitor: visitor({ is_blacklisted: true }), created_at: YESTERDAY })];
-    expect(securityAlertsToday(visits, NOW)).toHaveLength(0);
-  });
-
-  it('includes an overstaying visit', () => {
+  it('includes an overstaying visit regardless of the range the caller narrowed visits to', () => {
+    // The overstay half is LIVE — it must never be date-tested inside the
+    // function itself. This row's checked_in_at is well outside a typical
+    // ranged window and it must still surface, because whether the caller
+    // happened to include it is the caller's concern (see
+    // AdminSecurity.tsx), not this function's.
     const visits = [visit({
       id: 'b', status: 'checked_in', checked_in_at: '2026-08-16T20:00:00Z',
       visitor: visitor({ is_blacklisted: false }),
     })];
-    const alerts = securityAlertsToday(visits, NOW);
+    const alerts = securityAlerts(visits, NOW);
     expect(alerts).toHaveLength(1);
     expect(alerts[0].kind).toBe('overstay');
+  });
+
+  it('never treats a checked-in, non-overstaying visitor as a blacklist alert', () => {
+    expect(securityAlerts([visit({ status: 'checked_in', checked_in_at: TODAY })], NOW)).toHaveLength(0);
   });
 
   it('sums both kinds, most recent first, and is empty when nothing needs attention', () => {
@@ -92,9 +105,9 @@ describe('securityAlertsToday', () => {
       id: 'bl', status: 'checked_in', checked_in_at: null,
       visitor: visitor({ id: 'v-bl', is_blacklisted: true }), created_at: '2026-08-17T09:30:00Z',
     });
-    const alerts = securityAlertsToday([overstay, blacklist], NOW);
+    const alerts = securityAlerts([overstay, blacklist], NOW);
     expect(alerts.map((a) => a.kind)).toEqual(['blacklist', 'overstay']);
 
-    expect(securityAlertsToday([visit({ status: 'checked_in', checked_in_at: TODAY })], NOW)).toHaveLength(0);
+    expect(securityAlerts([visit({ status: 'checked_in', checked_in_at: TODAY })], NOW)).toHaveLength(0);
   });
 });

@@ -46,15 +46,33 @@ describe('AdminVisitorsLog', () => {
     mockVisits.current = { visits: [], loading: false };
   });
 
-  it('renders the heading and blurb', () => {
+  it('renders the heading, blurb and the Historical scope chip', () => {
     renderPage();
     expect(screen.getByRole('heading', { name: 'Visitors Log' })).toBeInTheDocument();
-    expect(screen.getByText('Every visit on record, newest first.')).toBeInTheDocument();
+    expect(screen.getByText('Every visit in the selected window, newest first.')).toBeInTheDocument();
+    // Client instruction, 2026-08-17: every historical tab must say so on its
+    // own face, since a table of visits carries no clue on which of the two
+    // it is — every row looks the same.
+    expect(screen.getByText('Historical')).toBeInTheDocument();
+  });
+
+  // Client instruction, 2026-08-17: historical tabs carry a date-wise plus
+  // 7/30/60/90-day and 1-year filter, defaulting to 30 days so the register
+  // opens on a useful window rather than an empty one.
+  it('renders the range bar defaulted to Last 30 Days and switches presets', () => {
+    renderPage();
+    const thirtyDay = screen.getByRole('button', { name: 'Last 30 Days' });
+    expect(thirtyDay).toHaveAttribute('aria-pressed', 'true');
+
+    const sevenDay = screen.getByRole('button', { name: 'Last 7 Days' });
+    fireEvent.click(sevenDay);
+    expect(sevenDay).toHaveAttribute('aria-pressed', 'true');
+    expect(thirtyDay).toHaveAttribute('aria-pressed', 'false');
   });
 
   it('shows the empty state and a disabled, unlabelled-count export button when nothing has loaded', () => {
     renderPage();
-    expect(screen.getByText('No visit has been recorded yet.')).toBeInTheDocument();
+    expect(screen.getByText('No visit was recorded in this window.')).toBeInTheDocument();
     const exportBtn = screen.getByRole('button', { name: /Export/ });
     expect(exportBtn).toBeDisabled();
     expect(exportBtn).toHaveTextContent('Export CSV');
@@ -168,6 +186,22 @@ describe('AdminVisitorsLog', () => {
     fireEvent.change(screen.getByLabelText('Type'), { target: { value: 'walk_in' } });
     expect(screen.getByRole('button', { name: 'Export 2 rows' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Export 3 rows' })).toBeNull();
+  });
+
+  // The old advice ("use Reports, which takes a date range") went stale the
+  // moment this tab grew its own date range — pointing an admin at a second
+  // screen for a control they are already holding. The reworded note stays
+  // keyed on the same LOG_LIMIT-row cap and now tells them to narrow the
+  // range in front of them instead.
+  it('reworded the cap note to point at the range bar, not Reports', () => {
+    mockVisits.current = {
+      visits: Array.from({ length: 500 }, (_, i) => visitRow({ id: `row-${i}` })),
+      loading: false,
+    };
+    renderPage();
+    expect(screen.getByText(/hit the 500-row cap/)).toBeInTheDocument();
+    expect(screen.getByText(/narrow the date range above/)).toBeInTheDocument();
+    expect(screen.queryByText(/use Reports/)).toBeNull();
   });
 
   // READ-ONLY: no admin visitor surface may write to a visit.

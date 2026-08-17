@@ -67,6 +67,11 @@ describe('M12-REPORTS: Reports', () => {
     });
   });
 
+  // Reports and every ranged admin tab share ONE preset vocabulary
+  // (`lib/reportsDateRange.ts`, client instruction 2026-08-17). "Last 3 Months"
+  // was replaced by 60- and 90-day spans, not joined by them: a calendar month
+  // is a different length depending on which one you are standing in, so a
+  // three-month figure is not comparable with itself across the year.
   it('shows range preset buttons', async () => {
     mockOrder.mockResolvedValue({ data: [], error: null });
     mockIn.mockResolvedValue({ data: [], error: null });
@@ -74,8 +79,10 @@ describe('M12-REPORTS: Reports', () => {
     await waitFor(() => {
       expect(screen.getByRole('button', { name: 'Last 7 Days' })).toBeInTheDocument();
       expect(screen.getByRole('button', { name: 'Last 30 Days' })).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: 'Last 3 Months' })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Last 60 Days' })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Last 90 Days' })).toBeInTheDocument();
       expect(screen.getByRole('button', { name: 'Last 1 Year' })).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Last 3 Months' })).toBeNull();
     });
   });
 

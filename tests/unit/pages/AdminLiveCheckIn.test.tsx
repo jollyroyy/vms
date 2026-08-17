@@ -4,10 +4,18 @@ import { render, screen, cleanup, fireEvent, within } from '@testing-library/rea
 import AdminLiveCheckIn from '../../../src/pages/Admin/AdminLiveCheckIn';
 
 // AdminLiveCheckIn is the admin's read-only mirror of the guard's Entry & Exit
-// tab: one `useAdminVisits({ kind: 'today' })` fetch, four KPI tiles and two
-// lanes (Inside / Checked Out) over the same array. Mocking the hook directly
-// — the pattern EntryExitTab.test.tsx uses for `useGateActivity` — keeps this
-// suite about what the page composes, not about the supabase query chain.
+// tab: one `useAdminVisits({ kind: 'today' })` fetch and three lanes (Inside /
+// Checked Out / Awaiting Approval) over the same array. Mocking the hook
+// directly — the pattern EntryExitTab.test.tsx uses for `useGateActivity` —
+// keeps this suite about what the page composes, not about the supabase query
+// chain.
+//
+// IT CARRIES NO KPI TILES SINCE 2026-08-17, and the test below pins that. The
+// tab had four; two of them printed the same figures as the lane badges
+// directly beneath, one printed the Dashboard tab's headline figure, and the
+// fourth was a count with no list to open. Every count on this page is now a
+// lane badge, which is the only arrangement in which a number and the rows it
+// stands for cannot drift apart.
 
 afterEach(cleanup);
 
@@ -72,10 +80,11 @@ function pendingVisit(over: Record<string, any> = {}): any {
 describe('AdminLiveCheckIn', () => {
   afterEach(() => { mockVisits.current = { visits: [], loading: false }; });
 
-  it('renders the Live Check-In heading', () => {
+  it('renders the Live Check-In heading and says it is live, not historical', () => {
     render(<AdminLiveCheckIn />);
     expect(screen.getByRole('heading', { name: 'Live Check-In' })).toBeInTheDocument();
-    expect(screen.getByText('Everyone the gate has handled today.')).toBeInTheDocument();
+    expect(screen.getByText('Live')).toBeInTheDocument();
+    expect(screen.queryByText('Historical')).toBeNull();
   });
 
   it('shows the Inside lane empty state by default', () => {
@@ -105,25 +114,61 @@ describe('AdminLiveCheckIn', () => {
     expect(screen.queryByText('Aarav Mehta')).toBeNull();
   });
 
-  it('each lane shows its own count on its own tab', () => {
-    mockVisits.current = { visits: [insideVisit(), departedVisit()], loading: false };
+  it('lists the walk-ins nobody has answered on their own lane', () => {
+    mockVisits.current = { visits: [insideVisit(), pendingVisit()], loading: false };
     render(<AdminLiveCheckIn />);
-    const insideTab = screen.getByRole('tab', { name: /Inside/i });
-    const departedTab = screen.getByRole('tab', { name: /Checked Out/i });
-    expect(within(insideTab).getByText('1')).toBeInTheDocument();
-    expect(within(departedTab).getByText('1')).toBeInTheDocument();
+    expect(screen.queryByText('Nikhil Rao')).toBeNull();
+    fireEvent.click(screen.getByRole('tab', { name: /Awaiting Approval/i }));
+    expect(screen.getByText('Nikhil Rao')).toBeInTheDocument();
+    expect(screen.queryByText('Aarav Mehta')).toBeNull();
   });
 
-  it('computes correct KPI counts', () => {
+  it('gives the Awaiting Approval lane its own empty state', () => {
+    render(<AdminLiveCheckIn />);
+    fireEvent.click(screen.getByRole('tab', { name: /Awaiting Approval/i }));
+    expect(screen.getByText('Every walk-in request has been answered.')).toBeInTheDocument();
+  });
+
+  // A waiting visitor has no arrival to print. An em dash under "Checked In"
+  // on every row would state "not recorded" where the truth is "has not
+  // happened yet", so the lane swaps both arrival stamps for the moment the
+  // request was raised — the figure the delay is actually measured from.
+  it('prints the request time, not empty arrival columns, on the pending lane', () => {
+    mockVisits.current = { visits: [pendingVisit()], loading: false };
+    render(<AdminLiveCheckIn />);
+    fireEvent.click(screen.getByRole('tab', { name: /Awaiting Approval/i }));
+    expect(screen.getByRole('columnheader', { name: /Requested/i })).toBeInTheDocument();
+    expect(screen.queryByRole('columnheader', { name: /Checked In/i })).toBeNull();
+    expect(screen.queryByRole('columnheader', { name: /Checked Out/i })).toBeNull();
+  });
+
+  // The de-duplication of 2026-08-17. Each of these labels was a KPI tile whose
+  // figure was already on screen — twice over for the two that restated the
+  // lane badges directly beneath them. Re-adding any of them is a regression,
+  // not a feature.
+  it('carries no KPI tiles restating the lane badges or the Dashboard tab', () => {
     mockVisits.current = {
       visits: [insideVisit(), departedVisit(), pendingVisit()],
       loading: false,
     };
     render(<AdminLiveCheckIn />);
-    // Arrived Today: insideVisit + departedVisit = 2. Currently Inside: 1.
-    // Departed Today: 1. Awaiting Approval: 1.
-    expect(screen.getAllByText('2').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('1').length).toBeGreaterThan(0);
+    for (const label of ['Arrived Today', 'Currently Inside', 'Departed Today']) {
+      expect(screen.queryByText(label)).toBeNull();
+    }
+    // "Awaiting Approval" survives as a TAB, never as a tile — a count with a
+    // list behind it rather than a count on its own.
+    expect(screen.getByRole('tab', { name: /Awaiting Approval/i })).toBeInTheDocument();
+  });
+
+  it('each lane shows its own count on its own tab, including the pending one', () => {
+    mockVisits.current = {
+      visits: [insideVisit(), departedVisit(), pendingVisit()],
+      loading: false,
+    };
+    render(<AdminLiveCheckIn />);
+    for (const name of [/Inside/i, /Checked Out/i, /Awaiting Approval/i]) {
+      expect(within(screen.getByRole('tab', { name })).getByText('1')).toBeInTheDocument();
+    }
   });
 
   it('shows an em dash, never a blank cell, for a checked-in visitor with no checkout time', () => {

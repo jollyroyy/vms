@@ -47,7 +47,43 @@ describe('AdminPreRegistration', () => {
     mockVisits.current = [];
     render(<AdminPreRegistration />);
     expect(screen.getByRole('heading', { name: 'Pre-Registration' })).toBeInTheDocument();
-    expect(screen.getByText('Visitors booked in advance.')).toBeInTheDocument();
+    expect(screen.getByText('Visitors booked in advance, over the period below.')).toBeInTheDocument();
+  });
+
+  // Client instruction 2026-08-17: every historical tab must say so, in a
+  // chip beside the title (AdminPageHeader's `scope` prop).
+  it('marks the tab historical', () => {
+    mockVisits.current = [];
+    render(<AdminPreRegistration />);
+    expect(screen.getByText('Historical')).toBeInTheDocument();
+  });
+
+  // The range bar carries its own preset buttons and the resolved period —
+  // this is the "date-wise + 7/30/60/90-day + 1-year" control the client
+  // asked every historical tab to carry (AdminRangeBar.tsx).
+  it('renders the date range bar with its preset buttons, defaulting to 30 days', () => {
+    mockVisits.current = [];
+    render(<AdminPreRegistration />);
+    const group = screen.getByRole('group', { name: 'Date range' });
+    expect(within(group).getByRole('button', { name: 'Last 30 Days' })).toHaveAttribute('aria-pressed', 'true');
+    expect(within(group).getByRole('button', { name: 'Last 7 Days' })).toBeInTheDocument();
+    expect(within(group).getByRole('button', { name: 'Last 60 Days' })).toBeInTheDocument();
+    expect(within(group).getByRole('button', { name: 'Last 90 Days' })).toBeInTheDocument();
+    expect(within(group).getByRole('button', { name: 'Last 1 Year' })).toBeInTheDocument();
+    expect(within(group).getByRole('button', { name: 'Selected Day' })).toBeInTheDocument();
+  });
+
+  // Switching presets re-queries `useAdminVisits` with a new window rather
+  // than crashing or freezing the table — the mock hook ignores its argument
+  // and always returns the same seeded rows, so this proves the click and the
+  // re-render survive, not that the fetch args changed (that is
+  // useAdminVisits' own contract, not this page's).
+  it('does not crash when a different preset is picked', () => {
+    mockVisits.current = [visitRow({ id: 'a' })];
+    render(<AdminPreRegistration />);
+    fireEvent.click(screen.getByRole('button', { name: 'Last 90 Days' }));
+    expect(screen.getByRole('button', { name: 'Last 90 Days' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByText('Priya Nair')).toBeInTheDocument();
   });
 
   it('shows an empty state when there are no pre-registrations', () => {

@@ -1,5 +1,19 @@
 import React from 'react';
 
+/** Whether the tab describes the day running now, or a period that has ended. */
+export type AdminScope = 'live' | 'historical';
+
+const SCOPE_CHIP: Record<AdminScope, { label: string; className: string }> = {
+  live: {
+    label: 'Live',
+    className: 'bg-success-500/12 text-success-700 dark:text-success-400 border-success-500/25',
+  },
+  historical: {
+    label: 'Historical',
+    className: 'bg-surface-200/70 dark:bg-white/[0.06] text-navy-700 border-surface-300/60 dark:border-white/10',
+  },
+};
+
 type Props = {
   title: string;
   /** One line under the title. Omitted where it would restate the title — the
@@ -7,6 +21,13 @@ type Props = {
   blurb?: string;
   /** Controls on the trailing edge: a range picker, an export button. */
   action?: React.ReactNode;
+  /** Says whether this tab is showing now or showing the past (client
+   *  instruction, 2026-08-17: "whatever is showing the historical data,
+   *  mention that"). A table of visits carries no clue on its own face about
+   *  which of the two it is — every row looks the same — so an admin reading a
+   *  quiet Denied Entries panel cannot otherwise tell "nothing happened today"
+   *  apart from "nothing happened in the ninety days you selected". */
+  scope?: AdminScope;
 };
 
 // The heading row every admin tab opens with.
@@ -22,11 +43,27 @@ type Props = {
 // the guard-dashboard reason: it has no toolbar, so the row would be a title
 // and nothing else.
 
-export default function AdminPageHeader({ title, blurb, action }: Props): React.ReactElement {
+export default function AdminPageHeader({ title, blurb, action, scope }: Props): React.ReactElement {
+  const chip = scope ? SCOPE_CHIP[scope] : null;
+
   return (
     <div className="flex flex-wrap items-start gap-4 mb-6">
       <div className="min-w-0 flex-1">
-        <h1 className="font-display text-h1 text-navy-950 dark:text-white">{title}</h1>
+        {/* The chip wraps under the title rather than beside it on a narrow
+            window: `flex-wrap` with the heading allowed to shrink, so a long
+            title never pushes the chip off the edge. */}
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+          <h1 className="font-display text-h1 text-navy-950 dark:text-white min-w-0 break-words">{title}</h1>
+          {chip && (
+            <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5
+                              text-[11px] font-semibold uppercase tracking-wide whitespace-nowrap ${chip.className}`}>
+              {scope === 'live' && (
+                <span className="w-1.5 h-1.5 rounded-full bg-success-500 animate-pulse" aria-hidden="true" />
+              )}
+              {chip.label}
+            </span>
+          )}
+        </div>
         {blurb && <p className="text-sm text-navy-500 mt-1">{blurb}</p>}
       </div>
       {action && <div className="flex items-center gap-2 shrink-0">{action}</div>}

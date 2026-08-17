@@ -15,6 +15,23 @@ type Props = { visitors: Visitor[]; loading: boolean };
 // "Identity verified" tick. `Date` below is therefore the VISITOR record's
 // own `created_at`, not when the flag was set — the only timestamp that
 // actually exists on this row.
+//
+// THIS PANEL IS LIVE STATE, NOT RANGED (client instruction, 2026-08-17). The
+// tab's date range bar narrows Denied Entries and the blacklist half of
+// Security Alerts, which are events with a date; this roster is "who is
+// flagged right now", which has no date to narrow — there being no history of
+// the flag being set is exactly why. Ranging it would silently drop
+// currently-flagged visitors off screen whenever the picker moved away from a
+// window that happens to cover their `created_at`, which is not what
+// "blacklisted" means.
+//
+// IT CARRIES NO CAPTION SAYING SO, and that is the no-duplicate-renders rule,
+// not an oversight: the `Blacklisted` KPI tile immediately above this panel
+// already reads "Flagged right now — not affected by the date range", and
+// repeating the sentence four inches lower makes the eye check whether the two
+// agree. The tile is the right place for it — it is the one sitting in a row of
+// three where two of its neighbours DO follow the range, which is where the
+// ambiguity actually bites.
 export default function AdminBlacklistPanel({ visitors, loading }: Props): React.ReactElement {
   return (
     <DashboardPanel icon={ICON_SHIELD_X} heading="Blacklist" count={visitors.length} loading={loading}>

@@ -77,9 +77,17 @@ export default function AdminHosts(): React.ReactElement {
 
   return (
     <div className="p-6 max-w-[1600px] mx-auto">
+      {/* HISTORICAL, BUT WITH NO RANGE PICKER — the window is the fixed
+          trailing 7 IST days, by scope decision (2026-08-17), so the blurb
+          states it in words instead. A chip saying "Historical" over a board
+          whose period is never named would be the same silent-window defect
+          the Visitors Log's unannounced 500-row cap was: an admin reading
+          "Visitors This Week" has no way to know whether the week ends today
+          or ended on the date they last looked. */}
       <AdminPageHeader
         title="Hosts"
-        blurb="Everyone visitors are checked in against, and what they're told when one arrives."
+        scope="historical"
+        blurb="Everyone visitors are checked in against, over the last 7 days, and what they're told when one arrives."
         action={
           <Link to="/admin/settings?section=roles" className="btn-secondary !px-4 !py-2 text-sm">
             Manage in Settings
