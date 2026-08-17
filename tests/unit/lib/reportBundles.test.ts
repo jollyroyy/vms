@@ -91,9 +91,16 @@ describe('peak hours', () => {
     expect(hourRow?.['Avg check-in time']).toBe('Not measured');
   });
 
-  it('appends entry-point usage as trailing rows, including an unrecorded one', () => {
+  // The entry-point breakdown used to ride along as trailing rows and went with
+  // the Entry Point Utilization panel (2026-08-17, client instruction). Nothing
+  // writes `visits.entry_point_id`, so every one of those rows read "not
+  // recorded" — and a CSV column whose meaning changes halfway down the sheet is
+  // worse than the same defect on screen. Every row must now be an hour.
+  it('carries hours only — no trailing entry-point rows', () => {
     const rows = bundle('peak').build([v({ entry_point: undefined })], '2026-08-14', '2026-08-14');
-    expect(rows.some((r) => r.Hour === 'Entry point — not recorded' && r.Arrivals === '1')).toBe(true);
+    expect(rows.length).toBeGreaterThan(0);
+    expect(rows.every((r) => /^\d{2}:00$/.test(r.Hour))).toBe(true);
+    expect(rows.some((r) => r.Hour.startsWith('Entry point'))).toBe(false);
   });
 });
 

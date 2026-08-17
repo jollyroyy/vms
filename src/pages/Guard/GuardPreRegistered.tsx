@@ -41,7 +41,7 @@ import SuccessToast from '../../components/SuccessToast';
 
 const CHIP_ORDER: { key: PreRegisteredChip; label: string }[] = [
   { key: 'all', label: 'All' },
-  { key: 'arriving', label: 'Arriving Today' },
+  { key: 'arriving', label: 'Arriving' },
   { key: 'missed', label: 'Missed' },
   { key: 'late', label: 'Late' },
 ];

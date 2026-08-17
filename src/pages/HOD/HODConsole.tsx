@@ -99,11 +99,34 @@ export default function HODConsole(): React.ReactElement {
     const dayStart = istDayStart().toISOString();
     try {
       const [todayResult, walkInResult, onSiteResult] = await Promise.all([
-        supabase.from('visits').select(SELECT).eq('department_id', deptId).gte('created_at', dayStart).order('created_at', { ascending: false }).limit(200),
+        // CREATED, ARRIVED **OR** DEPARTED TODAY — three clauses, not one.
+        //
+        // It was `created_at >= dayStart` alone, which is the wrong window for
+        // the two tiles added on 2026-08-17 and was already the wrong window
+        // for the charts' arrival counts. A pre-approval raised last week whose
+        // visitor walked in this morning was NOT created today, so the HOD's
+        // own booking vanished from their own board on the one day it mattered;
+        // and a visitor who arrived at 21:00 yesterday and left after midnight
+        // was neither created nor arrived today, so the departure most likely
+        // to be asked about was exactly the row that was missing. This is the
+        // same widening `useTodayVisits` and `useAdminVisits` already carry —
+        // the rule is stated in three places now and was being retyped wrong in
+        // a fourth.
+        supabase.from('visits').select(SELECT).eq('department_id', deptId)
+          .or(`created_at.gte.${dayStart},checked_in_at.gte.${dayStart},checked_out_at.gte.${dayStart}`)
+          .order('created_at', { ascending: false }).limit(200),
         // NOT day-bounded: a request raised at 11pm is still someone standing at
         // reception at 12:05am.
         supabase.from('visits').select(SELECT).eq('department_id', deptId).eq('status', 'pending_approval').order('created_at', { ascending: false }).limit(50),
-        supabase.from('visits').select(SELECT).eq('department_id', deptId).eq('status', 'checked_in').gte('checked_in_at', dayStart).order('checked_in_at', { ascending: false }).limit(20),
+        // NOT day-bounded either, and for the reason the guard board's `inside`
+        // predicate is `status === 'checked_in'` and nothing else: this is the
+        // list you hand a fire marshal. A contractor who arrived at 21:00
+        // yesterday and has not left is on the premises now, and the old
+        // `checked_in_at >= dayStart` clause dropped them off the tile at
+        // midnight while they were still in the building — the one direction
+        // this figure must never be wrong in. The limit is raised with the
+        // bound removed so a genuinely busy department cannot silently truncate.
+        supabase.from('visits').select(SELECT).eq('department_id', deptId).eq('status', 'checked_in').order('checked_in_at', { ascending: false }).limit(100),
       ]);
       const [nextDay, nextWalkIns, nextOnSite] = await Promise.all([
         normaliseRows(todayResult.data as unknown as Visit[] | null),
@@ -139,7 +162,10 @@ export default function HODConsole(): React.ReactElement {
   const selectedWalkIn = walkIns.find((visit) => visit.id === selectedWalkInId) ?? null;
   // ONE source for every KPI: the count is the length of the list the tile
   // opens, and the desk below acts on those same rows.
-  const tiles = useMemo(() => hodTileVisits({ day: dayVisits, onSite, walkIns }), [dayVisits, onSite, walkIns]);
+  const tiles = useMemo(
+    () => hodTileVisits({ day: dayVisits, onSite, walkIns }, clock),
+    [dayVisits, onSite, walkIns, clock],
+  );
 
   const runDecision = (approved: boolean) => {
     if (!selectedWalkIn) return;
@@ -154,6 +180,7 @@ export default function HODConsole(): React.ReactElement {
       {tab === 'overview' && (
         <HodKpiBoard
           tiles={tiles}
+          dayVisits={dayVisits}
           selected={openTile}
           onSelect={setOpenTile}
           loading={loading}

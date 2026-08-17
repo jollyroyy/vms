@@ -53,8 +53,8 @@ type Props = {
   loading?: boolean;
 };
 
-// THE admin surface's KPI card, drawn once and used by all six boards
-// (Dashboard, Pre-Registration, Hosts, Badge Printing, Security, Reports).
+// THE admin surface's KPI card, drawn once and used by every board that has
+// tiles (Dashboard, Pre-Registration, Hosts, Security, Reports).
 //
 // It is a DIV, not a button, and it opens nothing. That is the whole difference
 // from `KpiTile`/`DashboardTile`, whose contract is "a tile's count is the

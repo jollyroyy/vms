@@ -26,12 +26,21 @@ const ICONS = [
 
 // The four standing reports, as download cards.
 //
-// EACH BUTTON REPORTS ITS OWN ROW COUNT AND GOES DISABLED AT ZERO. A download
-// control that produces a file with a header row and nothing under it is
+// EACH BUTTON GOES DISABLED AT ZERO AND SAYS SO IN WORDS. A download control
+// that produces a file with a header row and nothing under it is
 // indistinguishable from a broken export, and the admin only finds out after
-// opening it — so the card says up front how many rows the current range
-// yields. That figure comes from running the same builder the button runs, not
-// from a second count.
+// opening it — so an empty range reads "Nothing in this range" rather than
+// offering a file with no rows in it. That state comes from running the same
+// builder the button runs, not from a second count.
+//
+// THE ROW COUNT IS NOT PRINTED BESIDE THE LABEL (removed 2026-08-17, client
+// instruction). "Download report (137)" put a number on a button, where a
+// number reads as part of the control — the range bar above already states the
+// window these rows come from, and the four counts differ per report (days,
+// hosts, hours, bad outcomes), so four unlabelled integers side by side invited
+// exactly the comparison they do not support. What the number was load-bearing
+// FOR — telling an empty range apart from a working one — survives as the
+// disabled state and its sentence.
 //
 // They are CSV, not PDF. `jspdf` is already a dependency (the visitor pass uses
 // it), but a PDF is a fixed-width artefact and every one of these is a table an
@@ -69,7 +78,7 @@ export default function ReportsDownloadCards({ visits, from, to, filenameSuffix 
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8} aria-hidden="true">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
               </svg>
-              {empty ? 'Nothing in this range' : `Download report (${rows.length})`}
+              {empty ? 'Nothing in this range' : 'Download report'}
             </button>
           </div>
         );

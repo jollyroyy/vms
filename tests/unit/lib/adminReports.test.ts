@@ -4,7 +4,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   dateKeysInRange, axisLabelFor, visitorsByDay, checkinTimeTrend,
-  entryPointUsage, formatSeconds, defaultReportRange,
+  formatSeconds, defaultReportRange,
 } from '../../../src/lib/adminReports';
 import type { Visit } from '../../../src/types/index';
 
@@ -96,23 +96,11 @@ describe('checkinTimeTrend', () => {
   });
 });
 
-describe('entryPointUsage', () => {
-  it('keeps unrecorded entry points separate, never folded into a gate', () => {
-    const visits = [
-      v({ id: 'a', checked_in_at: '2026-08-14T09:00:00Z', entry_point: { id: 'e1', name: 'Gate A', code: 'A', kind: 'gate', active: true, sort_order: 1, created_at: '' } }),
-      v({ id: 'b', checked_in_at: '2026-08-14T09:00:00Z', entry_point: undefined }),
-    ];
-    const usage = entryPointUsage(visits);
-    expect(usage.rows).toEqual([{ label: 'Gate A', value: 1 }]);
-    expect(usage.unrecorded).toBe(1);
-  });
-
-  it('ignores a visit that never checked in at all', () => {
-    const usage = entryPointUsage([v({ checked_in_at: null })]);
-    expect(usage.rows).toEqual([]);
-    expect(usage.unrecorded).toBe(0);
-  });
-});
+// THERE IS NO `entryPointUsage` TEST because there is no `entryPointUsage`
+// (removed 2026-08-17, client instruction, with the Entry Point Utilization
+// panel it fed). Nothing writes `visits.entry_point_id`, so the function could
+// only ever report every arrival as unrecorded. Migration 084's table stays —
+// do not re-derive a chart from it until a check-in path records a door.
 
 describe('formatSeconds', () => {
   it('reads sub-minute durations in seconds', () => {

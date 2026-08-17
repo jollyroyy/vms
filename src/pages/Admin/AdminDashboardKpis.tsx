@@ -32,7 +32,7 @@ export default function AdminDashboardKpis({ kpis, loading }: Props): React.Reac
     // rows rather than one row that has to be deciphered.
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6 gap-4 mb-6">
       <AdminKpiTile
-        label="Visitors Today"
+        label="Total Visitors"
         value={String(kpis.visitorsToday)}
         icon={ICON_PEOPLE}
         tone="brand"
@@ -64,7 +64,7 @@ export default function AdminDashboardKpis({ kpis, loading }: Props): React.Reac
       />
 
       {/* Two figures on one tile, matching the reference screen. They are the
-          two ROUTES in, and they sum to Visitors Today — so the tile is a split
+          two ROUTES in, and they sum to Total Visitors — so the tile is a split
           of the first tile rather than a second, differently-derived total. */}
       <AdminKpiTile
         label="Pre-registered"

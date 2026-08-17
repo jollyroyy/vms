@@ -6,7 +6,9 @@ import AdminTablePagination from './AdminTablePagination';
 import DashboardVisitorTable from '../../components/DashboardVisitorTable';
 import VisitorDetails from '../../components/VisitorDetails';
 import { useAdminVisits } from '../../lib/useAdminVisits';
+import RegisterPrintSheet from '../Shared/RegisterPrintSheet';
 import { filterLog, DEFAULT_LOG_FILTERS, type LogFilters } from '../../lib/visitorsLog';
+import { ALL_DEPTS, deptOptions } from '../../lib/reportsDeptFilter';
 import { COLUMN } from '../../lib/dashboardColumns';
 import { initialsOf } from '../../lib/initials';
 import { exportToCsv } from '../../lib/exportUtils';
@@ -23,12 +25,14 @@ const LOG_LIMIT = 500;
 // itself the boundary an admin had to feel out by trial, rather than a period
 // they chose.
 //
-// IT IS NOT REPORTS, and the difference is still the control each one carries,
-// only now they overlap more than they used to. Reports prints, exports
-// seventeen pinned columns, and `styles/print.css` fixes their widths — a
-// document. This is a register with a search box on top of its range: the
-// question is usually about a person ("did a Mr Mehta come in last month"),
-// found by narrowing a window rather than reading a fixed document.
+// IT IS THE ADMIN'S REGISTER OUTRIGHT since 2026-08-17 (client instruction:
+// the same information was on Reports, so the table there is gone for this
+// role). What came across with it is everything that made Reports a document —
+// the DEPARTMENT FILTER, the seventeen-column PRINTOUT and the CSV — and all
+// three read the same `filterLog` output, so the sheet in an admin's hand, the
+// file they mail on and the rows they are looking at cannot describe different
+// sets. Reports keeps the charts, the four standing CSV reports, and the
+// register itself for an HOD and for staff, who cannot reach this tab.
 //
 // READ-ONLY, like every admin visitor tab (client instruction, 2026-08-17).
 // Clicking a row opens `VisitorDetails` with no approve/reject handlers, so it
@@ -68,30 +72,77 @@ export default function AdminVisitorsLog(): React.ReactElement {
 
   const pageRows = shown.slice((page - 1) * pageSize, page * pageSize);
 
+  // THE PAPER REGISTER IS MOUNTED ONLY WHILE PRINTING. Keeping it in the tree
+  // permanently would put every filtered row in the DOM twice — up to 500 rows
+  // of it — and a screen reader has no `@media print`, so it would read the whole
+  // register a second time after the table. `.print-only` hides it visually; it
+  // does not stop it existing. So: arm on click, render, print on the next frame
+  // (the sheet must be laid out before the dialog opens), unmount on `afterprint`.
+  const [printing, setPrinting] = useState(false);
+  useEffect(() => {
+    if (!printing) return undefined;
+    const done = () => setPrinting(false);
+    window.addEventListener('afterprint', done);
+    const raf = requestAnimationFrame(() => window.print());
+    return () => {
+      window.removeEventListener('afterprint', done);
+      cancelAnimationFrame(raf);
+    };
+  }, [printing]);
+
+  // What the file and the printed letterhead are called. A filtered register
+  // that prints without naming its department is a document that quietly omits
+  // most of the window — the same rule Reports' own label followed.
+  const deptName = filters.department === ALL_DEPTS
+    ? null
+    : deptOptions(rows).find((d) => d.id === filters.department)?.name ?? null;
+  const rangeLabel = `${deptName ? `${deptName} · ` : ''}${range.from} to ${range.to}`;
+  const fileStem = `visitors-log-${deptName ? `${deptName.replace(/\s+/g, '-').toLowerCase()}-` : ''}${range.from}_${range.to}`;
+
   return (
     <div className="p-6 max-w-[1600px] mx-auto">
+      {/* SCREEN ONLY. `styles/print.css` lays out one thing — the seventeen-column
+          register — so everything that is a control rather than a record has to be
+          out of the print tree: the range bar, the filter row, the eight-column
+          lookup table and the pagination would otherwise print as a wall of
+          furniture around a table that is not the register. */}
+      <div className="no-print">
       <AdminPageHeader
         title="Visitors Log"
         blurb="Every visit in the selected window, newest first."
         scope="historical"
         action={
-          <button
-            type="button"
-            disabled={shown.length === 0}
-            onClick={() => exportToCsv(toReportRows(shown), `visitors-log-${range.from}_${range.to}.csv`)}
-            className="btn-secondary text-sm flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
-          >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8} aria-hidden="true">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
-            </svg>
-            {/* The count is on the button because the export takes the FILTERED
-                set, not everything loaded — an admin who narrowed to one
-                department must be able to see that before they send the file
-                on. The filename carries the range instead: a CSV leaves the
-                building and cannot carry the screen's date picker with it, so
-                the window it came from has to be stated in the name itself. */}
-            Export {shown.length === 0 ? 'CSV' : `${shown.length} rows`}
-          </button>
+          <>
+            {/* Both act on the FILTERED set, and the filename and the letterhead
+                say which set that was: a CSV and a sheet of paper leave the
+                building and cannot carry the screen's pickers with them, so the
+                window and any department have to be stated on the artefact
+                itself. Disabled at zero rather than producing a header row with
+                nothing under it — an empty file is indistinguishable from a
+                broken export until somebody opens it. */}
+            <button
+              type="button"
+              disabled={shown.length === 0}
+              onClick={() => exportToCsv(toReportRows(shown), `${fileStem}.csv`)}
+              className="btn-secondary text-sm flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8} aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+              </svg>
+              Export CSV
+            </button>
+            <button
+              type="button"
+              disabled={shown.length === 0}
+              onClick={() => setPrinting(true)}
+              className="btn-secondary text-sm flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8} aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6.72 13.829c-.24.03-.48.062-.72.096m.72-.096a42.415 42.415 0 0110.56 0m-10.56 0L6.34 18m10.94-4.171c.24.03.48.062.72.096m-.72-.096L17.66 18m0 0l.229 2.523a1.125 1.125 0 01-1.12 1.227H7.231c-.662 0-1.18-.568-1.12-1.227L6.34 18m11.318 0h1.091A2.25 2.25 0 0021 15.75V9.456c0-1.081-.768-2.015-1.837-2.175a48.055 48.055 0 00-1.913-.247M6.34 18H5.25A2.25 2.25 0 013 15.75V9.456c0-1.081.768-2.015 1.837-2.175a48.041 48.041 0 011.913-.247m10.5 0a48.536 48.536 0 00-10.5 0m10.5 0V3.375c0-.621-.504-1.125-1.125-1.125h-8.25c-.621 0-1.125.504-1.125 1.125v3.659M18.75 12h.008v.008h-.008V12zm-3 0h.008v.008h-.008V12z" />
+              </svg>
+              Print Register
+            </button>
+          </>
         }
       />
 
@@ -140,6 +191,17 @@ export default function AdminVisitorsLog(): React.ReactElement {
           The selected window hit the {LOG_LIMIT}-row cap — narrow the date range above to
           see every visit in it.
         </p>
+      )}
+
+      </div>
+
+      {/* THE PAPER REGISTER. Every filtered row, not the open page — see
+          RegisterPrintSheet. It is the artefact that used to come off /reports,
+          and it is the reason the Print button above is not a dead control. */}
+      {printing && (
+        <div className="print-only">
+          <RegisterPrintSheet rows={shown} rangeLabel={rangeLabel} />
+        </div>
       )}
 
       {selected && (

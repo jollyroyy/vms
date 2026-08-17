@@ -1,6 +1,6 @@
 import React from 'react';
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { render, screen, cleanup, act } from '@testing-library/react';
+import { render, screen, cleanup, act, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import GuardDashboard from '../../../src/pages/Guard/Dashboard';
 
@@ -100,11 +100,10 @@ describe('GuardDashboard (reference-screen frame)', () => {
     }
     // "Overstaying", not "Pending Check-out": the number has always been
     // isOverstaying, and everyone inside is pending check-out, so the old label
-    // described the tile next to it.
-    // "Expected Today" now names both the KPI tile AND the arrivals panel
-    // heading below it (2026-08-15, deliberately — same predicate, two
+    // described the tile next to it. "Expected" names both the KPI tile AND the
+    // panel heading below it (2026-08-15, deliberately — same predicate, two
     // altitudes), so it can appear more than once.
-    for (const label of ['Expected Today', 'Checked In Today', 'In Premises', 'Overstaying']) {
+    for (const label of ['Expected', 'Checked In', 'In Premises', 'Overstaying']) {
       expect(screen.getAllByText(label).length).toBeGreaterThan(0);
     }
     // The old six-tile board must not silently return.
@@ -120,16 +119,20 @@ describe('GuardDashboard (reference-screen frame)', () => {
   // heading was wrong for six of the seven tiles.
   it('opens on Expected Today, with that lane\'s columns', () => {
     renderDashboard();
-    expect(screen.getByRole('heading', { name: 'Expected Today' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Expected' })).toBeInTheDocument();
+    // Scoped to the TABLE: since the tiles dropped "Today" (2026-08-17, the
+    // window is stated once by the "Today at a Glance" header), "Checked In"
+    // names a tile as well as a column, and an unscoped absence assertion
+    // cannot tell the two apart.
+    const table = within(screen.getByRole('table'));
     for (const col of ['Name', 'Purpose', 'Host', 'Department', 'Scheduled', 'Status']) {
-      expect(screen.getByText(col)).toBeInTheDocument();
+      expect(table.getByText(col)).toBeInTheDocument();
     }
     // Nobody in this lane has arrived, so an entry-time column would be an em
-    // dash on every row. (The TILE above still reads "Checked In Today" — this
-    // is about the panel's column headers.)
-    expect(screen.queryByText('Checked In')).toBeNull();
-    expect(screen.queryByText('Checked Out')).toBeNull();
-    expect(screen.queryByText('Overstaying By')).toBeNull();
+    // dash on every row.
+    expect(table.queryByText('Checked In')).toBeNull();
+    expect(table.queryByText('Checked Out')).toBeNull();
+    expect(table.queryByText('Overstaying By')).toBeNull();
   });
 
   it('renames the panel and re-columns it when another tile is pressed', () => {
@@ -138,13 +141,14 @@ describe('GuardDashboard (reference-screen frame)', () => {
       loading: false,
     };
     renderDashboard();
-    act(() => { screen.getByRole('button', { name: /Checked In Today/ }).click(); });
-    expect(screen.getByRole('heading', { name: 'Checked In Today' })).toBeInTheDocument();
+    act(() => { screen.getByRole('button', { name: /Checked In/ }).click(); });
+    expect(screen.getByRole('heading', { name: 'Checked In' })).toBeInTheDocument();
     // The scheduled slot AND the actual entry, side by side — the whole point
-    // of the dynamic columns.
-    expect(screen.getByText('Scheduled')).toBeInTheDocument();
-    expect(screen.getByText('Checked In')).toBeInTheDocument();
-    expect(screen.getByText('Checked Out')).toBeInTheDocument();
+    // of the dynamic columns. Scoped to the table for the reason above.
+    const table = within(screen.getByRole('table'));
+    expect(table.getByText('Scheduled')).toBeInTheDocument();
+    expect(table.getByText('Checked In')).toBeInTheDocument();
+    expect(table.getByText('Checked Out')).toBeInTheDocument();
   });
 
   // An overstaying row gains a column that exists on no other lane: how far
@@ -230,11 +234,11 @@ describe('GuardDashboard (reference-screen frame)', () => {
     renderDashboard();
     // Scoped to the tile (a button), not the panel heading below it, which
     // shares the same text since 2026-08-15.
-    const tile = screen.getAllByRole('button', { name: /Expected Today/ })[0];
+    const tile = screen.getAllByRole('button', { name: /Expected/ })[0];
     expect(tile.textContent).toMatch(/2/);
     // ...and only the visitor a guard actually stamped through the gate is on
     // Checked In. The cleared walk-in is still outside it.
-    const checked = screen.getAllByRole('button', { name: /Checked In Today/ })[0];
+    const checked = screen.getAllByRole('button', { name: /Checked In/ })[0];
     expect(checked.textContent).toMatch(/1/);
   });
 

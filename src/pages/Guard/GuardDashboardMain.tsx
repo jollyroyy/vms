@@ -12,6 +12,7 @@ import DashboardPanel from '../../components/DashboardPanel';
 import DashboardTile from '../../components/DashboardTile';
 import { TILE_ICONS, TILE_RING, sortForTile } from './dashboardTileMeta';
 import VisitorDetails from '../../components/VisitorDetails';
+import GlanceHeader from '../../components/GlanceHeader';
 
 // Guard Dashboard — the whole board, on one screen.
 //
@@ -94,6 +95,21 @@ export default function GuardDashboardMain(): React.ReactElement {
 
   return (
     <div className="space-y-4 animate-fade-in pb-4">
+      {/* The board's window, said once (client instruction, 2026-08-17). It is
+          an h2 and NOT the <h1> this page had removed in 2026-08-13 — the
+          sidebar item still says "Dashboard" and this does not repeat it, which
+          is what keeps GuardDashboard.test.tsx's no-level-1-heading assertion
+          true. Saying it here is what let "Expected Today", "Checked In Today"
+          and "Checked Out Today" drop the word.
+
+          The caption is the footer note this board has always carried, moved to
+          the top where it scopes the tiles instead of explaining them
+          afterwards: `useTodayVisits` ORs in the open statuses UNBOUNDED, so
+          In Premises and Overstaying legitimately hold people from earlier
+          days, and a bare "Today" over them would be the one number a guard
+          must not mistrust. */}
+      <GlanceHeader caption="Today's gate activity — plus anyone still inside, or still waiting on a host, from an earlier day." />
+
       {/* Row 1 — the gate's own board. Five across at xl since Checked Out
           joined it (2026-08-17), matching row 2's five so the two rows share a
           column rhythm instead of a four-and-five stagger. */}

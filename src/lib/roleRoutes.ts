@@ -57,7 +57,14 @@ export const ROLE_ROUTES: Record<UserRole, string[]> = {
   // matcher. `/admin/dashboard` is FIRST because the first entry of each list
   // is that role's landing page.
   admin:       ['/admin/dashboard', '/admin/live-check-in', '/admin/pre-registration',
-                '/admin/visitors-log', '/admin/hosts', '/admin/badges', '/admin/security',
+                // No `/admin/badges`: the Badge Printing tab was deleted on
+                // 2026-08-17 (client instruction) — it read a log nothing
+                // writes. The `/admin` prefix below still matches the path, so
+                // it resolves to App.tsx's NotFound rather than being refused;
+                // that is the honest outcome for a page that no longer exists,
+                // and `/admin` cannot be dropped because it is the bookmark
+                // every admin holds for the old Admin Panel.
+                '/admin/visitors-log', '/admin/hosts', '/admin/security',
                 '/admin/settings', '/admin', '/reports', '/profile', '/search'],
   // THE CEO HAS ONE DESTINATION AND `/profile` (client instruction,
   // 2026-08-17). This role exists for a single decision — a visitor comes off

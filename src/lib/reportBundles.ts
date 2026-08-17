@@ -2,7 +2,7 @@ import type { ReportVisit } from './reportRow';
 import { istDateKey, isOverstaying, overstayMs } from './visitExpiry';
 import { visitOrigin, visitOriginLabel } from './visitOrigin';
 import { PURPOSE_LABELS } from './adminDashboard';
-import { visitorsByDay, entryPointUsage, formatSeconds } from './adminReports';
+import { visitorsByDay, formatSeconds } from './adminReports';
 
 // The four standing reports the admin Reports screen offers as downloads.
 //
@@ -85,7 +85,7 @@ function hostActivity(visits: ReportVisit[]): Record<string, string>[] {
     }));
 }
 
-/** Arrivals per IST hour, plus the entry points they came through. */
+/** Arrivals per IST hour, with the mean time the desk took in each. */
 function peakHours(visits: ReportVisit[]): Record<string, string>[] {
   const IST_OFFSET_MS = (5 * 60 + 30) * 60_000;
   const buckets = new Map<number, { count: number; timed: number[] }>();
@@ -101,9 +101,13 @@ function peakHours(visits: ReportVisit[]): Record<string, string>[] {
     });
   }
 
-  const usage = entryPointUsage(visits);
-
-  const rows = [...buckets.entries()]
+  // NO ENTRY-POINT ROWS TRAIL THIS FILE ANY MORE (removed 2026-08-17, client
+  // instruction, with the Entry Point Utilization panel). Nothing writes
+  // `visits.entry_point_id`, so every one of those trailing rows read
+  // "Entry point — not recorded", which in a CSV is worse than on screen: a
+  // sheet where one column silently changes meaning halfway down is a sheet
+  // somebody will pivot by mistake.
+  return [...buckets.entries()]
     .sort((a, b) => a[0] - b[0])
     .map(([hour, { count, timed }]) => ({
       // No zone suffix. This deployment is IST end to end — every stamp on
@@ -117,17 +121,6 @@ function peakHours(visits: ReportVisit[]): Record<string, string>[] {
         ? 'Not measured'
         : formatSeconds(Math.round(timed.reduce((a, b) => a + b, 0) / timed.length)),
     }));
-
-  // The entry-point breakdown rides along as trailing rows rather than as a
-  // second file: an admin asking "when are we busiest" is next going to ask
-  // "and where", and two downloads for one question is two files to reconcile.
-  return [
-    ...rows,
-    ...usage.rows.map((r) => ({ Hour: `Entry point — ${r.label}`, Arrivals: String(r.value), 'Avg check-in time': '' })),
-    ...(usage.unrecorded > 0
-      ? [{ Hour: 'Entry point — not recorded', Arrivals: String(usage.unrecorded), 'Avg check-in time': '' }]
-      : []),
-  ];
 }
 
 /** Missed appointments, lapsed approvals and visits that ran past their
@@ -183,7 +176,7 @@ export const REPORT_BUNDLES: ReportBundle[] = [
   {
     key: 'peak',
     title: 'Peak Hours Analysis',
-    blurb: 'Arrivals by hour, with the doors they came through.',
+    blurb: 'Arrivals by hour, with the mean time the desk took in each.',
     filename: 'peak-hours',
     build: (visits) => peakHours(visits),
   },

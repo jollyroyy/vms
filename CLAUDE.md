@@ -15,11 +15,25 @@
 - **Auth**: JWT `app_metadata.role` + `department_id`. Fallback to `profiles` table.
 
 ### Admin scope
-- **The admin console is NINE TABS and it READS visitor records** (client instruction,
+- **The admin console is EIGHT TABS and it READS visitor records** (client instruction,
   2026-08-17, from a set of reference screens). In order: Dashboard, Live Check-In,
-  Pre-Registration, Visitors Log, Hosts, Badge Printing, Blacklist & Security, Reports,
+  Pre-Registration, Visitors Log, Hosts, Blacklist & Security, Reports,
   Settings. The order is the reference screens' order — a reader learns the rail by
   position — so a reshuffle is a behaviour change, not a tidy-up.
+  - **BADGE PRINTING WAS THE NINTH AND IT IS DELETED** (client instruction,
+    2026-08-17, later the same day). `AdminBadges.tsx`, `BadgePrintsTable.tsx`,
+    `lib/adminBadges.ts`, `lib/useBadgePrints.ts` and the tab's test are **gone**, the
+    route is out of `adminRoutes.tsx` and the item out of `navLinks`/`ROLE_ROUTES`. It
+    read migration **087**'s `badge_prints` log, and **nothing in this app writes that
+    table** — the gate prints through `lib/printBadge.ts` and records nothing — so the
+    tab was three zero tiles over an empty table, i.e. a screen that could only ever
+    report that the building had printed no badges. The table, migration 087 and the
+    `BadgePrint` type **stay** (they mirror the live schema, the same rule `gate_passes`
+    follows), as do the four **Settings → Badges** fields, which govern what the GATE
+    prints and are enforced. `/admin/badges` resolves to **NotFound** rather than being
+    refused: `isForbidden` matches by prefix and `/admin` must stay in the list, being
+    the bookmark every admin holds. Guarded by `navLinks.test.tsx`, `Sidebar.test.tsx`
+    (exactly 8 links) and `routeProtectionAdmin.test.tsx`.
   - **This REVERSES the standing "admin has no route to visitor records" rule.** That
     rule's reasoning is preserved by the tabs being **READ-ONLY**, not by the routes
     being absent: no admin screen renders a control that writes to `visits` — no
@@ -120,8 +134,8 @@
   face about which of the two it is — every row looks the same — so an admin
   reading a quiet Denied Entries panel cannot otherwise tell "nothing happened
   today" apart from "nothing happened in the ninety days you selected". Live:
-  **Live Check-In**. Historical: **Pre-Registration, Visitors Log, Hosts, Badge
-  Printing, Blacklist & Security**. The **Dashboard passes no header at all**,
+  **Live Check-In** and **Hosts**. Historical: **Pre-Registration, Visitors
+  Log, Blacklist & Security**. The **Dashboard passes no header at all**,
   and that is deliberate and unchanged — it has no toolbar, so the row would be
   a title and nothing else, and its panels name their own window ("Visitor Flow
   — Today", "Top Hosts Today").
@@ -180,10 +194,18 @@
       failure this tab exists to prevent, and it is not a gap a comment can
       discharge. The flag ORs every `checked_in` row into the fetch whatever the
       dates say.
-  - **Hosts is historical with NO picker**, by scope decision. Its window is the
-    fixed trailing 7 IST days, so the blurb states it in words instead — a
-    "Historical" chip over a board whose period is never named would be the same
-    silent-window defect the Visitors Log's cap was.
+  - **Hosts is LIVE, with no picker** (client instruction, 2026-08-17: drop its
+    Historical chip, "it should always reflect latest state"). Its window is the
+    trailing 7 IST days ending TODAY, and the chip is honest by construction
+    rather than by label: `useAdminVisits` subscribes to `postgres_changes` on
+    `visits` and reloads silently, and the window **ROLLS with the IST day** —
+    `now` was frozen at mount, so a console left open overnight went on reporting
+    yesterday's seven days. It ticks the IST *date key* rather than the clock, and
+    React bails out of a state set to an identical string, so the page re-renders
+    once at midnight and on none of the other 1,439 minutes. The blurb still
+    states the period in words: the chip says the data is current, not how far
+    back it reaches, and a reader of "Visitors This Week" would otherwise have no
+    way to know which seven days that is.
 - **The Live Check-In tab is a ROSTER and carries no KPI tiles** (2026-08-17).
   It had four, and three of them restated a figure already on screen:
   `currentlyInside` was the Inside lane's badge four inches higher up,
@@ -287,7 +309,49 @@
   - **No zone suffix on any exported column.** The Peak Hours report printed
     `09:00 IST`; the deployment is IST end to end, so naming the zone on one column of
     one report implies the others might be something else.
-- **Reports (`/reports`) is the admin's visitor record.** It already carries `Approved`,
+- **THE ADMIN'S VISITOR RECORD IS THE VISITORS LOG TAB, NOT `/reports`** (client
+  instruction, 2026-08-17: remove the "Register — <date> (N entries)" table, the same
+  information being on the Visitors Log). `pages/Shared/ReportsRegister.tsx` renders only
+  when the viewer is **not** an admin, and the register's own **Export CSV** and **Print
+  Register** buttons go with it (`ReportsToolbar`'s `showRegisterActions`) — leaving Print
+  would hand an admin a blank sheet, since the only thing `styles/print.css` lays out is
+  the table that is no longer on the page.
+  - **IT STILL RENDERS FOR AN HOD AND FOR STAFF, and that is not an oversight.**
+    `/admin/visitors-log` is admin-only, so those two roles have no other surface that
+    lists a visit at all; dropping the table for everyone would have left them a page
+    holding a date picker and nothing else. This page was ALREADY role-split exactly this
+    way — the charts and the four CSV download cards are admin-only for the mirror
+    reason. Guarded by `ReportsRegisterScope.test.tsx`, which needs a supabase mock of
+    its own: `Reports.test.tsx`'s deliberately has no `auth`, so every test in that file
+    runs as `userRole === null`.
+  - **The 17-column table is `pages/Shared/RegisterTable.tsx` and there is ONE of it.**
+    `styles/print.css` pins those widths by `nth-child`, so a second copy would be a
+    second thing to edit in lockstep with that block, failing silently — the paper
+    mis-columns, the screen looks fine. `RegisterPrintSheet.tsx` wraps it in the
+    letterhead and the sign-off block for the Visitors Log's printout.
+  - **What moved to the log with it**: the **department filter** (client instruction,
+    same date, "for printout and csv export as well"), the **printout** and the CSV. All
+    three read `filterLog`'s output, so the sheet in an admin's hand, the file they mail
+    on and the rows on screen cannot describe different sets — `LogFilters.department`
+    lives in that one pipeline rather than being applied again at the table. It selects on
+    `department_id`, never on the joined name: the join is dropped when the department row
+    is unreadable, and filtering by label would silently lose exactly those rows. An
+    absent key means "no filter", never "match nothing".
+  - **THE PAPER REGISTER IS MOUNTED ONLY WHILE PRINTING.** Permanently in the tree it
+    would put every filtered row in the DOM twice — up to 500 of them — and a screen
+    reader has no `@media print`, so it would read the whole register again after the
+    table. `.print-only` hides it visually; it does not stop it existing. Arm on click,
+    print on the next frame (the sheet must be laid out before the dialog opens), unmount
+    on `afterprint`.
+  - **NO ROW COUNT BESIDE A DOWNLOAD BUTTON** (client instruction, 2026-08-17).
+    "Download report (137)" and "Export 3 rows" put a number where a number reads as part
+    of the control, and the four bundles count different units — days, hosts, hours, bad
+    outcomes — so four bare integers side by side invited a comparison they do not
+    support. What the count was load-bearing FOR, telling an empty range apart from a
+    working one, survives as the **disabled state** and its sentence ("Nothing in this
+    range") — the honest half, since a file with a header row and nothing under it is
+    indistinguishable from a broken export until somebody opens it.
+- **Reports (`/reports`) still owns the approval instant.** It carries `Approved`,
   `Check-in` and `Check-out` columns with the exact date *and* time, on screen and in the
   CSV. Approval time is resolved through `lib/visitApproval.ts` → `approvalTimestamp()`,
   not read off the row: there is no `visits.approved_at` column, so it comes from the
@@ -490,6 +554,45 @@
   the host's answer is one continuous job. `/visitors/approved` likewise still
   renders `GuardWalkInApproved` unchanged — it captures a photo before it can
   act, so it is a flow, not a row with a button.
+  - **IT CARRIES THE GATE CHECK-IN NOW TOO — a THIRD box, "Pending gate
+    check-in"** (client instruction, 2026-08-17: show the approved-but-not-yet-
+    checked-in walk-ins stacked beside the register, with a Check In button on
+    each, "and give the card number as well"). The register is the three stages
+    of a walk-in's life at this desk in order: register → awaiting the person to
+    meet → pending gate check-in. The actionable box **leads** the watch-only
+    one, because a guard opening this page while a queue builds is looking for
+    the row they can do something about; burying it under rows they cannot act
+    on is what made the Check In button feel absent. The button was never
+    missing — it was one tab away on `/visitors/approved`, which is exactly the
+    kind of "learn which other screen owns this" the walk-in exit note above
+    already fixed once in the other direction.
+  - **ONE form, TWO screens: `WalkInCheckInForm.tsx` + `PendingGateCheckIn.tsx`.**
+    The photo / ID scan / card-number / carrying step was inline in
+    `GuardWalkInApproved`; it moved out rather than being pasted onto the
+    register, because a second copy of a form that ends in a status write is the
+    drift `lib/checkInWalkInApproved.ts` exists to prevent one layer down. The
+    form owns the CAPTURE state only and never touches supabase — both screens
+    route through `Console.checkInWalkIn` → `checkInApprovedWalkIn`, so there is
+    still exactly one route from `walkin_approved` to `checked_in`.
+    `PendingGateCheckIn` holds the OPEN ROW (not each row itself) because the
+    form mounts a camera: two expanded rows is two live streams, the ONE CAMERA
+    AT A TIME rule. It renders no heading and no count of its own — each of the
+    two boxes states its own, or the same number would appear twice on one page.
+  - **`isAwaitingGateCheckIn` (`lib/visitOrigin.ts`) is the NARROW half of
+    `isApprovedWalkIn`.** The wide one answers "who did the host clear?" and
+    keeps a visitor after they enter, which is what makes the Approved Walk-ins
+    lane a record of issuance rather than of attendance. This one answers "who
+    is still waiting at the gate?", so the count beside the new box is the
+    number of Check In buttons under it — the `guardTiles.ts` rule again. Both
+    screens filter with it, so neither can offer an action the other withholds.
+  - **The dashboard row for such a visitor reads "Awaiting gate check-in"**
+    (same instruction), not "Awaiting entry". `presenceChip` names the ACTION
+    outstanding rather than describing the visitor's position, because a guard
+    reading the board is being told which desk still owes this person something
+    and the answer is now theirs on two screens. It also matches the HOD's own
+    board, which has said "Awaiting gate check" on the identical row throughout
+    (`OverviewUpcoming`). The tone stays neutral, never `inside` — migration
+    083's point: this person is not in the building.
 - **The Visitors KPI board sits ON TOP of the list, full width, at the dashboard's
   size** (`VisitorKpiRail.tsx`, client instruction 2026-08-13). Same
   `grid-cols-1 sm:grid-cols-2 xl:grid-cols-3` as the dashboard board, same full-size
@@ -1517,8 +1620,82 @@
     which is the no-duplicate-renders rule. No panel carries a Department column —
     an HOD belongs to exactly one department, so it would print the same value on every
     line.
-- **The five HOD tiles are On Site Now · Pre-Approvals Given · Walk-ins Approved ·
-  Awaiting Walk-in Approval · Declined Today** (client instruction, 2026-08-16).
+- **EVERY BOARD SAYS "TODAY AT A GLANCE" ONCE, AND NO TILE SAYS "TODAY" AT ALL**
+  (client instruction, 2026-08-17). `components/GlanceHeader.tsx` is the one header,
+  rendered by the guard board, the HOD board and the admin Dashboard. Five cards on one
+  screen were each carrying the qualifier — Expected Today, Checked In Today, Checked Out
+  Today, Visitors Today, Declined Today — which is the no-duplicate-renders rule at board
+  scale: it spent the widest word on every card on the one fact identical across all of
+  them, and it still left the reader guessing about the cards that did NOT say it
+  (In Premises, Overstaying), which are live and not day-bounded. The labels are now
+  `Expected` / `Checked In` / `Checked Out` / `Total Visitors` / `Declined`, and
+  `Visitor Flow` / `Top Hosts` on the admin charts.
+  - **It is an `h2` and never an `h1`.** The guard dashboard has had no page heading
+    since 2026-08-13 and `GuardDashboard.test.tsx` asserts it, the admin Dashboard
+    passes no `AdminPageHeader`, and the HOD board dropped its "HOD COMMAND VIEW"
+    strip — in every case because the sidebar item just clicked already names the page.
+    This names a SECTION and its WINDOW, which the sidebar cannot.
+  - **The caption is per-board and it is not decoration.** "Today" is not the whole
+    truth on any of the three: each deliberately carries open rows from earlier days —
+    a visitor still inside from last night, a walk-in raised at 23:50. A bare "Today at
+    a Glance" over those lanes would be exactly the confidently-wrong framing this
+    project deletes elsewhere, so each caller states in one sentence what its board
+    spans. **No date on it** — the topbar clock carries the IST date on every screen.
+  - **`Total Visitors`, not a bare `Visitors`.** The short form collided with the flow
+    chart's series name and the Top Hosts count column on the same screen; the test
+    that caught it (`getByText('Visitors')` finding three nodes) is the useful signal,
+    not the obstacle. For the same reason `GuardDashboard.test.tsx` now scopes its
+    column-header assertions to `getByRole('table')`: "Checked In" names a tile *and* a
+    column, so an unscoped absence assertion cannot tell the two apart.
+- **The seven HOD tiles are Pre-Approvals Given · Walk-ins Approved · Awaiting Walk-in
+  Approval · Checked In · On Site Now · Checked Out · Declined**, in the order a visit
+  passes through the gate — the guard board's own ordering rule, adopted here because
+  seven tiles is only legible if the eye can walk them in one direction.
+  - **CHECK-INS AND CHECK-OUTS ARE TWO TILES** (client instruction, 2026-08-17),
+    department-scoped like every other figure on the board. The gap: it could say how
+    many passes an HOD had issued and how many of their visitors were on site, and left
+    "how many actually turned up" and "how many have gone home" to be worked out as the
+    difference — arithmetic the HOD was doing in their head, and arithmetic that does
+    not work, because On Site Now is LIVE and can hold a visitor who arrived yesterday.
+    `checkedIn` is CUMULATIVE and `inside` is LIVE: `visits.status` holds one value, so
+    a visitor who came and left is `checked_out` and counting the status answers "who is
+    still here", never "how many came through".
+  - **`checkedOut` is keyed on `checked_out_at` against `istDayStart`, never on
+    `status === 'checked_out'`** — `TILE_FILTER.checkedOut`'s rule verbatim, so the HOD
+    figure is a department-scoped slice of the guard's and not a second derivation.
+    **`checkedIn` is keyed on the arrival stamp FALLING TODAY** (`arrivedOn`, imported
+    from `lib/adminDashboard.ts`), not on the stamp merely existing: the widened window
+    now carries rows that only DEPARTED today, whose arrival belongs to yesterday, and
+    testing for existence would file them as today's arrivals and make the tile disagree
+    with the flow chart beneath it.
+  - **`HODConsole`'s day query was WIDENED to created OR arrived OR departed today.**
+    It was `created_at >= dayStart` alone — the exact defect this file has now fixed in
+    four places. A pre-approval raised last week whose visitor walked in this morning was
+    not created today, so an HOD's own booking vanished from their own board on the one
+    day it mattered; a visitor who arrived at 21:00 and left after midnight was neither
+    created nor arrived today, so the departure most likely to be asked about was exactly
+    the row missing. **The `onSite` query lost its date bound too** (`checked_in_at >=
+    dayStart`): that is the list you hand a fire marshal, and a contractor still on site
+    from yesterday evening dropped off the tile at midnight while still in the building.
+- **The HOD board carries the admin's CHART BAND, over its own department**
+  (client instruction, 2026-08-17). `pages/HOD/HodDashboardCharts.tsx`: Visitor Flow,
+  Visit Purpose, Busiest Hosts. **`hourlyFlow` / `purposeSplit` / `topHosts` are
+  IMPORTED from `lib/adminDashboard.ts`, never copied** — they take an array and a clock
+  and hold no admin-ness at all, so the scoping is done entirely by WHICH ROWS ARE PASSED
+  IN, which for an HOD is `.eq('department_id', deptId)` plus the RLS saying it again.
+  **No second query**: every series is derived from the same `Visit[]` the tiles are
+  sliced from, so the Checked In tile and the flow chart cannot disagree about how many
+  came through — the tile-vs-drilldown defect this project has already fixed twice.
+  - **The admin's Live Lobby Feed is deliberately NOT ported.** Its rows are the
+    drill-down panel the KPI board directly above already renders; on the admin
+    Dashboard that feed is the only list on the screen, here it would be the second.
+  - **The host avatars are deliberately absent.** This board's rows come through
+    `attachHostNames`, whose `get_profile_names` RPC returns a name and a department and
+    no `avatar_url`. A monogram is the honest render of "no photo was fetched"; reaching
+    for one would mean a round trip per host to decorate a ranking.
+- **The five HOD tiles were On Site Now · Pre-Approvals Given · Walk-ins Approved ·
+  Awaiting Walk-in Approval · Declined Today** (client instruction, 2026-08-16;
+  superseded by the seven above on 2026-08-17 — the reasoning below still stands).
   - **The two clearances are two tiles.** "Approved Today" carried `approved` and
     `walkin_approved` in one number, and those are two different acts by two different
     routes: a pre-approval is a pass this HOD raised in advance on `/approvals`, a
@@ -2107,7 +2284,17 @@ that the system cannot stand behind, the same defect as the deleted "Gate Status
 Operational" chip — the columns were added. **Every one is NULLABLE and every screen
 says what it does not know.**
 
-- **`084` — `entry_points` + `visits.entry_point_id`.** WHICH DOOR a visitor came
+- **`084` — `entry_points` + `visits.entry_point_id`. NOTHING READS THIS ANY MORE.**
+  The Entry Point Utilization panel it existed for was removed on 2026-08-17 (client
+  instruction) along with `entryPointUsage` and the trailing entry-point rows in the Peak
+  Hours CSV, and the `entry_point` embed is out of both `ADMIN_VISIT_SELECT` and
+  `Reports.tsx`'s select — a join nothing reads still ships a table's worth of rows to
+  every tab. No check-in path ever wrote the column, so the panel could only ever render
+  its own empty state above a sentence counting every arrival as unrecorded; a measurement
+  whose honest output is "we do not know, for all N of them" is a column waiting for a
+  feature, not a chart. The table and the column STAY (live-schema mirror, the
+  `gate_passes` rule) — do not re-derive a chart from them until a check-in path records a
+  door. The original rationale, still right if that day comes: WHICH DOOR a visitor came
   through. This is **not** `lib/visitOrigin.ts`, which answers which ROUTE they took
   (pre-approved vs walk-in) — "desk" in this codebase has always meant the route, so it
   could not be borrowed for the door. A TABLE, not a text column (a free-text gate name
@@ -2137,9 +2324,12 @@ says what it does not know.**
   party can edit is not a rating.
 - **`087` — `badge_prints`.** A LOG, not a queue. `lib/printBadge.ts` already existed
   and the gate was already printing; nothing recorded it, so a reprint was
-  indistinguishable from a first print. The admin tab **reads it and never writes it** —
-  the standing rule that a badge is minted at the gate by the guard who can see the
-  visitor did not move. Append-only by construction (no update, no delete policy).
+  indistinguishable from a first print. Append-only by construction (no update, no delete
+  policy). **THE TAB THAT READ IT IS DELETED** (2026-08-17, client instruction): no writer
+  was ever wired, so it rendered three zeroes over an empty table. The table stays — it
+  mirrors the live schema and is the right shape for the writer — but do not re-add an
+  admin screen for it until a check-in path inserts a row. The rule that a badge is minted
+  at the gate by the guard who can see the visitor never moved.
 - **`088` — `visits.checkin_duration_seconds`.** How long the DESK took. The obvious
   substitutes are both wrong: `checked_in_at - scheduled_for` measures how punctual the
   VISITOR was and is undefined for every walk-in, and `checked_in_at - created_at` is
@@ -2316,17 +2506,17 @@ src/
   pages/CEO/         # CeoBlacklistRemovals (the role's ONE screen: the queue of
                      #   removal requests waiting on them, plus what they have
                      #   already decided) + CeoDecisionCard
-  pages/Admin/       # The nine-tab console: AdminDashboard (+AdminDashboardKpis),
+  pages/Admin/       # The eight-tab console: AdminDashboard (+AdminDashboardKpis),
                      #   AdminLiveCheckIn (+LiveCheckInTabs), AdminPreRegistration
                      #   (+Kpis, +Filters), AdminVisitorsLog (+VisitorsLogFilters),
                      #   AdminHosts (+HostDirectoryCard, HostNotificationsPanel),
-                     #   AdminBadges (+BadgePrintsTable), AdminSecurity (+Kpis,
+                     #   AdminSecurity (+Kpis,
                      #   BlacklistPanel, AlertsPanel, DeniedEntriesPanel,
                      #   BlacklistForm), AdminSettings (+SettingsRail, SettingsField,
                      #   SettingsRolesUsers — which renders the OLD Admin Panel's
                      #   DepartmentsManager unchanged); AdminPageHeader,
                      #   AdminTablePagination (generic — holds no idea what a row is)
-  routes/            # adminRoutes.tsx — the console's nine routes, returned as an
+  routes/            # adminRoutes.tsx — the console's eight routes, returned as an
                      #   ARRAY of <Route> spread into App.tsx's one <Routes>. A
                      #   nested <Routes> would create a second matcher and break the
                      #   path="*" fallback.
@@ -2336,7 +2526,7 @@ src/
                      # SidebarProfile (SidebarAnalytics was deleted 2026-08-17)
   lib/               # roleRoutes, theme, errors, mfa,
                      # adminDashboard / adminReports / adminHosts / adminSecurity /
-                     #   adminBadges / adminLiveCheckIn / preRegistration /
+                     #   adminLiveCheckIn / preRegistration /
                      #   visitorsLog / reportBundles — the admin console's figures,
                      #   as PURE functions over Visit[]. Same rule as guardTiles:
                      #   one predicate feeds both a count and the rows it opens, and

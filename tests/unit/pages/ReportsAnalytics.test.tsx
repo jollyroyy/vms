@@ -24,20 +24,34 @@ function srListTexts(region: HTMLElement): string[] {
 describe('ReportsAnalytics', () => {
   afterEach(cleanup);
 
-  it('renders all four cards with headings', () => {
+  it('renders all three cards with headings', () => {
     render(<ReportsAnalytics visits={[]} from="2026-08-17" to="2026-08-17" />);
-    for (const heading of ['Visitors by Day', 'Avg Check-in Time Trend', 'Visit Purpose Split', 'Entry Point Utilization']) {
+    for (const heading of ['Visitors by Day', 'Avg Check-in Time Trend', 'Visit Purpose Split']) {
       expect(screen.getByRole('heading', { name: heading })).toBeInTheDocument();
     }
+  });
+
+  // Entry Point Utilization was removed on 2026-08-17 (client instruction).
+  // Nothing writes `visits.entry_point_id`, so on live data the card rendered its
+  // own empty state above a sentence counting every arrival as unrecorded. The
+  // assertion is the ABSENCE, and it is what stops a fourth card coming back
+  // from a column no check-in path fills in.
+  it('draws NO Entry Point Utilization card, even when rows carry an entry point', () => {
+    render(<ReportsAnalytics
+      visits={[visit({ id: 'a', checked_in_at: '2026-08-17T08:00:00Z', entry_point: { name: 'Gate A' } })]}
+      from="2026-08-17" to="2026-08-17"
+    />);
+    expect(screen.queryByRole('heading', { name: 'Entry Point Utilization' })).toBeNull();
+    expect(screen.queryByText('Gate A')).toBeNull();
+    expect(screen.queryByText(/entry point/i)).toBeNull();
   });
 
   it('shows each empty-data chart\'s own message, and still draws zero-stub bars rather than an empty message', () => {
     render(<ReportsAnalytics visits={[]} from="2026-08-15" to="2026-08-17" />);
 
-    // Donut, line and utilization rows have genuinely nothing to plot.
+    // Donut and line have genuinely nothing to plot.
     expect(screen.getByText('No arrivals to break down.')).toBeInTheDocument();
     expect(screen.getByText('No check-in in this range was timed.')).toBeInTheDocument();
-    expect(screen.getByText('No arrival in this range recorded an entry point.')).toBeInTheDocument();
 
     // visitorsByDay always returns one entry per day in the range, valued
     // zero — a day with no visitors is a fact, not a missing data point
@@ -58,7 +72,7 @@ describe('ReportsAnalytics', () => {
     expect(screen.queryByText(/days carried a measured check-in/)).toBeNull();
   });
 
-  it('renders correct values across all four charts, and the "N of M" line when the trend is shorter than the range', () => {
+  it('renders correct values across all three charts, and the "N of M" line when the trend is shorter than the range', () => {
     const visits = [
       // 08-15: one arrival, unmeasured check-in duration, entry point recorded.
       visit({
@@ -105,20 +119,6 @@ describe('ReportsAnalytics', () => {
     const purposeList = within(purposeRegion).getAllByRole('listitem').map((li) => li.textContent);
     expect(purposeList[0]).toMatch(/Meetings/);
     expect(purposeList[0]).toMatch(/50%/); // meeting is 2 of the 4 total arrivals
-
-    // Entry Point Utilization: Gate A (2) above Gate B (1); 1 unrecorded arrival flagged.
-    const usageRegion = screen.getByRole('region', { name: 'Entry Point Utilization' });
-    expect(within(usageRegion).getByText('Gate A')).toBeInTheDocument();
-    expect(within(usageRegion).getByText('Gate B')).toBeInTheDocument();
-    expect(within(usageRegion).getByText('1 arrival in this range recorded no entry point and is not counted above.')).toBeInTheDocument();
   });
 
-  it('does not print the unrecorded-entry-point sentence when every arrival recorded one', () => {
-    const visits = [
-      visit({ id: 'a', checked_in_at: '2026-08-17T08:00:00Z', entry_point: { name: 'Gate A' } }),
-      visit({ id: 'b', checked_in_at: '2026-08-17T09:00:00Z', entry_point: { name: 'Gate B' } }),
-    ];
-    render(<ReportsAnalytics visits={visits} from="2026-08-17" to="2026-08-17" />);
-    expect(screen.queryByText(/recorded no entry point/)).toBeNull();
-  });
 });

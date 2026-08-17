@@ -1,7 +1,10 @@
 // The Visitors Log's filtering (src/lib/visitorsLog.ts), pure over the
 // register's own rows — see adminDashboard.test.ts for the fixture pattern.
 import { describe, it, expect } from 'vitest';
-import { matchesLogQuery, filterLog, statusesPresent, DEFAULT_LOG_FILTERS } from '../../../src/lib/visitorsLog';
+import {
+  matchesLogQuery, filterLog, statusesPresent, DEFAULT_LOG_FILTERS, type LogFilters,
+} from '../../../src/lib/visitorsLog';
+import { ALL_DEPTS } from '../../../src/lib/reportsDeptFilter';
 import type { ReportVisit } from '../../../src/lib/reportRow';
 import type { Visit } from '../../../src/types/index';
 
@@ -83,8 +86,31 @@ describe('filterLog', () => {
       v({ id: 'a', status: 'approved', scheduled_for: '2026-08-14T04:00:00Z' }),
       v({ id: 'b', status: 'approved', scheduled_for: '2026-08-14T04:00:00Z', visitor: { ...v().visitor, full_name: 'Someone Else' } as Visit['visitor'] }),
     ];
-    const filtered = filterLog(rows, { query: 'ramesh', status: 'approved', origin: 'pre_approved' });
+    const filtered = filterLog(rows, { query: 'ramesh', status: 'approved', origin: 'pre_approved', department: ALL_DEPTS });
     expect(filtered.map((r) => r.id)).toEqual(['a']);
+  });
+
+  // Client instruction, 2026-08-17: the log needed Reports' department filter,
+  // and it had to reach the printout and the CSV as well — which is why it lives
+  // in this one pipeline rather than being applied again at the table.
+  it('narrows to one department, matching on department_id and not on the joined name', () => {
+    const rows = [
+      v({ id: 'a', department_id: 'd1' }),
+      // The department join is dropped when the row is unreadable. Filtering on a
+      // label would silently lose exactly this visit.
+      v({ id: 'b', department_id: 'd2', department: undefined }),
+    ];
+    expect(filterLog(rows, { ...DEFAULT_LOG_FILTERS, department: 'd2' }).map((r) => r.id)).toEqual(['b']);
+    expect(filterLog(rows, { ...DEFAULT_LOG_FILTERS, department: 'd1' }).map((r) => r.id)).toEqual(['a']);
+  });
+
+  // An absent key means "no department filter", never "match nothing": a partial
+  // filter object would otherwise blank the whole register, which reads as an
+  // empty window rather than as a bug.
+  it('treats a missing department key as no filter at all', () => {
+    const rows = [v({ id: 'a', department_id: 'd1' })];
+    const partial = { query: '', status: 'all', origin: 'all' } as LogFilters;
+    expect(filterLog(rows, partial).map((r) => r.id)).toEqual(['a']);
   });
 });
 

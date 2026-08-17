@@ -63,7 +63,14 @@ function presenceChip(v: ReportVisit): GateChip {
   // `approved` pre-registration sits, reached from the other desk. Naming it
   // "Checked in" now would put someone in the building on a fire-marshal's list
   // who has not walked through the door.
-  if (v.status === 'walkin_approved') return { key: 'presence', label: 'Awaiting entry', tone: 'neutral' };
+  // "Awaiting gate check-in", not "Awaiting entry" (client instruction,
+  // 2026-08-17). The row now has a Check In button on two screens, so the
+  // status has to name the ACTION that is outstanding rather than describe the
+  // visitor's mood — a guard reading this on the dashboard is being told which
+  // desk still owes this person something, and the answer is theirs. It also
+  // matches the HOD's own board, which has said "Awaiting gate check" on the
+  // same row throughout (OverviewUpcoming).
+  if (v.status === 'walkin_approved') return { key: 'presence', label: 'Awaiting gate check-in', tone: 'neutral' };
   if (v.status === 'approved') return { key: 'presence', label: 'Pre-registered', tone: 'neutral' };
   if (v.status === 'rejected') return { key: 'presence', label: 'Refused', tone: 'left' };
   return { key: 'presence', label: 'Not arrived', tone: 'neutral' };

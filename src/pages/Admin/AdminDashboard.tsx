@@ -6,6 +6,7 @@ import UtilizationRows from '../../components/charts/UtilizationRows';
 import DashboardVisitorTable from '../../components/DashboardVisitorTable';
 import VisitorDetails from '../../components/VisitorDetails';
 import AdminDashboardKpis from './AdminDashboardKpis';
+import GlanceHeader from '../../components/GlanceHeader';
 import { useAdminVisits } from '../../lib/useAdminVisits';
 import { useVisitFeedback } from '../../lib/useVisitFeedback';
 import { adminKpis, hourlyFlow, purposeSplit, topHosts, lobbyFeed } from '../../lib/adminDashboard';
@@ -51,15 +52,27 @@ export default function AdminDashboard(): React.ReactElement {
 
   return (
     <div className="p-6 max-w-[1600px] mx-auto">
-      {/* No page heading, the same call the guard and HOD boards make: the
-          sidebar item just clicked already says "Dashboard", and this screen
-          has no toolbar for a heading row to anchor. */}
+      {/* Still no PAGE heading — the sidebar item just clicked says "Dashboard"
+          and this screen has no toolbar for a heading row to anchor, so it
+          passes no AdminPageHeader, unchanged. What this is instead is the
+          board's WINDOW, stated once (client instruction, 2026-08-17), which
+          is what let "Visitors Today", "Visitor Flow — Today" and "Top Hosts
+          Today" each give the word back.
+
+          The caption names the two-day fetch rather than claiming a flat
+          "today": the first tile states a change against yesterday, so both
+          days are genuinely on this screen and a reader who sees "Currently
+          Inside" hold somebody who arrived last night has been told why. */}
+      <div className="mb-5">
+        <GlanceHeader caption="Arrivals across the site today, measured against yesterday — plus everyone still inside." />
+      </div>
+
       <AdminDashboardKpis kpis={kpis} loading={loading} />
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-5 mb-5">
         <div className="xl:col-span-2">
           <ChartCard
-            heading="Visitor Flow — Today"
+            heading="Visitor Flow"
             about="Arrivals per hour, counted at the moment the gate checked each visitor in."
           >
             <LineChart points={flow} seriesLabel="Visitors" color={chartColor(0)}
@@ -95,7 +108,7 @@ export default function AdminDashboard(): React.ReactElement {
         </div>
 
         <ChartCard
-          heading="Top Hosts Today"
+          heading="Top Hosts"
           about="Hosts ranked by how many visitors they received today."
         >
           <UtilizationRows

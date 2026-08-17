@@ -125,8 +125,12 @@ describe('AdminDashboard', () => {
 
     renderPage();
 
-    // Visitors Today: 3 arrived today; Visitors Yesterday: 2 (v4, v5) -> +50%.
-    const visitorsToday = screen.getByText('Visitors Today').closest('div')!;
+    // 3 arrived today; 2 arrived yesterday (v4, v5) -> +50%. The tile reads
+    // "Total Visitors", not "Visitors Today" — the day is stated once by the
+    // "Today at a Glance" header above the board (client instruction,
+    // 2026-08-17) — and not a bare "Visitors" either, which would collide with
+    // the flow chart's series name and the Top Hosts count column.
+    const visitorsToday = screen.getByText('Total Visitors').closest('div')!;
     expect(within(visitorsToday).getByText('3')).toBeInTheDocument();
     expect(within(visitorsToday).getByText(/50% vs yesterday/)).toBeInTheDocument();
 
@@ -154,7 +158,7 @@ describe('AdminDashboard', () => {
     expect(within(sat).getByText('Based on 2 reviews')).toBeInTheDocument();
 
     // Top Hosts: Asha Rao (2) ranked above Ben Iyer (1).
-    const hostsPanel = screen.getByRole('region', { name: 'Top Hosts Today' });
+    const hostsPanel = screen.getByRole('region', { name: 'Top Hosts' });
     const hostNames = within(hostsPanel).getAllByText(/Asha Rao|Ben Iyer/).map((el) => el.textContent);
     expect(hostNames).toEqual(['Asha Rao', 'Ben Iyer']);
 

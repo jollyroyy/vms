@@ -31,15 +31,34 @@ import { ICON_PEOPLE, ICON_CHECK_CIRCLE, ICON_LIST } from '../../lib/tileIcons';
 // the three KPI tiles, the directory grid and the department panel can never
 // disagree about who counts or what "this week" means.
 //
+// IT IS **LIVE**, NOT HISTORICAL (client instruction, 2026-08-17: remove the
+// Historical chip, "it should always reflect latest state"). The claim is true
+// by construction rather than by label: `useAdminVisits` subscribes to
+// `postgres_changes` on `visits` and reloads silently, so a visitor checked in
+// at the gate right now lands on this board without a refresh. The trailing
+// window ROLLS with the IST day for the same reason — `now` was frozen at mount,
+// so a console left open overnight went on reporting yesterday's seven days
+// under a chip promising the latest state.
+//
 // THIS TAB WRITES NOTHING TO `visits`. The three toggles at the bottom
 // persist to `app_settings`, which is configuration, not a visitor record —
 // the admin surface's read-only rule is about the gate's data, not about
 // whether the admin can turn a notification on.
 
 export default function AdminHosts(): React.ReactElement {
-  const now = useMemo(() => new Date(), []);
+  // Ticking the IST date key rather than the clock: React bails out of a state
+  // set to an identical string, so this re-renders once at midnight and never
+  // on the other 1,439 minutes. Keying `now` off it is what makes the seven-day
+  // window follow the day instead of the mount.
+  const [dayKey, setDayKey] = useState(() => istDateKey(new Date()));
+  useEffect(() => {
+    const t = setInterval(() => setDayKey(istDateKey(new Date())), 60_000);
+    return () => clearInterval(t);
+  }, []);
+
+  const now = useMemo(() => new Date(), [dayKey]);
   const from = istDateKey(new Date(now.getTime() - 6 * 86_400_000));
-  const to = istDateKey(now);
+  const to = dayKey;
 
   const { visits, loading: visitsLoading } = useAdminVisits({ kind: 'range', from, to });
   const { hods, loading: hodsLoading } = useHods();
@@ -77,16 +96,15 @@ export default function AdminHosts(): React.ReactElement {
 
   return (
     <div className="p-6 max-w-[1600px] mx-auto">
-      {/* HISTORICAL, BUT WITH NO RANGE PICKER — the window is the fixed
-          trailing 7 IST days, by scope decision (2026-08-17), so the blurb
-          states it in words instead. A chip saying "Historical" over a board
-          whose period is never named would be the same silent-window defect
-          the Visitors Log's unannounced 500-row cap was: an admin reading
-          "Visitors This Week" has no way to know whether the week ends today
-          or ended on the date they last looked. */}
+      {/* LIVE, WITH NO RANGE PICKER — the window is the trailing 7 IST days
+          ending TODAY, and it rolls (see above), so the board always reads the
+          latest state. The blurb still states the period in words: the chip
+          says the data is current, not how far back it reaches, and an admin
+          reading "Visitors This Week" would otherwise have no way to know
+          which seven days that is. */}
       <AdminPageHeader
         title="Hosts"
-        scope="historical"
+        scope="live"
         blurb="Everyone visitors are checked in against, over the last 7 days, and what they're told when one arrives."
         action={
           <Link to="/admin/settings?section=roles" className="btn-secondary !px-4 !py-2 text-sm">

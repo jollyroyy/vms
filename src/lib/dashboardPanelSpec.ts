@@ -35,14 +35,14 @@ export const PANEL_SPEC: Record<GuardTileKey, DashboardPanelSpec> = {
   // Nobody here has arrived, so a Checked In column would be an em dash on
   // every row. The slot is the whole subject.
   expected: {
-    heading: 'Expected Today',
+    heading: 'Expected',
     empty: 'No visitors waiting at the gate right now.',
     columns: [COLUMN.name, COLUMN.purpose, COLUMN.host, COLUMN.department, COLUMN.scheduled, COLUMN.status],
   },
   // Everyone through the gate today, still here or not. Both times, because the
   // question this tile is opened with is "when was that visitor here?".
   checked: {
-    heading: 'Checked In Today',
+    heading: 'Checked In',
     empty: 'Nobody has come through the gate yet today.',
     columns: [COLUMN.name, COLUMN.approvedBy, COLUMN.idProof, COLUMN.purpose, COLUMN.host, COLUMN.origin,
       COLUMN.scheduled, COLUMN.checkedIn, COLUMN.checkedOut, COLUMN.status],
@@ -63,7 +63,7 @@ export const PANEL_SPEC: Record<GuardTileKey, DashboardPanelSpec> = {
   // simply an arrival that finished, and a guard should not have to re-learn
   // the row when they press the next tile along.
   checkedOut: {
-    heading: 'Checked Out Today',
+    heading: 'Checked Out',
     empty: 'Nobody has left yet today.',
     columns: [COLUMN.name, COLUMN.approvedBy, COLUMN.idProof, COLUMN.purpose, COLUMN.host, COLUMN.origin,
       COLUMN.scheduled, COLUMN.checkedIn, COLUMN.checkedOut, COLUMN.status],

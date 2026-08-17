@@ -29,17 +29,44 @@
 // getting one answer to both questions, and neither list could be opened on its
 // own. The split is not a duplicate of the Type column below it — the column
 // tells you what a row IS, these tiles are the two lanes you can open.
+// THE BOARD CARRIES CHECK-INS AND CHECK-OUTS (client instruction, 2026-08-17),
+// scoped to this HOD's own department like every other figure on the screen.
+// The gap they close: the board could say how many passes an HOD had issued and
+// how many of their visitors were on site, and left "how many of my visitors
+// actually turned up today" and "how many have gone home" to be worked out as
+// the difference — arithmetic the HOD was doing in their head, and arithmetic
+// that does not work, because `inside` is live and can hold a visitor who
+// arrived yesterday evening. The guard board took the same two tiles for the
+// same reason; this makes the two boards answer the gate's questions the same
+// way, one org-wide and one department-wide.
+//
+// `checkedIn` is CUMULATIVE and `inside` is LIVE, and they are deliberately
+// both here: `visits.status` holds one value, so a visitor who came and left is
+// `checked_out`, and counting the status would answer "who is still here",
+// never "how many came through". The invariant the guard board asserts holds on
+// this board too — checkedIn === inside + checkedOut — for the department.
 import type { Visit } from '../types/index';
 import { COLUMN } from './dashboardColumns';
 import type { DashboardPanelSpec } from './dashboardPanelSpec';
-import { ICON_CALENDAR, ICON_CLOCK, ICON_PEOPLE, ICON_WALKING, ICON_X_CIRCLE } from './tileIcons';
+import { istDateKey, istDayStart } from './visitExpiry';
+import { arrivedOn } from './adminDashboard';
+import {
+  ICON_CALENDAR, ICON_CHECK_CIRCLE, ICON_CLOCK, ICON_EXIT, ICON_PEOPLE,
+  ICON_WALKING, ICON_X_CIRCLE,
+} from './tileIcons';
 import { isApprovedWalkIn, isGivenPreApproval } from './visitOrigin';
 
 export type HodTileKey =
-  | 'inside' | 'preApprovedToday' | 'walkInApprovedToday' | 'pending' | 'rejectedToday';
+  | 'preApprovedToday' | 'walkInApprovedToday' | 'pending'
+  | 'checkedIn' | 'inside' | 'checkedOut' | 'rejectedToday';
 
+// The order a visit passes through the gate — cleared, waiting, arrived, on
+// site, gone, refused — which is the order the guard board already reads in.
+// Seven tiles is more than five, and a board that large is only legible if the
+// eye can walk it in one direction.
 export const HOD_TILE_KEYS: HodTileKey[] = [
-  'inside', 'preApprovedToday', 'walkInApprovedToday', 'pending', 'rejectedToday',
+  'preApprovedToday', 'walkInApprovedToday', 'pending',
+  'checkedIn', 'inside', 'checkedOut', 'rejectedToday',
 ];
 
 export type HodTileMeta = {
@@ -53,10 +80,15 @@ export type HodTileMeta = {
 // pass booked in advance, a walking figure for the person who turned up. The
 // hue is never the only carrier: each tile's label says which lane it is.
 export const HOD_TILE_META: Record<HodTileKey, HodTileMeta> = {
-  inside: { icon: ICON_PEOPLE, ring: 'border-success-500/40 text-success-500' },
   preApprovedToday: { icon: ICON_CALENDAR, ring: 'border-brand-400/30 text-brand-400' },
   walkInApprovedToday: { icon: ICON_WALKING, ring: 'border-brand-400/30 text-brand-400' },
   pending: { icon: ICON_CLOCK, ring: 'border-warning-400/40 text-warning-400' },
+  // The tick for the arrival and the doorway-arrow for the departure — the same
+  // pairing the guard board uses, and never a second tick: two ticks side by
+  // side would say the same thing about opposite events.
+  checkedIn: { icon: ICON_CHECK_CIRCLE, ring: 'border-success-500/40 text-success-500' },
+  inside: { icon: ICON_PEOPLE, ring: 'border-success-500/40 text-success-500' },
+  checkedOut: { icon: ICON_EXIT, ring: 'border-navy-400/40 text-navy-700' },
   rejectedToday: { icon: ICON_X_CIRCLE, ring: 'border-danger-500/30 text-danger-400' },
 };
 
@@ -119,18 +151,66 @@ export const HOD_PANEL_SPEC: Record<HodTileKey, DashboardPanelSpec> = {
     empty: 'No walk-in requests are waiting at reception.',
     columns: [COLUMN.name, COLUMN.purpose, COLUMN.host, COLUMN.requested, COLUMN.status],
   },
+  // Everyone from this department the gate admitted today, still here or not.
+  // Both times, because the question this tile is opened with is "when was that
+  // visitor here?" — the same columns the guard's Checked In lane carries,
+  // minus the ID proof (an HOD never sees a visitor's document) and the
+  // department (every row on this board has the same one).
+  checkedIn: {
+    heading: 'Checked In',
+    empty: 'Nobody from this department has come through the gate yet today.',
+    columns: [
+      COLUMN.name, COLUMN.origin, COLUMN.purpose, COLUMN.host,
+      COLUMN.scheduled, COLUMN.checkedIn, COLUMN.checkedOut, COLUMN.status,
+    ],
+  },
+  // Everyone from this department who has LEFT since the IST day began. The
+  // exit is never an em dash on this lane — every row has one by membership —
+  // which is what earns it the last time column, where the eye lands. No slot
+  // column: by the time somebody has gone home, when they were BOOKED for is
+  // the least interesting of the three stamps.
+  checkedOut: {
+    heading: 'Checked Out',
+    empty: 'Nobody from this department has left yet today.',
+    columns: [
+      COLUMN.name, COLUMN.origin, COLUMN.purpose, COLUMN.host,
+      COLUMN.checkedIn, COLUMN.checkedOut, COLUMN.status,
+    ],
+  },
   // The REASON is carried, because a refusal without one is an assertion nobody
   // can check, and `visits.rejection_reason` is the only place the decision's
   // justification is written down. Both origins can be declined, so Type again.
   rejectedToday: {
-    heading: 'Declined Today',
+    heading: 'Declined',
     empty: 'Nothing was declined today.',
     columns: [COLUMN.name, COLUMN.origin, COLUMN.purpose, COLUMN.host, COLUMN.scheduled, COLUMN.reason],
   },
 };
 
+/** Did this visitor LEAVE on or after the IST day boundary?
+ *
+ *  Keyed on `checked_out_at`, NOT on `status === 'checked_out'`, and the two
+ *  are different sets: a visitor who arrived at 21:00 yesterday and left at
+ *  09:00 today is today's departure, one who arrived and left yesterday is not,
+ *  and the status alone cannot tell them apart. Compared as INSTANTS, never as
+ *  strings — PostgREST renders a timestamptz as `…+00:00` while `toISOString()`
+ *  ends in `Z`, and `'+' < 'Z'`. This is `TILE_FILTER.checkedOut`'s rule
+ *  verbatim, so the HOD's figure is a department-scoped slice of the guard's
+ *  and not a second, differently-derived one. */
+function departedToday(v: Visit, now: Date): boolean {
+  if (!v.checked_out_at) return false;
+  const left = new Date(v.checked_out_at).getTime();
+  return !Number.isNaN(left) && left >= istDayStart(now).getTime();
+}
+
 export type HodTileSources = {
-  /** Today's visits for this department, full rows. */
+  /** Today's visits for this department, full rows.
+   *
+   *  "Today" here means created, ARRIVED or DEPARTED today — the query that
+   *  feeds it ORs all three. A window on `created_at` alone loses the two rows
+   *  these tiles exist for: a pre-approval raised last week whose visitor walked
+   *  in this morning, and a visitor who arrived yesterday evening and went home
+   *  after midnight. Both are today's traffic and neither was created today. */
   day: Visit[];
   /** Everyone from this department currently checked in (entry stamped today). */
   onSite: Visit[];
@@ -141,9 +221,23 @@ export type HodTileSources = {
 
 /** One slice per tile. The console's own desk list is reused verbatim where it
  *  exists — the desk and the tile must act on the same rows. */
-export function hodTileVisits({ day, onSite, walkIns }: HodTileSources): Record<HodTileKey, Visit[]> {
+export function hodTileVisits(
+  { day, onSite, walkIns }: HodTileSources,
+  now: Date = new Date(),
+): Record<HodTileKey, Visit[]> {
   return {
     inside: onSite,
+    // Keyed on the ARRIVAL STAMP FALLING TODAY, not on the stamp merely
+    // existing. A visitor came through the gate if and only if somebody stamped
+    // them through it — but the `day` window now also carries rows that only
+    // DEPARTED today (arrived 21:00 yesterday, left 09:00 this morning), and
+    // those have an arrival stamp belonging to yesterday. Testing the stamp for
+    // existence alone would file them as today's arrivals and make this tile
+    // disagree with the flow chart underneath it, which counts by arrival hour.
+    // `arrivedOn` is `lib/adminDashboard.ts`'s definition, reused rather than
+    // restated so the two boards cannot mean different things by "arrived".
+    checkedIn: day.filter((v) => arrivedOn(v, istDateKey(now))),
+    checkedOut: day.filter((v) => departedToday(v, now)),
     // These two count CLEARANCES GIVEN, and a clearance is not undone by the
     // visitor turning up. Both lanes used to be keyed on the status alone
     // (`approved` for one, `walkin_approved` for the other) on the reasoning

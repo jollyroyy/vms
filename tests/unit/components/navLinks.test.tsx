@@ -93,11 +93,17 @@ describe('navLinks: linksForRole', () => {
   // THERE IS NO ANALYTICS ITEM. The page was deleted, not unlinked — its charts
   // are on the Dashboard and on Reports, derived from rows those screens
   // already load.
-  it('admin gets the nine console tabs, in the reference order, with no Analytics', () => {
+  //
+  // THERE IS NO BADGE PRINTING ITEM EITHER (deleted 2026-08-17, client
+  // instruction): its tab read migration 087's `badge_prints` log, which nothing
+  // in this app writes, so the item led to three zeroes over an empty table.
+  it('admin gets the eight console tabs, in the reference order, with no Analytics or Badge Printing', () => {
     const links = linksForRole('admin');
     expect(links.map((l) => l.label)).toEqual(['Dashboard', 'Live Check-In', 'Pre-Registration', 'Visitors Log', 'Hosts',
-      'Badge Printing', 'Blacklist & Security', 'Reports', 'Settings']);
+      'Blacklist & Security', 'Reports', 'Settings']);
     expect(links.map((l) => l.label)).not.toContain('Analytics');
+    expect(links.map((l) => l.label)).not.toContain('Badge Printing');
+    expect(links.map((l) => l.to)).not.toContain('/admin/badges');
   });
 
   it('linksForRole(null) returns an empty array', () => {

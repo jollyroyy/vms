@@ -3,11 +3,11 @@
 // own form-toggle and pending-list rendering has never actually been
 // exercised. WalkInRequest is mocked here — it has its own coverage in
 // WalkInRequestScan.test.tsx — so this file stays focused on what
-// GuardWalkIns itself owns: the toggle between the register button and the
-// form, and the awaiting-approval list.
+// GuardWalkIns itself owns: the toggle between the register button, the
+// pending-gate-check-in box and the awaiting-approval list.
 import React from 'react';
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { render, screen, cleanup, fireEvent } from '@testing-library/react';
+import { render, screen, cleanup, fireEvent, within } from '@testing-library/react';
 import GuardWalkIns from '../../../src/pages/Guard/GuardWalkIns';
 import type { Visit } from '../../../src/types/index';
 
@@ -17,6 +17,24 @@ vi.mock('../../../src/pages/Guard/WalkInRequest', () => ({
       <button type="button" onClick={() => onSubmitted('New Visitor')}>Submit</button>
       <button type="button" onClick={onCancel}>Cancel</button>
     </div>
+  ),
+}));
+
+// jsdom has no camera. Same stubs the Approved Walk-ins lane uses — the form
+// is now the SAME component on both screens (WalkInCheckInForm).
+vi.mock('../../../src/components/PhotoCapture', () => ({
+  default: ({ onCapture }: { onCapture: (blob: Blob) => void }) => (
+    <button type="button" onClick={() => onCapture(new Blob(['photo'], { type: 'image/webp' }))}>
+      Mock Capture
+    </button>
+  ),
+}));
+
+vi.mock('../../../src/pages/Guard/IdScanOverlay', () => ({
+  default: ({ onScanned }: { onScanned: (r: any) => void }) => (
+    <button type="button" onClick={() => onScanned({ idType: 'PAN', idLast4: '234F', name: 'Cleared Person' })}>
+      Mock Scan
+    </button>
   ),
 }));
 
@@ -36,15 +54,36 @@ function visit(overrides: Partial<Visit> = {}): Visit {
   } as Visit;
 }
 
+function cleared(overrides: Partial<Visit> = {}): Visit {
+  return visit({
+    id: 'w1',
+    status: 'walkin_approved',
+    visitor: { ...visit().visitor!, full_name: 'Cleared Person' },
+    ...overrides,
+  });
+}
+
+function baseProps(overrides: Record<string, any> = {}) {
+  return {
+    loading: false,
+    pending: [] as Visit[],
+    awaitingCheckIn: [] as Visit[],
+    busyId: null as string | null,
+    onCheckIn: vi.fn(),
+    onSubmitted: vi.fn(),
+    ...overrides,
+  };
+}
+
 describe('GuardWalkIns', () => {
   it('renders the "Register a walk-in" button and no form by default', () => {
-    render(<GuardWalkIns loading={false} pending={[]} onSubmitted={vi.fn()} />);
+    render(<GuardWalkIns {...baseProps()} />);
     expect(screen.getByText('Register a walk-in')).toBeInTheDocument();
     expect(screen.queryByTestId('walk-in-request')).not.toBeInTheDocument();
   });
 
   it('clicking the register button swaps in the walk-in form', () => {
-    render(<GuardWalkIns loading={false} pending={[]} onSubmitted={vi.fn()} />);
+    render(<GuardWalkIns {...baseProps()} />);
     fireEvent.click(screen.getByText('Register a walk-in'));
     expect(screen.getByTestId('walk-in-request')).toBeInTheDocument();
     expect(screen.queryByText('Register a walk-in')).not.toBeInTheDocument();
@@ -52,7 +91,7 @@ describe('GuardWalkIns', () => {
 
   it('submitting the form closes it and forwards the name to onSubmitted', () => {
     const onSubmitted = vi.fn();
-    render(<GuardWalkIns loading={false} pending={[]} onSubmitted={onSubmitted} />);
+    render(<GuardWalkIns {...baseProps({ onSubmitted })} />);
     fireEvent.click(screen.getByText('Register a walk-in'));
     fireEvent.click(screen.getByText('Submit'));
 
@@ -63,7 +102,7 @@ describe('GuardWalkIns', () => {
 
   it('cancelling the form returns to the register button without calling onSubmitted', () => {
     const onSubmitted = vi.fn();
-    render(<GuardWalkIns loading={false} pending={[]} onSubmitted={onSubmitted} />);
+    render(<GuardWalkIns {...baseProps({ onSubmitted })} />);
     fireEvent.click(screen.getByText('Register a walk-in'));
     fireEvent.click(screen.getByText('Cancel'));
 
@@ -73,22 +112,105 @@ describe('GuardWalkIns', () => {
   });
 
   it('shows the loading skeleton, not the empty state, while loading', () => {
-    render(<GuardWalkIns loading pending={[]} onSubmitted={vi.fn()} />);
+    render(<GuardWalkIns {...baseProps({ loading: true })} />);
     expect(screen.queryByText('Nothing waiting on a person to meet.')).not.toBeInTheDocument();
+    expect(screen.queryByText('Nobody is waiting to be checked in.')).not.toBeInTheDocument();
   });
 
   it('shows the empty state when nothing is pending', () => {
-    render(<GuardWalkIns loading={false} pending={[]} onSubmitted={vi.fn()} />);
+    render(<GuardWalkIns {...baseProps()} />);
     expect(screen.getByText('Nothing waiting on a person to meet.')).toBeInTheDocument();
-    expect(screen.getByText('0')).toBeInTheDocument();
+    // Two boxes, two counts — the gate-check-in one and the approval one.
+    expect(screen.getAllByText('0')).toHaveLength(2);
   });
 
   it('renders one card per pending visit and the count chip matches', () => {
     const pending = [visit({ id: 'a' }), visit({ id: 'b', visitor: { ...visit().visitor!, full_name: 'Second Person' } })];
-    render(<GuardWalkIns loading={false} pending={pending} onSubmitted={vi.fn()} />);
+    render(<GuardWalkIns {...baseProps({ pending })} />);
     expect(screen.getByText('Walk-in Person')).toBeInTheDocument();
     expect(screen.getByText('Second Person')).toBeInTheDocument();
     expect(screen.getByText('2')).toBeInTheDocument();
     expect(screen.queryByText('Nothing waiting on a person to meet.')).not.toBeInTheDocument();
+  });
+});
+
+// The client instruction of 2026-08-17: a walk-in the host has cleared must be
+// checkable in from the register itself, not only from the Approved Walk-ins
+// tab. The count beside the heading is the number of Check In buttons under it
+// (the guardTiles.ts rule), and the card number is collected here.
+describe('GuardWalkIns — pending gate check-in', () => {
+  it('names the box and shows its empty state when nobody is cleared', () => {
+    render(<GuardWalkIns {...baseProps()} />);
+    expect(screen.getByText('Pending gate check-in')).toBeInTheDocument();
+    expect(screen.getByText('Nobody is waiting to be checked in.')).toBeInTheDocument();
+    expect(screen.queryByText('Check In')).not.toBeInTheDocument();
+  });
+
+  it('lists each cleared walk-in with a Check In button, and counts them', () => {
+    render(<GuardWalkIns {...baseProps({
+      awaitingCheckIn: [cleared(), cleared({ id: 'w2', visitor: { ...visit().visitor!, full_name: 'Other Cleared' } })],
+    })} />);
+
+    expect(screen.getByText('Cleared Person')).toBeInTheDocument();
+    expect(screen.getByText('Other Cleared')).toBeInTheDocument();
+    expect(screen.getAllByText('Check In')).toHaveLength(2);
+    expect(screen.getByText('2')).toBeInTheDocument();
+    expect(screen.queryByText('Nobody is waiting to be checked in.')).not.toBeInTheDocument();
+  });
+
+  // The whole point of putting the button here: it must reach the same write,
+  // with the card number the gate hands over.
+  it('checks a cleared walk-in in with a photo and a card number', () => {
+    const onCheckIn = vi.fn();
+    const v = cleared();
+    render(<GuardWalkIns {...baseProps({ awaitingCheckIn: [v], onCheckIn })} />);
+
+    fireEvent.click(screen.getByText('Check In'));
+    expect(screen.getByText('Photo of the visitor')).toBeInTheDocument();
+
+    const confirm = screen.getByText('Confirm Check In');
+    expect(confirm).toBeDisabled();
+
+    fireEvent.click(screen.getByText('Mock Capture'));
+    expect(confirm).toBeDisabled();
+    expect(screen.getByText('Enter the card number before checking in.')).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText(/Visitor card number/i), { target: { value: 'C-104' } });
+    expect(confirm).not.toBeDisabled();
+
+    fireEvent.click(confirm);
+    expect(onCheckIn).toHaveBeenCalledTimes(1);
+    const [calledVisit, details] = onCheckIn.mock.calls[0];
+    expect(calledVisit).toBe(v);
+    expect(details.cardNumber).toBe('C-104');
+    expect(details.photoBlob).toBeInstanceOf(Blob);
+  });
+
+  // ONE CAMERA AT A TIME: the open row is held by PendingGateCheckIn, so
+  // opening a second row must close the first rather than mount a second
+  // PhotoCapture beside it.
+  it('opens only one check-in form at a time', () => {
+    render(<GuardWalkIns {...baseProps({
+      awaitingCheckIn: [cleared(), cleared({ id: 'w2', visitor: { ...visit().visitor!, full_name: 'Other Cleared' } })],
+    })} />);
+
+    fireEvent.click(screen.getAllByText('Check In')[0]);
+    expect(screen.getAllByText('Photo of the visitor')).toHaveLength(1);
+
+    fireEvent.click(screen.getByText('Check In'));
+    expect(screen.getAllByText('Photo of the visitor')).toHaveLength(1);
+    expect(screen.getAllByText('Mock Capture')).toHaveLength(1);
+  });
+
+  // The register still watches undecided requests; the two boxes must not be
+  // one list. A row waiting on the host has no Check In button.
+  it('keeps the undecided requests in their own box, with no Check In button', () => {
+    render(<GuardWalkIns {...baseProps({ pending: [visit()], awaitingCheckIn: [cleared()] })} />);
+
+    const approvalHeading = screen.getByText('Awaiting approval from person to meet');
+    const approvalBox = approvalHeading.closest('div')!.parentElement!;
+    expect(within(approvalBox).getByText('Walk-in Person')).toBeInTheDocument();
+    expect(within(approvalBox).queryByText('Check In')).not.toBeInTheDocument();
+    expect(screen.getAllByText('Check In')).toHaveLength(1);
   });
 });

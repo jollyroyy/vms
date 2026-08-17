@@ -1,6 +1,7 @@
 import type { VisitStatus } from '../types/index';
 import type { ReportVisit } from './reportRow';
 import { visitOrigin, type VisitOrigin } from './visitOrigin';
+import { ALL_DEPTS } from './reportsDeptFilter';
 
 // The Visitors Log's filtering, as pure functions.
 //
@@ -17,9 +18,18 @@ export type LogFilters = {
   query: string;
   status: VisitStatus | 'all';
   origin: VisitOrigin | 'all';
+  /** `ALL_DEPTS` or a `department_id`. Client instruction 2026-08-17: the log
+   *  needed the department filter Reports already had, and it had to reach the
+   *  printout and the CSV as well — which is why it lives HERE, in the one
+   *  pipeline `filterLog` runs, rather than as a second slice applied at the
+   *  table. The exported file, the printed page and the rows on screen are all
+   *  `filterLog`'s output, so they cannot describe different departments. */
+  department: string;
 };
 
-export const DEFAULT_LOG_FILTERS: LogFilters = { query: '', status: 'all', origin: 'all' };
+export const DEFAULT_LOG_FILTERS: LogFilters = {
+  query: '', status: 'all', origin: 'all', department: ALL_DEPTS,
+};
 
 /**
  * Does this visit match the typed query?
@@ -52,6 +62,11 @@ export function filterLog(visits: ReportVisit[], filters: LogFilters): ReportVis
   return visits.filter((v) => {
     if (filters.status !== 'all' && v.status !== filters.status) return false;
     if (filters.origin !== 'all' && visitOrigin(v) !== filters.origin) return false;
+    // `?? ALL_DEPTS`: an absent key means "no department filter", never "match
+    // nothing". A partial filter object reaching here would otherwise blank the
+    // whole register, which reads as an empty window rather than as a bug.
+    const dept = filters.department ?? ALL_DEPTS;
+    if (dept !== ALL_DEPTS && v.department_id !== dept) return false;
     return matchesLogQuery(v, filters.query);
   });
 }

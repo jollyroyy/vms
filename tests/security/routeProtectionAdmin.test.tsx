@@ -26,7 +26,6 @@ const CONSOLE_TABS = [
   '/admin/pre-registration',
   '/admin/visitors-log',
   '/admin/hosts',
-  '/admin/badges',
   '/admin/security',
   '/admin/settings',
 ];
@@ -51,6 +50,18 @@ describe('SEC-7: admin route protection', () => {
   it('admin is FORBIDDEN on /analytics — the page was deleted', () => {
     expect(isForbidden('/analytics', role)).toBe(true);
     expect(ROLE_ROUTES.admin).not.toContain('/analytics');
+  });
+
+  // Badge Printing was deleted on 2026-08-17 (client instruction): its tab read
+  // migration 087's `badge_prints` log, which nothing in this app writes. Unlike
+  // /analytics this path CANNOT be refused by `isForbidden` — `/admin` has to
+  // stay in the list (it is the bookmark every admin holds for the old Admin
+  // Panel) and matching is by prefix. What is asserted instead is that the entry
+  // is gone from ROLE_ROUTES, which is what stops it being listed as a tab, and
+  // there is no route for it in adminRoutes.tsx, so App.tsx's `path="*"` renders
+  // NotFound. A path that 404s is honest; one that lands on a stale screen is not.
+  it('/admin/badges is no longer a declared admin route', () => {
+    expect(ROLE_ROUTES.admin).not.toContain('/admin/badges');
   });
 
   it('no role can reach /analytics any more', () => {

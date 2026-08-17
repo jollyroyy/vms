@@ -25,9 +25,14 @@ import { HOD_TILE_KEYS, HOD_TILE_META, HOD_PANEL_SPEC, type HodTileKey } from '.
 import DashboardTile from '../../components/DashboardTile';
 import DashboardPanel from '../../components/DashboardPanel';
 import DashboardVisitorTable from '../../components/DashboardVisitorTable';
+import GlanceHeader from '../../components/GlanceHeader';
+import HodDashboardCharts from './HodDashboardCharts';
 
 type Props = {
   tiles: Record<HodTileKey, Visit[]>;
+  /** Today's department visits — what the chart band is derived from. It is the
+   *  same array the tiles are sliced out of, never a second fetch. */
+  dayVisits: Visit[];
   selected: HodTileKey;
   onSelect: (key: HodTileKey) => void;
   loading: boolean;
@@ -37,18 +42,28 @@ type Props = {
 };
 
 export default function HodKpiBoard({
-  tiles, selected, onSelect, loading, now, initialsOf, onOpen,
+  tiles, dayVisits, selected, onSelect, loading, now, initialsOf, onOpen,
 }: Props): React.ReactElement {
   const spec = HOD_PANEL_SPEC[selected];
   const rows = tiles[selected] as ReportVisit[];
 
   return (
     <>
-      {/* Five since the clearance tile split in two (client instruction,
-          2026-08-16). Same breakpoints as the guard board's secondary row,
-          which is also five wide, so the two boards still step at the same
-          widths. */}
-      <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+      {/* The window, said once, so no tile below has to repeat it (client
+          instruction, 2026-08-17). The caption names what this board actually
+          spans rather than leaving "Today" to be read literally: two of the
+          seven lanes carry rows from earlier days on purpose — On Site Now is
+          live, and Awaiting Walk-in Approval is deliberately not day-bounded,
+          because a request raised at 23:50 is still somebody standing at
+          reception at 00:05. */}
+      <GlanceHeader caption="Your department's visitors today — plus anyone still on site, and any walk-in still waiting on you." />
+
+      {/* Seven since check-ins and check-outs joined the board (client
+          instruction, 2026-08-17). Four across at lg keeps the two rows even
+          at 4+3 rather than stranding a single tile on a line of its own; all
+          seven only from 2xl, where a tile still has room for "Awaiting Walk-in
+          Approval" without the label becoming the whole card. */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 2xl:grid-cols-7 gap-4">
         {HOD_TILE_KEYS.map((key) => (
           <DashboardTile
             key={key}
@@ -80,6 +95,11 @@ export default function HodKpiBoard({
           />
         </DashboardPanel>
       </div>
+
+      {/* The shape of the day, under the people in it. Derived from the same
+          rows the tiles are counting — no second query, so the flow chart and
+          the Checked In tile cannot disagree about how many came through. */}
+      <HodDashboardCharts visits={dayVisits} now={now} />
     </>
   );
 }

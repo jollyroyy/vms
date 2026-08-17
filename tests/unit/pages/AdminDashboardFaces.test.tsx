@@ -85,7 +85,7 @@ describe('AdminDashboard faces', () => {
       loading: false,
     };
     renderPage();
-    const hostsPanel = screen.getByRole('region', { name: 'Top Hosts Today' });
+    const hostsPanel = screen.getByRole('region', { name: 'Top Hosts' });
     const img = Array.from(hostsPanel.querySelectorAll('img')).find((el) => el.src.includes('data:image/jpeg;base64,face'));
     expect(img).toBeDefined();
   });
@@ -96,7 +96,7 @@ describe('AdminDashboard faces', () => {
       loading: false,
     };
     renderPage();
-    const hostsPanel = screen.getByRole('region', { name: 'Top Hosts Today' });
+    const hostsPanel = screen.getByRole('region', { name: 'Top Hosts' });
     expect(within(hostsPanel).getByText('AR')).toBeInTheDocument();
   });
 

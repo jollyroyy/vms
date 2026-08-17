@@ -3,11 +3,8 @@ import ChartCard from '../../components/charts/ChartCard';
 import BarChart from '../../components/charts/BarChart';
 import LineChart from '../../components/charts/LineChart';
 import DonutChart from '../../components/charts/DonutChart';
-import UtilizationRows from '../../components/charts/UtilizationRows';
 import { chartColor } from '../../lib/chartPalette';
-import {
-  visitorsByDay, checkinTimeTrend, entryPointUsage, formatSeconds,
-} from '../../lib/adminReports';
+import { visitorsByDay, checkinTimeTrend, formatSeconds } from '../../lib/adminReports';
 import { PURPOSE_LABELS } from '../../lib/adminDashboard';
 import type { ReportVisit } from '../../lib/reportRow';
 import type { VisitorPurpose } from '../../types/index';
@@ -22,7 +19,11 @@ type Props = {
 };
 
 // The analytics band above the Reports register: visitors by day, the check-in
-// time trend, the purpose split and entry-point utilization.
+// time trend and the purpose split.
+//
+// THERE IS NO ENTRY POINT UTILIZATION CARD (removed 2026-08-17, client
+// instruction) — see the note in `lib/adminReports.ts` for why, and do not add
+// a fourth card back from `visits.entry_point_id` until something writes it.
 //
 // It lives on Reports rather than on a page of its own because `/analytics` was
 // DELETED on 2026-08-17, not unlinked. Two screens answering "what happened
@@ -38,7 +39,6 @@ type Props = {
 export default function ReportsAnalytics({ visits, from, to }: Props): React.ReactElement {
   const byDay = useMemo(() => visitorsByDay(visits, from, to), [visits, from, to]);
   const trend = useMemo(() => checkinTimeTrend(visits, from, to), [visits, from, to]);
-  const usage = useMemo(() => entryPointUsage(visits), [visits]);
 
   const purposes = useMemo(() => {
     const counts = new Map<VisitorPurpose, number>();
@@ -53,7 +53,7 @@ export default function ReportsAnalytics({ visits, from, to }: Props): React.Rea
   }, [visits]);
 
   return (
-    <div className="no-print space-y-5">
+    <div className="no-print">
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-5">
         <ChartCard heading="Visitors by Day"
                    about="Arrivals per day, counted at the moment the gate checked each visitor in.">
@@ -85,22 +85,6 @@ export default function ReportsAnalytics({ visits, from, to }: Props): React.Rea
                       emptyMessage="No arrivals to break down." />
         </ChartCard>
       </div>
-
-      <ChartCard heading="Entry Point Utilization"
-                 about="Which door each visitor came through. Arrivals recorded before entry points existed are counted separately rather than attributed to a gate.">
-        <UtilizationRows
-          headers={['Entry Point', 'Utilization', 'Visitors']}
-          showShare
-          rows={usage.rows}
-          emptyMessage="No arrival in this range recorded an entry point."
-        />
-        {usage.unrecorded > 0 && (
-          <p className="text-xs text-navy-500 mt-3">
-            {usage.unrecorded} arrival{usage.unrecorded === 1 ? '' : 's'} in this range recorded no
-            entry point and {usage.unrecorded === 1 ? 'is' : 'are'} not counted above.
-          </p>
-        )}
-      </ChartCard>
     </div>
   );
 }

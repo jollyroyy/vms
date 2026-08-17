@@ -27,9 +27,12 @@ export const ADMIN_VISIT_SELECT = `
   *,
   visitor:visitors(*),
   department:departments(id, name, code, created_at),
-  host:profiles!visits_host_id_fkey(id, full_name, avatar_url),
-  entry_point:entry_points(id, name, code, kind, active, sort_order, created_at)
+  host:profiles!visits_host_id_fkey(id, full_name, avatar_url)
 `;
+// `entry_point` was joined here for the Entry Point Utilization panel and is
+// gone with it (2026-08-17, client instruction). Nothing on the admin surface
+// reads a door, so re-adding the embed would ship a table's worth of rows to
+// every tab for a value no screen renders.
 
 export type VisitWindow =
   /** The IST day that is running now. Never a UTC day — between 00:00 and

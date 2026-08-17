@@ -6,19 +6,15 @@ import { supabase } from '../../supabaseClient';
 import type { Visit } from '../../types/index';
 import { attachHostNames } from '../../lib/hostNames';
 import { attachVisitActors } from '../../lib/visitActors';
-import { visitStatusLabel } from '../../lib/visitStatusLabel';
-import { maskPhone, maskIdProof } from '../../lib/pii';
-import { approvalTimestamp } from '../../lib/visitApproval';
-import { visitOrigin, visitOriginLabel } from '../../lib/visitOrigin';
 import { computeDateRange, rangeBounds, type RangePreset } from '../../lib/reportsDateRange';
 import { istDateKey } from '../../lib/visitExpiry';
 import type { ReportVisit } from '../../lib/reportRow';
 import { ALL_DEPTS, deptOptions, filterVisitsByDept } from '../../lib/reportsDeptFilter';
 import ReportsToolbar from './ReportsToolbar';
 import ReportsDeptFilter from './ReportsDeptFilter';
-import ReportsPrintHeader from './ReportsPrintHeader';
 import ReportsAnalytics from './ReportsAnalytics';
 import ReportsDownloadCards from './ReportsDownloadCards';
+import ReportsRegister from './ReportsRegister';
 
 export default function ReportsPage(): React.ReactElement {
   // The IST date, per mount. It was the UTC key at MODULE scope: wrong before
@@ -54,15 +50,20 @@ export default function ReportsPage(): React.ReactElement {
   // filter is offered at all — an HOD locked to their own department has
   // nothing to pick between, so showing them a picker would be a lie.
   const deptScoped = Boolean(userDeptId && userRole && !['admin', 'guard'].includes(userRole));
+  // Three things hang off this: the analytics band and the download cards are
+  // an admin's, and the register below is NOT an admin's — it lives on the
+  // Visitors Log tab, which only this role can reach.
+  const isAdmin = userRole === 'admin';
 
   const load = useCallback(async () => {
     setLoading(true);
-    // `entry_point` is joined for the admin analytics band above the register
-    // (which door each visitor came through, migration 084). It is additive —
-    // the register's seventeen columns are untouched, and `styles/print.css`
-    // pins their widths by nth-child, so a column added here would silently
-    // mis-column the printed copy.
-    let query = supabase.from('visits').select(`*, visitor:visitors(*), department:departments(id,name,code,created_at), entry_point:entry_points(id,name,code,kind,active,sort_order,created_at)`)
+    // `entry_point` is NO LONGER JOINED (2026-08-17): its only reader was the
+    // Entry Point Utilization panel, removed on client instruction, and a join
+    // nothing reads is a row of data leaving the database for no purpose. The
+    // register's seventeen columns never carried it and are untouched —
+    // `styles/print.css` pins their widths by nth-child, so a column added or
+    // removed here would silently mis-column the printed copy.
+    let query = supabase.from('visits').select(`*, visitor:visitors(*), department:departments(id,name,code,created_at)`)
       .gte('created_at', bounds.from).lt('created_at', bounds.to);
     if (deptScoped && userDeptId) {
       query = query.eq('department_id', userDeptId);
@@ -87,42 +88,6 @@ export default function ReportsPage(): React.ReactElement {
   const activeDeptId = options.some((o) => o.id === deptId) ? deptId : ALL_DEPTS;
   const activeDept = options.find((o) => o.id === activeDeptId) ?? null;
   const shown = filterVisitsByDept(visits, activeDeptId);
-
-  const STATUS_COLORS: Record<string, string> = {
-    rejected: 'text-danger-600', checked_out: 'text-navy-300', checked_in: 'text-brand-600', approved: 'text-brand-600', walkin_approved: 'text-brand-600', pending_approval: 'text-warning-600',
-  };
-  // Rejected/approved statuses render as a full sentence ("Rejected by Jane (Host)") —
-  // CSS capitalize would upper-case every word ("By", "Host"), so only plain statuses get it.
-  const PLAIN_STATUS: Record<string, boolean> = {
-    pending_approval: true, checked_in: true, checked_out: true, cancelled: true, no_show: true,
-    expired: true, lapsed: true,
-  };
-
-  // Carrying is two columns, not one — the flag is a yes/no fact the admin can
-  // scan down, the remarks are what the guard typed at the gate. Crushing them
-  // into one cell made "carried something, nothing written down" look identical
-  // to "carried nothing", and made the flag impossible to count.
-  const carryingFlag = (v: Visit): string => (v.carrying_material ? 'Yes' : 'No');
-
-  // `carrying_material` predates the free-text column, so rows written before it
-  // still only say *that* something was carried. Say so rather than showing a
-  // blank that reads as "nothing was carried".
-  const carryingRemarks = (v: Visit): string => {
-    const remarks = v.carrying_remarks?.trim();
-    if (remarks) return remarks;
-    return v.carrying_material ? 'Not recorded' : '—';
-  };
-
-  const dateTime = (iso: string | null | undefined): React.ReactNode => {
-    if (!iso) return '—';
-    const d = new Date(iso);
-    return (
-      <>
-        <span className="block">{d.toLocaleDateString('en-IN')}</span>
-        <span className="block text-navy-500 dark:text-navy-400">{d.toLocaleTimeString('en-IN')}</span>
-      </>
-    );
-  };
 
   const dateLabel = preset === 'today' ? range.to : `${range.from} to ${range.to}`;
   // A filtered register that prints or exports without naming its department is
@@ -159,8 +124,9 @@ export default function ReportsPage(): React.ReactElement {
           would be that department's day beside a title that does not say so,
           and the guard has no route to this page at all. This is where
           /analytics went (deleted 2026-08-17): the charts are derived from the
-          exact rows the register below prints, so the two cannot disagree. */}
-      {userRole === 'admin' && !loading && (
+          exact rows the CSV cards beside them build, so the two cannot
+          disagree. */}
+      {isAdmin && !loading && (
         <>
           <ReportsAnalytics visits={shown} from={range.from} to={range.to} />
           <ReportsDownloadCards
@@ -180,120 +146,26 @@ export default function ReportsPage(): React.ReactElement {
         onPresetChange={setPreset}
         visits={shown}
         filenameSuffix={filenameSuffix}
+        showRegisterActions={!isAdmin}
       />
 
-      <div className="print-only">
-        <ReportsPrintHeader rangeLabel={`Register — ${rangeLabel}`} entryCount={shown.length} />
-      </div>
-
-      <section>
-        <div className="revamp-section-head mb-4 no-print">
-          <span className="revamp-section-rule" aria-hidden="true" />
-          <h2 className="section-title">Register — {rangeLabel}</h2>
-          <span className="glass-chip text-navy-500 dark:text-navy-400 tabular-nums">({shown.length} entries)</span>
-          {activeDept && (
-            <span className="glass-chip text-navy-500">
-              Filtered to {activeDept.name} · {visits.length - shown.length} hidden
-            </span>
-          )}
-        </div>
-        {loading ? (
-          <div className="card p-6 space-y-3 no-print">{[1, 2, 3].map((i) => <div key={i} className="h-8 skeleton" />)}</div>
-        ) : (
-          /* The register is drawn in the DASHBOARD's row language (client
-             instruction, 2026-08-16): the same glass panel, the same uppercase
-             11px header band, the same hairline row rule and brand-tinted hover
-             as components/DashboardVisitorTable, so a report and the board it
-             was read off do not look like two products. SEVENTEEN columns
-             since 2026-08-16 — "Type of Visitor" joined them on client
-             instruction — and styles/print.css pins the printed register's
-             widths by `nth-child`, so the header array below and that block
-             must be edited together, always. */
-          <div className="rounded-2xl bg-surface-100/60 dark:bg-white/[0.03] border border-surface-200/60 dark:border-white/[0.07] p-5 shadow-glow-sm print:p-0 print:border-0 print:bg-transparent print:shadow-none">
-            <div className="rounded-xl border border-surface-200/60 dark:border-white/[0.08] print:border-0">
-              <div className="overflow-x-auto print:overflow-visible">
-                <table className="register-table w-full text-sm tabular-nums">
-                  <thead>
-                    <tr className="text-left text-[11px] uppercase tracking-wider text-navy-500 bg-surface-100/50 dark:bg-white/[0.03]">
-                      {['#', 'Ref', 'Photo', 'Visitor Name', 'Vendor', 'Phone', 'Type of Visitor', 'Dept', 'Person to Meet', 'ID Proof', 'Purpose', 'Carrying', 'Carrying Remarks', 'Approved', 'Check-in', 'Check-out', 'Status'].map((h) => (
-                        <th key={h} className="px-4 py-3 font-semibold whitespace-nowrap">{h}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {shown.map((v, i) => (
-                      <tr key={v.id} className="border-t border-surface-200/50 dark:border-white/[0.05] transition-colors hover:bg-brand-600/5">
-                        <td className="px-4 py-3 text-[#9aa3af] dark:text-[#b7c0cb] tabular-nums">{i + 1}</td>
-                        <td className="px-4 py-3 text-[11px] font-mono text-navy-500 dark:text-navy-400">{v.ref_number}</td>
-                        {/* Round, brand-ringed, and the same size as the board's
-                            face — a visitor is recognised the same way on both. */}
-                        <td className="px-4 py-3">
-                          {v.photo_url ? (
-                            <img src={v.photo_url} alt="Visitor photo" className="w-8 h-8 rounded-full object-cover ring-2 ring-brand-500/25" />
-                          ) : (
-                            <div className="w-8 h-8 rounded-full bg-surface-100 dark:bg-white/[0.06] flex items-center justify-center text-navy-500 ring-1 ring-black/5">
-                              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0" /></svg>
-                            </div>
-                          )}
-                        </td>
-                        <td className="px-4 py-3 font-medium text-navy-950 dark:text-white">{v.visitor?.full_name}</td>
-                        <td className="px-4 py-3 text-[#9aa3af] dark:text-[#b7c0cb] font-medium">{v.visitor?.vendor_name}</td>
-                        <td className="px-4 py-3 text-[#9aa3af] dark:text-[#b7c0cb] font-mono text-xs">{maskPhone(v.visitor?.phone)}</td>
-                        {/* Booked ahead or turned up unannounced (client
-                            instruction, 2026-08-16). The CSV has carried it
-                            since the column was added; the on-screen register
-                            did not, so the admin's own view was the one surface
-                            that could not answer it without exporting. Resolved
-                            through lib/visitOrigin.ts, the same inference the
-                            guard's board and the HOD's board make. */}
-                        <td className="px-4 py-3 text-[#9aa3af] dark:text-[#b7c0cb] font-medium whitespace-nowrap">{visitOriginLabel(visitOrigin(v))}</td>
-                        <td className="px-4 py-3 text-[#9aa3af] dark:text-[#b7c0cb] font-medium">{v.department?.name}</td>
-                        <td className="px-4 py-3 text-[#9aa3af] dark:text-[#b7c0cb] font-medium">{v.host?.full_name}</td>
-                        <td className="px-4 py-3 text-[#9aa3af] dark:text-[#b7c0cb] font-mono text-xs whitespace-nowrap">{maskIdProof(v.visitor?.id_type, v.visitor?.id_last4)}</td>
-                        <td className="px-4 py-3 text-[#9aa3af] dark:text-[#b7c0cb] font-medium capitalize">{v.purpose}</td>
-                        <td className="px-4 py-3 text-xs whitespace-nowrap">
-                          <span className={v.carrying_material ? 'font-bold text-accent-700 dark:text-accent-300' : 'text-[#9aa3af] dark:text-[#b7c0cb]'}>
-                            {carryingFlag(v)}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3 text-xs text-[#9aa3af] dark:text-[#b7c0cb] max-w-[14rem]">
-                          <span className="block truncate" title={v.carrying_remarks ?? undefined}>{carryingRemarks(v)}</span>
-                        </td>
-                        <td className="px-4 py-3 text-xs text-[#9aa3af] dark:text-[#b7c0cb] font-medium tabular-nums whitespace-nowrap">{dateTime(approvalTimestamp(v))}</td>
-                        <td className="px-4 py-3 text-xs text-[#9aa3af] dark:text-[#b7c0cb] font-medium tabular-nums whitespace-nowrap">{dateTime(v.checked_in_at)}</td>
-                        <td className="px-4 py-3 text-xs text-[#9aa3af] dark:text-[#b7c0cb] font-medium tabular-nums whitespace-nowrap">{v.checked_out_at ? dateTime(v.checked_out_at) : v.exit_verified === false ? 'Auto-closed' : '—'}</td>
-                        <td className={`px-4 py-3 font-medium ${PLAIN_STATUS[v.status] ? 'capitalize' : ''} ${STATUS_COLORS[v.status] ?? 'text-navy-500'}`}>{visitStatusLabel(v)}</td>
-                      </tr>
-                    ))}
-                    {shown.length === 0 && (
-                      <tr><td colSpan={17} className="px-4 py-10">
-                      <div className="revamp-empty">
-                        <div className="revamp-empty-medallion">
-                          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.7}><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25H12" /></svg>
-                        </div>
-                        <p className="revamp-empty-title">No entries in this range</p>
-                        <p className="revamp-empty-sub">{activeDept
-                          ? `No ${activeDept.name} visits between ${range.from} and ${range.to}`
-                          : `No visits between ${range.from} and ${range.to}`}</p>
-                      </div>
-                      </td></tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-        )}
-      </section>
-
-      {/* Only the table header repeats across pages, so the register needs an
-          explicit end-of-report block — otherwise a printed copy has no way to
-          show it is complete and no place to sign it off. */}
-      <div className="print-only print-footer">
-        <p className="print-meta">End of register · {shown.length} {shown.length === 1 ? 'entry' : 'entries'} · {rangeLabel}</p>
-        <p className="print-meta">Confidential — contains personal data. Phone and ID numbers are masked.</p>
-        <div className="print-signature"><span className="print-meta">Verified by</span></div>
-      </div>
+      {/* THE REGISTER IS NOT DRAWN FOR AN ADMIN (client instruction, 2026-08-17):
+          the same rows, the same redaction seam, the same CSV and now the same
+          department filter and printout are on the Visitors Log tab, and one
+          register read off two screens is one register that can disagree with
+          itself. An HOD and staff keep it — /admin/visitors-log is admin-only,
+          so it is the only visit list those two roles have. */}
+      {!isAdmin && (
+        <ReportsRegister
+          shown={shown}
+          total={visits.length}
+          activeDept={activeDept}
+          rangeLabel={rangeLabel}
+          from={range.from}
+          to={range.to}
+          loading={loading}
+        />
+      )}
     </div>
   );
 }

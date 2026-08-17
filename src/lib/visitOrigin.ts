@@ -92,6 +92,20 @@ export function isApprovedWalkIn(v: Pick<Visit, 'status' | 'scheduled_for'>): bo
   return WALKIN_CLEARANCE_STANDS[v.status] === true && visitOrigin(v) === 'walk_in';
 }
 
+/** A walk-in the host has cleared who is STILL OUTSIDE — the one group the gate
+ *  can act on, and since 2026-08-17 the one the client asked to see listed on
+ *  the walk-in register itself rather than only on the Approved Walk-ins lane.
+ *
+ *  Narrower than `isApprovedWalkIn` on purpose: that lane answers "who did the
+ *  host clear?" and keeps a visitor after they enter, which is what makes it a
+ *  record of issuance rather than of attendance. This one answers "who is still
+ *  waiting at the gate?", so the count beside it is the number of Check In
+ *  buttons on screen. `walkin_approved` proves the origin on its own
+ *  (DEFINITIVE above), so no `scheduled_for` guess is involved. */
+export function isAwaitingGateCheckIn(v: Pick<Visit, 'status'>): boolean {
+  return v.status === 'walkin_approved';
+}
+
 /** The mirror of the above for the other desk: a pass this department issued in
  *  advance, still counted once the visitor walks through it.
  *

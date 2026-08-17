@@ -1,7 +1,7 @@
 import type { Visit } from '../types/index';
 import { istDateKey } from './visitExpiry';
 
-// The Reports screen's three charts and its utilization list, derived here.
+// The Reports screen's three charts, derived here.
 //
 // Same contract as `adminDashboard.ts`: pure functions over an array of visits,
 // so a figure on a chart can be asserted in a test. The two files are separate
@@ -90,34 +90,16 @@ export function checkinTimeTrend(
     });
 }
 
-export type EntryPointUsage = { label: string; value: number };
-
-/**
- * Arrivals per entry point across the range.
- *
- * Visits with no entry point recorded are NOT dropped and NOT folded into a
- * gate — they are returned separately as `unrecorded`, so the panel can say how
- * much of the picture it is missing. Every visit made before migration 084
- * falls in that bucket, and quietly attributing them to Reception A would put a
- * fabricated location on a record someone may later be asked to account for.
- */
-export function entryPointUsage(visits: Visit[]): { rows: EntryPointUsage[]; unrecorded: number } {
-  const counts = new Map<string, number>();
-  let unrecorded = 0;
-
-  for (const v of visits) {
-    if (!v.checked_in_at) continue;
-    const name = v.entry_point?.name;
-    if (!name) { unrecorded += 1; continue; }
-    counts.set(name, (counts.get(name) ?? 0) + 1);
-  }
-
-  const rows = [...counts.entries()]
-    .map(([label, value]) => ({ label, value }))
-    .sort((a, b) => b.value - a.value || a.label.localeCompare(b.label));
-
-  return { rows, unrecorded };
-}
+// THERE IS NO `entryPointUsage` HERE ANY MORE, and its absence is deliberate
+// (client instruction, 2026-08-17: remove Entry Point Utilization completely).
+// The panel it fed reported which door each visitor came through — and nothing
+// in this app has ever WRITTEN `visits.entry_point_id`, so on live data it could
+// only ever render its own empty state over a sentence counting every arrival as
+// unrecorded. A panel whose honest output is "we do not know, for all N of them"
+// is not a measurement, it is a column waiting for a feature. Migration 084's
+// table and column STAY (they mirror the live schema, the same rule `gate_passes`
+// follows) — do not re-derive a chart from them until a check-in path records a
+// door. The trailing entry-point rows went out of the Peak Hours CSV with it.
 
 /** Human reading of a duration in seconds — "38s", "2m 05s". The tile and the
  *  axis share it, so the number under the chart and the number on the card

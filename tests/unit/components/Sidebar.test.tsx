@@ -74,16 +74,17 @@ function renderSidebar(role: UserRole, initialEntries: string[] = ['/'], collaps
 }
 
 describe('Sidebar navigation links per role', () => {
-  // The nine-tab admin console (2026-08-17, client instruction). Analytics is
-  // asserted ABSENT: the page was deleted outright, so a link reappearing would
-  // point at a route that 404s.
-  it('admin sees the nine console tabs and no Analytics link', () => {
+  // The eight-tab admin console (2026-08-17, client instruction). Analytics and
+  // Badge Printing are asserted ABSENT: both pages were deleted outright, so a
+  // link reappearing would point at a route that 404s.
+  it('admin sees the eight console tabs and no Analytics or Badge Printing link', () => {
     renderSidebar('admin');
     for (const label of ['Dashboard', 'Live Check-In', 'Pre-Registration', 'Visitors Log',
-      'Hosts', 'Badge Printing', 'Blacklist & Security', 'Reports', 'Settings']) {
+      'Hosts', 'Blacklist & Security', 'Reports', 'Settings']) {
       expect(screen.getByText(label)).toBeInTheDocument();
     }
     expect(screen.queryByText('Analytics')).not.toBeInTheDocument();
+    expect(screen.queryByText('Badge Printing')).not.toBeInTheDocument();
     expect(screen.queryByText('Approvals')).not.toBeInTheDocument();
     expect(screen.queryByText('Self-Service Kiosk')).not.toBeInTheDocument();
     expect(screen.queryByText('Daily Staff')).not.toBeInTheDocument();
@@ -93,10 +94,11 @@ describe('Sidebar navigation links per role', () => {
   // Each nav link renders as a single <a class="sidebar-link ...">. The mobile
   // drawer is not rendered by default (mobileOpen starts false), so only the
   // desktop <aside> tree contributes matches here.
-  it('admin sidebar has exactly 9 nav links', () => {
+  // Eight since Badge Printing was deleted (2026-08-17, client instruction).
+  it('admin sidebar has exactly 8 nav links', () => {
     const { container } = renderSidebar('admin');
     const links = container.querySelectorAll('a.sidebar-link');
-    expect(links.length).toBe(9);
+    expect(links.length).toBe(8);
   });
 
   // The guard's Visitors nav item was removed outright 2026-08-15 (client

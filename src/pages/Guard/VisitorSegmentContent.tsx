@@ -5,6 +5,7 @@ import GuardWalkIns from './GuardWalkIns';
 import GuardWalkInApproved from './GuardWalkInApproved';
 import type { WalkInCheckIn } from '../../lib/checkInWalkInApproved';
 import { SEGMENT_META, segmentVisits, type ListSegment, type VisitorSegment } from '../../lib/visitorSegments';
+import { isAwaitingGateCheckIn } from '../../lib/visitOrigin';
 
 /** Heading + subtitle for a segment that is a flow rather than a list.
  *  VisitorStackList renders its own; this keeps the two kinds consistent. */
@@ -59,9 +60,17 @@ export default function VisitorSegmentContent(props: Props): React.ReactElement 
   if (segment === 'walkin') {
     return (
       <SegmentShell segment="walkin">
+        {/* The register carries the gate check-in as well as the registration
+            (client instruction, 2026-08-17). `awaitingGateCheckIn` is the
+            NARROW half of the walkinApproved segment — cleared and still
+            outside — so the same visitor's Check In button appears here and on
+            the Approved Walk-ins lane, and it is the same component in both. */}
         <GuardWalkIns
           loading={loading}
           pending={segmentVisits(visits, 'pending')}
+          awaitingCheckIn={segmentVisits(visits, 'walkinApproved').filter(isAwaitingGateCheckIn)}
+          busyId={props.busyId}
+          onCheckIn={props.onWalkInCheckIn}
           onSubmitted={props.onWalkInSubmitted}
         />
       </SegmentShell>

@@ -84,6 +84,19 @@ describe('AdminHosts', () => {
     );
   });
 
+  // Client instruction, 2026-08-17: drop the Historical chip, "it should always
+  // reflect latest state". The claim is true by construction — `useAdminVisits`
+  // subscribes to postgres_changes on `visits` and reloads silently — and the
+  // seven-day window rolls with the IST day rather than being frozen at mount.
+  it('carries the Live scope chip, never Historical', () => {
+    renderPage();
+    expect(screen.getByText('Live')).toBeInTheDocument();
+    expect(screen.queryByText('Historical')).toBeNull();
+    // The chip says the data is current; the blurb still names the period, or a
+    // reader of "Visitors This Week" has no way to know which week that is.
+    expect(screen.getByText(/over the last 7 days/)).toBeInTheDocument();
+  });
+
   it('shows the empty state with zero hosts and "No hosts" rather than 0.0 or NaN', () => {
     renderPage();
     expect(screen.getByText('Total Hosts')).toBeInTheDocument();

@@ -36,17 +36,36 @@ const day = [
   visit({ id: 'a-2', status: 'walkin_approved' }),
   visit({ id: 'a-3', status: 'walkin_approved' }),
   visit({ id: 'r-1', status: 'rejected' }),
+  // Arrived today and still here — one arrival, no departure.
+  visit({
+    id: 'c-1', status: 'checked_in',
+    scheduled_for: '2026-08-16T04:30:00Z', checked_in_at: '2026-08-16T05:00:00Z',
+  }),
+  // Arrived today and gone home — one arrival AND one departure, which is
+  // exactly why the two tiles cannot be derived from each other.
+  visit({
+    id: 'c-2', status: 'checked_out', scheduled_for: '2026-08-16T05:00:00Z',
+    checked_in_at: '2026-08-16T05:30:00Z', checked_out_at: '2026-08-16T05:45:00Z',
+  }),
+  // Arrived at 21:00 IST YESTERDAY, left at 09:00 IST today. It is today's
+  // departure and it is NOT today's arrival — the row the widened query was
+  // added for, and the one that tells the two predicates apart.
+  visit({
+    id: 'c-3', status: 'checked_out',
+    created_at: '2026-08-15T15:30:00Z', scheduled_for: '2026-08-15T15:00:00Z',
+    checked_in_at: '2026-08-15T15:30:00Z', checked_out_at: '2026-08-16T03:30:00Z',
+  }),
 ];
 
-const tiles = hodTileVisits({ day, onSite, walkIns });
 const NOW = new Date('2026-08-16T06:00:00Z');
+const tiles = hodTileVisits({ day, onSite, walkIns }, NOW);
 const initialsOf = (name: string | null | undefined) => (name ?? 'U').slice(0, 2).toUpperCase();
 
 function renderBoard(selected: Parameters<typeof HodKpiBoard>[0]['selected'] = 'pending') {
   const onSelect = vi.fn();
   render(
     <HodKpiBoard
-      tiles={tiles} selected={selected} onSelect={onSelect} loading={false}
+      tiles={tiles} dayVisits={day} selected={selected} onSelect={onSelect} loading={false}
       now={NOW} initialsOf={initialsOf} onOpen={vi.fn()}
     />,
   );
@@ -61,7 +80,7 @@ describe('HOD dashboard KPI board', () => {
   it('renders every tile with the length of the list it opens', () => {
     renderBoard();
     expect(tileButton('On Site Now')).toHaveTextContent('2');
-    expect(tileButton('Declined Today')).toHaveTextContent('1');
+    expect(tileButton('Declined')).toHaveTextContent('1');
     // "Awaiting Walk-in Approval" is both the tile label and the open panel's
     // heading, so it appears twice — take the tile.
     expect(screen.getAllByText('Awaiting Walk-in Approval')[0]!.closest('button')!).toHaveTextContent('2');
@@ -74,7 +93,9 @@ describe('HOD dashboard KPI board', () => {
   // opened on its own.
   it('counts pre-approvals given and walk-ins approved as two separate tiles', () => {
     renderBoard();
-    expect(tileButton('Pre-Approvals Given')).toHaveTextContent('1');
+    // a-1 plus the three arrival fixtures, which all carry a slot: a clearance
+    // is not undone by the visitor turning up, so this lane keeps them.
+    expect(tileButton('Pre-Approvals Given')).toHaveTextContent('4');
     expect(tileButton('Walk-ins Approved')).toHaveTextContent('2');
     expect(screen.queryByText('Approved Today')).toBeNull();
   });
@@ -129,8 +150,8 @@ describe('HOD dashboard KPI board', () => {
   it('shows the tile’s own empty line rather than a shared one', () => {
     render(
       <HodKpiBoard
-        tiles={hodTileVisits({ day: [], onSite: [], walkIns: [] })}
-        selected="inside" onSelect={vi.fn()} loading={false}
+        tiles={hodTileVisits({ day: [], onSite: [], walkIns: [] }, NOW)}
+        dayVisits={[]} selected="inside" onSelect={vi.fn()} loading={false}
         now={NOW} initialsOf={initialsOf} onOpen={vi.fn()}
       />,
     );
@@ -145,13 +166,70 @@ describe('HOD dashboard KPI board', () => {
     expect(panel.querySelectorAll('button').length).toBe(0);
   });
 
+  // ── Check-ins and check-outs (client instruction, 2026-08-17) ────────────
+  //
+  // The board could say how many passes an HOD had issued and how many of their
+  // visitors were on site, and left "how many turned up" and "how many have
+  // gone home" to be worked out as the difference — which does not work, since
+  // On Site Now is LIVE and can hold somebody who arrived yesterday.
+  describe('check-in and check-out tiles', () => {
+    it('counts arrivals and departures as two tiles, each the length of its own list', () => {
+      renderBoard();
+      // c-1 and c-2 arrived today. c-3 arrived YESTERDAY, so it is not here.
+      expect(tileButton('Checked In')).toHaveTextContent('2');
+      // c-2 and c-3 both LEFT today, whichever day they arrived.
+      expect(tileButton('Checked Out')).toHaveTextContent('2');
+    });
+
+    // The distinction the whole widening exists for: a visitor who arrived at
+    // 21:00 yesterday and left at 09:00 today is today's departure and is not
+    // today's arrival. `status === 'checked_out'` cannot tell that row apart
+    // from one that arrived and left yesterday, which is why neither tile is
+    // keyed on the status.
+    it('files the midnight-crossing visit as a departure and not as an arrival', () => {
+      expect(tiles.checkedOut.map((v) => v.id)).toContain('c-3');
+      expect(tiles.checkedIn.map((v) => v.id)).not.toContain('c-3');
+    });
+
+    it('opens the arrivals it counted, with an exit column that says who is still here', () => {
+      renderBoard('checkedIn');
+      const panel = document.getElementById('hod-kpi-drill')!;
+      expect(within(panel).getByRole('heading', { level: 2 })).toHaveTextContent('Checked In');
+      expect(panel.querySelectorAll('tbody tr').length).toBe(tiles.checkedIn.length);
+    });
+  });
+
+  // Client instruction, 2026-08-17: say the window once at the top, and take
+  // "Today" off the individual cards. Both halves are asserted — a heading that
+  // arrives while the tiles keep the word is just one more thing on screen.
+  describe('the window is stated once, at the top', () => {
+    it('heads the board with Today at a Glance', () => {
+      renderBoard();
+      expect(screen.getByRole('heading', { name: /Today at a Glance/ })).toBeInTheDocument();
+    });
+
+    // An h2, never an h1: the sidebar item just clicked already names the page,
+    // the same call the guard dashboard made in 2026-08-13.
+    it('is not a page heading', () => {
+      renderBoard();
+      expect(screen.queryByRole('heading', { level: 1 })).toBeNull();
+    });
+
+    it('leaves the word Today on no tile label', () => {
+      renderBoard();
+      for (const key of HOD_TILE_KEYS) {
+        expect(HOD_PANEL_SPEC[key].heading).not.toMatch(/today/i);
+      }
+    });
+  });
+
   // The HOD board must not grow a stylesheet of its own again — styles/
   // hod-compact.css was an 8-to-11px type scale in a private accent hue, which
   // is what made this surface read as a different application from the guard's.
   it('renders no hod-* class of its own', () => {
     const { container } = render(
       <HodKpiBoard
-        tiles={tiles} selected="pending" onSelect={vi.fn()} loading={false}
+        tiles={tiles} dayVisits={day} selected="pending" onSelect={vi.fn()} loading={false}
         now={NOW} initialsOf={initialsOf} onOpen={vi.fn()}
       />,
     );

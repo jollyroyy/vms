@@ -35,9 +35,9 @@ describe('gateChips — presence', () => {
   // guard's again, so a cleared walk-in is a visitor the host said yes to who
   // is still outside — and must never be toned as inside, because that tone is
   // what the fire-marshal list is read off.
-  it('says Awaiting entry for a host-cleared walk-in still at the gate', () => {
+  it('says Awaiting gate check-in for a host-cleared walk-in still at the gate', () => {
     const chip = presence(visit({ status: 'walkin_approved', checked_in_at: null }));
-    expect(chip.label).toBe('Awaiting entry');
+    expect(chip.label).toBe('Awaiting gate check-in');
     expect(chip.tone).not.toBe('inside');
   });
 

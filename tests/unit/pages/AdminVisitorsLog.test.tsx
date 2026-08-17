@@ -169,9 +169,12 @@ describe('AdminVisitorsLog', () => {
     expect(screen.getByText('Showing 1 to 15 of 15 entries')).toBeInTheDocument();
   });
 
-  // The export takes the FILTERED set, not everything loaded — an admin who
-  // narrowed to one type must see that reflected before sending the file on.
-  it('reports the filtered row count on the export button, not the loaded count', () => {
+  // The row count came OFF the export button on 2026-08-17 (client instruction,
+  // with the same change to the Reports download cards): a number beside a label
+  // reads as part of the control. What it was load-bearing for — telling an empty
+  // set apart from a working one — survives as the disabled state, which is what
+  // is asserted here instead.
+  it('disables both register actions when the filters match nothing, and names them without a count', () => {
     mockVisits.current = {
       visits: [
         visitRow({ id: 'a', status: 'checked_in', checked_in_at: '2026-08-17T09:00:00Z', scheduled_for: '2026-08-17T09:00:00Z' }),
@@ -181,11 +184,56 @@ describe('AdminVisitorsLog', () => {
       loading: false,
     };
     renderPage();
-    expect(screen.getByRole('button', { name: 'Export 3 rows' })).toBeInTheDocument();
+    const csv = screen.getByRole('button', { name: 'Export CSV' });
+    const print = screen.getByRole('button', { name: 'Print Register' });
+    expect(csv).toBeEnabled();
+    expect(print).toBeEnabled();
+    expect(screen.queryByRole('button', { name: /Export 3 rows/ })).toBeNull();
 
-    fireEvent.change(screen.getByLabelText('Type'), { target: { value: 'walk_in' } });
-    expect(screen.getByRole('button', { name: 'Export 2 rows' })).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Export 3 rows' })).toBeNull();
+    // A query that matches nothing: both artefacts would be a header row and a
+    // letterhead over an empty table.
+    fireEvent.change(screen.getByPlaceholderText('Search name, vendor, phone or reference'), {
+      target: { value: 'nobody-by-this-name' },
+    });
+    expect(screen.getByRole('button', { name: 'Export CSV' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Print Register' })).toBeDisabled();
+  });
+
+  // Client instruction, 2026-08-17: the log needed the department filter Reports
+  // had, reaching the printout and the CSV too. It lives in `filterLog`, the one
+  // pipeline all three read, which is what makes that true by construction rather
+  // than by three call sites agreeing.
+  it('narrows the list with the department picker, built from the loaded rows', () => {
+    mockVisits.current = {
+      visits: [
+        visitRow({ id: 'a', department_id: 'd1', department: { name: 'HR' } }),
+        visitRow({ id: 'b', department_id: 'd2', department: { name: 'Engineering' },
+          visitor: { ...visitRow().visitor, full_name: 'Rahul Sen' } }),
+      ],
+      loading: false,
+    };
+    renderPage();
+
+    const picker = screen.getByLabelText('Department');
+    // Alphabetical, each with its own count — and only departments actually
+    // present, so no option can open an empty table.
+    expect([...picker.querySelectorAll('option')].map((o) => o.textContent))
+      .toEqual(['All Departments', 'Engineering (1)', 'HR (1)']);
+
+    fireEvent.change(picker, { target: { value: 'd2' } });
+    expect(screen.getByText('Rahul Sen')).toBeInTheDocument();
+    expect(screen.queryByText('Someone')).toBeNull();
+  });
+
+  // The paper register is mounted only while printing. Permanently in the tree it
+  // would put every filtered row in the DOM twice, and a screen reader has no
+  // `@media print` — it would read the whole register again after the table.
+  it('keeps the print sheet out of the DOM until Print is pressed', () => {
+    mockVisits.current = { visits: [visitRow({ id: 'a' })], loading: false };
+    renderPage();
+    // One row on screen means exactly one rendering of its host, not two.
+    expect(screen.getAllByText('S. Verma')).toHaveLength(1);
+    expect(screen.queryByText(/^End of register/)).toBeNull();
   });
 
   // The old advice ("use Reports, which takes a date range") went stale the
