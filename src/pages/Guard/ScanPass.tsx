@@ -18,6 +18,8 @@ import { useNavigate } from 'react-router-dom';
 import type { Visit } from '../../types/index';
 import { attachHostNames } from '../../lib/hostNames';
 import { checkInScannedVisit } from '../../lib/checkInFlow';
+import { fetchVisitForExit, logVisitExit } from '../../lib/checkOutFlow';
+import CardReturnConfirm from './CardReturnConfirm';
 import GuardQRScan from './GuardQRScan';
 import ScanPassLookup from './ScanPassLookup';
 import ScanPassSearchBar from './ScanPassSearchBar';
@@ -40,15 +42,27 @@ export default function GuardScanPass(): React.ReactElement {
   const [query, setQuery] = useState('');
   const [photoBlob, setPhotoBlob] = useState<Blob | null>(null);
   const [idScan, setIdScan] = useState<IdScanResult | null>(null);
+  // Whether the guard waved a name mismatch through (migration 097). Held
+  // beside `idScan` and cleared with it, because it is a decision about that
+  // reading and must never outlive it.
+  const [idOverride, setIdOverride] = useState(false);
   const [cardNumber, setCardNumber] = useState('');
   const [carrying, setCarrying] = useState(false);
   const [remarks, setRemarks] = useState('');
+  // THE VISITOR WHO IS ALREADY INSIDE (client instruction, 2026-08-17). A
+  // search that finds somebody who is checked in has exactly one useful next
+  // move, and it is not "go to another tab". The whole exit — the card-return
+  // gate and the write — is the same `CardReturnConfirm` + `logVisitExit` pair
+  // Entry & Exit uses, so the two surfaces cannot disagree about whether a
+  // human witnessed the departure or whether the card came back.
+  const [exitTarget, setExitTarget] = useState<Visit | null>(null);
+  const [exiting, setExiting] = useState(false);
   const [checkingIn, setCheckingIn] = useState(false);
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
 
   const backToScanner = useCallback(() => {
-    setMatch(null); setBlocked(null); setPhotoBlob(null); setIdScan(null); setCardNumber(''); setCarrying(false); setRemarks(''); setError('');
+    setMatch(null); setBlocked(null); setPhotoBlob(null); setIdScan(null); setIdOverride(false); setCardNumber(''); setCarrying(false); setRemarks(''); setError('');
   }, []);
 
   const handleResolved = useCallback(async (visit: Visit) => {
@@ -58,7 +72,7 @@ export default function GuardScanPass(): React.ReactElement {
     const [withHost] = await attachHostNames([visit]);
     setMatch(visitToMatchItem(withHost ?? visit));
     setBlocked(null);
-    setPhotoBlob(null); setIdScan(null); setCardNumber(''); setCarrying(false); setRemarks(''); setError('');
+    setPhotoBlob(null); setIdScan(null); setIdOverride(false); setCardNumber(''); setCarrying(false); setRemarks(''); setError('');
   }, []);
 
   // A pass the gate refused. It goes through the SAME host-name attachment and
@@ -74,10 +88,34 @@ export default function GuardScanPass(): React.ReactElement {
     setMatch(null);
   }, []);
 
+  const startCheckOut = useCallback(async (m: MatchItem) => {
+    if (!m.visitId) return;
+    setError('');
+    const visit = await fetchVisitForExit(m.visitId);
+    if (!visit) { setError('Could not open that visit. Try the search again.'); return; }
+    // Re-read, not the list's copy: another device may have checked them out
+    // while this search sat on screen, and the dialog must not offer to collect
+    // a card that has already come back.
+    if (visit.status !== 'checked_in') { setError('That visitor has already been checked out.'); return; }
+    setExitTarget(visit);
+  }, []);
+
+  const confirmCheckOut = useCallback(async () => {
+    if (!exitTarget) return;
+    setExiting(true);
+    const outcome = await logVisitExit(exitTarget);
+    setExiting(false);
+    if (!outcome.ok) { setError(outcome.message); setExitTarget(null); return; }
+    setSuccessMsg(`"${exitTarget.visitor?.full_name ?? 'Visitor'}" checked out successfully.`);
+    setExitTarget(null);
+    setTimeout(() => setSuccessMsg(''), 6000);
+  }, [exitTarget]);
+
   const handleConfirm = useCallback(async () => {
     if (!match || !photoBlob) return;
     setCheckingIn(true); setError('');
     const outcome = await checkInScannedVisit({
+      idOverride,
       match, visit: null, photoBlob, carrying, remarks, idScan, cardNumber,
     });
     if (!outcome.ok) { setError(outcome.message); setCheckingIn(false); return; }
@@ -104,6 +142,21 @@ export default function GuardScanPass(): React.ReactElement {
         <div className="flex justify-end">
           <ScanPassSearchBar onQueryChange={setQuery} />
         </div>
+      )}
+
+      {exitTarget && (
+        <CardReturnConfirm
+          visit={exitTarget}
+          onConfirm={() => { if (!exiting) void confirmCheckOut(); }}
+          onClose={() => setExitTarget(null)}
+        />
+      )}
+
+      {/* A failure from either direction, above the results that produced it.
+          CheckInPhotoStep prints its own copy of `error` while a check-in is on
+          screen; this branch is the one place a check-out failure can be said. */}
+      {!match && error && (
+        <div className="bg-danger-50 text-danger-700 px-4 py-3 rounded-xl text-sm font-semibold">{error}</div>
       )}
 
       {successMsg && (
@@ -151,6 +204,7 @@ export default function GuardScanPass(): React.ReactElement {
           onCancel={backToScanner}
           onConfirm={handleConfirm}
           onScanResult={setIdScan}
+          onOverrideChange={setIdOverride}
         />
       ) : (
         <div className="space-y-5">
@@ -161,7 +215,11 @@ export default function GuardScanPass(): React.ReactElement {
               scanner, not below it. It searches every status, and the rows it
               returns are non-actionable unless the pass is genuinely honourable
               today. Renders nothing until a search is submitted. */}
-          <ScanPassLookup query={query} onSelect={setMatch} />
+          <ScanPassLookup
+            query={query}
+            onSelect={setMatch}
+            onCheckOut={(m) => void startCheckOut(m)}
+          />
           {/* autoStart={false}: this is a TAB, not a modal somebody pressed
               Scan to open, and it is the search desk as well. The camera used
               to come on the moment the tab was clicked — webcam light and a

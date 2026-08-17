@@ -42,9 +42,25 @@ type Props = {
   isCheckedIn: boolean;
   expired: boolean;
   onSelect: () => void;
+  /** Take this visitor OUT (client instruction, 2026-08-17). Passed only where
+   *  the surface can actually complete an exit, so a row that offers it is a
+   *  row where pressing it does something. */
+  onCheckOut?: () => void;
 };
 
-export default function CheckInMatchCard({ match: m, disabled, isCheckedIn, expired, onSelect }: Props): React.ReactElement {
+export default function CheckInMatchCard({
+  match: m, disabled, isCheckedIn, expired, onSelect, onCheckOut,
+}: Props): React.ReactElement {
+  // EXACTLY ONE ACTION PER ROW, decided by where the visitor actually is
+  // (client instruction, 2026-08-17). A guard who has just found somebody has
+  // one thing to do about them: let them in, or let them out. Offering both, or
+  // offering neither and making them navigate to another tab, is the
+  // navigation this surface exists to remove.
+  //
+  // Check-out wins whenever the visit is `checked_in`, and it is deliberately
+  // NOT gated on `disabled`: that flag means "cannot be checked IN", which is
+  // exactly what a person already inside is.
+  const canCheckOut = Boolean(onCheckOut) && m.status === 'checked_in';
   const approval = APPROVAL_META[m.approvalType];
   // Mutually exclusive with the three existing badges below: `isCheckedIn`
   // and `expired` come from the guard's own live computation (checkedInIds /
@@ -71,8 +87,8 @@ export default function CheckInMatchCard({ match: m, disabled, isCheckedIn, expi
     // contrast. `pointer-events-none` went with the opacity — it also blocked
     // selecting the phone number to copy it, on the one card built to show it.
     <div
-      className={`${disabled ? CRISP_CARD : CRISP_CARD_INTERACTIVE} p-4 flex items-start gap-3.5`}
-      onClick={() => { if (!disabled) onSelect(); }}
+      className={`${disabled && !canCheckOut ? CRISP_CARD : CRISP_CARD_INTERACTIVE} p-4 flex items-start gap-3.5`}
+      onClick={() => { if (canCheckOut) onCheckOut?.(); else if (!disabled) onSelect(); }}
     >
       <div className="h-11 w-11 rounded-2xl avatar-gradient flex items-center justify-center text-sm font-bold shrink-0">
         {getInitials(m.visitorName)}
@@ -190,12 +206,17 @@ export default function CheckInMatchCard({ match: m, disabled, isCheckedIn, expi
         </div>
       </div>
 
-      {!disabled && (
+      {canCheckOut ? (
+        <button onClick={(e) => { e.stopPropagation(); onCheckOut?.(); }}
+          className="shrink-0 bg-navy-800 hover:bg-navy-950 text-white font-bold px-5 py-2.5 rounded-xl text-sm transition-all">
+          Check Out
+        </button>
+      ) : !disabled ? (
         <button onClick={(e) => { e.stopPropagation(); onSelect(); }}
           className="shrink-0 bg-brand-600 hover:bg-brand-700 text-white font-bold px-5 py-2.5 rounded-xl text-sm transition-all">
           Check In
         </button>
-      )}
+      ) : null}
     </div>
   );
 }

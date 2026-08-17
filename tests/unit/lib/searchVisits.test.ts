@@ -1,22 +1,40 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // Chainable builder mock, keyed by table, following the pattern in
-// tests/unit/lib/activeVisit.test.ts. `visits` supports .ilike (ref search)
-// and .in (visitor-id search); `visitors` supports .ilike (name/phone
-// search). Each terminal call resolves through its own vi.fn so a test can
-// script per-column responses.
+// tests/unit/lib/activeVisit.test.ts. `visits` supports .ilike (ref search),
+// .in (visitor-id search) and .eq().ilike() (the visitor-card search, which is
+// scoped to `status = 'checked_in'` — see fetchVisitsByCard); `visitors`
+// supports .ilike (name/phone search). Each terminal call resolves through its
+// own vi.fn so a test can script per-column responses.
 const mockVisitsIlike = vi.hoisted(() => vi.fn());
+const mockCardIlike = vi.hoisted(() => vi.fn());
 const mockVisitsIn = vi.hoisted(() => vi.fn());
 const mockVisitorsIlike = vi.hoisted(() => vi.fn());
 const calls = vi.hoisted(() => ({
   visitsIlike: [] as [string, string][],
+  cardIlike: [] as [string, string][],
+  visitsEq: [] as [string, string][],
   visitsIn: [] as [string, string[]][],
   visitorsIlike: [] as [string, string][],
 }));
 
 vi.mock('../../../src/supabaseClient', () => {
+  // `.eq(...)` returns a DIFFERENT builder, so a card lookup's terminal
+  // `.ilike` cannot be mistaken for the ref lookup's — the two hit the same
+  // table and the same method name, and one shared spy would make the tests
+  // unable to tell which leg ran.
+  const cardBuilder: any = {};
+  cardBuilder.ilike = (col: string, pattern: string) => {
+    calls.cardIlike.push([col, pattern]);
+    return mockCardIlike(col, pattern);
+  };
+
   const visitsBuilder: any = {};
   visitsBuilder.select = () => visitsBuilder;
+  visitsBuilder.eq = (col: string, value: string) => {
+    calls.visitsEq.push([col, value]);
+    return cardBuilder;
+  };
   visitsBuilder.ilike = (col: string, pattern: string) => {
     calls.visitsIlike.push([col, pattern]);
     return mockVisitsIlike(col, pattern);
@@ -61,9 +79,12 @@ function makeVisit(overrides: Record<string, unknown>) {
 
 beforeEach(() => {
   calls.visitsIlike = [];
+  calls.cardIlike = [];
+  calls.visitsEq = [];
   calls.visitsIn = [];
   calls.visitorsIlike = [];
   mockVisitsIlike.mockReset().mockResolvedValue({ data: [], error: null });
+  mockCardIlike.mockReset().mockResolvedValue({ data: [], error: null });
   mockVisitsIn.mockReset().mockResolvedValue({ data: [], error: null });
   mockVisitorsIlike.mockReset().mockResolvedValue({ data: [], error: null });
 });
@@ -73,6 +94,7 @@ describe('searchAllVisits — short query', () => {
     const result = await searchAllVisits('a');
     expect(result).toEqual([]);
     expect(mockVisitsIlike).not.toHaveBeenCalled();
+    expect(mockCardIlike).not.toHaveBeenCalled();
     expect(mockVisitorsIlike).not.toHaveBeenCalled();
     expect(mockVisitsIn).not.toHaveBeenCalled();
   });
@@ -215,5 +237,56 @@ describe('searchAllVisits — ILIKE wildcard escaping', () => {
     await searchAllVisits('a_b');
     const [, pattern] = calls.visitsIlike[0];
     expect(pattern).toBe('%a\\_b%');
+  });
+});
+
+// THE PHYSICAL VISITOR CARD (client instruction, 2026-08-17). A card number is
+// the one identifier a visitor is holding in their hand, so it is the fastest
+// thing a guard can ask for at the gate.
+describe('searchAllVisits — by visitor card number', () => {
+  it('looks the card up among CHECKED-IN visits only — the live holder', async () => {
+    await searchAllVisits('C-104');
+    expect(calls.visitsEq).toContainEqual(['status', 'checked_in']);
+    expect(calls.cardIlike).toEqual([['visitor_card_number', 'C-104']]);
+  });
+
+  // EXACT, not a substring. The guard is quoting an identifier here, not
+  // groping for a person: `%10%` would return C-104, C-1042 and B-210 at once.
+  it('does not wrap the card number in wildcards', async () => {
+    await searchAllVisits('104');
+    expect(calls.cardIlike[0]?.[1]).toBe('104');
+    expect(calls.cardIlike[0]?.[1]).not.toContain('%');
+  });
+
+  // The number is read off a printed card and typed by hand, so ILIKE (not eq)
+  // is what makes `c-104` find `C-104`. Migration 097 indexes
+  // upper(visitor_card_number) for checked_in rows to match.
+  it('returns the visit holding that card', async () => {
+    mockCardIlike.mockResolvedValue({
+      data: [makeVisit({ id: 'inside-1', status: 'checked_in', visitor_card_number: 'C-104' })],
+      error: null,
+    });
+    const result = await searchAllVisits('c-104');
+    expect(result.map((v) => v.id)).toEqual(['inside-1']);
+  });
+
+  // Not mutually exclusive with the other legs, and not meant to be: deciding
+  // whether "C-104" is a card or a name would be a classifier that is wrong at
+  // the gate, and merging costs one round trip instead.
+  it('dedupes a visit matched by BOTH the card and the ref', async () => {
+    const row = makeVisit({ id: 'same-visit', status: 'checked_in', visitor_card_number: 'C-104' });
+    mockCardIlike.mockResolvedValue({ data: [row], error: null });
+    mockVisitsIlike.mockResolvedValue({ data: [row], error: null });
+
+    const result = await searchAllVisits('C-104');
+    expect(result.filter((v) => v.id === 'same-visit')).toHaveLength(1);
+  });
+
+  it('still answers from the other legs when the card lookup errors', async () => {
+    mockCardIlike.mockResolvedValue({ data: null, error: { message: 'boom' } });
+    mockVisitsIlike.mockResolvedValue({ data: [makeVisit({ id: 'by-ref' })], error: null });
+
+    const result = await searchAllVisits('C-104');
+    expect(result.map((v) => v.id)).toEqual(['by-ref']);
   });
 });

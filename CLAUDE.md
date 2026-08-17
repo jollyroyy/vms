@@ -107,10 +107,49 @@ two `ROLE_LABELS` maps.
   the same thing on every screen.
 
 ## Guard console (visitor-only deployment)
-**Sidebar: five plain links** — Dashboard, Entry & Exit, Pre-Registered, Scan Pass,
-Visitors. No groups; `SidebarNavGroup.tsx` deleted 2026-08-13 (the segments live on the
-page as `VisitorKpiRail` tiles counted from the page's own data). `/visitors` is declared
-twice in `navLinks` (guard and staff land on different components).
+**Sidebar: FOUR plain links** (2026-08-18, client instruction — "the guard cannot waste
+so much time navigating here and there") — Dashboard, **Find & Scan**, Register Walk-in,
+Entry & Exit. No groups; `SidebarNavGroup.tsx` deleted 2026-08-13.
+
+**What went, and why each was a duplicate rather than a loss:**
+- **Pre-Registered** — its board was today's approved arrivals who have not turned up,
+  which is the dashboard's **Expected Today** panel from the SAME predicate
+  (`TILE_FILTER.expected` / `isPreRegisteredArrival`, both over `useTodayVisits`). The copy
+  that survives is the one that can also START the check-in, in place.
+  `/guard/preregistered` **redirects to `/guard/dashboard`**.
+- **Visitors** left the guard nav on 2026-08-15 and its five segments now redirect too:
+  `/visitors`, `/visitors/:segment` and `/guard` all land on `/guard/dashboard` for a
+  guard. Every one of them was DISPLAY-ONLY — a guard could reach five URLs and act on
+  none — and each restated a list that exists where a guard can act (Inside = Entry &
+  Exit's first lane, Pending / Approved Walk-ins = dashboard tiles, the register =
+  `/guard/walk-in`). Staff still get `VisitorsDashboard` at `/visitors`; the route was
+  always two components behind one path.
+
+**This is an UNLINKING, not a deletion.** `GuardConsole`, `GuardPreRegistered`,
+`VisitorSegmentContent`, `VisitorStackList`, `VisitorGridCard`, `VisitorKpiRail` and their
+tests are all still on disk, and `lib/visitorSegments.ts` in particular is load-bearing for
+`guardTiles`, `gateLanes` and `useGateVisits` — deleting it would take three live modules
+with it. If those pages are ever to go for good, that untangling is its own pass.
+
+### Find & Scan (`/guard/scan-pass`) is the one place a guard finds and acts
+Renamed from "Scan Pass" 2026-08-18: the old name described the camera, not the page.
+- **Four ways in, one record, ONE button.** QR at the lens, a PDF or image of a pass, a
+  typed name / mobile / ref, or **the number on the physical visitor card**. The row it
+  finds renders exactly one action, decided by where the visitor actually is:
+  **Check In** when the pass is honourable today and they are outside, **Check Out** when
+  `status === 'checked_in'`, and **no button** otherwise with the status stated.
+- **The card lookup is LIVE HOLDER ONLY** (`fetchVisitsByCard`, client instruction):
+  `status = 'checked_in'`, matched EXACTLY and case-insensitively — the guard is quoting an
+  identifier, so `%10%` returning C-104, C-1042 and B-210 is worse than useless, but `c-104`
+  must find `C-104`. A card is reissued the day after it comes back, so the historical rows
+  are not what "who has C-104" means. Indexed by migration **097**.
+- **`canCheckOut` is deliberately NOT gated on `disabled`** — that flag means "cannot be
+  checked IN", which is exactly what somebody already inside is.
+- **The exit is NOT reimplemented here**: the same `CardReturnConfirm` + `logVisitExit`
+  pair Entry & Exit uses, so `lib/checkOutFlow.logVisitExit` now has TWO callers and they
+  cannot disagree about whether a human witnessed the departure. `fetchVisitForExit`
+  re-reads the visit at the press — another device may have checked them out while the
+  results sat on screen.
 
 **No badge/QR minting anywhere in the guard surface** (`lib/passVisibility.ts`,
 `Console.tsx` header) — a guard must never mint an entry pass. No Badge import in Console.
@@ -190,8 +229,9 @@ Tests in `VisitorCard` and `GuardConsole` assert the absence.
   admitted visitor is the Entry & Exit tab's subject, which holds entry, exit and the one
   exit control — the same one-visitor-on-two-surfaces reasoning that took Checked Out off
   the segments. `Console.tsx`'s `exitTarget`/`CardReturnConfirm`/`logVisitExit` wiring went
-  with it, so **`lib/checkOutFlow.logVisitExit` has exactly one caller again**. Do not
-  re-add an exit here. Guarded by `GuardWalkInApprovedExit.test.tsx`.
+  with it. Do not re-add an exit here. (**`logVisitExit` has TWO callers since 2026-08-18**
+  — Entry & Exit and Find & Scan's search hit — which is the point of it being a shared
+  write; the rule this bullet states is about THIS lane, not about the caller count.) Guarded by `GuardWalkInApprovedExit.test.tsx`.
   - **`SEGMENT_FILTER.walkinApproved` is `isAwaitingGateCheckIn`, the NARROW half**
     (2026-08-17). It was `isApprovedWalkIn` (wide) and stayed wide when the
     already-checked-in list was deleted, so the KPI tile and the sidebar badge counted
@@ -376,6 +416,27 @@ routable (bookmarks, `?verify=` links). The FILE is still `GuardLiveQueue.tsx`.
   `isCheckableStatus` (`lib/checkableStatus.ts`, a full `Record<VisitStatus, boolean>` so a
   new status forces a decision) gates `disabled` alongside `dueToday` — not redundant, a
   `rejected` visit scheduled today has no `checked_in_at` so `isDueToday` is true.
+- **A NAME MISMATCH MAY BE OVERRIDDEN BY THE GUARD, WITH NO REASON TYPED** (client
+  instruction, 2026-08-18: "give an override option so the guard has leniency … not to
+  delay things"). A refused name is usually the OCR and not an impostor — a married name,
+  an initial the parser ate, a Devanagari card read in a different word order — and the
+  visitor is standing at the gate with a queue behind them. **Two paths, one rule:**
+  `CheckInScanSummary` (pre-approved desk, Scan Pass, Verify ID) and `WalkInIdentityStep`
+  (the register, which now compares the scanned name against the TYPED one — it never did
+  before, so a guard could send an approver a request whose name and document disagreed).
+  Both print BOTH names, offer one button, and then say **"Overridden by you"** — never a
+  green box, because this is not a match.
+  - **NO REASON IS COLLECTED** (client instruction, same day: a mandatory text box at a gate
+    is a queue). What IS recorded is that it happened: `visits.id_match_overridden`
+    (migration **097**, NOT NULL DEFAULT false), threaded through `checkInFlow.idOverride`
+    and written by `WalkInRequest`'s insert. The fact without the explanation — costing the
+    guard nothing, and keeping the record from claiming an identity check that did not pass.
+  - **An override belongs to ONE reading and never outlives it.** Discarding or re-taking
+    the scan clears it (`changeScan`), and on the register so does editing the typed name.
+  - **It is offered against a document that WAS read, never in place of reading one** — a
+    missing scan is a different refusal and no leniency about a name releases it. A scan
+    that read no name at all is not a mismatch either (`namesMatch` is false for a null,
+    which would fire the warning on half the cards the parser sees).
 - **THE ID SCAN IS MANDATORY ON EVERY CHECK-IN, PRE-APPROVED INCLUDED** (2026-08-17).
   `CheckInPhotoStep` gates Check In structurally while `scanResult` is null, and
   `blockedReason` names WHICH requirement is outstanding in one line. **Discarding a scan
@@ -701,22 +762,73 @@ Routes are an ARRAY of `<Route>` in `routes/adminRoutes.tsx` spread into App's o
   **optional** field — "nobody asked" must stay distinguishable from "has no photo").
   Every image keeps the monogram fallback and carries **`alt=""`** (the name is printed
   beside it).
-- **The Admin Panel is now Settings → Roles & Users.** `SettingsRolesUsers.tsx` renders
-  `DepartmentsManager` **unchanged** (departments, HODs, invite path, activity log link) —
-  moved, not rebuilt. No Users tab beyond this; the blacklist is its own console tab.
-- **`lib/settingsSections.ts` is the single source of truth for Settings** — rail and panel
-  both derive from it.
-  - **There is NO Time Zone field** (removed 2026-08-17; migration **093** deletes its
-    `app_settings` row). It was a one-option select governing nothing; the zone lives in
-    `vms_day_start_ist()`/`vms_day_end_ist()`/`IST_OFFSET_MS`. The row is DELETED rather
-    than orphaned — a row nothing reads claims a preference the app has stopped having.
-  - **EVERY FIELD DECLARES WHETHER THE APP HONOURS IT** (`enforced`). An unenforced field
-    still saves and stays editable, and renders "Recorded — not yet enforced" plus its
-    `caveat`. A screen where some switches govern behaviour and others merely store a
-    preference, with nothing distinguishing them, lies about what it controls.
-  - **Unsaved edits survive a section switch.** `dirty` tracks changed KEYS across the whole
-    form and the save writes exactly those — upserting all twenty-six would stamp
-    `updated_by`/`updated_at` on untouched rows.
+### Settings — TWO sections, Departments and Users
+`lib/settingsSections.ts` is the single source of truth; rail and panel both derive from
+it. **It was SIX until 2026-08-18** (client instruction: keep Departments and Users, remove
+everything else, Integrations included). General, Check-In Rules, Badges, Notifications and
+Integrations are gone, and with them the twenty-six stored switches and the page-level
+**Save Changes** button — both remaining panels write at the moment the admin confirms, so
+a global save would govern nothing. A large minority of those fields were openly marked
+"Recorded — not yet enforced" (no signature step, no SMS provider, no webhook dispatcher —
+`pg_net` is not installed, so a scheduled job cannot make an HTTP call at all). The
+`enforced` flag was an honest label on controls that should not have been offered at all.
+- **`app_settings`, its rows and `lib/appSettings.ts` all STAY.** The Hosts tab still reads
+  and writes the `notify.*` keys through them, and `HostNotificationsPanel` now owns those
+  three fields' `enforced`/`caveat` text outright (it used to read them out of
+  `settingsSections`). Deleting the store to match the screen would take a working feature
+  with it. Migration **093**'s deleted Time Zone row stays deleted.
+- **Every stale `?section=` slug degrades onto Departments** — `roles`, `general`,
+  `checkin`, `badges`, `notifications`, `integrations`. They are in bookmarks, and the
+  Hosts tab's "Manage in Settings" link now points at `?section=users`.
+- **Departments** is the old Admin Panel, MOVED not rebuilt: `SettingsDepartments.tsx`
+  (renamed from `SettingsRolesUsers.tsx`) renders `DepartmentsManager` unchanged.
+- **"Awaiting an HOD" stays filtered while you act on it**: the tile drills into
+  `UnassignedDepartments` and each card's "Assign HOD" opens `HodForm` **inline on that
+  card**. Do not reintroduce a `setView('departments')` in `startAssignFromGap`.
+
+### Settings → Users, and how an account is switched off
+Replicated from GatePass's admin portal (client instruction, 2026-08-17), **plus `staff`**.
+Migrations **094–096**; `lib/adminUsers.ts` (the one read and four writes) and
+`lib/userStatus.ts` (the labels and the derivations).
+- **`staff` IS assignable here and is NOT in GatePass.** Over there `staff` means "does not
+  use this app" and was being abused as an off switch; in VMS it is what a HOST is
+  (`get_hosts_for_department` returns the staff and HODs of a department), so an admin who
+  cannot create one cannot onboard a host. Assignable = **guard | hod | staff**. `admin`,
+  `super_admin` and `ceo` are refused by `admin_create_user` / `admin_update_user`
+  server-side, not only by the `<select>` — a rule enforced only by a dropdown is one any
+  token skips by POSTing to PostgREST. The table renders NO controls on an admin row rather
+  than buttons that could only fail (the 064 rule: the weakest admin account must not be a
+  route into a stronger one).
+- **"Inactive" IS NOT A ROLE.** Deactivation writes `public.user_status` (094) and leaves
+  `profiles.role` alone, so reactivation restores exactly what was withdrawn instead of an
+  admin guessing. Doing it GatePass's old way — `role = 'staff'` — would be worse here than
+  there: `staff` has its own routes, so it would move a guard sideways rather than shut
+  them out. **Absent row = active**, so there is no backfill.
+- **The suspension is enforced in POSTGRES, once.** `public.current_user_role()` was rebased
+  on its LIVE body and now returns NULL for a suspended caller, so every existing policy and
+  every policy added later refuses — no per-policy edit. `is_user_active` is SECURITY
+  DEFINER and **calls nothing**, or it would recurse through the very policy it decides.
+  `CREATE OR REPLACE`, never DROP: policies all over this database reference that function.
+- **And it is made LEGIBLE by `my_account_active()`** (`lib/startupGates.ts` →
+  `BootScreens.SuspendedScreen`). Enforcement alone is invisible: the person signs in, lands
+  on their role's page and every list is empty, which a guard cannot tell from a quiet
+  morning. Both startup gates **fail OPEN and never fail silently** — being unable to reach
+  the database is not proof anybody is suspended — and neither may `select` from `profiles`
+  or `user_status` directly.
+- **A new account gets a password the admin reads out**, flagged `must_change_password` so
+  064's forced-change screen spends it on first sign-in. Not an email invite: the built-in
+  Supabase mailer is capped at ~2 messages an hour PROJECT-WIDE and shared with GatePass,
+  which is what took "Forgot password?" off the login card in the first place.
+- **The email is READ-ONLY when editing** — changing a sign-in address is an auth-admin
+  operation, and rewriting only `profiles.email` would leave the screen showing an address
+  the login rejects. `HodPasswordReset` is offered in its place.
+- **Department applies to `hod` and `staff`, never `guard`**, recomputed server-side against
+  the role being SAVED — promoting somebody to guard drops the department they held, or
+  they stay in that department's host picker.
+- **Deactivate confirms and kills every session; Reactivate does neither.** The asymmetry is
+  the point: one is destructive, the other restores what was withdrawn. GatePass's
+  `gatepass.user_status` is a SEPARATE flag on this same project — suspending VMS access is
+  not a statement about GatePass access, and GatePass must never alter `public`.
 - **"Awaiting an HOD" stays filtered while you act on it**: the tile drills into
   `UnassignedDepartments` and each card's "Assign HOD" opens `HodForm` **inline on that
   card**. Do not reintroduce a `setView('departments')` in `startAssignFromGap`.
@@ -1018,6 +1130,20 @@ through a SECURITY DEFINER RPC, so a direct UPDATE grant is attack surface with 
   including that an **admin's** direct clear is refused, the visitor stays flagged while
   pending, a refusal leaves them blacklisted, and the clearance key does not leak.
 - **093** deletes the Time Zone `app_settings` row (see Settings).
+- **094–096** Settings → Users. **094** `public.user_status` (absent row = active, no
+  insert/update/delete policy) + `is_user_active` (SECURITY DEFINER, calls NOTHING, or it
+  recurses through the policy it decides) + `current_user_role()` **rebased on its live
+  body** to return NULL for a suspended caller — one edit, and every policy in the schema
+  enforces it — + `my_account_active()` for the app shell. **095** `admin_list_profiles`,
+  `admin_create_user`, `admin_update_user`: role allowlist **guard | hod | staff**,
+  admin/super_admin/ceo refused server-side, `must_change_password` seeded true, and 034's
+  four `auth.users` token columns written as `''` (omit them and the account cannot sign in
+  at all). **096** `admin_deactivate_user` / `admin_reactivate_user` — only the first
+  confirms and only the first deletes sessions; both refuse an admin target and
+  `profiles.role` is never touched by either.
+- **097** `visits.id_match_overridden` (the scan-mismatch override, recorded without a
+  reason) and a PARTIAL index on `upper(visitor_card_number)` for `checked_in` rows, which
+  is what Find & Scan's card lookup reads. Verified live 2026-08-18.
 - **064** admin-assisted password reset + forced change on first sign-in (verified live
   2026-08-10). Self-service reset was removed from the login card the same day: the built-in
   Supabase mailer is capped at **~2 mails/hour PROJECT-WIDE**, shared with the sibling

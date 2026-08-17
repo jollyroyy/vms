@@ -8,6 +8,12 @@ import React, { useState } from 'react';
 // screen the moment the page is, beside the title, and its results render
 // directly beneath it.
 //
+// IT SEARCHES BY THE VISITOR CARD TOO (client instruction, 2026-08-17). The
+// card is the only identifier a visitor is physically holding, so it is the
+// fastest thing a guard can ask for — and the row it finds carries the one
+// action that visitor needs. The card leg matches the CURRENT holder only (see
+// `fetchVisitsByCard`), because a card is reissued the day after it comes back.
+//
 // The search is SUBMITTED, not typed-into-the-void (client instruction,
 // 2026-08-15). It used to fire on its own after a 300ms pause, which left the
 // guard with no control to press and no moment that said "now it looked" — on a
@@ -42,8 +48,8 @@ export default function ScanPassSearchBar({
         <div className="flex-1">
           <input
             type="search"
-            aria-label="Search by visitor name or mobile number"
-            placeholder="Name, mobile or pass number…"
+            aria-label="Search by visitor name, mobile number, reference or visitor card number"
+            placeholder="Name, mobile, ref or card no…"
             value={input}
             // An emptied box must empty the results in the same keystroke —
             // otherwise the guard clears the field and the previous visitor's

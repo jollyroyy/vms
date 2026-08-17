@@ -30,13 +30,25 @@ import type { MatchItem } from './checkInTypes';
 // a closed pass tells the guard what became of it and never offers to reopen
 // it. Seeing a pass and being allowed to honour it are two different
 // permissions.
+//
+// WITH ONE EXCEPTION, added on client instruction 2026-08-17: a visitor who is
+// `checked_in` gets a CHECK OUT button. That is not a hole in the rule above —
+// it is the same rule read correctly. `disabled` has always meant "cannot be
+// checked IN", and somebody already inside is the clearest possible case of
+// that; refusing to let them out too was the tab-hopping this surface exists to
+// end. It is also what makes the card-number search useful: a guard types the
+// number off the card in the visitor's hand and the one thing they need to do
+// about it is right there.
 
 export default function ScanPassLookup({
   query,
   onSelect,
+  onCheckOut,
 }: {
   query: string;
   onSelect: (m: MatchItem) => void;
+  /** Omitted by any caller that cannot complete an exit. */
+  onCheckOut?: (m: MatchItem) => void;
 }): React.ReactElement | null {
   // Nothing to exclude: this page has no candidate list of its own, so no row
   // can render twice.
@@ -56,8 +68,9 @@ export default function ScanPassLookup({
         <div className="card empty-state !py-10">
           <p className="text-sm font-semibold text-navy-500">No visitor found.</p>
           <p className="text-xs text-navy-500 mt-1">
-            This search covers every visit on record, so nothing here means no pass was ever raised
-            for that name or number.
+            This search covers every visit on record by name, mobile number or reference — and any
+            visitor card that is currently issued. Nothing here means no pass was ever raised, and
+            no card by that number is in use right now.
           </p>
         </div>
       )}
@@ -75,6 +88,7 @@ export default function ScanPassLookup({
             isCheckedIn={m.status === 'checked_in'}
             expired={!checkable}
             onSelect={() => onSelect(m)}
+            onCheckOut={onCheckOut ? () => onCheckOut(m) : undefined}
           />
         );
       })}

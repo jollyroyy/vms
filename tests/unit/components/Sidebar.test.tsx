@@ -124,9 +124,9 @@ describe('Sidebar navigation links per role', () => {
     expect(screen.getByText('Pre-Approvals')).toBeInTheDocument();
   });
 
-  it('guard sees the reference console tabs plus Scan Pass and Register Walk-in, and no Search', () => {
+  it('guard sees the board, Find & Scan, Register Walk-in and Entry & Exit, and no Search', () => {
     renderSidebar('guard');
-    for (const label of ['Dashboard', 'Entry & Exit', 'Pre-Registered', 'Scan Pass', 'Register Walk-in']) {
+    for (const label of ['Dashboard', 'Entry & Exit', 'Find & Scan', 'Register Walk-in']) {
       expect(screen.getByText(label)).toBeInTheDocument();
     }
     expect(screen.queryByText('Search')).not.toBeInTheDocument();
@@ -137,21 +137,20 @@ describe('Sidebar navigation links per role', () => {
     renderSidebar('guard');
     expect(screen.getByRole('link', { name: /Dashboard/ })).toHaveAttribute('href', '/guard/dashboard');
     expect(screen.getByRole('link', { name: /Entry & Exit/ })).toHaveAttribute('href', '/guard/inside-now');
-    expect(screen.getByRole('link', { name: /Pre-Registered/ })).toHaveAttribute('href', '/guard/preregistered');
     expect(screen.queryByRole('link', { name: /Watchlist/ })).not.toBeInTheDocument();
   });
 
   // Every guard nav item is a single <a> (2026-08-13): the segments that used
   // to expand under a group button live on the page as KPI tiles
-  // (VisitorKpiRail), not in the sidebar. Still five since 2026-08-15, but a
-  // different five: Register Walk-in gained an item and Visitors lost one (its
-  // cards moved to the dashboard). No item is a group, so no click ever
-  // reveals a <button> in this nav.
-  it('guard sidebar has exactly 5 nav links and no group button', () => {
+  // (VisitorKpiRail), not in the sidebar. FOUR since 2026-08-18: Pre-Registered
+  // went, its board being the dashboard's Expected Today panel from the same
+  // predicate on a screen that can also act. No item is a group, so no click
+  // ever reveals a <button> in this nav.
+  it('guard sidebar has exactly 4 nav links and no group button', () => {
     renderSidebar('guard');
     const links = screen.getAllByRole('link').filter((l) => l.className.includes('sidebar-link'));
-    expect(links.length).toBe(5);
-    const navLabels = ['Dashboard', 'Entry & Exit', 'Pre-Registered', 'Scan Pass', 'Register Walk-in'];
+    expect(links.length).toBe(4);
+    const navLabels = ['Dashboard', 'Entry & Exit', 'Find & Scan', 'Register Walk-in'];
     for (const label of navLabels) {
       expect(screen.queryByRole('button', { name: label })).not.toBeInTheDocument();
     }
@@ -192,7 +191,7 @@ describe('Sidebar navigation links per role', () => {
     expect(screen.queryByText('Visitors')).not.toBeInTheDocument();
     const dashboardLink = screen.getByRole('link', { name: /Dashboard/ });
     expect(dashboardLink.className).not.toContain('sidebar-link-active');
-    const navLabels = ['Dashboard', 'Entry & Exit', 'Pre-Registered', 'Scan Pass', 'Register Walk-in'];
+    const navLabels = ['Dashboard', 'Entry & Exit', 'Find & Scan', 'Register Walk-in'];
     for (const label of navLabels) {
       const link = screen.getByRole('link', { name: new RegExp(label) });
       expect(link.className).not.toContain('sidebar-link-active');

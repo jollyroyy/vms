@@ -78,3 +78,30 @@ export async function undoVisitExit(visit: Visit): Promise<ExitOutcome> {
     return { ok: false, message: safeErrorMessage(err, 'Could not undo the check-out.') };
   }
 }
+
+/**
+ * The visit row behind a search hit, fetched at the moment the guard presses
+ * Check Out.
+ *
+ * `CardReturnConfirm` and `logVisitExit` both need the real row — the card
+ * number to demand back, and the status to refuse a visit that is not inside.
+ * A search result is a `MatchItem`, a projection built for reading, and
+ * widening it to carry a whole Visit so one button can be pressed would put the
+ * exit's two security-relevant facts into a shape assembled for a list.
+ *
+ * One extra round trip, on a press, at a gate. It also re-reads the status a
+ * moment before the write, which is exactly where the answer should come from
+ * when a second device may have checked the same visitor out already.
+ */
+export async function fetchVisitForExit(visitId: string): Promise<Visit | null> {
+  const { data, error } = await supabase
+    .from('visits')
+    .select('*, visitor:visitors(*), department:departments(id, name, code, created_at)')
+    .eq('id', visitId)
+    .maybeSingle();
+  if (error) {
+    console.error('[checkOutFlow] could not load the visit to check out', error);
+    return null;
+  }
+  return (data as unknown as Visit | null) ?? null;
+}

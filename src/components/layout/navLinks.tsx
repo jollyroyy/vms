@@ -4,10 +4,20 @@ import type { UserRole } from '../../types/index';
 // Single source of truth for sidebar navigation. Extracted out of Sidebar.tsx
 // so that file stays under the 300-line cap.
 //
-// The guard's five, in order: Dashboard, Scan Pass, Register Walk-in,
-// Entry & Exit, Pre-Registered. The two ARRIVAL routes sit second and third
-// (client instruction, 2026-08-15) — they are the only items here where a
-// guard starts something, and they used to be fourth and fifth. Daily Staff and the
+// THE GUARD'S FOUR, in order: Dashboard, Find & Scan, Register Walk-in,
+// Entry & Exit (client instruction, 2026-08-18 — "the guard cannot waste so
+// much time navigating here and there").
+//
+// Pre-Registered was the fifth and is GONE from the nav. It rendered today's
+// approved arrivals who have not turned up yet — which is the dashboard's
+// "Expected Today" panel, from the SAME predicate (`TILE_FILTER.expected` and
+// `isPreRegisteredArrival` both run off `useTodayVisits`). Two sidebar items
+// opening one list is the defect this project has fixed on every other surface,
+// and the copy that survives is the one the guard can also ACT from, in place,
+// without leaving the board they are reading.
+//
+// The two ARRIVAL routes sit second and third (client instruction, 2026-08-15) —
+// they are the only items here where a guard starts something. Daily Staff and the
 // Self-Service Kiosk are intentionally NOT here; the kiosk is still routable
 // (see ROLE_ROUTES in lib/roleRoutes.ts) — it runs on its own device — and
 // Search duplicated lookups the Visitors page already covers. The Watchlist
@@ -88,9 +98,14 @@ export const ALL_LINKS: NavLink[] = [
   // used to sit fourth and fifth, under the three reference-screen tabs, so the
   // gate's most-pressed items were the furthest down the panel.
   //
-  // The camera lane: a pass held up to the scanner resolves straight to the
-  // visitor and the check-in happens on that page.
-  { to: '/guard/scan-pass', label: 'Scan Pass', roles: ['guard'], icon: icon(ICON_SCAN) },
+  // FIND & SCAN — "Scan Pass" until 2026-08-18 (client instruction). The name
+  // described the camera and not the page: this is the guard's one place to
+  // locate a visitor by ANY means they have — a QR pass at the lens, a PDF or
+  // photo of one, a name, a mobile number, a reference, or the number printed
+  // on the physical card in the visitor's hand — and then to do the single
+  // thing that visitor needs: Check In if they are cleared and outside, Check
+  // Out if they are inside. One surface, one record, one button.
+  { to: '/guard/scan-pass', label: 'Find & Scan', roles: ['guard'], icon: icon(ICON_SCAN) },
   // The other way in. It was a `+` button inside the Visitors tab's walk-in
   // segment (client instruction, 2026-08-15): a guard had to know Visitors held
   // a walk-in lane, reach it, and find a plus sign that expanded into the form.
@@ -107,10 +122,9 @@ export const ALL_LINKS: NavLink[] = [
   // old path — it is in guards' bookmarks and in every ?verify= link the
   // dashboard emits — so only the label moves.
   { to: '/guard/inside-now', label: 'Entry & Exit', roles: ['guard'], icon: icon(ICON_USERS) },
-  // Today's pre-approvals who have NOT arrived yet, with filter chips and the
-  // schedule rail (reference screen 3). Once a visitor checks in they leave
-  // this board for Entry & Exit — one visitor is never on two tabs at once.
-  { to: '/guard/preregistered', label: 'Pre-Registered', roles: ['guard'], icon: icon(ICON_CHECK) },
+  // NO PRE-REGISTERED ITEM (removed 2026-08-18 — see the header). The route
+  // still resolves, so a bookmark is not a 404; it redirects to the dashboard,
+  // which is where that list now lives and where it can be acted on.
   // NO VISITORS TAB for the guard (removed 2026-08-15, client instruction).
   // Every card it carried is now on the dashboard: All Visitors, Pending
   // Approval and Approved Walk-ins are tiles in row 2 (lib/guardTiles.ts), and

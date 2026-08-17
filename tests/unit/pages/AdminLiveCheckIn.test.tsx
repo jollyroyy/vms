@@ -1,5 +1,5 @@
 import React from 'react';
-import { describe, it, expect, vi, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, cleanup, fireEvent, within } from '@testing-library/react';
 import AdminLiveCheckIn from '../../../src/pages/Admin/AdminLiveCheckIn';
 
@@ -17,7 +17,23 @@ import AdminLiveCheckIn from '../../../src/pages/Admin/AdminLiveCheckIn';
 // lane badge, which is the only arrangement in which a number and the rows it
 // stands for cannot drift apart.
 
-afterEach(cleanup);
+// THE CLOCK IS PINNED TO THE DAY THE FIXTURES DESCRIBE. The Checked Out lane
+// keys on `checked_out_at >= istDayStart()` — the same window the guard's
+// Entry & Exit tab uses — so a fixture stamped 2026-08-17 silently stopped
+// being "today" the moment the real date rolled past it, and two tests here
+// began failing on a change nobody made. A suite that asserts anything about an
+// IST day has to say WHICH day it means.
+beforeEach(() => {
+  vi.useFakeTimers();
+  // 2026-08-17 12:00 IST — mid-afternoon on the fixtures' own day, so nothing
+  // sits near a boundary.
+  vi.setSystemTime(new Date('2026-08-17T06:30:00Z'));
+});
+
+afterEach(() => {
+  vi.useRealTimers();
+  cleanup();
+});
 
 const mockVisits = vi.hoisted(() => ({ current: { visits: [] as any[], loading: false } }));
 

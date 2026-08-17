@@ -113,8 +113,7 @@ describe('Sidebar: navigation links', () => {
     // components/layout/navLinks.tsx.
     expect(screen.getByText('Dashboard')).toBeInTheDocument();
     expect(screen.getByText('Entry & Exit')).toBeInTheDocument();
-    expect(screen.getByText('Pre-Registered')).toBeInTheDocument();
-    expect(screen.getByText('Scan Pass')).toBeInTheDocument();
+    expect(screen.getByText('Find & Scan')).toBeInTheDocument();
     expect(screen.getByText('Register Walk-in')).toBeInTheDocument();
     // No Visitors tab for the guard (removed 2026-08-15, client instruction):
     // every card it carried moved onto the dashboard — All Visitors, Pending
@@ -191,19 +190,19 @@ describe('Sidebar: navigation links', () => {
 
   // Every guard nav item is a single <a> (2026-08-13): the segments that used
   // to expand under a group button live on the page as KPI tiles, so "active"
-  // is read off the link's own class like every other nav item. Scan Pass is
+  // is read off the link's own class like every other nav item. Find & Scan is
   // the handle here (Visitors is gone from the guard nav since 2026-08-15) —
   // its route is unambiguous and the subject under test is the highlighting
   // behaviour, not the link's identity.
   it('highlights active link based on current route', () => {
     renderWithRouter(<Sidebar session={guardSession} role="guard" />, { route: '/guard/scan-pass' });
-    const link = screen.getByRole('link', { name: /Scan Pass/ });
+    const link = screen.getByRole('link', { name: /Find & Scan/ });
     expect(link.className).toContain('sidebar-link-active');
   });
 
   it('does not highlight inactive links', () => {
     renderWithRouter(<Sidebar session={guardSession} role="guard" />, { route: '/whos-inside' });
-    const link = screen.getByRole('link', { name: /Scan Pass/ });
+    const link = screen.getByRole('link', { name: /Find & Scan/ });
     expect(link.className).not.toContain('sidebar-link-active');
   });
 });
@@ -228,13 +227,13 @@ describe('Sidebar: sign out', () => {
 describe('Sidebar: mobile menu', () => {
   it('toggles mobile menu on hamburger click', () => {
     renderWithRouter(<Sidebar session={guardSession} role="guard" />);
-    // Scan Pass is the handle (Visitors left the guard nav 2026-08-15) — the
+    // Find & Scan is the handle (Visitors left the guard nav 2026-08-15) — the
     // subject under test is the mobile menu duplicating the nav, not which
     // link it duplicates.
-    const beforeCount = screen.getAllByText('Scan Pass').length;
+    const beforeCount = screen.getAllByText('Find & Scan').length;
     const toggleBtn = screen.getByLabelText('Open menu');
     expect(toggleBtn).toBeInTheDocument();
     fireEvent.click(toggleBtn);
-    expect(screen.getAllByText('Scan Pass').length).toBeGreaterThan(beforeCount);
+    expect(screen.getAllByText('Find & Scan').length).toBeGreaterThan(beforeCount);
   });
 });

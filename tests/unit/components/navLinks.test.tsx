@@ -2,29 +2,34 @@ import { describe, it, expect } from 'vitest';
 import { ALL_LINKS, linksForRole } from '../../../src/components/layout/navLinks';
 
 describe('navLinks: linksForRole', () => {
-  // The three-tab guard console from the approved reference design
-  // (Dashboard, Entry & Exit, Pre-Registered), then Scan Pass and the
-  // consolidated Visitors lane. Client instruction 2026-08-14 — no Search, no
-  // group button, no vehicle entries anywhere. The Watchlist tab was deleted
-  // 2026-08-15 (client instruction); the blacklist gate lives inside check-in.
-  // Five since 2026-08-15 (client instruction): Register Walk-in got its own
-  // destination — the form was a `+` button buried in the Visitors tab — and
-  // the Visitors tab itself went, every card it carried having moved onto the
-  // dashboard. The ROUTE stays allowed, like /kiosk; it is the nav item that
-  // was removed.
-  // Re-ordered 2026-08-15 (client instruction): the two ARRIVAL routes sit
-  // second and third, directly under the board. A visitor either holds a pass
-  // (Scan Pass) or does not (Register Walk-in) — those are the two things a
-  // guard starts, and everything below them is a list of work already started.
-  it('guard gets exactly 5 links, in order, with the exact labels, and no Visitors or Search', () => {
+  // FOUR since 2026-08-18 (client instruction: the guard must not waste time
+  // navigating). Pre-Registered was the fifth and its board was today's
+  // approved arrivals who have not turned up yet — which is the dashboard's
+  // Expected Today panel, from the same predicate, on a screen the guard can
+  // also act from. Two nav items opening one list is the defect this project
+  // has fixed on every other surface. The ROUTE stays resolvable and
+  // redirects, like /visitors and /kiosk before it; it is the nav item that
+  // went.
+  //
+  // The Watchlist tab was deleted 2026-08-15 and the Visitors tab 2026-08-15,
+  // both on client instruction. The two ARRIVAL routes sit second and third
+  // (2026-08-15): a visitor either holds a pass (Find & Scan) or does not
+  // (Register Walk-in), and those are the two things a guard STARTS.
+  //
+  // "Find & Scan", not "Scan Pass" (2026-08-18): the old name described the
+  // camera, and that page is now the one place a guard locates a visitor by
+  // any means they have — QR, PDF, name, mobile, reference or the number on
+  // the physical card — and performs the single action that visitor needs.
+  it('guard gets exactly 4 links, in order, with the exact labels, and no Visitors, Pre-Registered or Search', () => {
     const links = linksForRole('guard');
     expect(links.map((l) => l.label)).toEqual([
       'Dashboard',
-      'Scan Pass',
+      'Find & Scan',
       'Register Walk-in',
       'Entry & Exit',
-      'Pre-Registered',
     ]);
+    expect(links.map((l) => l.label)).not.toContain('Pre-Registered');
+    expect(links.map((l) => l.label)).not.toContain('Scan Pass');
     expect(links.map((l) => l.label)).not.toContain('Visitors');
     expect(links.map((l) => l.label)).not.toContain('Search');
     expect(links.map((l) => l.label)).not.toContain('Vehicles');
@@ -37,12 +42,12 @@ describe('navLinks: linksForRole', () => {
     expect(links[1]?.to).toBe('/guard/scan-pass');
     expect(links[2]?.to).toBe('/guard/walk-in');
     expect(links[3]?.to).toBe('/guard/inside-now');
-    expect(links[4]?.to).toBe('/guard/preregistered');
+    expect(links).toHaveLength(4);
   });
 
   it('puts the two ways a visitor arrives second and third', () => {
     const links = linksForRole('guard');
-    expect(links[1]?.label).toBe('Scan Pass');
+    expect(links[1]?.label).toBe('Find & Scan');
     expect(links[2]?.label).toBe('Register Walk-in');
   });
 
