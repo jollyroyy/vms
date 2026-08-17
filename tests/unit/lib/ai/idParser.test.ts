@@ -97,6 +97,45 @@ describe('M-AI-PARSER: parseIdDocument', () => {
     });
   });
 
+  // The scan accepts ANY government photo ID, not only Aadhaar (client
+  // instruction, 2026-08-17). The Voter ID was the one of the five printed on
+  // an Indian card that this parser could not name: an EPIC number is three
+  // letters and seven digits, which none of the other four patterns match, so
+  // a voter card scanned as `unknown` and the overlay refused it outright.
+  describe('Voter ID (EPIC) detection', () => {
+    it('detects an EPIC number (3 letters + 7 digits)', () => {
+      const result = parseIdDocument('ABC1234567');
+      expect(result.type).toBe('voter_id');
+      expect(result.rawNumber).toBe('ABC1234567');
+    });
+
+    it('detects an EPIC number embedded in card text', () => {
+      const text = 'ELECTION COMMISSION OF INDIA\nELECTOR PHOTO IDENTITY CARD\nWXY9876543\nNAME: John Doe';
+      const result = parseIdDocument(text);
+      expect(result.type).toBe('voter_id');
+      expect(result.rawNumber).toBe('WXY9876543');
+    });
+
+    it('does not read a passport number as an EPIC', () => {
+      expect(parseIdDocument('A1234567').type).toBe('passport');
+    });
+
+    it('does not read a PAN as an EPIC', () => {
+      expect(parseIdDocument('ABCDE1234F').type).toBe('pan');
+    });
+
+    it('does not report a voter card as a driving licence', () => {
+      // DL's pattern is the loosest of the five and is tried last precisely so
+      // it cannot cannibalise a more specific shape.
+      expect(parseIdDocument('MNO4567890').type).toBe('voter_id');
+    });
+
+    it('does not treat the card boilerplate as the holder name', () => {
+      const text = 'ELECTION COMMISSION OF INDIA\nELECTOR PHOTO IDENTITY CARD\nABC1234567';
+      expect(parseIdDocument(text).name).toBeNull();
+    });
+  });
+
   describe('detection precedence', () => {
     it('PAN takes precedence over Aadhaar when both are present', () => {
       const text = 'ABCDE1234F\n1234 5678 9012';

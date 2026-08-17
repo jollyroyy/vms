@@ -7,7 +7,13 @@
 // hand, so every extractor below is written to prefer `null` over a guess it
 // isn't confident about.
 
-export type IdDocumentType = 'aadhaar' | 'pan' | 'driving_licence' | 'passport' | 'unknown';
+export type IdDocumentType =
+  | 'aadhaar'
+  | 'pan'
+  | 'voter_id'
+  | 'driving_licence'
+  | 'passport'
+  | 'unknown';
 
 export type ParsedId = {
   type: IdDocumentType;
@@ -34,6 +40,15 @@ const AADHAAR_CANDIDATE_PATTERN = /(?<!\d)\d{4}\s?\d{4}\s?\d{4}(?!\d)/g;
 // Passport: 1 letter + 7 digits (Indian format).
 const PASSPORT_PATTERN = /\b[A-Z][0-9]{7}\b/;
 
+// Voter ID (EPIC): 3 letters + 7 digits, e.g. 'ABC1234567'. Disjoint from every
+// other shape here rather than merely ranked below them — a passport carries ONE
+// leading letter and a PAN five, so neither can satisfy `{3}`, and the DL pattern
+// needs a digit in the third position where an EPIC still has a letter. The
+// visitor desk accepts any government photo ID, so leaving this out meant a voter
+// card came back `unknown` and the overlay refused a document the guard was
+// holding and was entitled to accept.
+const VOTER_ID_PATTERN = /\b[A-Z]{3}[0-9]{7}\b/;
+
 // Driving licence: two-letter state code, optional separator, then digits —
 // e.g. 'MH12 20110012345', 'DL-0420110149646', 'KA0520190001234'. This is the
 // loosest of the four shapes (it would happily swallow a passport or DL-like
@@ -41,13 +56,16 @@ const PASSPORT_PATTERN = /\b[A-Z][0-9]{7}\b/;
 // specific has matched.
 const DL_PATTERN = /\b[A-Z]{2}[\s-]?\d{2}[\s-]?\d{4,11}\b/;
 
-// Precedence: PAN > Aadhaar > Passport > DL.
+// Precedence: PAN > Aadhaar > Passport > Voter ID > DL.
 //   1. PAN's alternating letter/digit skeleton is the most specific pattern
 //      of the four, so it is ruled in or out first.
 //   2. Aadhaar's 12-digit run is next most specific once PAN is excluded.
 //   3. Passport's single-letter-plus-7-digits is more specific than DL's
 //      variable-length, 2-11 digit tail.
-//   4. DL is checked last because its pattern is the loosest and would
+//   4. Voter ID's 3-letters-plus-7-digits is fixed-length and cannot overlap
+//      any of the three above, so its position is only about staying ahead of
+//      DL.
+//   5. DL is checked last because its pattern is the loosest and would
 //      otherwise cannibalise matches meant for the others.
 type Detection = { type: IdDocumentType; rawNumber: string | null };
 
@@ -61,6 +79,11 @@ function detectDocument(upperText: string, originalText: string): Detection {
   const passport = PASSPORT_PATTERN.exec(upperText);
   if (passport) {
     return { type: 'passport', rawNumber: sliceOriginal(originalText, passport.index, passport[0].length) };
+  }
+
+  const voter = VOTER_ID_PATTERN.exec(upperText);
+  if (voter) {
+    return { type: 'voter_id', rawNumber: sliceOriginal(originalText, voter.index, voter[0].length) };
   }
 
   const dl = DL_PATTERN.exec(upperText);
@@ -112,6 +135,13 @@ const BOILERPLATE_LINES = new Set([
   'PASSPORT',
   'DRIVING LICENCE',
   'TRANSPORT DEPARTMENT',
+  // Voter card (EPIC) boilerplate. Without these the name fallback below — the
+  // first name-shaped Latin line — would hand back the issuing authority as the
+  // holder's name on every voter card, which is worse than returning nothing.
+  'ELECTION COMMISSION OF INDIA',
+  'ELECTOR PHOTO IDENTITY CARD',
+  'IDENTITY CARD',
+  'ELECTORS NAME',
   // Aadhaar-specific field words that OCR routinely merges onto the name
   // line (PP-OCRv5 detection boxes merge adjacent glyphs): a "name" line
   // equal to any of these is a field label, not a person.

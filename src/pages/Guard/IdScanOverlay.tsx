@@ -19,10 +19,18 @@ type Props = {
 const ID_TYPE_LABELS: Record<IdDocumentType, string> = {
   aadhaar: 'Aadhaar',
   pan: 'PAN',
+  voter_id: 'Voter ID',
   passport: 'Passport',
   driving_licence: 'Driver Licence',
   unknown: '',
 };
+
+// Named on the camera step and repeated in the failure message, because the
+// desk accepts ANY government photo ID and a guard reading "Scan ID card" over
+// a live camera has no way to know which documents the reader can name. A
+// visitor holding a voter card was being turned away from a scan that would
+// have accepted it.
+const ACCEPTED_IDS = 'Aadhaar, Voter ID, PAN, Driving Licence or Passport';
 
 type Phase = 'camera' | 'reading' | 'review' | 'error';
 
@@ -49,7 +57,7 @@ export default function IdScanOverlay({ onScanned, onClose }: Props): React.Reac
       const result = await engine.recognise(blob);
       const id = parseIdDocument(result.fullText);
       if (id.type === 'unknown' || !id.rawNumber) {
-        setError('No government ID document recognised. Try again with better lighting.');
+        setError(`No government ID recognised. ${ACCEPTED_IDS} are all accepted — try again with better lighting.`);
         setPhase('error');
         return;
       }
@@ -177,8 +185,9 @@ export default function IdScanOverlay({ onScanned, onClose }: Props): React.Reac
     <div className={SCAN_BACKDROP} onClick={close}>
       <div className="bg-white rounded-2xl p-5 max-w-sm w-full space-y-4 relative" onClick={(e) => e.stopPropagation()}>
         <ModalCloseButton onClose={close} />
-        <div className="flex items-center justify-between pr-8">
+        <div className="pr-8">
           <h3 className="font-bold text-navy-900">Scan ID card</h3>
+          <p className="text-xs text-navy-700 mt-0.5">{ACCEPTED_IDS} — any of these is accepted.</p>
         </div>
 
         {cameraDown ? (

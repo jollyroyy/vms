@@ -240,15 +240,26 @@ export default function LoginPage(): React.ReactElement {
             </div>
           )}
 
+          {/* Gold, not `brand-*`: that Tailwind scale is enterprise BLUE from 200
+              upwards (see tailwind.config.ts), so a brand gradient painted the one
+              primary control on this page in the one colour the Quest Mall theme
+              does not use. The stops are the card's own top rule, so the button and
+              the rule are one decision rather than two that can drift.
+              `text-shell-ink` went with it — there is no `shell` colour in the
+              config, so it compiled to nothing and the label inherited whatever it
+              happened to land on. */}
           <button
             type="submit"
             disabled={loading || rateLimited}
             className="w-full rounded-xl px-5 py-3 text-sm font-bold uppercase tracking-[0.12em]
-                       text-shell-ink bg-gradient-to-r from-brand-500 to-brand-600
                        hover:brightness-105 active:scale-[0.985]
                        disabled:opacity-60 disabled:cursor-not-allowed disabled:active:scale-100
                        transition-all duration-200 flex items-center justify-center gap-2"
-            style={{ boxShadow: '0 10px 28px -8px rgba(198,161,91,0.70)' }}
+            style={{
+              background: 'linear-gradient(90deg, #8A6C32, #C6A15B 45%, #D0AD68)',
+              color: '#16161A',
+              boxShadow: '0 10px 28px -8px rgba(198,161,91,0.70)',
+            }}
           >
             {loading ? (
               'Signing in…'

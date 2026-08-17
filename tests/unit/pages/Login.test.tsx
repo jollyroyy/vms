@@ -93,6 +93,23 @@ describe('M12-LOGIN: LoginPage', () => {
     expect(link).toHaveAttribute('href', `mailto:${ADMIN_CONTACT_EMAIL}`);
   });
 
+  // The Quest Mall theme is gold and bronze, and the Sign In button was the one
+  // control on this page that ignored it (client report, 2026-08-17): the
+  // `brand-*` scale in tailwind.config.ts is literal enterprise BLUE from 200
+  // upwards, so `from-brand-500 to-brand-600` painted a blue button under a gold
+  // rule, a gold divider and a gold link. jsdom applies no stylesheet, so this
+  // pins the CLASS AND STYLE CONTRACT the same way NotificationBellContrast does.
+  it('paints the sign-in button gold, never with the blue brand scale', () => {
+    render(<LoginPage />);
+    const button = screen.getByRole('button', { name: /sign in/i });
+    const classes = button.getAttribute('class') ?? '';
+    expect(classes).not.toMatch(/(from|to|via|bg)-brand-/);
+    expect(classes).not.toMatch(/(from|to|via|bg)-accent-/);
+    // jsdom normalises a hex to rgb() when it round-trips the style attribute,
+    // so the gold is asserted in the form it comes back in: #C6A15B.
+    expect(button.getAttribute('style') ?? '').toMatch(/rgb\(198,\s*161,\s*91\)/);
+  });
+
   it('shows error message on failed login', async () => {
     mockSignIn.mockResolvedValue({ error: { message: 'Invalid login credentials' } });
     render(<LoginPage />);
