@@ -53,11 +53,16 @@ export default function DashboardTile({
           <path strokeLinecap="round" strokeLinejoin="round" d={icon} />
         </svg>
       </span>
-      <span className="min-w-0">
-        <span className={`block font-medium text-navy-500 dark:text-navy-600 ${compact ? 'text-[12px]' : 'text-[13px]'}`}>
+      <span className="min-w-0 flex-1">
+        {/* One navy step, no `dark:` override — the scale is inverted per theme,
+            so a single number resolves correctly in both and the old
+            `text-navy-500 dark:text-navy-600` pair was tuning by hand what the
+            tokens already do. Matches AdminKpiTile, so a label reads the same
+            weight on the admin board as on this one. */}
+        <span className={`block font-medium leading-snug break-words text-navy-700 ${compact ? 'text-[12px]' : 'text-[13px]'}`}>
           {label}
         </span>
-        <span className={`block font-display leading-tight font-medium tracking-tight tabular-nums text-navy-950 dark:text-white ${compact ? 'text-[1.5rem]' : 'text-[2rem]'}`}>
+        <span className={`block font-display leading-tight font-medium tracking-tight tabular-nums text-navy-950 ${compact ? 'text-[1.5rem]' : 'text-[2rem]'}`}>
           {loading ? '—' : value}
         </span>
       </span>

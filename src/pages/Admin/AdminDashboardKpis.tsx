@@ -26,7 +26,11 @@ export default function AdminDashboardKpis({ kpis, loading }: Props): React.Reac
   const arrow = change === null ? '' : change > 0 ? '↗ ' : change < 0 ? '↘ ' : '';
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mb-6">
+    // Six across only from 2xl. At xl the content area (sidebar plus page
+    // padding gone) leaves each of six cards around 165px, which is narrower
+    // than "Avg Check-in Time" needs even stacked; three across is two tidy
+    // rows rather than one row that has to be deciphered.
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6 gap-4 mb-6">
       <AdminKpiTile
         label="Visitors Today"
         value={String(kpis.visitorsToday)}
