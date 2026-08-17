@@ -47,6 +47,12 @@ type Opts = {
   /** The physical visitor card number (migration 076). Required on every
       guard check-in — the confirm step is gated on it. */
   cardNumber: string;
+  /** True when the guard admitted this visitor despite the scanned ID naming
+      somebody else (migration 097). Recorded, never explained — the client
+      asked for the override to cost the guard nothing, and a mandatory reason
+      box at a gate is a queue. Defaults false, which is what every path that
+      never offered an override honestly means. */
+  idOverride?: boolean;
 };
 
 const EXPIRED_MESSAGE = 'Cannot check in — this pass was for an earlier day and has expired. Please request a new approval.';
@@ -68,7 +74,7 @@ function blacklistMessage(name: string, reason: string | null): string {
   return `Cannot check in — ${name} is on the watchlist${why ? `: ${why}` : ''}. Call the security supervisor before allowing entry.`;
 }
 
-export async function checkInScannedVisit({ match, visit, photoBlob, carrying, remarks, idScan, cardNumber }: Opts): Promise<CheckInOutcome> {
+export async function checkInScannedVisit({ match, visit, photoBlob, carrying, remarks, idScan, cardNumber, idOverride = false }: Opts): Promise<CheckInOutcome> {
   // The tick box is the record. Remarks only survive if the box is ticked,
   // so a guard who types a list and then unticks cannot leave orphaned text
   // describing material the visit says was never carried.
@@ -123,6 +129,7 @@ export async function checkInScannedVisit({ match, visit, photoBlob, carrying, r
     carrying_material: carrying,
     carrying_remarks: remarksTrimmed || null,
     visitor_card_number: cardNumber.trim(),
+    id_match_overridden: idOverride,
     ...(photoData ? { photo_data: photoData } : {}),
     ...(photoPath ? { photo_path: photoPath } : {}),
   } as any).eq('id', match.visitId).select('id, host_id').maybeSingle();

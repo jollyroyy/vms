@@ -29,10 +29,17 @@
 // each capture is something the guard starts.
 import React, { useState } from 'react';
 import PhotoCapture from '../../components/PhotoCapture';
+import { namesMatch } from '../../lib/ai/nameMatch';
 import IdScanOverlay, { type IdScanResult } from './IdScanOverlay';
 
 type Props = {
   scan: IdScanResult | null;
+  /** The name typed into the form above. Compared against the name the scan
+   *  read — see the mismatch block below. */
+  visitorName: string;
+  /** Has the guard waved a name mismatch through? */
+  overridden: boolean;
+  onOverride: () => void;
   scanOpen: boolean;
   onOpenScan: () => void;
   onCloseScan: () => void;
@@ -43,12 +50,28 @@ type Props = {
 };
 
 export default function WalkInIdentityStep({
-  scan, scanOpen, onOpenScan, onCloseScan, onScanned, onDiscardScan, photoTaken, onPhoto,
+  scan, visitorName, overridden, onOverride, scanOpen, onOpenScan, onCloseScan,
+  onScanned, onDiscardScan, photoTaken, onPhoto,
 }: Props): React.ReactElement {
   const [armed, setArmed] = useState(false);
   // ONE CAMERA AT A TIME survives here: the scan overlay always wins, so opening
   // it takes the photo stream down whether or not the guard armed it.
   const live = armed && !scanOpen;
+
+  // THE SCANNED NAME IS CHECKED AGAINST THE TYPED ONE (2026-08-17). The gate's
+  // pre-approved desk has compared these since it had a scan at all, and this
+  // form did not — the scan seeded the name field when it was empty and was
+  // otherwise never read again. So a guard who typed a name from what the
+  // visitor SAID, then scanned a card belonging to somebody else, sent the
+  // approver a request in which the name and the document disagreed, with
+  // nothing on screen saying so.
+  //
+  // A missing name on either side is NOT a mismatch: `namesMatch` returns false
+  // for a null, and treating "the OCR read no name" as "the wrong person" would
+  // fire this warning on half the cards the parser sees.
+  const typedName = visitorName.trim();
+  const mismatch = Boolean(scan?.name) && typedName !== ''
+    && !namesMatch(scan?.name ?? null, typedName);
 
   const attachPhoto = (blob: Blob) => {
     onPhoto(blob);
@@ -91,6 +114,40 @@ export default function WalkInIdentityStep({
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7zm13 5h.01M10 12a2.5 2.5 0 115 0 2.5 2.5 0 01-5 0z" /></svg>
           Scan ID card
         </button>
+      )}
+
+      {/* The disagreement, and the guard's leniency for it (client instruction,
+          2026-08-17). Both names are printed, because the difference between
+          them is the entire finding. NO REASON IS COLLECTED — a mandatory text
+          box at a gate is a queue — but the fact is recorded on the visit
+          (`visits.id_match_overridden`, migration 097), so the request never
+          claims an identity check that did not pass. */}
+      {mismatch && (
+        <div className="rounded-xl bg-danger-50 border border-danger-200 dark:border-danger-500/25 px-3.5 py-2.5 space-y-2">
+          <p className="text-sm font-bold text-danger-700">
+            The ID names somebody else
+          </p>
+          <dl className="text-xs space-y-1">
+            <div className="flex justify-between gap-3">
+              <dt className="text-navy-700 shrink-0">Name on ID</dt>
+              <dd className="font-semibold text-navy-950 text-right break-words">{scan?.name}</dd>
+            </div>
+            <div className="flex justify-between gap-3">
+              <dt className="text-navy-700 shrink-0">Typed above</dt>
+              <dd className="font-semibold text-navy-950 text-right break-words">{typedName}</dd>
+            </div>
+          </dl>
+          {overridden ? (
+            <p className="text-xs font-bold text-danger-700">
+              Overridden by you — the request can be sent, and this is recorded on the visit.
+            </p>
+          ) : (
+            <button type="button" onClick={onOverride}
+              className="w-full rounded-lg border border-danger-500/40 bg-white/70 dark:bg-white/[0.06] px-3 py-2 text-xs font-bold text-danger-700 hover:bg-white transition-colors">
+              Names differ — send anyway
+            </button>
+          )}
+        </div>
       )}
 
       {/* Step 2 — the face. Deliberately below the scan: the scan fills in the

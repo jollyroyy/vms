@@ -37,6 +37,10 @@ export default function CheckInPanel({ today, onCheckInSuccess }: Props): React.
   const [selectedMatch, setSelectedMatch] = useState<MatchItem | null>(null);
   const [photoBlob, setPhotoBlob] = useState<Blob | null>(null);
   const [idScan, setIdScan] = useState<IdScanResult | null>(null);
+  // Whether the guard waved a name mismatch through (migration 097). Held
+  // beside `idScan` and cleared with it, because it is a decision about that
+  // reading and must never outlive it.
+  const [idOverride, setIdOverride] = useState(false);
   const [cardNumber, setCardNumber] = useState('');
   const [carrying, setCarrying] = useState(false);
   const [remarks, setRemarks] = useState('');
@@ -134,6 +138,7 @@ export default function CheckInPanel({ today, onCheckInSuccess }: Props): React.
         // one the Scan Pass camera lane uses. One write path, two surfaces.
         const visit = preApproved.find((v) => v.id === selectedMatch.visitId) ?? null;
         const outcome = await checkInScannedVisit({
+          idOverride,
           match: selectedMatch, visit, photoBlob, carrying, remarks, idScan, cardNumber,
         });
         if (!outcome.ok) { setError(outcome.message); return; }
@@ -210,9 +215,10 @@ export default function CheckInPanel({ today, onCheckInSuccess }: Props): React.
         onBack={() => { setSelectedMatch(null); setError(''); }}
         onCapture={(blob) => setPhotoBlob(blob)}
         onRetake={() => setPhotoBlob(null)}
-        onCancel={() => { setSelectedMatch(null); setPhotoBlob(null); setIdScan(null); setCardNumber(''); setCarrying(false); setRemarks(''); }}
+        onCancel={() => { setSelectedMatch(null); setPhotoBlob(null); setIdScan(null); setIdOverride(false); setCardNumber(''); setCarrying(false); setRemarks(''); }}
         onConfirm={performCheckIn}
         onScanResult={setIdScan}
+        onOverrideChange={setIdOverride}
       />
     );
   }
@@ -232,7 +238,7 @@ export default function CheckInPanel({ today, onCheckInSuccess }: Props): React.
         preApproved={preApproved}
         checkedInIds={checkedInIds}
         isExpired={isExpired}
-        onSelectMatch={(m) => { setSelectedMatch(m); setPhotoBlob(null); setIdScan(null); setCardNumber(''); setCarrying(false); setRemarks(''); setError(''); }}
+        onSelectMatch={(m) => { setSelectedMatch(m); setPhotoBlob(null); setIdScan(null); setIdOverride(false); setCardNumber(''); setCarrying(false); setRemarks(''); setError(''); }}
       />
     </div>
   );

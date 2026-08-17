@@ -211,3 +211,76 @@ describe('M-AI-OCR-UI: CheckInPhotoStep scan + identity match', () => {
     expect(screen.queryByText('Capture Card')).not.toBeInTheDocument();
   });
 });
+
+// THE GUARD MAY OVERRIDE A REFUSED NAME (client instruction, 2026-08-17: "put
+// another override option so at least the guard has leniency, just in case, not
+// to delay things"). A mismatch is usually the OCR and not an impostor — a
+// married name, an eaten initial, a Devanagari card read in a different word
+// order — and blocking on it delays honest people at a gate with a queue behind
+// them. NO REASON IS COLLECTED (client instruction, same day: "no need to
+// mention override reason, that will delay things").
+describe('CheckInPhotoStep: overriding a name mismatch', () => {
+  const MISMATCH = ['INCOME TAX DEPARTMENT', 'PERMANENT ACCOUNT NUMBER', 'ABCDE1234F', 'Name: Suresh Patel'].join('\n');
+
+  async function scanMismatch(props: Record<string, unknown> = {}) {
+    mockRecognise.mockResolvedValue({ lines: [{ text: MISMATCH, confidence: 0.9 }], fullText: MISMATCH });
+    render(<CheckInPhotoStep {...baseProps} photoBlob={new Blob(['x'], { type: 'image/webp' })} {...props} />);
+    fireEvent.click(await screen.findByText('Scan ID card'));
+    fireEvent.click(await screen.findByText('Capture Card'));
+    fireEvent.click(await screen.findByText('Use Details'));
+    await screen.findByText(/doesn.t match the approved visitor/i);
+  }
+
+  it('offers the override on a mismatch and unblocks Check In in one press', async () => {
+    await scanMismatch();
+    expect(screen.getByText('Check In').closest('button')).toBeDisabled();
+
+    fireEvent.click(screen.getByRole('button', { name: /check in anyway/i }));
+    expect(screen.getByText('Check In').closest('button')).not.toBeDisabled();
+  });
+
+  it('asks for no reason — there is no text box behind the override', async () => {
+    await scanMismatch();
+    fireEvent.click(screen.getByRole('button', { name: /check in anyway/i }));
+    expect(screen.queryByRole('textbox', { name: /reason/i })).toBeNull();
+    expect(screen.queryByLabelText(/reason/i)).toBeNull();
+  });
+
+  // The box must never turn green: this is not a match, and reading like one
+  // is the fabricated-fact rule this project applies everywhere else.
+  it('says plainly that it was overridden rather than reporting a verified identity', async () => {
+    await scanMismatch();
+    fireEvent.click(screen.getByRole('button', { name: /check in anyway/i }));
+    expect(screen.getByText(/overridden by you/i)).toBeInTheDocument();
+    expect(screen.queryByText('Identity verified')).toBeNull();
+  });
+
+  it('tells the caller, so the visit can record that an override happened', async () => {
+    const onOverrideChange = vi.fn();
+    await scanMismatch({ onOverrideChange });
+    fireEvent.click(screen.getByRole('button', { name: /check in anyway/i }));
+    expect(onOverrideChange).toHaveBeenLastCalledWith(true);
+  });
+
+  // An override is a decision about ONE reading. Discarding that reading takes
+  // the decision with it, or a later scan naming somebody else would arrive
+  // pre-approved by a judgement made about the previous card.
+  it('discarding the scan revokes the override', async () => {
+    const onOverrideChange = vi.fn();
+    await scanMismatch({ onOverrideChange });
+    fireEvent.click(screen.getByRole('button', { name: /check in anyway/i }));
+
+    fireEvent.click(screen.getByText('Discard scan'));
+    expect(onOverrideChange).toHaveBeenLastCalledWith(false);
+    expect(screen.getByText('Check In').closest('button')).toBeDisabled();
+  });
+
+  // No scan at all is a different refusal, and no amount of leniency about a
+  // NAME releases it — the override is offered against a document that was
+  // read, never in place of reading one.
+  it('offers no override when nothing has been scanned', async () => {
+    render(<CheckInPhotoStep {...baseProps} photoBlob={new Blob(['x'], { type: 'image/webp' })} />);
+    expect(screen.queryByRole('button', { name: /check in anyway/i })).toBeNull();
+    expect(screen.getByText('Check In').closest('button')).toBeDisabled();
+  });
+});

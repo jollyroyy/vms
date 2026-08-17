@@ -25,6 +25,10 @@ type Props = {
   onCancel: () => void;
   onConfirm: () => void;
   onScanResult: (result: IdScanResult | null) => void;
+  /** Raised when the guard waves a name mismatch through, so the caller can
+   *  record it on the visit (`visits.id_match_overridden`, migration 097).
+   *  Optional: a caller that does not persist it still gets the unblocking. */
+  onOverrideChange?: (overridden: boolean) => void;
   /** Open the ID scan overlay immediately on mount instead of waiting for the
    *  guard to press "Scan ID card". The dashboard's Verify ID uses this: the
    *  guard clicked a button that promises a scan, so a scan is what opens. */
@@ -34,10 +38,27 @@ type Props = {
 export default function CheckInPhotoStep({
   selectedMatch, photoBlob, error, checkingIn, carrying, onCarryingChange,
   remarks, onRemarksChange, cardNumber, onCardNumberChange, onBack, onCapture,
-  onRetake, onCancel, onConfirm, onScanResult, autoScan = false,
+  onRetake, onCancel, onConfirm, onScanResult, onOverrideChange, autoScan = false,
 }: Props): React.ReactElement {
   const [scanOpen, setScanOpen] = useState(autoScan);
   const [scanResult, setScanResult] = useState<IdScanResult | null>(null);
+  // The guard's leniency for a refused name (client instruction, 2026-08-17).
+  // Held here rather than by each caller because it belongs to the scan on
+  // screen: any change to that scan must clear it, and this is the component
+  // that owns the scan.
+  const [overridden, setOverridden] = useState(false);
+
+  // One place to change the scan, so an override cannot outlive the reading it
+  // was granted against. A rescan that lands a DIFFERENT name would otherwise
+  // arrive pre-approved by a decision the guard made about the previous one.
+  const changeScan = (next: IdScanResult | null) => {
+    setScanResult(next);
+    onScanResult(next);
+    setOverridden(false);
+    onOverrideChange?.(false);
+  };
+
+  const override = () => { setOverridden(true); onOverrideChange?.(true); };
 
   const matchStatus = scanResult
     ? scanResult.name
@@ -82,8 +103,10 @@ export default function CheckInPhotoStep({
           scan={scanResult}
           verdict={matchStatus ?? 'no-name'}
           approvedName={selectedMatch.visitorName}
-          onDiscard={() => { setScanResult(null); onScanResult(null); }}
+          onDiscard={() => changeScan(null)}
           onRescan={() => setScanOpen(true)}
+          overridden={overridden}
+          onOverride={override}
         />
       )}
     </div>
@@ -128,10 +151,14 @@ export default function CheckInPhotoStep({
   // is standing in front of somebody. Discarding a scan is still allowed (it is
   // how a misread is corrected) and simply puts the check-in back behind the
   // requirement.
+  // A mismatch the guard has overridden is no longer a blocker — the summary
+  // card above says so in its own words, and repeating it here as a refusal
+  // would contradict the button they just pressed.
+  const mismatchBlocking = matchStatus === 'mismatch' && !overridden;
   const blockedReason = scanMissing
     ? "Scan the visitor's ID card before checking in."
-    : matchStatus === 'mismatch'
-      ? 'The scanned ID does not match the approved visitor.'
+    : mismatchBlocking
+      ? 'The scanned ID does not match the approved visitor. Rescan, or use "check in anyway".'
       : cardBad
         ? 'Enter a valid visitor card number before checking in.'
         : '';
@@ -141,7 +168,7 @@ export default function CheckInPhotoStep({
       <div className="space-y-4 animate-fade-in max-w-lg mx-auto">
         {scanOpen && (
           <IdScanOverlay
-            onScanned={(r) => { setScanResult(r); onScanResult(r); setScanOpen(false); }}
+            onScanned={(r) => { changeScan(r); setScanOpen(false); }}
             onClose={() => setScanOpen(false)}
           />
         )}
@@ -182,7 +209,7 @@ export default function CheckInPhotoStep({
     <div className="space-y-4 animate-fade-in max-w-lg mx-auto">
       {scanOpen && (
         <IdScanOverlay
-          onScanned={(r) => { setScanResult(r); onScanResult(r); setScanOpen(false); }}
+          onScanned={(r) => { changeScan(r); setScanOpen(false); }}
           onClose={() => setScanOpen(false)}
         />
       )}
@@ -250,7 +277,7 @@ export default function CheckInPhotoStep({
         )}
         <div className="flex gap-3">
           <button onClick={onCancel} className="flex-1 bg-surface-50 hover:bg-surface-100 text-navy-700 font-bold rounded-xl py-3 text-sm transition-all">Cancel</button>
-          <button onClick={onConfirm} disabled={checkingIn || scanMissing || matchStatus === 'mismatch' || cardBad}
+          <button onClick={onConfirm} disabled={checkingIn || scanMissing || mismatchBlocking || cardBad}
             className="flex-1 bg-brand-600 hover:bg-brand-700 text-white font-bold rounded-xl py-3 text-sm transition-all disabled:opacity-50 flex items-center justify-center gap-2">
             {checkingIn ? (
               <><svg className="animate-spin h-4 w-4" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg> Checking in...</>

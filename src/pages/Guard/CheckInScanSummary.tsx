@@ -27,6 +27,10 @@ type Props = {
   onDiscard: () => void;
   /** Reopen the scanner, keeping the current result until a new one lands. */
   onRescan: () => void;
+  /** Has the guard already waved this mismatch through? */
+  overridden?: boolean;
+  /** Wave it through. Omitted where no override is offered. */
+  onOverride?: () => void;
 };
 
 const TONE: Record<ScanVerdict, { box: string; heading: string; title: string }> = {
@@ -57,7 +61,7 @@ function Row({ term, value }: { term: string; value: string }): React.ReactEleme
 }
 
 export default function CheckInScanSummary({
-  scan, verdict, approvedName, onDiscard, onRescan,
+  scan, verdict, approvedName, onDiscard, onRescan, overridden = false, onOverride,
 }: Props): React.ReactElement {
   const tone = TONE[verdict];
   // The masked number when the scan carried one, otherwise the four digits that
@@ -83,6 +87,39 @@ export default function CheckInScanSummary({
       )}
       {verdict === 'match' && (
         <p className="text-xs text-success-700/80">Matches the approved visitor.</p>
+      )}
+
+      {/* THE GUARD MAY OVERRIDE A MISMATCH (client instruction, 2026-08-17).
+          A refused name is usually the OCR and not an impostor — a married
+          name, an initial the parser ate, a Devanagari card read in a
+          different word order — and the visitor is standing at the gate while
+          the queue builds behind them. Blocking on it delays honest people to
+          catch a case the guard is already better placed to judge, holding the
+          card and looking at the face.
+
+          NO REASON IS COLLECTED, on the client's explicit instruction: a
+          mandatory text box at a gate is a queue. What IS recorded is that an
+          override happened (`visits.id_match_overridden`, migration 097), so
+          the record never claims an identity check that did not pass — the
+          fact without the explanation, which costs the guard nothing.
+
+          Two presses, not one: the button states what it is doing, and once
+          pressed the box says so plainly rather than turning green, because
+          this is not a match and must never read like one. */}
+      {verdict === 'mismatch' && onOverride && (
+        overridden ? (
+          <p className="text-xs font-bold text-danger-700">
+            Overridden by you — the visitor may be checked in, and this is recorded on the visit.
+          </p>
+        ) : (
+          <button
+            type="button"
+            onClick={onOverride}
+            className="w-full rounded-lg border border-danger-500/40 bg-white/70 dark:bg-white/[0.06] px-3 py-2 text-xs font-bold text-danger-700 hover:bg-white transition-colors"
+          >
+            Names differ — check in anyway
+          </button>
+        )
       )}
 
       <div className="flex items-center gap-3 pt-0.5">

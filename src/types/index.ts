@@ -100,6 +100,12 @@ export type Visit = {
   // path never issues one.
   visitor_card_number?: string | null;
   visitor_card_returned_at?: string | null;
+  // Migration 097. True when the guard admitted (or registered) this visitor
+  // despite the scanned ID naming somebody else. NOT NULL DEFAULT false in the
+  // database, so a row can only be missing it here, never hold "unknown" —
+  // until this column existed there was no way to perform an override at all.
+  // Never render "Identity verified" for a row where this is true.
+  id_match_overridden?: boolean;
   grace_period_minutes?: number;
   // WHICH DOOR the visitor came through (migration 084). Distinct from
   // lib/visitOrigin.ts, which answers which ROUTE they took — pre-approved vs

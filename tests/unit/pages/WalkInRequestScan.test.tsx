@@ -199,3 +199,88 @@ describe('M-AI-OCR-UI: WalkInRequest scan wiring', () => {
     });
   });
 });
+
+// THE SCANNED NAME IS CHECKED AGAINST THE TYPED ONE, AND THE GUARD MAY OVERRIDE
+// IT (client instruction, 2026-08-17). The register never compared the two: the
+// scan seeded the name field when it was empty and was otherwise never read
+// again, so a guard who typed what the visitor SAID and then scanned somebody
+// else's card sent the approver a request whose name and document disagreed,
+// with nothing on screen saying so. The override carries NO reason box — a
+// mandatory sentence at a gate is a queue.
+describe('WalkInRequest: scanned name vs typed name', () => {
+  const MISMATCH = ['INCOME TAX DEPARTMENT', 'PERMANENT ACCOUNT NUMBER', 'ABCDE1234F', 'Name: Suresh Patel'].join('\n');
+
+  async function typeThenScan(typed: string) {
+    render(<WalkInRequest onSubmitted={vi.fn()} onCancel={vi.fn()} />);
+    const nameInput = (await screen.findAllByRole('textbox'))[1];
+    fireEvent.change(nameInput, { target: { value: typed } });
+    fireEvent.click(screen.getByText('Scan ID card'));
+    fireEvent.click(await screen.findByText('Capture Card'));
+    fireEvent.click(await screen.findByText('Use Details'));
+  }
+
+  it('says so when the ID names somebody else, printing both names', async () => {
+    mockRecognise.mockResolvedValue({ lines: [{ text: MISMATCH, confidence: 0.9 }], fullText: MISMATCH });
+    await typeThenScan('Rahul Verma');
+
+    expect(await screen.findByText(/the id names somebody else/i)).toBeInTheDocument();
+    // The difference between them IS the finding, so both are printed.
+    expect(screen.getByText('Suresh Patel')).toBeInTheDocument();
+    expect(screen.getByText('Rahul Verma')).toBeInTheDocument();
+  });
+
+  it('blocks the request until the guard overrides, then releases it in one press', async () => {
+    mockRecognise.mockResolvedValue({ lines: [{ text: MISMATCH, confidence: 0.9 }], fullText: MISMATCH });
+    await typeThenScan('Rahul Verma');
+    await screen.findByText(/the id names somebody else/i);
+
+    // The photo is the OTHER requirement on this form and is unrelated to the
+    // names; it is satisfied here so the mismatch is the only thing left
+    // holding the button down, which is what this test is about.
+    fireEvent.click(screen.getByRole('button', { name: /turn on camera/i }));
+    fireEvent.click(await screen.findByText('Capture Photo'));
+    fireEvent.click(await screen.findByText('Use Photo'));
+
+    const submit = screen.getByRole('button', { name: /send approval request/i });
+    expect(submit).toBeDisabled();
+
+    fireEvent.click(screen.getByRole('button', { name: /send anyway/i }));
+    expect(screen.getByText(/overridden by you/i)).toBeInTheDocument();
+    expect(submit).not.toBeDisabled();
+    // No reason is collected, on client instruction — the override is one press.
+    expect(screen.queryByLabelText(/reason/i)).toBeNull();
+  });
+
+  // A missing name on either side is NOT a mismatch. `namesMatch` returns false
+  // for a null, and treating "the OCR read no name" as "the wrong person" would
+  // fire this warning on half the cards the parser sees.
+  it('says nothing when the scan read no name at all', async () => {
+    const NO_NAME = ['INCOME TAX DEPARTMENT', 'PERMANENT ACCOUNT NUMBER', 'ABCDE1234F'].join('\n');
+    mockRecognise.mockResolvedValue({ lines: [{ text: NO_NAME, confidence: 0.9 }], fullText: NO_NAME });
+    await typeThenScan('Rahul Verma');
+
+    await screen.findByText('ID scanned');
+    expect(screen.queryByText(/the id names somebody else/i)).toBeNull();
+  });
+
+  it('says nothing when the two names agree', async () => {
+    await typeThenScan('Rahul Verma');
+    await screen.findByText('ID scanned');
+    expect(screen.queryByText(/the id names somebody else/i)).toBeNull();
+  });
+
+  // The override is granted against ONE disagreement. Editing either side of it
+  // makes a different comparison, which the guard has not judged.
+  it('revokes the override when the typed name is edited afterwards', async () => {
+    mockRecognise.mockResolvedValue({ lines: [{ text: MISMATCH, confidence: 0.9 }], fullText: MISMATCH });
+    await typeThenScan('Rahul Verma');
+    await screen.findByText(/the id names somebody else/i);
+    fireEvent.click(screen.getByRole('button', { name: /send anyway/i }));
+
+    const nameInput = screen.getAllByRole('textbox')[1];
+    fireEvent.change(nameInput, { target: { value: 'Rahul V' } });
+
+    expect(screen.queryByText(/overridden by you/i)).toBeNull();
+    expect(screen.getByRole('button', { name: /send approval request/i })).toBeDisabled();
+  });
+});

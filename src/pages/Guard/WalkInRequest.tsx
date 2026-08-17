@@ -1,27 +1,14 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { supabase } from '../../supabaseClient';
 import { normalizePhone, isBlacklisted } from '../../lib/blacklist';
+import { namesMatch } from '../../lib/ai/nameMatch';
 import { safeErrorMessage } from '../../lib/errors';
 import { useDepartments } from '../../lib/useDepartments';
 import { uploadPhoto } from '../../lib/photoUpload';
 import type { IdScanResult } from './idScanTypes';
 import WalkInIdentityStep from './WalkInIdentityStep';
+import WalkInVisitorFields from './WalkInVisitorFields';
 import type { Profile, VisitorPurpose } from '../../types/index';
-
-// Mirrors the visits_remarks_length CHECK in migration 068. The input caps the
-// text so the guard sees the limit while typing; the constraint is what actually
-// enforces it, since any token can POST to PostgREST directly.
-const REMARKS_MAX = 500;
-
-const PURPOSES: { value: VisitorPurpose; label: string }[] = [
-  { value: 'meeting',     label: 'Meeting' },
-  { value: 'vendor',      label: 'Vendor / Contractor' },
-  { value: 'interview',   label: 'Interview' },
-  { value: 'delivery',    label: 'Delivery / Courier' },
-  { value: 'maintenance', label: 'Maintenance' },
-  { value: 'audit',       label: 'Audit / Inspection' },
-  { value: 'other',       label: 'Other' },
-];
 
 type Props = {
   onSubmitted: (name: string) => void;
@@ -40,6 +27,10 @@ export default function WalkInRequest({ onSubmitted, onCancel }: Props): React.R
   const [fullName, setFullName] = useState('');
   const [vendorName, setVendorName] = useState('');
   const [scan, setScan] = useState<IdScanResult | null>(null);
+  // The guard's leniency for a scan that names somebody else (migration 097).
+  // Cleared by every change to the scan AND by every change to the typed name,
+  // because it is a decision about one specific disagreement between the two.
+  const [idOverride, setIdOverride] = useState(false);
   const [photoBlob, setPhotoBlob] = useState<Blob | null>(null);
   const [scanOpen, setScanOpen] = useState(false);
   const [purpose, setPurpose] = useState<VisitorPurpose>('meeting');
@@ -81,9 +72,17 @@ export default function WalkInRequest({ onSubmitted, onCancel }: Props): React.R
 
   const applyScanResult = useCallback((r: IdScanResult) => {
     setScan(r);
+    setIdOverride(false);
     if (r.name && !fullName.trim()) setFullName(r.name);
     setScanOpen(false);
   }, [fullName]);
+
+  // Recomputed here as well as inside WalkInIdentityStep, from the same
+  // `namesMatch`, because the submit gate below cannot ask a child component
+  // what it is currently rendering. One function, two readers — never two rules.
+  const nameMismatch = Boolean(scan?.name) && fullName.trim() !== ''
+    && !namesMatch(scan?.name ?? null, fullName.trim());
+  const mismatchBlocking = nameMismatch && !idOverride;
 
   const handlePhoneBlur = useCallback(async () => {
     if (!phone) return;
@@ -109,7 +108,7 @@ export default function WalkInRequest({ onSubmitted, onCancel }: Props): React.R
     setPhone(''); setFullName(''); setVendorName('');
     setPurpose('meeting'); setRemarks('');
     setDeptId(''); setHostId('');
-    setScan(null); setPhotoBlob(null); setScanOpen(false);
+    setScan(null); setIdOverride(false); setPhotoBlob(null); setScanOpen(false);
     setError(''); setBlacklistHit(null);
     setIdentityKey((k) => k + 1);
   }, []);
@@ -123,6 +122,7 @@ export default function WalkInRequest({ onSubmitted, onCancel }: Props): React.R
     // Enter must not be able to skip the identity step either.
     if (!scan) { setError('Scan the visitor’s ID card before sending the request.'); return; }
     if (!photoBlob) { setError('Capture the visitor’s photo before sending the request.'); return; }
+    if (mismatchBlocking) { setError('The scanned ID names somebody else. Correct the name, rescan, or use “send anyway”.'); return; }
     setSubmitting(true); setError('');
     try {
       let normalized: string;
@@ -143,6 +143,9 @@ export default function WalkInRequest({ onSubmitted, onCancel }: Props): React.R
       const { error: visitErr } = await supabase.from('visits').insert({
         visitor_id: vis.id, department_id: deptId, host_id: hostId, purpose,
         status: 'pending_approval', carrying_material: false,
+        // Recorded, never explained — see migration 097. False is the honest
+        // value for every request where the two names agreed.
+        id_match_overridden: idOverride,
         // Trimmed to null rather than stored as '': an empty note and no note
         // are the same fact, and only one of them should be in the column.
         remarks: remarks.trim() || null,
@@ -187,73 +190,38 @@ export default function WalkInRequest({ onSubmitted, onCancel }: Props): React.R
       )}
 
       <div className="space-y-3">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div>
-            <label className="text-xs font-semibold text-navy-600 mb-1 block">Phone *</label>
-            <input type="tel" required maxLength={20} value={phone}
-              onChange={(e) => { setPhone(e.target.value); setBlacklistHit(null); }}
-              onBlur={handlePhoneBlur} placeholder="98xxx xxxxx" className="w-full px-4 py-2.5 bg-surface-50 border border-surface-200 rounded-xl text-sm text-navy-900 placeholder-navy-300 focus:outline-none focus:ring-2 focus:ring-brand-500 transition-all" />
-          </div>
-          <div>
-            <label className="text-xs font-semibold text-navy-600 mb-1 block">Visitor Name *</label>
-            <input type="text" required value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Visitor name" className="w-full px-4 py-2.5 bg-surface-50 border border-surface-200 rounded-xl text-sm text-navy-900 placeholder-navy-300 focus:outline-none focus:ring-2 focus:ring-brand-500 transition-all" />
-          </div>
-          <div>
-            <label className="text-xs font-semibold text-navy-600 mb-1 block">Vendor Name</label>
-            <input type="text" value={vendorName} onChange={(e) => setVendorName(e.target.value)} placeholder="Optional" className="w-full px-4 py-2.5 bg-surface-50 border border-surface-200 rounded-xl text-sm text-navy-900 placeholder-navy-300 focus:outline-none focus:ring-2 focus:ring-brand-500 transition-all" />
-          </div>
-          <div>
-            <label className="text-xs font-semibold text-navy-600 mb-1 block">Purpose *</label>
-            <select required value={purpose} onChange={(e) => setPurpose(e.target.value as VisitorPurpose)} className="w-full px-4 py-2.5 bg-surface-50 border border-surface-200 rounded-xl text-sm text-navy-900 focus:outline-none focus:ring-2 focus:ring-brand-500 transition-all">
-              {PURPOSES.map((p) => <option key={p.value} value={p.value}>{p.label}</option>)}
-            </select>
-          </div>
-          <div>
-            <label className="text-xs font-semibold text-navy-600 mb-1 block">Department *</label>
-            <select required value={deptId} onChange={(e) => setDeptId(e.target.value)} className="w-full px-4 py-2.5 bg-surface-50 border border-surface-200 rounded-xl text-sm text-navy-900 focus:outline-none focus:ring-2 focus:ring-brand-500 transition-all">
-              <option value="">Select</option>
-              {departments.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
-            </select>
-          </div>
-          <div>
-            <label className="text-xs font-semibold text-navy-600 mb-1 block">Person to Meet *</label>
-            <select required value={hostId} onChange={(e) => setHostId(e.target.value)} className="w-full px-4 py-2.5 bg-surface-50 border border-surface-200 rounded-xl text-sm text-navy-900 focus:outline-none focus:ring-2 focus:ring-brand-500 transition-all disabled:opacity-50" disabled={!deptId}>
-              <option value="">{deptId ? 'Select' : 'Select dept first'}</option>
-              {hosts.map((h) => <option key={h.id} value={h.id}>{h.full_name}</option>)}
-            </select>
-            {hostError && <p className="text-xs text-danger-500 mt-0.5">{hostError}</p>}
-          </div>
-        </div>
-
-        {/* The HOD approves a walk-in blind — they get a name, a vendor and a
-            purpose off a seven-item list. This is where the guard passes on what
-            they can actually see and hear at the gate, and it is the difference
-            between an informed approval and a guess. Optional on purpose: never
-            hold up a queue for a text box. */}
-        <div>
-          <label htmlFor="walkin-remarks" className="text-xs font-semibold text-navy-600 mb-1 block">
-            Remarks <span className="font-normal text-navy-400">(optional — shown to the person approving)</span>
-          </label>
-          <textarea
-            id="walkin-remarks"
-            value={remarks}
-            onChange={(e) => setRemarks(e.target.value)}
-            maxLength={REMARKS_MAX}
-            rows={2}
-            placeholder="Anything the approver should know — e.g. &ldquo;says he has a 3pm with you&rdquo;, &ldquo;van waiting at gate 2&rdquo;"
-            className="w-full px-4 py-2.5 bg-surface-50 border border-surface-200 rounded-xl text-sm text-navy-900 focus:outline-none focus:ring-2 focus:ring-brand-500 transition-all resize-y"
-          />
-          <p className="text-[10px] text-navy-400 mt-0.5 text-right tabular-nums">{remarks.length}/{REMARKS_MAX}</p>
-        </div>
+        <WalkInVisitorFields
+          phone={phone}
+          onPhoneChange={(v) => { setPhone(v); setBlacklistHit(null); }}
+          onPhoneBlur={() => { void handlePhoneBlur(); }}
+          fullName={fullName}
+          onFullNameChange={(v) => { setFullName(v); setIdOverride(false); }}
+          vendorName={vendorName}
+          onVendorNameChange={setVendorName}
+          purpose={purpose}
+          onPurposeChange={setPurpose}
+          departments={departments}
+          deptId={deptId}
+          onDeptIdChange={setDeptId}
+          hosts={hosts}
+          hostId={hostId}
+          onHostIdChange={setHostId}
+          hostError={hostError}
+          remarks={remarks}
+          onRemarksChange={setRemarks}
+        />
 
         <WalkInIdentityStep
           key={identityKey}
           scan={scan}
+          visitorName={fullName}
+          overridden={idOverride}
+          onOverride={() => setIdOverride(true)}
           scanOpen={scanOpen}
           onOpenScan={() => setScanOpen(true)}
           onCloseScan={() => setScanOpen(false)}
           onScanned={applyScanResult}
-          onDiscardScan={() => setScan(null)}
+          onDiscardScan={() => { setScan(null); setIdOverride(false); }}
           photoTaken={photoBlob !== null}
           onPhoto={setPhotoBlob}
         />
@@ -268,7 +236,7 @@ export default function WalkInRequest({ onSubmitted, onCancel }: Props): React.R
         {onCancel && (
           <button type="button" onClick={onCancel} className="btn-secondary flex-1 py-3 font-semibold">Cancel</button>
         )}
-        <button type="submit" disabled={submitting || !!blacklistHit || !scan || !photoBlob}
+        <button type="submit" disabled={submitting || !!blacklistHit || !scan || !photoBlob || mismatchBlocking}
           className="btn-primary flex-1 py-3 text-[15px] font-bold flex items-center justify-center gap-2">
           {submitting ? (
             <><svg className="animate-spin h-4 w-4" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg> Sending request…</>

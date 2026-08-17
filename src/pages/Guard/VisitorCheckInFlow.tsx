@@ -32,6 +32,10 @@ type Props = {
 export default function VisitorCheckInFlow({ visit, onDone, onCancel, autoScan = false }: Props): React.ReactElement {
   const [photoBlob, setPhotoBlob] = useState<Blob | null>(null);
   const [idScan, setIdScan] = useState<IdScanResult | null>(null);
+  // Whether the guard waved a name mismatch through (migration 097). Held
+  // beside `idScan` and cleared with it, because it is a decision about that
+  // reading and must never outlive it.
+  const [idOverride, setIdOverride] = useState(false);
   const [cardNumber, setCardNumber] = useState('');
   const [carrying, setCarrying] = useState(false);
   const [remarks, setRemarks] = useState('');
@@ -44,7 +48,7 @@ export default function VisitorCheckInFlow({ visit, onDone, onCancel, autoScan =
     if (!photoBlob) return;
     setCheckingIn(true); setError('');
     try {
-      const outcome = await checkInScannedVisit({ match, visit, photoBlob, carrying, remarks, idScan, cardNumber });
+      const outcome = await checkInScannedVisit({ match, visit, photoBlob, carrying, remarks, idScan, cardNumber, idOverride });
       if (!outcome.ok) { setError(outcome.message); return; }
       onDone(outcome.visitorName);
     } catch (err) {
@@ -74,6 +78,7 @@ export default function VisitorCheckInFlow({ visit, onDone, onCancel, autoScan =
       onCancel={onCancel}
       onConfirm={() => { void performCheckIn(); }}
       onScanResult={setIdScan}
+      onOverrideChange={setIdOverride}
       autoScan={autoScan}
     />
   );
