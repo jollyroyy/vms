@@ -82,14 +82,14 @@ describe('reportRow', () => {
       const row = toReportRow(makeVisit(), 0);
       const joined = Object.values(row).join('|');
       expect(joined).not.toContain('9876543210');
-      expect(row['Phone']).toBe('••••••3210');
+      expect(row['Phone']).toBe('XXXXXX3210');
     });
 
     it('masks ID proof — raw ID last4 does not appear in row values', () => {
       const row = toReportRow(makeVisit(), 0);
       const joined = Object.values(row).join('|');
       expect(joined).not.toContain('9646');
-      expect(row['ID Proof']).toBe('Aadhaar ••••46');
+      expect(row['ID Proof']).toBe('Aadhaar XXXX46');
     });
 
     it('does not include photo_data in row keys or values', () => {
@@ -169,14 +169,33 @@ describe('reportRow', () => {
       expect(row['Vendor']).toBe('');
     });
 
-    it('missing visitor join degrades Phone to redaction dash', () => {
+    // 'Not recorded', not the screen's em dash: this row only ever becomes a
+    // CSV, and a dash that arrives as "â€”" is a value nobody can read.
+    it('missing visitor join degrades Phone to Not recorded', () => {
       const row = toReportRow(makeVisit({ visitor: undefined }), 0);
-      expect(row['Phone']).toBe('—');
+      expect(row['Phone']).toBe('Not recorded');
     });
 
-    it('missing visitor join degrades ID Proof to redaction dash', () => {
+    it('missing visitor join degrades ID Proof to Not recorded', () => {
       const row = toReportRow(makeVisit({ visitor: undefined }), 0);
-      expect(row['ID Proof']).toBe('—');
+      expect(row['ID Proof']).toBe('Not recorded');
+    });
+
+    // THE WHOLE ROW IS ASCII. A CSV is opened in Excel, which guesses the
+    // encoding per locale, so a bullet or an em dash comes back as gibberish
+    // ("â€¢â€¢â€¢â€¢â€¢â€¢0302", reported by the client 2026-08-17). The
+    // visitor's own name is not ours to transliterate and the BOM in
+    // exportUtils covers it; every value this mapper AUTHORS is plain ASCII.
+    it('authors no non-ASCII in any redacted or derived value', () => {
+      const rows = [
+        toReportRow(makeVisit(), 0, { withApprover: true }),
+        toReportRow(makeVisit({ visitor: undefined, department: undefined, host: undefined }), 1),
+      ];
+      for (const row of rows) {
+        for (const [key, value] of Object.entries(row)) {
+          expect(`${key}=${value}`).toMatch(/^[ -~]*$/);
+        }
+      }
     });
 
     it('missing department join degrades Department to empty string', () => {

@@ -87,7 +87,7 @@ describe('host activity', () => {
 describe('peak hours', () => {
   it('reads "Not measured" for an hour with no timed sample, never "0s"', () => {
     const rows = bundle('peak').build([v({ checkin_duration_seconds: null })], '2026-08-14', '2026-08-14');
-    const hourRow = rows.find((r) => r.Hour === '14:00 IST'); // 09:00Z = 14:30 IST
+    const hourRow = rows.find((r) => r.Hour === '14:00'); // 09:00Z = 14:30 IST
     expect(hourRow?.['Avg check-in time']).toBe('Not measured');
   });
 

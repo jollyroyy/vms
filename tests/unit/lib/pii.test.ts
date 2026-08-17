@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { maskIdProof, maskPhone, maskName } from '../../../src/lib/pii';
+import { maskIdProof, maskPhone, maskName, maskIdProofForExport, maskPhoneForExport } from '../../../src/lib/pii';
 
 describe('pii', () => {
   describe('maskIdProof', () => {
@@ -211,6 +211,51 @@ describe('pii', () => {
     it('handles single-letter first names', () => {
       const result = maskName('A Smith');
       expect(result).toBe('A••• S•••');
+    });
+  });
+
+  // THE EXPORT VARIANTS EXIST BECAUSE A CSV IS NOT A SCREEN. Excel guesses a
+  // file's encoding from the locale, so the bullet the screen renders came back
+  // as "a<euro>oea<euro>oe..." in the downloaded register (client report,
+  // 2026-08-17). Same redaction rule, ASCII fill.
+  describe('export variants', () => {
+    it('masks a phone with X and keeps the same last four the screen keeps', () => {
+      expect(maskPhoneForExport('9876543210')).toBe('XXXXXX3210');
+      expect(maskPhoneForExport('9876543210')).toHaveLength(maskPhone('9876543210').length);
+    });
+
+    it('masks an ID proof with X and keeps the same last two', () => {
+      expect(maskIdProofForExport('Aadhaar', '9646')).toBe('Aadhaar XXXX46');
+    });
+
+    it('hides everything the screen hides', () => {
+      expect(maskPhoneForExport('9876543210')).not.toContain('9876');
+      expect(maskIdProofForExport('Aadhaar', '9646')).not.toContain('9646');
+    });
+
+    it('says Not recorded rather than a dash when there is nothing on record', () => {
+      expect(maskPhoneForExport(null)).toBe('Not recorded');
+      expect(maskPhoneForExport('')).toBe('Not recorded');
+      expect(maskIdProofForExport('Aadhaar', null)).toBe('Not recorded');
+      expect(maskIdProofForExport(null, '')).toBe('Not recorded');
+    });
+
+    it('falls back to ID for an unknown type, as the screen does', () => {
+      expect(maskIdProofForExport(null, '9646')).toBe('ID XXXX46');
+    });
+
+    it('emits pure ASCII for every input shape', () => {
+      const outputs = [
+        maskPhoneForExport('9876543210'), maskPhoneForExport('98'), maskPhoneForExport('+1 (987) 654-3210'),
+        maskPhoneForExport(null), maskIdProofForExport('Aadhaar', '9646'),
+        maskIdProofForExport('Passport', '7'), maskIdProofForExport(undefined, undefined),
+      ];
+      for (const out of outputs) expect(out).toMatch(/^[ -~]*$/);
+    });
+
+    it('leaves the on-screen masks alone', () => {
+      expect(maskPhone('9876543210')).toContain('•');
+      expect(maskIdProof('Aadhaar', '9646')).toContain('•');
     });
   });
 });

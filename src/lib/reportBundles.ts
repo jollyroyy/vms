@@ -106,7 +106,10 @@ function peakHours(visits: ReportVisit[]): Record<string, string>[] {
   const rows = [...buckets.entries()]
     .sort((a, b) => a[0] - b[0])
     .map(([hour, { count, timed }]) => ({
-      Hour: `${String(hour).padStart(2, '0')}:00 IST`,
+      // No zone suffix. This deployment is IST end to end — every stamp on
+      // every screen and in every file is already IST — so naming it on one
+      // column of one report implies the others might be something else.
+      Hour: `${String(hour).padStart(2, '0')}:00`,
       Arrivals: String(count),
       // "Not measured", never "0s": nothing was timed in that hour, which is a
       // different claim from the desk having been instant.

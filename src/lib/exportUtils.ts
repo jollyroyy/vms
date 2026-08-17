@@ -10,7 +10,13 @@ export function exportToCsv<T extends Record<string, unknown>>(data: T[], filena
     });
     csvRows.push(values.join(','));
   }
-  const blob = new Blob([csvRows.join('\n')], { type: 'text/csv;charset=utf-8;' });
+  // THE BOM IS WHAT MAKES THE FILE READABLE, not decoration. Excel guesses a
+  // CSV's encoding from the locale's ANSI code page unless the file announces
+  // itself, so a UTF-8 byte lands as "â€”" / "â€¢" — the exact gibberish that
+  // was showing up in the exported register. A leading U+FEFF is the one
+  // signal Excel, LibreOffice and Numbers all honour, and every other reader
+  // treats it as an invisible zero-width space.
+  const blob = new Blob(['\uFEFF' + csvRows.join('\n')], { type: 'text/csv;charset=utf-8;' });
   downloadFile(blob, filename, 'text/csv');
 }
 

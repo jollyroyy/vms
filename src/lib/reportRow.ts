@@ -4,7 +4,10 @@
 
 import type { Visit } from '../types/index';
 import type { VisitActorFields } from './visitActors';
-import { maskPhone, maskIdProof } from './pii';
+// The EXPORT variants of the two redactions: same rule, ASCII fill. A ReportRow
+// only ever becomes a CSV, and a bullet does not survive Excel's encoding guess
+// — see the note in lib/pii.ts.
+import { maskPhoneForExport, maskIdProofForExport } from './pii';
 import { visitStatusLabel } from './visitStatusLabel';
 import { approvalTimestamp } from './visitApproval';
 import { visitOrigin, visitOriginLabel } from './visitOrigin';
@@ -37,14 +40,14 @@ export function toReportRow(
     'Ref': visit.ref_number ?? '',
     'Visitor Name': visit.visitor?.full_name ?? '',
     'Vendor': visit.visitor?.vendor_name ?? '',
-    'Phone': maskPhone(visit.visitor?.phone),
+    'Phone': maskPhoneForExport(visit.visitor?.phone),
     // Booked ahead or turned up unannounced. In the CSV unconditionally: a
     // register that cannot be filtered by arrival route cannot answer the one
     // question a month of visits is usually opened with.
     'Type of Visitor': visitOriginLabel(visitOrigin(visit)),
     'Department': visit.department?.name ?? '',
     'Person to Meet': visit.host?.full_name ?? '',
-    'ID Proof': maskIdProof(visit.visitor?.id_type, visit.visitor?.id_last4),
+    'ID Proof': maskIdProofForExport(visit.visitor?.id_type, visit.visitor?.id_last4),
     'Purpose': visit.purpose,
     // Resolved here rather than read straight off the row so the CSV and the
     // on-screen register can never disagree about when a visit was approved.
