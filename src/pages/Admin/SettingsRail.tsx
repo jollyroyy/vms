@@ -6,20 +6,22 @@ type Props = {
   onSelect: (key: SettingsSectionKey) => void;
 };
 
-// The Settings screen's left-hand section list.
+// The Settings screen's left-hand section list: Departments and Users.
 //
 // It is a SECOND navigation on a page that already has the app sidebar beside
 // it, which this project normally refuses — the HOD console's horizontal tab
 // bar was deleted in 2026-08-15 for exactly that reason, because two nav bars
 // on one screen leave the reader working out which is authoritative. The
 // difference here is scope: the sidebar moves between PAGES, this moves between
-// parts of one form, and the Save Changes button at the top applies across all
-// of them. Collapsing these six into six sidebar items would put configuration
-// sections at the same level as the visitor tabs and make the sidebar twice as
-// long for a screen an admin opens rarely.
+// two halves of one administrative screen. Promoting them to sidebar items
+// would put configuration at the same level as the eight console tabs, for a
+// screen an admin opens rarely.
 //
-// Each section is a real `?section=` value so a deep link into Roles & Users
-// works — the Hosts tab links straight to it.
+// It listed SIX sections until 2026-08-17; the other four and Integrations
+// were removed with the stored switches they configured. Two is still a rail
+// rather than a pair of inline headings because the panels below are long —
+// DepartmentsManager alone owns three drill-downs — and because each section
+// is a real `?section=` value the Hosts tab links straight into.
 
 export default function SettingsRail({ active, onSelect }: Props): React.ReactElement {
   return (

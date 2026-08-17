@@ -1,7 +1,6 @@
 import React from 'react';
 import SettingToggle from '../../components/SettingToggle';
 import type { SettingKey, SettingsMap } from '../../lib/appSettings';
-import { SETTINGS_SECTIONS } from '../../lib/settingsSections';
 
 // THE SWITCH IS `components/SettingToggle`, not a second one written here
 // (client report, 2026-08-17: the Host Notifications switches were "not showing
@@ -15,35 +14,40 @@ import { SETTINGS_SECTIONS } from '../../lib/settingsSections';
 // land on, and it also carries the focus ring and the `aria-hidden` knob the
 // copy had lost. One switch, one look, one accessible contract.
 
-type ToggleSpec = { key: SettingKey; label: string; hint: string };
+type ToggleSpec = {
+  key: SettingKey;
+  label: string;
+  hint: string;
+  /**
+   * Does the running app actually obey this key today? A screen where some
+   * switches govern behaviour and others merely store a preference, with
+   * nothing distinguishing them, lies about what it controls.
+   */
+  enforced: boolean;
+  /** Shown when `enforced` is false. */
+  caveat?: string;
+};
 
-// The three host-notification switches, curated for this tab rather than the
-// full Settings screen's generic field list — a guard reading "Hosts" should
-// not have to know the settings vocabulary to know what these do.
+// The three host-notification switches, and whether each is real.
+//
+// The enforcement flags USED TO BE READ OUT OF `settingsSections.ts`, so this
+// panel and the full Settings screen could not disagree. That screen no longer
+// declares these fields — it was cut to Departments and Users on 2026-08-17 —
+// which makes this panel the ONLY place they are configured, and therefore the
+// place that owns the truth about them. There is no second copy to drift from.
 const TOGGLES: ToggleSpec[] = [
   { key: 'notify.host_email_on_arrival', label: 'Email on arrival',
-    hint: 'Send an email notification when a visitor arrives for the host.' },
+    hint: 'Send an email notification when a visitor arrives for the host.',
+    enforced: true },
   { key: 'notify.host_sms_on_arrival', label: 'SMS on arrival',
-    hint: 'Send an SMS notification when a visitor arrives for the host.' },
+    hint: 'Send an SMS notification when a visitor arrives for the host.',
+    enforced: false,
+    caveat: 'No SMS provider is configured. The in-app notification is written either way.' },
   { key: 'notify.host_signout_reminder', label: 'Auto sign-out reminder',
-    hint: 'Remind hosts to sign their visitors out.' },
+    hint: 'Remind hosts to sign their visitors out.',
+    enforced: false,
+    caveat: 'The nightly sweep closes stale visits; a per-host reminder job does not exist yet.' },
 ];
-
-/** Whether the running app actually obeys this key today, and what caveat to
- *  show if not — read from `settingsSections.ts` rather than restated here,
- *  so this panel and the full Settings screen can never disagree about which
- *  switches are real. */
-function enforcement(key: SettingKey): { enforced: boolean; caveat?: string } {
-  for (const section of SETTINGS_SECTIONS) {
-    for (const group of section.groups) {
-      const field = group.fields.find((f) => f.key === key);
-      if (field) return { enforced: field.enforced, caveat: field.caveat };
-    }
-  }
-  // A key with no entry in settingsSections.ts is a bug in this file, not a
-  // reason to claim a caveat that was never written.
-  return { enforced: true };
-}
 
 type Props = {
   settings: SettingsMap | null;
@@ -58,7 +62,7 @@ export default function HostNotificationsPanel({ settings, saving, onToggle }: P
     <ul className="divide-y divide-surface-200/60 dark:divide-white/[0.07]">
       {TOGGLES.map((t) => {
         const checked = settings ? Boolean(settings[t.key]) : false;
-        const { enforced, caveat } = enforcement(t.key);
+        const { enforced, caveat } = t;
         const busy = saving === t.key;
         return (
           <li key={t.key} className="py-3.5 first:pt-0 last:pb-0 flex items-start gap-4">

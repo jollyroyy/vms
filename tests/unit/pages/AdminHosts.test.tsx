@@ -80,7 +80,7 @@ describe('AdminHosts', () => {
     expect(screen.getByRole('heading', { name: 'Hosts' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /add host/i })).toBeNull();
     expect(screen.getByRole('link', { name: 'Manage in Settings' })).toHaveAttribute(
-      'href', '/admin/settings?section=roles',
+      'href', '/admin/settings?section=users',
     );
   });
 

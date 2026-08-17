@@ -107,7 +107,7 @@ export default function AdminHosts(): React.ReactElement {
         scope="live"
         blurb="Everyone visitors are checked in against, over the last 7 days, and what they're told when one arrives."
         action={
-          <Link to="/admin/settings?section=roles" className="btn-secondary !px-4 !py-2 text-sm">
+          <Link to="/admin/settings?section=users" className="btn-secondary !px-4 !py-2 text-sm">
             Manage in Settings
           </Link>
         }

@@ -3,131 +3,106 @@ import { describe, it, expect, vi, afterEach } from 'vitest';
 import { render, screen, cleanup, fireEvent, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import AdminSettings from '../../../src/pages/Admin/AdminSettings';
-import { defaultSettings } from '../../../src/lib/appSettings';
+import { SETTINGS_SECTIONS, sectionFromSlug } from '../../../src/lib/settingsSections';
 
-// AdminSettings needs a Router (it reads/writes `?section=` via useSearchParams).
-// `loadSettings`/`saveSettings` are mocked directly rather than the supabase
-// client underneath them — the page's own contract is "call these two
-// functions", and mocking at that seam keeps the suite about draft/dirty
-// behaviour rather than about a PostgREST chain.
-const mockLoad = vi.hoisted(() => ({ current: vi.fn(async () => defaultSettings()) }));
-const mockSave = vi.hoisted(() => ({ current: vi.fn(async () => ({ error: null })) }));
+// Settings is TWO sections — Departments and Users (client instruction,
+// 2026-08-17: keep those two, remove everything else, Integrations included).
+//
+// This suite used to be about draft/dirty behaviour across six sections of
+// stored key/value switches under one Save button. All of that is gone with the
+// sections: there is no page-level save any more, because both remaining
+// panels write at the moment the admin confirms and a button governing nothing
+// is the same lie the "Recorded — not yet enforced" fields were.
+//
+// Both panels pull in large CRUD trees (useDepartments/useHods, the user
+// directory RPCs) that are irrelevant to what this page's own contract is —
+// which rail item is lit, which panel is mounted, and what `?section=` says.
 
-vi.mock('../../../src/lib/appSettings', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('../../../src/lib/appSettings')>();
-  return {
-    ...actual,
-    loadSettings: (...args: any[]) => mockLoad.current(...args),
-    saveSettings: (...args: any[]) => mockSave.current(...args),
-  };
-});
-
-vi.mock('../../../src/supabaseClient', () => ({
-  supabase: { auth: { getUser: vi.fn(async () => ({ data: { user: { id: 'admin-1' } } })) } },
-}));
-
-// DepartmentsManager pulls in useDepartments/useHods and a large CRUD tree —
-// irrelevant to what this suite checks, which is only that Roles & Users
-// renders it rather than setting fields.
 vi.mock('../../../src/pages/Admin/DepartmentsManager', () => ({
   default: () => <div data-testid="departments-manager-stub">Departments Manager</div>,
 }));
 
-// The load is asynchronous (`useEffect` -> `loadSettings().then(...)`), so
-// every test renders, then waits for the loaded panel to replace "Loading
-// settings…" before interacting — asserting during the loading window would
-// make every field-level query fail regardless of what is being tested.
-async function renderLoaded() {
-  render(<MemoryRouter><AdminSettings /></MemoryRouter>);
-  await screen.findByText('Facility Details');
+vi.mock('../../../src/pages/Admin/SettingsUsers', () => ({
+  default: () => <div data-testid="settings-users-stub">Users</div>,
+}));
+
+function renderAt(search = '') {
+  return render(
+    <MemoryRouter initialEntries={[`/admin/settings${search}`]}>
+      <AdminSettings />
+    </MemoryRouter>,
+  );
 }
 
-function goTo(sectionLabel: string) {
-  fireEvent.click(screen.getByRole('button', { name: sectionLabel }));
+function rail() {
+  return screen.getByRole('navigation', { name: 'Settings sections' });
 }
+
+afterEach(cleanup);
 
 describe('AdminSettings', () => {
-  afterEach(() => {
-    cleanup();
-    mockLoad.current = vi.fn(async () => defaultSettings());
-    mockSave.current = vi.fn(async () => ({ error: null }));
-  });
+  it('renders exactly two sections in the rail, and none of the five that were removed', () => {
+    renderAt();
+    const items = within(rail()).getAllByRole('button');
+    expect(items.map((b) => b.textContent)).toEqual(['Departments', 'Users']);
 
-  it('renders all six section names in the rail', async () => {
-    await renderLoaded();
-    const rail = screen.getByRole('navigation', { name: 'Settings sections' });
-    for (const label of ['General', 'Check-In Rules', 'Badges', 'Notifications', 'Integrations', 'Roles & Users']) {
-      expect(within(rail).getByText(label)).toBeInTheDocument();
+    for (const gone of ['General', 'Check-In Rules', 'Badges', 'Notifications', 'Integrations']) {
+      expect(within(rail()).queryByRole('button', { name: gone })).toBeNull();
     }
   });
 
-  it('swaps the panel when a different section is clicked', async () => {
-    await renderLoaded();
-    expect(screen.getByText('Facility Details')).toBeInTheDocument();
-    goTo('Check-In Rules');
-    expect(screen.queryByText('Facility Details')).toBeNull();
-    expect(screen.getByText('Identity')).toBeInTheDocument();
+  // The Integrations section named a webhook URL, an email switch and a
+  // WhatsApp switch. Two of the three were "Recorded — not yet enforced": there
+  // is no dispatcher, and pg_net is not installed on this project, so a
+  // scheduled job cannot make an HTTP call at all.
+  it('offers no integrations controls anywhere on the page', () => {
+    renderAt();
+    expect(screen.queryByText(/webhook/i)).toBeNull();
+    expect(screen.queryByText(/integrations/i)).toBeNull();
   });
 
-  it('reflects the loaded stored value on a toggle, and flipping it enables Save', async () => {
-    // Stored value disagrees with the default (true), so a passing test here
-    // proves the control reads `draft`, not `SETTING_DEFAULTS`.
-    mockLoad.current = vi.fn(async () => ({ ...defaultSettings(), 'checkin.require_photo': false }));
-    await renderLoaded();
-    goTo('Check-In Rules');
-
-    const toggle = screen.getByRole('switch', { name: 'Require photo capture at check-in' });
-    expect(toggle).toHaveAttribute('aria-checked', 'false');
-
-    const saveBtn = screen.getByRole('button', { name: 'Save Changes' });
-    expect(saveBtn).toBeDisabled();
-
-    fireEvent.click(toggle);
-    expect(toggle).toHaveAttribute('aria-checked', 'true');
-    expect(screen.getByRole('button', { name: 'Save 1 change' })).toBeEnabled();
+  // There is no page-level save because nothing on this page is drafted.
+  it('has no Save Changes control', () => {
+    renderAt();
+    expect(screen.queryByRole('button', { name: /save/i })).toBeNull();
   });
 
-  // THE MOST VALUABLE TEST IN THE FILE, per the source's own comment: `draft`
-  // and `dirty` exist precisely so navigating between sections cannot quietly
-  // discard what was typed.
-  it('keeps an edit made in one section after switching away and back', async () => {
-    await renderLoaded();
-    const input = screen.getByLabelText('Facility Name') as HTMLInputElement;
-    fireEvent.change(input, { target: { value: 'Star Mall' } });
-    expect(screen.getByRole('button', { name: 'Save 1 change' })).toBeEnabled();
-
-    goTo('Badges');
-    expect(screen.queryByLabelText('Facility Name')).toBeNull();
-
-    goTo('General');
-    expect((screen.getByLabelText('Facility Name') as HTMLInputElement).value).toBe('Star Mall');
-    // The dirty count survived the round trip too — the button still reports it.
-    expect(screen.getByRole('button', { name: 'Save 1 change' })).toBeInTheDocument();
-  });
-
-  it('shows "Recorded — not yet enforced" on an unenforced field and not on an enforced one', async () => {
-    await renderLoaded();
-    // General: Facility Name (enforced) and "Email invites before visit" (not
-    // enforced) sit in the same PANEL, so this also proves the note is scoped
-    // per-field rather than shared across the panel. Time Zone used to be the
-    // unenforced half of this pair and was removed 2026-08-17 — it was a
-    // one-option select governing nothing.
-    const facilityRow = screen.getByLabelText('Facility Name').closest('div')!.parentElement!;
-    expect(within(facilityRow).queryByText(/Recorded — not yet enforced/)).toBeNull();
-
-    const inviteRow = screen.getByLabelText('Email invites before visit').closest('div')!.parentElement!;
-    expect(within(inviteRow).getByText(/Recorded — not yet enforced/)).toBeInTheDocument();
-
-    // And the removed field is gone from the screen entirely, not merely
-    // hidden behind a disabled state.
-    expect(screen.queryByLabelText('Time Zone')).toBeNull();
-  });
-
-  it('renders the departments manager on Roles & Users, not setting fields', async () => {
-    await renderLoaded();
-    goTo('Roles & Users');
+  it('lands on Departments and mounts the departments manager', () => {
+    renderAt();
     expect(screen.getByTestId('departments-manager-stub')).toBeInTheDocument();
-    expect(screen.queryByRole('switch')).toBeNull();
-    expect(screen.queryByLabelText('Facility Name')).toBeNull();
+    expect(screen.queryByTestId('settings-users-stub')).toBeNull();
+  });
+
+  it('swaps the panel when Users is clicked', () => {
+    renderAt();
+    fireEvent.click(within(rail()).getByRole('button', { name: 'Users' }));
+    expect(screen.getByTestId('settings-users-stub')).toBeInTheDocument();
+    expect(screen.queryByTestId('departments-manager-stub')).toBeNull();
+  });
+
+  // The Hosts tab links straight to `?section=users`, so a deep link has to
+  // open that panel rather than the default one.
+  it('opens the section named by ?section=', () => {
+    renderAt('?section=users');
+    expect(screen.getByTestId('settings-users-stub')).toBeInTheDocument();
+  });
+
+  // Every slug from the five deleted sections is in somebody's bookmarks, and
+  // the old Roles & Users slug was linked from the Hosts tab for a day. All of
+  // them must open a real screen rather than an empty panel.
+  it('degrades a stale or unknown ?section= onto Departments', () => {
+    for (const stale of ['roles', 'general', 'checkin', 'badges', 'notifications', 'integrations', 'nonsense']) {
+      expect(sectionFromSlug(stale)).toBe('departments');
+    }
+    renderAt('?section=integrations');
+    expect(screen.getByTestId('departments-manager-stub')).toBeInTheDocument();
+  });
+
+  // The rail and the panel derive from ONE declaration, so they cannot describe
+  // different screens — the rule visitorSegments.ts follows for the guard.
+  it('prints the open section’s blurb, from settingsSections', () => {
+    renderAt('?section=users');
+    const users = SETTINGS_SECTIONS.find((s) => s.key === 'users');
+    expect(screen.getByText(users!.blurb)).toBeInTheDocument();
   });
 });

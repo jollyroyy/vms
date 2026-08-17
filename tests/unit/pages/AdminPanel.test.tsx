@@ -9,7 +9,7 @@ import { render, screen, cleanup, waitFor, within, fireEvent } from '@testing-li
 import { MemoryRouter } from 'react-router-dom';
 // AdminPanel.tsx is DELETED (2026-08-17); its content is the Roles & Users
 // section of admin Settings — moved, not rebuilt.
-import SettingsRolesUsers from '../../../src/pages/Admin/SettingsRolesUsers';
+import SettingsDepartments from '../../../src/pages/Admin/SettingsDepartments';
 import type { Department, Profile } from '../../../src/types/index';
 
 /* â”€â”€â”€ Mocks â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
@@ -87,7 +87,7 @@ beforeEach(() => {
 
 afterEach(cleanup);
 
-const renderPanel = () => render(<MemoryRouter><SettingsRolesUsers /></MemoryRouter>);
+const renderPanel = () => render(<MemoryRouter><SettingsDepartments /></MemoryRouter>);
 const setValue = (el: Element, value: string) => fireEvent.change(el, { target: { value } });
 
 /** Fills and submits the "add department" form. */

@@ -14,7 +14,7 @@ import { MemoryRouter } from 'react-router-dom';
 // AdminPanel.tsx is DELETED (2026-08-17). Its content is now the Roles & Users
 // section of the admin Settings screen — moved, not rebuilt, so everything these
 // tests cover still ships and still behaves identically.
-import SettingsRolesUsers from '../../../src/pages/Admin/SettingsRolesUsers';
+import SettingsDepartments from '../../../src/pages/Admin/SettingsDepartments';
 import type { Department } from '../../../src/types/index';
 
 /* â”€â”€â”€ Mocks â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
@@ -94,7 +94,7 @@ beforeEach(() => {
 
 afterEach(cleanup);
 
-const renderPanel = () => render(<MemoryRouter><SettingsRolesUsers /></MemoryRouter>);
+const renderPanel = () => render(<MemoryRouter><SettingsDepartments /></MemoryRouter>);
 
 /** Clicks Delete on the HR card and returns the confirmation dialog. */
 async function openConfirm() {
