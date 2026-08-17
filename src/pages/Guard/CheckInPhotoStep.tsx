@@ -51,14 +51,30 @@ export default function CheckInPhotoStep({
   // same trap as `qr`: Vite inlines env vars at build time, so a flag whose
   // off-state ships a dead button is a liability, not a safeguard). A scanned
   // result is checked against the approved name before it is allowed to count.
+  //
+  // AND IT IS MANDATORY, ON EVERY PATH THROUGH THIS STEP — pre-approved
+  // arrivals included (client instruction, 2026-08-17). It was a convenience
+  // button: a guard could photograph a face and admit a booked visitor without
+  // ever checking that the person holding the pass was the person it was
+  // issued to, which is the one thing the gate exists to establish. The walk-in
+  // register has demanded a scan since 2026-08-16; a pre-approval is not a
+  // weaker claim about identity, it is a claim made EARLIER and by somebody who
+  // never saw the visitor. Gated structurally: Check In is disabled without a
+  // scan, and `namesMatch` still refuses a scan that names somebody else.
+  const scanMissing = scanResult === null;
   const scanSection = (
     <div className="space-y-2">
       {!scanResult ? (
-        <button type="button" onClick={() => setScanOpen(true)}
-          className="w-full flex items-center justify-center gap-2 bg-surface-50 hover:bg-surface-100 border border-surface-200 rounded-xl px-4 py-2.5 text-sm font-semibold text-brand-700 transition-all">
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7zm13 5h.01M10 12a2.5 2.5 0 115 0 2.5 2.5 0 01-5 0z" /></svg>
-          Scan ID card
-        </button>
+        <>
+          <button type="button" onClick={() => setScanOpen(true)}
+            className="w-full flex items-center justify-center gap-2 bg-surface-50 hover:bg-surface-100 border border-surface-200 rounded-xl px-4 py-2.5 text-sm font-semibold text-brand-700 transition-all">
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7zm13 5h.01M10 12a2.5 2.5 0 115 0 2.5 2.5 0 01-5 0z" /></svg>
+            Scan ID card
+          </button>
+          <p className="text-[11px] text-navy-700">
+            Required. The visitor cannot be checked in until their ID card has been scanned.
+          </p>
+        </>
       ) : (
         // Everything the scan read, kept on screen — the verdict alone asked
         // the guard to trust a match without seeing what had been matched.
@@ -72,6 +88,7 @@ export default function CheckInPhotoStep({
       )}
     </div>
   );
+
 
   // The card the visitor must give back at check-out. Required, and format-
   // constrained (migration 076's CHECK + lib/cardNumber.ts mirror each other),
@@ -105,6 +122,19 @@ export default function CheckInPhotoStep({
       )}
     </div>
   );
+
+  // Why Check In is refused, in one line, rather than a disabled button with no
+  // stated reason — the field hints are spread down a long card and the guard
+  // is standing in front of somebody. Discarding a scan is still allowed (it is
+  // how a misread is corrected) and simply puts the check-in back behind the
+  // requirement.
+  const blockedReason = scanMissing
+    ? "Scan the visitor's ID card before checking in."
+    : matchStatus === 'mismatch'
+      ? 'The scanned ID does not match the approved visitor.'
+      : cardBad
+        ? 'Enter a valid visitor card number before checking in.'
+        : '';
 
   if (photoBlob === null) {
     return (
@@ -215,9 +245,12 @@ export default function CheckInPhotoStep({
             </div>
           )}
         </div>
+        {blockedReason && (
+          <p className="text-xs font-semibold text-danger-600" role="status">{blockedReason}</p>
+        )}
         <div className="flex gap-3">
           <button onClick={onCancel} className="flex-1 bg-surface-50 hover:bg-surface-100 text-navy-700 font-bold rounded-xl py-3 text-sm transition-all">Cancel</button>
-          <button onClick={onConfirm} disabled={checkingIn || matchStatus === 'mismatch' || cardBad}
+          <button onClick={onConfirm} disabled={checkingIn || scanMissing || matchStatus === 'mismatch' || cardBad}
             className="flex-1 bg-brand-600 hover:bg-brand-700 text-white font-bold rounded-xl py-3 text-sm transition-all disabled:opacity-50 flex items-center justify-center gap-2">
             {checkingIn ? (
               <><svg className="animate-spin h-4 w-4" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg> Checking in...</>

@@ -89,21 +89,22 @@ export default function GuardScanPass(): React.ReactElement {
 
   return (
     <div className="space-y-5">
-      {/* Title left, search top right (client instruction, 2026-08-15). The
-          lookup used to be a card BELOW the scanner, i.e. under the fold of a
-          full-height camera frame — the fallback route was hidden behind the
-          thing that had just failed the guard. */}
-      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
-        <div>
-          <h1 className="font-display text-xl font-bold text-navy-950 dark:text-white">Scan Pass</h1>
-          {/* Client copy, verbatim (2026-08-17). It replaced a longer line that
-              described the two routes; this one NAMES them as the two things
-              the guard may do here, which is what the tab needed once the
-              camera stopped opening by itself. */}
-          <p className="text-sm text-navy-500 dark:text-navy-400 mt-0.5">Scan the QR code of the visitor pass or search it.</p>
+      {/* NO PAGE TITLE AND NO SUBTITLE (client instruction, 2026-08-17). The
+          sidebar item the guard just clicked already says "Scan Pass", and the
+          line under it described the two controls that are on screen directly
+          beneath it — a search box that says Search and a button that says Scan
+          QR code. The same rule that took the heading off the guard dashboard:
+          a page does not spend its widest line restating its own name.
+
+          The search box survives and keeps its place at the top right — it is
+          the fallback route, and it used to be a card BELOW the scanner, i.e.
+          under the fold of a full-height camera frame, hidden behind the thing
+          that had just failed the guard. */}
+      {!match && !blocked && (
+        <div className="flex justify-end">
+          <ScanPassSearchBar onQueryChange={setQuery} />
         </div>
-        {!match && !blocked && <ScanPassSearchBar onQueryChange={setQuery} />}
-      </div>
+      )}
 
       {successMsg && (
         <div className="alert-success">

@@ -53,6 +53,16 @@ vi.mock('../../../src/pages/Guard/GuardQRScan', () => ({
   ),
 }));
 
+// The ID scan is mandatory on every check-in path since 2026-08-17, so the
+// scanned-pass flow has to satisfy it before Check In is live.
+vi.mock('../../../src/pages/Guard/IdScanOverlay', () => ({
+  default: (props: any) => (
+    <button onClick={() => props.onScanned({ idType: 'PAN', idLast4: '234F', name: 'Alice Johnson' })}>
+      ID SCAN STUB
+    </button>
+  ),
+}));
+
 // PhotoCapture is a camera control; the photo step only needs a blob to move on.
 vi.mock('../../../src/components/PhotoCapture', () => ({
   default: (props: any) => (
@@ -89,9 +99,14 @@ afterEach(() => {
 });
 
 describe('S-SCAN-PASS: ScanPass', () => {
-  it('renders the Scan Pass heading', () => {
+  // NO HEADING AND NO SUBTITLE (client instruction, 2026-08-17). The nav item
+  // the guard just clicked says "Scan Pass", and the line under it described
+  // the two controls sitting directly below it. Same rule as the guard
+  // dashboard's missing <h1>.
+  it('renders no page heading of its own', () => {
     renderPage();
-    expect(screen.getByRole('heading', { name: /scan pass/i })).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: /scan pass/i })).not.toBeInTheDocument();
+    expect(screen.queryByText(/scan the qr code of the visitor pass/i)).not.toBeInTheDocument();
   });
 
   it('renders the QR scanner until a pass is resolved', () => {
@@ -110,6 +125,8 @@ describe('S-SCAN-PASS: ScanPass', () => {
     renderPage();
     fireEvent.click(screen.getByRole('button', { name: 'scan-resolved' }));
     fireEvent.click(await screen.findByText('PHOTO CAPTURE STUB'));
+    fireEvent.click(await screen.findByText('Scan ID card'));
+    fireEvent.click(await screen.findByText('ID SCAN STUB'));
     fireEvent.change(screen.getByLabelText(/Visitor card number/i), { target: { value: 'C-104' } });
     fireEvent.click(await screen.findByRole('button', { name: /check in/i }));
 
@@ -129,6 +146,8 @@ describe('S-SCAN-PASS: ScanPass', () => {
     renderPage();
     fireEvent.click(screen.getByRole('button', { name: 'scan-resolved' }));
     fireEvent.click(await screen.findByText('PHOTO CAPTURE STUB'));
+    fireEvent.click(await screen.findByText('Scan ID card'));
+    fireEvent.click(await screen.findByText('ID SCAN STUB'));
     fireEvent.change(screen.getByLabelText(/Visitor card number/i), { target: { value: 'C-104' } });
     fireEvent.click(await screen.findByRole('button', { name: /check in/i }));
 

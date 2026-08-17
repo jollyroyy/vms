@@ -183,6 +183,10 @@ describe('M-AI-OCR-UI: CheckInPanel — ID scan at pre-approved check-in', () =>
 
     fireEvent.click(await screen.findByText('Capture Photo'));
     fireEvent.click(await screen.findByText('Use Photo'));
+    // Mandatory since 2026-08-17, on a pre-approval as much as a walk-in.
+    fireEvent.click(await screen.findByText('Scan ID card'));
+    fireEvent.click(await screen.findByText('Capture Card'));
+    fireEvent.click(await screen.findByText('Use Details'));
 
     // The remarks field is gated behind the tick box — the flag is an explicit
     // answer now, not an inference from whether the guard typed anything.
@@ -209,6 +213,10 @@ describe('M-AI-OCR-UI: CheckInPanel — ID scan at pre-approved check-in', () =>
     fireEvent.click(await screen.findByText('Rahul Verma'));
     fireEvent.click(await screen.findByText('Capture Photo'));
     fireEvent.click(await screen.findByText('Use Photo'));
+    // Mandatory since 2026-08-17, on a pre-approval as much as a walk-in.
+    fireEvent.click(await screen.findByText('Scan ID card'));
+    fireEvent.click(await screen.findByText('Capture Card'));
+    fireEvent.click(await screen.findByText('Use Details'));
     fireEvent.change(screen.getByLabelText(/Visitor card number/i), { target: { value: 'C-104' } });
     fireEvent.click(await screen.findByText('Check In'));
 
@@ -229,6 +237,10 @@ describe('M-AI-OCR-UI: CheckInPanel — ID scan at pre-approved check-in', () =>
     fireEvent.click(await screen.findByText('Rahul Verma'));
     fireEvent.click(await screen.findByText('Capture Photo'));
     fireEvent.click(await screen.findByText('Use Photo'));
+    // Mandatory since 2026-08-17, on a pre-approval as much as a walk-in.
+    fireEvent.click(await screen.findByText('Scan ID card'));
+    fireEvent.click(await screen.findByText('Capture Card'));
+    fireEvent.click(await screen.findByText('Use Details'));
 
     const box = await screen.findByLabelText(/Carrying material/i);
     fireEvent.click(box);

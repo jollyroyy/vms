@@ -267,6 +267,26 @@
   mirrors the live schema, and the RLS/realtime security tests still assert on it) — do
   not "finish the job" by deleting those, and do not re-add a pass widget to any admin
   screen.
+- **AN EXPORTED CSV IS ASCII, AND THE FILE SAYS IT IS UTF-8** (client report,
+  2026-08-17: the register came back reading `â€¢â€¢â€¢â€¢â€¢â€¢0302` under Phone and
+  ID Proof). Two independent causes, both fixed, and the second is the one that
+  generalises:
+  - `exportToCsv` wrote no byte-order mark, so Excel decoded the file with the
+    locale's ANSI code page. Every non-ASCII character in it — the mask bullets, the
+    em dashes, an accented visitor name — arrived mangled. It writes a leading
+    `﻿` now; Excel, LibreOffice and Numbers all honour it and every other reader
+    treats it as invisible. This is the fix for the values we do NOT author, above all
+    the visitor's own name, which is not ours to transliterate.
+  - The redaction FILL is ours to pick, and there is no reason for it to be a
+    character that can garble at all. `maskPhoneForExport` / `maskIdProofForExport`
+    in `lib/pii.ts` keep exactly the digits the screen keeps and fill with `X`
+    (`XXXXXX3210`, `Aadhaar XXXX46`); nothing on screen changes, `maskPhone` /
+    `maskIdProof` still render bullets. Missing data reads **"Not recorded"**, not the
+    screen's em dash. `reportRow.test.ts` asserts the whole row is ASCII, which is the
+    guard that catches the next derived column somebody adds.
+  - **No zone suffix on any exported column.** The Peak Hours report printed
+    `09:00 IST`; the deployment is IST end to end, so naming the zone on one column of
+    one report implies the others might be something else.
 - **Reports (`/reports`) is the admin's visitor record.** It already carries `Approved`,
   `Check-in` and `Check-out` columns with the exact date *and* time, on screen and in the
   CSV. Approval time is resolved through `lib/visitApproval.ts` → `approvalTimestamp()`,
@@ -593,8 +613,35 @@
     acquired and the light is on before anything is paused. `enabled: false` returns from
     the effect before the `hasCamera()` probe, so nothing is ever acquired. Same rule
     `WalkInIdentityStep`'s `armed` flag follows.
-  - The page subtitle is the client's own line, verbatim: **"Scan the QR code of the
-    visitor pass or search it."**
+  - **The page has NO HEADING AND NO SUBTITLE** (client instruction, 2026-08-17,
+    superseding the verbatim subtitle that stood here for one day). The sidebar item
+    the guard just clicked says "Scan Pass", and the line under it — "Scan the QR code
+    of the visitor pass or search it." — described the two controls sitting directly
+    beneath it: a box labelled Search and a button labelled Scan QR code. Same rule
+    that took the `<h1>` off the guard dashboard. The search box keeps its place at
+    the top right, which is the half of that row that was never a restatement.
+    `ScanPass.test.tsx` asserts both absences.
+- **THE ID SCAN IS MANDATORY ON EVERY CHECK-IN, PRE-APPROVED INCLUDED** (client
+  instruction, 2026-08-17). `CheckInPhotoStep` treated "Scan ID card" as a convenience
+  button: a guard could photograph a face, type a card number and admit a booked
+  visitor without ever checking that the person holding the pass was the person it was
+  issued to — the one thing a gate exists to establish. A pre-approval is not a
+  stronger claim about identity than a walk-in, it is a claim made EARLIER, by someone
+  who never saw the visitor. The walk-in register has demanded a scan since 2026-08-16
+  (`WalkInIdentityStep`); this closes the other half.
+  - Gated **structurally**, the same way the photo is: Check In is disabled while
+    `scanResult` is null, and `blockedReason` states WHICH requirement is outstanding
+    in one line above the buttons rather than leaving a dead button and three hints
+    spread down a long card.
+  - **Discarding a scan puts the check-in back behind the requirement.** Discard is how
+    a misread is corrected, so it must still clear a mismatch — but the visitor has not
+    been identified, and the pre-2026-08-17 behaviour (discard re-enables Check In)
+    made discard the way to skip the gate.
+  - One step, so one edit: `CheckInPhotoStep` is what `/guard/pre-approvals`, the Scan
+    Pass lane and the dashboard's Verify ID modal all render. **`GuardWalkInApproved`
+    is deliberately NOT changed** — that visitor's ID was already scanned at
+    registration and is on the row the approver cleared; requiring a second scan there
+    would be re-verifying a document this system already holds.
 - **A SEARCH HIT THAT CANNOT BE CHECKED IN IS STILL FULLY LEGIBLE** (client instruction,
   2026-08-17: searching by mobile number "should not be grayed out, it should be properly
   showing all the details"). `CheckInMatchCard` carried `opacity-50 pointer-events-none`

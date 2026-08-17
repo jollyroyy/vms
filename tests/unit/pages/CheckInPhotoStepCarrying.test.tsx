@@ -26,6 +26,23 @@ const match: MatchItem = {
   visitId: 'v1',
 };
 
+// The ID scan is mandatory on this step since 2026-08-17, so every test that
+// wants to reach an ENABLED Check In has to satisfy it. The overlay is a camera
+// and an OCR engine; here it is a stub that hands back one scanned identity.
+// (What the scan itself does is CheckInPhotoStepScan.test.tsx's subject.)
+vi.mock('../../../src/pages/Guard/IdScanOverlay', () => ({
+  default: (props: any) => (
+    <button onClick={() => props.onScanned({ idType: 'PAN', idLast4: '234F', name: 'Rahul Verma' })}>
+      ID SCAN STUB
+    </button>
+  ),
+}));
+
+function completeScan(): void {
+  fireEvent.click(screen.getByText('Scan ID card'));
+  fireEvent.click(screen.getByText('ID SCAN STUB'));
+}
+
 beforeEach(() => {
   vi.stubGlobal('URL', { createObjectURL: vi.fn(() => 'blob:mock'), revokeObjectURL: vi.fn() });
 });
@@ -112,6 +129,7 @@ describe('CheckInPhotoStep — carrying material', () => {
 
   it('does not block check-in — carrying material is optional', () => {
     const props = renderStep({ carrying: false });
+    completeScan();
     const confirm = screen.getByText('Check In');
     expect(confirm).not.toBeDisabled();
     fireEvent.click(confirm);

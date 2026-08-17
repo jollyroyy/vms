@@ -25,6 +25,17 @@ const visitsUpdate = vi.hoisted(() => vi.fn(() => ({
 })));
 const alreadyInside = vi.hoisted(() => ({ current: [] as any[] }));
 
+// The ID scan is mandatory on every check-in path since 2026-08-17, so reaching
+// an enabled Check In means satisfying it. What the scan itself reads is
+// CheckInPhotoStepScan.test.tsx's subject; here it is a stub.
+vi.mock('../../../src/pages/Guard/IdScanOverlay', () => ({
+  default: (props: any) => (
+    <button onClick={() => props.onScanned({ idType: 'PAN', idLast4: '234F', name: 'Rahul Verma' })}>
+      ID SCAN STUB
+    </button>
+  ),
+}));
+
 vi.mock('../../../src/supabaseClient', () => ({
   supabase: {
     from: mockFrom,
@@ -133,6 +144,8 @@ async function reachConfirmStep() {
   fireEvent.click(await screen.findByText('Capture Photo'));
   fireEvent.click(await screen.findByText('Use Photo'));
   fireEvent.change(screen.getByLabelText(/Visitor card number/i), { target: { value: 'C-104' } });
+  fireEvent.click(screen.getByText('Scan ID card'));
+  fireEvent.click(screen.getByText('ID SCAN STUB'));
 }
 
 describe('CheckInPanel — already inside', () => {

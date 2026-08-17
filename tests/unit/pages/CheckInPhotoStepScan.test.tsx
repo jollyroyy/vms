@@ -129,7 +129,11 @@ describe('M-AI-OCR-UI: CheckInPhotoStep scan + identity match', () => {
     expect(checkInButton.closest('button')).toBeDisabled();
   });
 
-  it('discarding the scan clears the mismatch and re-enables check-in', async () => {
+  // A DISCARD PUTS THE CHECK-IN BACK BEHIND THE SCAN, it does not release it
+  // (client instruction, 2026-08-17: the ID scan is mandatory for pre-approved
+  // visitors too). Discarding is how a guard corrects a misread, so it must
+  // clear the mismatch — but the visitor still has not been identified.
+  it('discarding the scan clears the mismatch and leaves check-in blocked', async () => {
     mockRecognise.mockResolvedValue({
       lines: [{ text: ['INCOME TAX DEPARTMENT', 'PERMANENT ACCOUNT NUMBER', 'ABCDE1234F', 'Name: Suresh Patel'].join('\n'), confidence: 0.9 }],
       fullText: ['INCOME TAX DEPARTMENT', 'PERMANENT ACCOUNT NUMBER', 'ABCDE1234F', 'Name: Suresh Patel'].join('\n'),
@@ -146,8 +150,24 @@ describe('M-AI-OCR-UI: CheckInPhotoStep scan + identity match', () => {
     await waitFor(() => {
       expect(screen.queryByText(/doesn.t match the approved visitor/i)).not.toBeInTheDocument();
     });
-    expect(screen.getByText('Check In').closest('button')).not.toBeDisabled();
+    expect(screen.getByText('Check In').closest('button')).toBeDisabled();
+    expect(screen.getByText(/scan the visitor's id card before checking in/i)).toBeInTheDocument();
     expect(onScanResult).toHaveBeenCalledWith(null);
+  });
+
+  // The gate itself: a photographed face and a valid card are not enough.
+  it('blocks check-in until the ID card has been scanned', async () => {
+    render(<CheckInPhotoStep {...baseProps} photoBlob={new Blob(['x'], { type: 'image/webp' })} cardNumber="C-104" />);
+    expect(screen.getByText('Check In').closest('button')).toBeDisabled();
+    expect(screen.getByText(/required\. the visitor cannot be checked in until their id card has been scanned/i)).toBeInTheDocument();
+
+    fireEvent.click(await screen.findByText('Scan ID card'));
+    fireEvent.click(await screen.findByText('Capture Card'));
+    fireEvent.click(await screen.findByText('Use Details'));
+
+    await waitFor(() => {
+      expect(screen.getByText('Check In').closest('button')).not.toBeDisabled();
+    });
   });
 
   it('records an ID whose name could not be read without blocking check-in', async () => {
