@@ -65,8 +65,12 @@ export default function HostNotificationsPanel({ settings, saving, onToggle }: P
             <div className="min-w-0 flex-1">
               <p className="text-sm font-medium text-navy-950 dark:text-white">{t.label}</p>
               <p className="text-xs text-navy-700 mt-0.5">{t.hint}</p>
+              {/* `navy-700`, not `navy-500`. This line is the one that tells an
+                  admin the switch above it does nothing yet — the single most
+                  consequential sentence on the panel — and at 12px italic on a
+                  tinted card navy-500 was the faintest text on screen. */}
               {!enforced && caveat && (
-                <p className="text-xs text-navy-500 mt-1 italic">Recorded — not yet enforced. {caveat}</p>
+                <p className="text-xs text-navy-700 mt-1 italic">Recorded — not yet enforced. {caveat}</p>
               )}
             </div>
             <span className="shrink-0 mt-0.5">

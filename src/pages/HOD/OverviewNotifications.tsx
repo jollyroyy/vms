@@ -22,6 +22,19 @@ const fmtDate = (iso: string) =>
 const fmtTime24 = (iso: string) =>
   new Date(iso).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: false });
 
+// EVERY FOREGROUND HERE IS ONE NAVY STEP, WITH NO `dark:` OVERRIDE (client
+// report, 2026-08-17: the notification text was hard to read in light mode).
+// This panel carried five `text-navy-N dark:text-navy-M` pairs, and CLAUDE.md
+// is explicit that the navy scale is INVERTED between themes — light
+// `navy-300` is pale (199,193,180) while dark `navy-300` is near-black
+// (92,86,74). So `text-navy-500 dark:text-navy-400` actually picked a DARKER
+// colour in dark mode: the override was the bug, not the fix. Worse in light
+// mode, which is what was reported — the two row actions were `navy-300` on
+// white, about 1.9:1, so Mark-as-read and Dismiss were controls a reader had
+// to already know were there.
+//
+// The steps, matching the rest of the app: 950/900 for a title, 700 for body
+// prose and secondary labels, 600 for a timestamp or an icon-only control.
 export default function OverviewNotifications({ loading, notifs, onMarkRead, onDismiss, onOpenDetails }: Props): React.ReactElement {
   return (
     <div className="bg-white dark:bg-white/[0.04] rounded-2xl border border-surface-200/70 dark:border-white/[0.06] overflow-hidden">
@@ -30,10 +43,10 @@ export default function OverviewNotifications({ loading, notifs, onMarkRead, onD
           <span className="revamp-section-rule" aria-hidden="true" />
           <span className="flex items-baseline gap-2">
             <h2 className="font-display text-sm font-bold text-navy-950 dark:text-white">Status &amp; Notifications</h2>
-            <span className="text-xs text-navy-500 dark:text-navy-400">Real-time visitor arrivals</span>
+            <span className="text-xs text-navy-700">Real-time visitor arrivals</span>
           </span>
         </div>
-        <span className="flex items-center gap-1.5 text-[11px] font-bold text-navy-500 dark:text-navy-400 bg-surface-100 dark:bg-white/[0.06] px-3 py-1.5 rounded-full">
+        <span className="flex items-center gap-1.5 text-[11px] font-bold text-navy-700 bg-surface-100 dark:bg-white/[0.06] px-3 py-1.5 rounded-full">
           <span className="relative flex h-1.5 w-1.5">
             <span className="absolute inline-flex h-full w-full rounded-full bg-success-500 opacity-75 animate-ping" />
             <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-success-500" />
@@ -70,24 +83,24 @@ export default function OverviewNotifications({ loading, notifs, onMarkRead, onD
                   </div>
                   <div className="flex items-center gap-0.5 shrink-0">
                     <button onClick={() => onMarkRead(n.id)} title="Mark as read"
-                      className="p-1.5 rounded-lg text-navy-300 hover:text-brand-600 hover:bg-brand-50 dark:hover:bg-brand-500/10 transition-colors">
+                      className="p-1.5 rounded-lg text-navy-600 hover:text-brand-600 hover:bg-brand-50 dark:hover:bg-brand-500/10 transition-colors">
                       <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
                         <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                       </svg>
                     </button>
                     <button onClick={() => onDismiss(n.id)} title="Dismiss"
-                      className="p-1.5 rounded-lg text-navy-300 hover:text-danger-500 hover:bg-danger-50 dark:hover:bg-danger-500/10 transition-colors">
+                      className="p-1.5 rounded-lg text-navy-600 hover:text-danger-500 hover:bg-danger-50 dark:hover:bg-danger-500/10 transition-colors">
                       <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                       </svg>
                     </button>
                   </div>
                 </div>
-                <p className="text-[11px] text-navy-500 dark:text-navy-400 ml-4">
+                <p className="text-[11px] text-navy-600 ml-4">
                   {fmtDate(n.created_at)} {fmtTime24(n.created_at)}
                 </p>
-                <p className="text-xs text-navy-600 dark:text-navy-300 mt-1.5 ml-4 leading-relaxed">{n.body}</p>
+                <p className="text-xs text-navy-700 mt-1.5 ml-4 leading-relaxed">{n.body}</p>
                 {n.related_id && onOpenDetails && (
                   <button
                     type="button"

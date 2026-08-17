@@ -95,10 +95,19 @@
   .revamp-empty-title {
     @apply text-sm font-bold text-navy-800;
   }
+  /* `navy-700`, not `navy-500` (client report, 2026-08-17, raised against the
+     notification panels that render this empty state). At 12px on a white
+     card, navy-500 resolves to rgb(128,120,106) — about 4:1, under the 4.5:1
+     small-text bar — and "quiet" is not the same as "hard to read". The step
+     matches the secondary-text rule the rest of the app follows. */
   .revamp-empty-sub {
-    @apply text-xs text-navy-500 mt-1 max-w-xs;
+    @apply text-xs text-navy-700 mt-1 max-w-xs;
   }
-  .dark .revamp-empty-title {
-    @apply text-navy-100;
-  }
+  /* NO `.dark` OVERRIDE FOR THE TITLE. It used to say `text-navy-100`, and the
+     navy scale is INVERTED in dark mode — dark navy-100 is rgb(28,26,22),
+     near-black, so the empty-state heading was being painted almost the colour
+     of the panel behind it. The base `navy-800` already resolves to
+     rgb(216,209,195) in dark, which is what was wanted; the override was the
+     bug. Same trap as `.dark .revamp-empty-sub` above, which is correct only
+     because navy-600 happens to land light at that end. */
 }

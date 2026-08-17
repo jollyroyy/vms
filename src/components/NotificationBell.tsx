@@ -108,7 +108,12 @@ export default function NotificationBell({ userId, role }: Props): React.ReactEl
         className="relative p-2 rounded-xl hover:bg-surface-100 transition-all duration-200"
         title="Notifications"
       >
-        <svg className="w-5 h-5 text-navy-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+        {/* `text-navy-800`, matching TopbarClock immediately to its left —
+            they are one right-hand cluster and must read as one. It was
+            `navy-500`, which is the same step the clock was corrected from
+            (2026-08-15): rgb(128,120,106) is a weak stroke against the glass
+            topbar at either end of the theme. */}
+        <svg className="w-5 h-5 text-navy-800" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
         </svg>
         {unreadCount > 0 && (
@@ -118,8 +123,22 @@ export default function NotificationBell({ userId, role }: Props): React.ReactEl
         )}
       </button>
 
+      {/* THE PANEL IS WHITE IN LIGHT MODE, SO NOTHING ON IT MAY BE WHITE
+          (client report, 2026-08-17: the notification text was unreadable in
+          light mode). This panel was written dark-first — `bg-white` was the
+          afterthought and the foreground was never revisited — so the heading
+          and every notification title were `text-white` ON WHITE, i.e.
+          rendered and invisible, and the borders were `white/10` on that same
+          white. Same class of defect as the topbar clock's `dark:text-navy-300`:
+          a colour that only ever resolved for the theme its author happened to
+          be looking at.
+
+          Every foreground here is now a SINGLE navy step with no `dark:`
+          override, because the navy scale is inverted between themes — one
+          number already resolves to the correct end at both. `navy-950` for a
+          title, `navy-700` for body prose, `navy-600` for a timestamp. */}
       {open && (
-          <div className="absolute right-0 top-full mt-2 w-80 sm:w-96 z-50 rounded-2xl shadow-modal border border-white/10 overflow-hidden animate-scale-in dark:bg-[rgb(20_18_14)] dark:bg-opacity-100 bg-white">
+          <div className="absolute right-0 top-full mt-2 w-80 sm:w-96 z-50 rounded-2xl shadow-modal border border-surface-200 dark:border-white/10 overflow-hidden animate-scale-in dark:bg-[rgb(20_18_14)] dark:bg-opacity-100 bg-white">
             {/* The × is an INLINE flex child here, not the absolute default.
                 This row is compact and already has content on its right, so an
                 out-of-flow button had nothing reserving space for it: the old
@@ -127,8 +146,8 @@ export default function NotificationBell({ userId, role }: Props): React.ReactEl
                 read", which is the overlap that was reported. As a flex child
                 it cannot collide with its siblings at any width, so no padding
                 value has to be kept in step with the button's size. */}
-            <div className="flex items-center gap-3 px-5 py-3 border-b border-white/10">
-              <h3 className="flex-1 min-w-0 text-sm font-bold text-white truncate">Notifications</h3>
+            <div className="flex items-center gap-3 px-5 py-3 border-b border-surface-200 dark:border-white/10">
+              <h3 className="flex-1 min-w-0 text-sm font-bold text-navy-950 truncate">Notifications</h3>
               {unreadCount > 0 && (
                 <button
                   onClick={() => void markAllRead()}
@@ -136,10 +155,14 @@ export default function NotificationBell({ userId, role }: Props): React.ReactEl
                   Mark all read
                 </button>
               )}
+              {/* The DEFAULT (light) variant, not `dark`. `dark` hardcodes a
+                  white glyph on a white plate, which is right over a dark
+                  gradient banner and wrong here — this panel is white in light
+                  mode. The default already carries its own `dark:` half, so it
+                  is the only variant that resolves at both ends. */}
               <ModalCloseButton
                 inline
-                variant="dark"
-                className="!text-white hover:!text-white hover:!bg-white/25 -mr-2"
+                className="-mr-2"
                 onClose={() => setOpen(false)}
               />
             </div>
@@ -155,18 +178,18 @@ export default function NotificationBell({ userId, role }: Props): React.ReactEl
                     <path strokeLinecap="round" strokeLinejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
                   </svg>
                   <p className="text-sm text-navy-700 font-medium">No notifications</p>
-                  <p className="text-xs text-navy-300 mt-0.5">You are all caught up.</p>
+                  <p className="text-xs text-navy-600 mt-0.5">You are all caught up.</p>
                 </div>
               ) : (
-                <ul className="divide-y divide-white/8">
+                <ul className="divide-y divide-surface-200 dark:divide-white/[0.08]">
                   {notifications.map((n) => (
                     <li key={n.id} className="px-5 py-3.5 transition-colors bg-brand-500/10">
                       <div className="flex items-start gap-3">
                         <div className="shrink-0 mt-0.5 h-2 w-2 rounded-full bg-brand-500" />
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-semibold text-white">{n.title}</p>
+                          <p className="text-sm font-semibold text-navy-950">{n.title}</p>
                           <p className="text-xs text-navy-700 mt-0.5 line-clamp-2">{n.body}</p>
-                          <p className="text-[10px] text-navy-300 mt-1">
+                          <p className="text-[10px] text-navy-600 mt-1">
                             {new Date(n.created_at).toLocaleString()}
                           </p>
                         </div>

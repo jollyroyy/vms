@@ -1706,6 +1706,37 @@
   and `GuardLiveQueue.tsx`) open this one dialog, so there is one gate, not two.
 
 ### Notifications bell
+- **THE PANEL IS WHITE IN LIGHT MODE, SO NOTHING ON IT MAY BE WHITE** (client report,
+  2026-08-17). It was authored dark-first — `bg-white` was the afterthought and the
+  foreground was never revisited — so the "Notifications" heading and EVERY
+  notification title carried a hardcoded `text-white` and were rendered and invisible,
+  not merely faint; the `ModalCloseButton` was forced to `variant="dark"` with
+  `!text-white`, a white × on the same white; and the separators were `border-white/10`
+  and `divide-white/8` (the latter is not a real Tailwind value, so it emitted nothing
+  at all and the rows had no rule between them in EITHER theme). Every foreground is now
+  a **single navy step with no `dark:` override** — 950 for a title, 700 for body prose,
+  600 for a timestamp or an icon-only control — because the navy scale is inverted and
+  one number already resolves to the correct end at both. The bell glyph moved from
+  `navy-500` to `navy-800`, matching `TopbarClock` immediately beside it: they are one
+  right-hand cluster and must read as one.
+  - The same pass hit the other two notification surfaces. **`OverviewNotifications`**
+    (the HOD's Status & Notifications panel) carried five `text-navy-N dark:text-navy-M`
+    pairs — the forbidden override — and its Mark-as-read and Dismiss controls were
+    `navy-300` on white, about **1.9:1**, so both were controls a reader had to already
+    know were there. **`HostNotificationsPanel`**'s "Recorded — not yet enforced" caveat
+    went `navy-500` → `navy-700`: it is the line that tells an admin the switch above it
+    does nothing yet, and it was the faintest text on the panel.
+  - **`.revamp-empty-sub` went `navy-500` → `navy-700`, and `.dark .revamp-empty-title`
+    was DELETED.** That override said `text-navy-100`, which in dark mode is
+    rgb(28,26,22) — near-black on a dark panel. The base `navy-800` already resolves to
+    rgb(216,209,195) there, so the override was the bug. Shared classes, so this improves
+    every empty state, not only the notification ones.
+  - Guarded by `tests/unit/components/NotificationBellContrast.test.tsx`, which asserts
+    the CLASS CONTRACT (jsdom applies no stylesheet, so a computed colour cannot be
+    read): no unqualified `text-white`, no `dark:text-navy-*`, and no navy step below
+    600 anywhere on the panel. It reads classes through `getAttribute('class')`, never
+    `el.className` — on an SVG that is an `SVGAnimatedString`, so a `.test()` on it
+    silently matches nothing.
 - **The dropdown's click-away is a LISTENER, not an overlay** (client report,
   2026-08-16: "Read" and "Mark all read" did nothing). It used to close via a
   `fixed inset-0 z-40` scrim portaled to `document.body`. That scrim beats the whole app:
