@@ -47,6 +47,16 @@ export interface MatchItem {
    *  expired) is still findable — searching answers "does this exist?" — but
    *  is never checkable-in, which `isCheckableStatus` decides. */
   status: VisitStatus | null;
+  /** When the gate stamped this visitor in and out (client instruction,
+   *  2026-08-17: a scanned pass must report "what time he checked in").
+   *
+   *  Both null on the ordinary arrival — that is the point of the scan — and
+   *  populated on a pass the guard scans a second time, which is precisely the
+   *  case where the record has to say what already happened rather than a bare
+   *  "already checked in" refusal. Null for recurring visitors, who have no
+   *  visit row yet. */
+  checkedInAt: string | null;
+  checkedOutAt: string | null;
   visitId?: string;
   // Carried on the pass and shown back to the guard once it is scanned, so
   // they can check the person in front of them against the record. Absent for

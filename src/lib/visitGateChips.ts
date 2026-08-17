@@ -55,11 +55,15 @@ function presenceChip(v: ReportVisit): GateChip {
   // the one altitude where a guard is scanning rather than reading.
   if (v.status === 'checked_in') return { key: 'presence', label: 'Checked in', tone: 'inside' };
   if (v.status === 'pending_approval') return { key: 'presence', label: 'Awaiting approval', tone: 'warn' };
-  // A host-cleared walk-in reads the same, because since migration 080 the
-  // approver's click IS the admission — this is why `TILE_FILTER.checked`
-  // counts these rows, and a row counted as admitted must not say otherwise.
-  // Live rows resting here are pre-080 clearances the desk never stamped.
-  if (v.status === 'walkin_approved') return { key: 'presence', label: 'Checked in', tone: 'inside' };
+  // A host-cleared walk-in is NOT inside. It read "Checked in" between
+  // 2026-08-16 and 2026-08-17, which was true only for as long as migration
+  // 080's shortcut made the approver's click the admission. Migration 083 put
+  // the admission back at the gate, so this row is a visitor the host has said
+  // yes to who is still standing on the other side of it — the same place an
+  // `approved` pre-registration sits, reached from the other desk. Naming it
+  // "Checked in" now would put someone in the building on a fire-marshal's list
+  // who has not walked through the door.
+  if (v.status === 'walkin_approved') return { key: 'presence', label: 'Awaiting entry', tone: 'neutral' };
   if (v.status === 'approved') return { key: 'presence', label: 'Pre-registered', tone: 'neutral' };
   if (v.status === 'rejected') return { key: 'presence', label: 'Refused', tone: 'left' };
   return { key: 'presence', label: 'Not arrived', tone: 'neutral' };

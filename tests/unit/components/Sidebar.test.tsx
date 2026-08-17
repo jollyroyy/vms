@@ -10,10 +10,6 @@ vi.mock('../../../src/lib/theme', () => ({
   ThemeProvider: (p: any) => p.children,
 }));
 
-vi.mock('../../../src/components/layout/SidebarAnalytics', () => ({
-  default: () => null,
-}));
-
 vi.mock('../../../src/components/layout/SidebarProfile', () => ({
   default: () => null,
 }));
@@ -78,14 +74,17 @@ function renderSidebar(role: UserRole, initialEntries: string[] = ['/'], collaps
 }
 
 describe('Sidebar navigation links per role', () => {
-  it('admin sees only Analytics, Reports and Settings links', () => {
+  // The nine-tab admin console (2026-08-17, client instruction). Analytics is
+  // asserted ABSENT: the page was deleted outright, so a link reappearing would
+  // point at a route that 404s.
+  it('admin sees the nine console tabs and no Analytics link', () => {
     renderSidebar('admin');
-    expect(screen.getByText('Analytics')).toBeInTheDocument();
-    expect(screen.getByText('Reports')).toBeInTheDocument();
-    expect(screen.getByText('Settings')).toBeInTheDocument();
-    expect(screen.queryByText('Visitors')).not.toBeInTheDocument();
+    for (const label of ['Dashboard', 'Live Check-In', 'Pre-Registration', 'Visitors Log',
+      'Hosts', 'Badge Printing', 'Blacklist & Security', 'Reports', 'Settings']) {
+      expect(screen.getByText(label)).toBeInTheDocument();
+    }
+    expect(screen.queryByText('Analytics')).not.toBeInTheDocument();
     expect(screen.queryByText('Approvals')).not.toBeInTheDocument();
-    expect(screen.queryByText('Dashboard')).not.toBeInTheDocument();
     expect(screen.queryByText('Self-Service Kiosk')).not.toBeInTheDocument();
     expect(screen.queryByText('Daily Staff')).not.toBeInTheDocument();
     expect(screen.queryByText('On-site')).not.toBeInTheDocument();
@@ -94,10 +93,10 @@ describe('Sidebar navigation links per role', () => {
   // Each nav link renders as a single <a class="sidebar-link ...">. The mobile
   // drawer is not rendered by default (mobileOpen starts false), so only the
   // desktop <aside> tree contributes matches here.
-  it('admin sidebar has exactly 3 nav links', () => {
+  it('admin sidebar has exactly 9 nav links', () => {
     const { container } = renderSidebar('admin');
     const links = container.querySelectorAll('a.sidebar-link');
-    expect(links.length).toBe(3);
+    expect(links.length).toBe(9);
   });
 
   // The guard's Visitors nav item was removed outright 2026-08-15 (client

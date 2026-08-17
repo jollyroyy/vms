@@ -199,14 +199,18 @@ export default function VisitorDetails({
           : <VisitorDetailsIdCard visit={v} />}
 
 
-        {/* Timeline. Hidden from a guard on the client's instruction
-            (2026-08-13) — the rejection reason inside it is not, see
-            VisitorTimelineCard. */}
+        {/* Timeline, split in two since 2026-08-17 (client instruction: a
+            scanned record must show "what time he checked in").
+            - ARRIVAL — checked in at, checked out at — is shown to EVERY role.
+            - AUDIT — approval time, elapsed duration — is still hidden from a
+              guard, which is what survives of the 2026-08-13 instruction.
+            The rejection reason is gated by neither; see VisitorTimelineCard. */}
         <VisitorTimelineCard
           visit={v}
           approvedAt={approvedAt}
           duration={dur}
-          showTimestamps={viewerRole !== 'guard'}
+          showAudit={viewerRole !== 'guard'}
+          showArrival
         />
 
         <VisitorDetailsActions

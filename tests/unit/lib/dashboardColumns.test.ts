@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 
-import { PANEL_SPEC, COLUMN } from '../../../src/lib/dashboardColumns';
+import { PANEL_SPEC } from '../../../src/lib/dashboardPanelSpec';
+import { COLUMN } from '../../../src/lib/dashboardColumns';
 import type { ReportVisit } from '../../../src/lib/reportRow';
 
 // The guard dashboard's stacked panel must say WHAT KIND of ID proof was taken

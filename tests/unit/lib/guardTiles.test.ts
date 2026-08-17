@@ -37,11 +37,15 @@ describe('Expected Today', () => {
     expect(TILE_FILTER.expected(v({ status: 'approved', scheduled_for: '2026-08-14T04:00:00Z' }), NOW)).toBe(true);
   });
 
-  // Since migration 080 the host's yes IS the admission, so a cleared walk-in
-  // belongs to Checked In, not here. One visitor cannot be both "not yet through
-  // the gate" and "came through the gate" on the same board.
-  it('does NOT count a walk-in the HOD has already cleared', () => {
-    expect(TILE_FILTER.expected(v({ status: 'walkin_approved' }), NOW)).toBe(false);
+  // Migration 083 (2026-08-17): the host's yes is a clearance, not an
+  // admission, so a cleared walk-in IS expected — approved and not yet through
+  // the gate, which is this tile's plain meaning. It sat on Checked In for the
+  // single day 080's shortcut was live. The no-contradiction rule that put it
+  // there still holds; it just resolves the other way now, and `checked` is
+  // keyed on the arrival stamp alone so the two tiles cannot both claim it.
+  it('counts a walk-in the HOD has cleared but the gate has not stamped', () => {
+    expect(TILE_FILTER.expected(v({ status: 'walkin_approved' }), NOW)).toBe(true);
+    expect(TILE_FILTER.checked(v({ status: 'walkin_approved' }), NOW)).toBe(false);
   });
 
   // Standing at the gate with no decision made is not "expected" — nobody has
@@ -82,17 +86,18 @@ describe('Checked In vs In Premises', () => {
     expect(t.checked.length).toBe(t.inside.length + 1);
   });
 
-  // The bug this fixes: a walk-in approved before migration 080's function went
-  // live rests in `walkin_approved` with a null `checked_in_at` forever, so a
-  // visitor who is in the building was on no arrival tile at all. The host's yes
-  // is the admission — count it.
-  it('counts a host-cleared walk-in that never got a check-in stamp', () => {
+  // Migration 083 (2026-08-17): a host-cleared walk-in has NOT come through the
+  // gate. It counted as arrived for one day, while 080's shortcut meant an
+  // approver's click admitted somebody without ever stamping `checked_in_at`.
+  // With the admission back at the gate the stamp is written again on every
+  // arrival, so counting the status too would put people still standing outside
+  // on the arrivals tile. They are `expected` — cleared, not yet in.
+  it('does not count a host-cleared walk-in as having come through the gate', () => {
     const cleared = v({ status: 'walkin_approved', scheduled_for: null, checked_in_at: null });
-    expect(TILE_FILTER.checked(cleared, NOW)).toBe(true);
-    // Not in premises, though: that list is `status === 'checked_in'` and is
-    // the one you hand a fire marshal — it stays exactly what the row says.
+    expect(TILE_FILTER.checked(cleared, NOW)).toBe(false);
+    expect(TILE_FILTER.expected(cleared, NOW)).toBe(true);
+    // And never on the fire-marshal list, which was true under both regimes.
     expect(TILE_FILTER.inside(cleared, NOW)).toBe(false);
-    expect(TILE_FILTER.expected(cleared, NOW)).toBe(false);
   });
 });
 
@@ -133,9 +138,67 @@ describe('tileVisits', () => {
       v({ id: 'e', status: 'pending_approval' }),
     ];
     const t = tileVisits(day, NOW);
-    expect(t.expected.map((x) => x.id)).toEqual(['a']);
-    // 'b' is a cleared walk-in: admitted by the approver's own click (080).
-    expect(t.checked.map((x) => x.id)).toEqual(['b', 'c', 'd']);
+    // 'b' is a cleared walk-in — approved, waiting at the gate for a card and a
+    // stamp (083), so it sits with the pre-registration 'a' rather than with
+    // the arrivals. It moved out of `checked` and into `expected` on 2026-08-17.
+    expect(t.expected.map((x) => x.id)).toEqual(['a', 'b']);
+    expect(t.checked.map((x) => x.id)).toEqual(['c', 'd']);
     expect(t.inside.map((x) => x.id)).toEqual(['c']);
+    expect(t.checkedOut.map((x) => x.id)).toEqual(['d']);
+    // The invariant the board is read by: everyone who came through the gate
+    // is either still here or has left.
+    expect(t.checked.length).toBe(t.inside.length + t.checkedOut.length);
+  });
+});
+
+// Checked Out Today (added 2026-08-17, client instruction). It is keyed on the
+// EXIT TIMESTAMP against the IST day boundary, not on `status === 'checked_out'`
+// — the same window the Entry & Exit tab's Checked Out lane uses, so the tile
+// and that lane cannot report different figures for one day's exits.
+describe('Checked Out Today', () => {
+  // The IST day containing NOW (2026-08-14T12:00Z = 17:30 IST) opened at
+  // 2026-08-13T18:30Z.
+  it('counts a visitor who left after the IST day began', () => {
+    expect(TILE_FILTER.checkedOut(
+      v({ status: 'checked_out', checked_in_at: '2026-08-14T04:00:00Z', checked_out_at: '2026-08-14T08:00:00Z' }),
+      NOW,
+    )).toBe(true);
+  });
+
+  // The row the widened `useTodayVisits` window exists for: in at 21:00 IST
+  // yesterday, out at 09:00 IST today. It belongs to today's exits.
+  it('counts an exit that crossed midnight', () => {
+    expect(TILE_FILTER.checkedOut(
+      v({ status: 'checked_out', checked_in_at: '2026-08-13T15:30:00Z', checked_out_at: '2026-08-14T03:30:00Z' }),
+      NOW,
+    )).toBe(true);
+  });
+
+  // 2026-08-13T12:00Z is 17:30 IST on the 13th — before this IST day opened.
+  it('does not count yesterday’s departure', () => {
+    expect(TILE_FILTER.checkedOut(
+      v({ status: 'checked_out', checked_in_at: '2026-08-13T09:00:00Z', checked_out_at: '2026-08-13T12:00:00Z' }),
+      NOW,
+    )).toBe(false);
+  });
+
+  // The UTC-midnight bug this predicate is written to avoid: 2026-08-14T01:00Z
+  // is 06:30 IST today, and is after the IST boundary (2026-08-13T18:30Z) even
+  // though a naive `${today}T00:00:00Z` comparison would also pass it. The case
+  // that separates them is the one below.
+  it('counts an exit made between 00:00 and 05:30 IST', () => {
+    // 2026-08-13T19:00Z = 00:30 IST on the 14th. A UTC-midnight boundary of
+    // 2026-08-14T00:00:00Z would wrongly exclude it.
+    expect(TILE_FILTER.checkedOut(
+      v({ status: 'checked_out', checked_in_at: '2026-08-13T14:00:00Z', checked_out_at: '2026-08-13T19:00:00Z' }),
+      NOW,
+    )).toBe(true);
+  });
+
+  it('does not count a visitor who is still inside', () => {
+    expect(TILE_FILTER.checkedOut(
+      v({ status: 'checked_in', checked_in_at: '2026-08-14T04:00:00Z' }),
+      NOW,
+    )).toBe(false);
   });
 });

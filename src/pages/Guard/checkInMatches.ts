@@ -104,6 +104,8 @@ export function buildMatchItems(
       scheduledFor: v.scheduled_for,
       dueToday: due,
       status: v.status,
+      checkedInAt: v.checked_in_at,
+      checkedOutAt: v.checked_out_at,
       visitId: v.id,
       photoUrl: v.photo_url ?? v.photo_data,
       idType: v.visitor?.id_type ?? null,
@@ -137,6 +139,8 @@ export function buildMatchItems(
       dueToday: true,
       // No visit row exists yet — one is created at check-in.
       status: null,
+      checkedInAt: null,
+      checkedOutAt: null,
       photoUrl: null,
       idType: null,
       idLast4: null,

@@ -81,11 +81,23 @@ describe('navLinks: linksForRole', () => {
     expect((visitors as any)?.children).toBeUndefined();
   });
 
-  // Standing rule (see CLAUDE.md "Admin scope"): admin has no route to visitor
-  // records. This is not incidental — do not let it silently regress.
-  it('admin gets exactly Analytics, Reports and Settings — never a route to visitor records', () => {
+  // The admin console is NINE TABS as of 2026-08-17 (client instruction), and
+  // the order is the reference screens' order — a reader learns the rail by
+  // position, so a reshuffle is a behaviour change, not a cosmetic one.
+  //
+  // This REVERSES the old rule that admin had no route to visitor records. The
+  // reasoning that rule carried is preserved by the tabs being READ-ONLY, not
+  // by the routes being absent: no admin screen renders a control that writes
+  // to `visits`. That half is asserted on each page's own test.
+  //
+  // THERE IS NO ANALYTICS ITEM. The page was deleted, not unlinked — its charts
+  // are on the Dashboard and on Reports, derived from rows those screens
+  // already load.
+  it('admin gets the nine console tabs, in the reference order, with no Analytics', () => {
     const links = linksForRole('admin');
-    expect(links.map((l) => l.label)).toEqual(['Analytics', 'Reports', 'Settings']);
+    expect(links.map((l) => l.label)).toEqual(['Dashboard', 'Live Check-In', 'Pre-Registration', 'Visitors Log', 'Hosts',
+      'Badge Printing', 'Blacklist & Security', 'Reports', 'Settings']);
+    expect(links.map((l) => l.label)).not.toContain('Analytics');
   });
 
   it('linksForRole(null) returns an empty array', () => {

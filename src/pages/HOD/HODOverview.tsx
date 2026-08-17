@@ -100,7 +100,14 @@ export default function HODOverview(): React.ReactElement {
 
       const { data: upcomingData } = await supabase
         .from('visits').select('*, visitor:visitors(*), department:departments(id, name, code, created_at)')
-        .eq('department_id', deptId).in('status', ['pending_approval', 'approved'])
+        // `walkin_approved` added with migration 083 (2026-08-17). A walk-in the
+        // HOD has just cleared no longer goes straight to `checked_in` — it
+        // rests here until the guard admits it at the gate — so without this
+        // status the approver's own decision vanished off their board between
+        // the click and the visitor's arrival. `OverviewUpcoming` has carried
+        // the badge for it ("Walk-in approved", awaitingGate) throughout; the
+        // query was the only thing keeping that branch unreachable.
+        .eq('department_id', deptId).in('status', ['pending_approval', 'approved', 'walkin_approved'])
         .order('created_at', { ascending: true }).limit(100);
       let rows = ((upcomingData as unknown as Visit[]) ?? []);
       rows = await attachHostNames(rows);

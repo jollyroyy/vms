@@ -1,27 +1,12 @@
-import type { GuardTileKey } from './guardTiles';
 import type { ReportVisit } from './reportRow';
-import { formatStamp } from './formatDate';
+import { formatDateTime } from './formatDate';
 import { maskIdProof } from './pii';
 import { visitOrigin, visitOriginLabel } from './visitOrigin';
 import { approverLabel } from './visitApprover';
 import { overstayMs } from './visitExpiry';
 
-// What the guard dashboard's one panel is CALLED, and which columns it shows,
-// for each of the seven tiles above it.
-//
-// The panel used to be a fixed "Expected Today" table with six fixed columns,
-// beside a drill-down sheet that opened a different card layout for the same
-// rows. One tile therefore had a table and the other six had cards, and the
-// heading lied whenever a guard pressed anything but Expected Today. Now there
-// is ONE panel: pressing a tile renames it and re-columns it (client
-// instruction, 2026-08-15).
-//
-// The rule that governs which columns a tile gets: a column earns its place by
-// answering a question that tile is opened WITH. Every lane carries who and why
-// (name, purpose, host, department) because that never changes. The times are
-// what vary — an unarrived visitor has a slot and no entry, an overstaying one
-// has an entry and an overrun — and printing a column that is an em dash for
-// every row in the lane is a column that says nothing.
+// The COLUMN atoms every admin/guard/HOD dashboard table composes its panels
+// from. See dashboardPanelSpec.ts for which tile shows which of these.
 
 export type DashboardColumn = {
   key: string;
@@ -42,11 +27,18 @@ export function formatDuration(ms: number): string {
   return `${hours}h ${minutes}m`;
 }
 
-// formatStamp, never a bare time: none of these lists is date-bounded (a
+// ALWAYS THE DATE AS WELL AS THE TIME (client instruction, 2026-08-17). This
+// was `formatStamp`, which prints a bare time for today and pays for the date
+// only on an older instant — and none of these lists is date-bounded (a
 // pre-approval booked last week for today, a visitor still inside from last
-// night), so "03:30" would say when but not whether that when is today. It
-// prints the date as well whenever the instant is not today. See CLAUDE.md.
-const stamp = (iso: string | null | undefined, now: Date) => (iso ? formatStamp(iso, now) : '—');
+// night, an exit that crossed midnight), so a column mixed both shapes. The
+// two are indistinguishable at a glance: a guard reading "03:30" cannot tell
+// whether it is today's row rendered short or an older row whose date they
+// skipped past. Stating the day on every row costs width and removes the
+// question. Same change made to the Entry & Exit table's In/Out columns in the
+// same pass; `now` is kept in the signature because callers inject a test
+// clock and the columns' contract should not shift under them.
+const stamp = (iso: string | null | undefined, _now: Date) => (iso ? formatDateTime(iso) : '—');
 
 const NAME: DashboardColumn = {
   key: 'name', header: 'Name',
@@ -191,6 +183,28 @@ const REASON: DashboardColumn = {
   value: (v) => v.rejection_reason?.trim() || 'No reason recorded',
 };
 
+// The visitor's own email, for the admin Pre-Registration register — the one
+// admin tab whose subject is a booking made on somebody's behalf, so "how do we
+// reach them directly" is a real question there in a way it is not on the
+// gate's boards. "Not recorded" rather than a dash: migration 085 made the
+// column optional (a walk-in registered at reception rarely has one on file),
+// and a dash would read as a value that went unwritten by mistake.
+const EMAIL: DashboardColumn = {
+  key: 'email', header: 'Email',
+  value: (v) => v.visitor?.email ?? 'Not recorded',
+};
+
+// Whether the visitor was told about their own pass (migration 085's
+// `invitation_sent_at`), as Yes/No rather than the timestamp itself — this sits
+// beside `SCHEDULED` on the Pre-Registration table, and a second stamped
+// column would be a second clock on a row that already carries one. The KPI
+// tile above the table is what counts the timestamp; this column only ever
+// answers the yes/no a reader is scanning for.
+const INVITED: DashboardColumn = {
+  key: 'invited', header: 'Invitation Sent',
+  value: (v) => (v.invitation_sent_at ? 'Yes' : 'No'),
+};
+
 // The cells, addressable by name. Exported for the HOD dashboard (2026-08-16),
 // which draws its panels with the same table and therefore must draw them with
 // the same cells: "Scheduled" has to mean the same thing, print the same way
@@ -213,91 +227,12 @@ export const COLUMN = {
   decidedBy: DECIDED_BY,
   approvedBy: APPROVED_BY,
   reason: REASON,
+  email: EMAIL,
+  invited: INVITED,
 } as const;
 
-export type DashboardPanelSpec = {
-  /** The panel's heading — it IS the tile's label, so the two cannot drift. */
-  heading: string;
-  empty: string;
-  columns: DashboardColumn[];
-};
-
-export const PANEL_SPEC: Record<GuardTileKey, DashboardPanelSpec> = {
-  // Nobody here has arrived, so a Checked In column would be an em dash on
-  // every row. The slot is the whole subject.
-  expected: {
-    heading: 'Expected Today',
-    empty: 'No visitors waiting at the gate right now.',
-    columns: [NAME, PURPOSE, HOST, DEPARTMENT, SCHEDULED, STATUS],
-  },
-  // Everyone through the gate today, still here or not. Both times, because the
-  // question this tile is opened with is "when was that visitor here?".
-  checked: {
-    heading: 'Checked In Today',
-    empty: 'Nobody has come through the gate yet today.',
-    columns: [NAME, APPROVED_BY, ID_PROOF, PURPOSE, HOST, ORIGIN, SCHEDULED, CHECKED_IN, CHECKED_OUT, STATUS],
-  },
-  // The list you hand a fire marshal. No exit column — by definition none of
-  // them has one.
-  inside: {
-    heading: 'In Premises',
-    empty: 'Nobody is inside right now.',
-    columns: [NAME, APPROVED_BY, ID_PROOF, PURPOSE, HOST, DEPARTMENT, ORIGIN, SCHEDULED, CHECKED_IN, STATUS],
-  },
-  // The overrun is why the row is here, so it sits last, where the eye lands.
-  // No slot column on this lane — the overrun is measured from ENTRY — so the
-  // origin sits against Checked In, this lane's time column, instead.
-  overstaying: {
-    heading: 'Overstaying',
-    empty: 'Nobody is overstaying.',
-    columns: [NAME, ID_PROOF, PURPOSE, HOST, ORIGIN, CHECKED_IN, OVERSTAY, STATUS],
-  },
-  all: {
-    heading: 'All Visitors',
-    empty: 'No visitor activity yet today.',
-    columns: [NAME, APPROVED_BY, ID_PROOF, PURPOSE, HOST, DEPARTMENT, ORIGIN, SCHEDULED, CHECKED_IN, CHECKED_OUT, STATUS],
-  },
-  // A walk-in with nobody's decision on it. It has no slot and no entry — only
-  // the moment it was raised, which is what the host is late against.
-  //
-  // The heading says WALK-IN (client instruction, 2026-08-16): `pending_approval`
-  // is only ever reached from the gate's walk-in register — a pre-approval is
-  // created already approved and never passes through that status — so "Pending
-  // Approval" left a guard wondering whether a booked visitor could be sitting in
-  // it too.
-  pending: {
-    heading: 'Pending Walk-in Approvals',
-    empty: 'Nothing waiting on a host.',
-    columns: [NAME, PURPOSE, HOST, DEPARTMENT, REQUESTED, STATUS],
-  },
-  // Every walk-in a host cleared — still at the gate, and already inside.
-  //
-  // It used to be "cleared, not yet let in", which shared pending's shape
-  // because neither lane could hold a row with an entry time. Migration 080
-  // ended that: the approver admits the visitor in the same click, so most rows
-  // here now DO have one. CHECKED_IN and APPROVED_BY are what that costs and
-  // what it buys — when they came through, and which host said yes, the fact the
-  // status badge used to carry before the row stopped resting in
-  // `walkin_approved` long enough for anyone to read it.
-  //
-  // Still no Type column: every row on this lane is a walk-in by definition, so
-  // it would print one word on every line.
-  walkinApproved: {
-    heading: 'Approved Walk-ins',
-    empty: 'No walk-ins have been approved.',
-    columns: [NAME, APPROVED_BY, PURPOSE, HOST, DEPARTMENT, REQUESTED, CHECKED_IN, STATUS],
-  },
-  // The two refusal lanes. Both carry the REASON, because a refusal without one
-  // is an assertion nobody can check, and `visits.rejection_reason` is the only
-  // place the decision's justification is written down.
-  declinedByHost: {
-    heading: 'Declined by Host',
-    empty: 'No requests were declined.',
-    columns: [NAME, PURPOSE, HOST, DEPARTMENT, ORIGIN, SCHEDULED, DECIDED_BY, REASON],
-  },
-  refusedByGuard: {
-    heading: 'Entry Refused at the Gate',
-    empty: 'Nobody was refused entry.',
-    columns: [NAME, PURPOSE, HOST, DEPARTMENT, ORIGIN, SCHEDULED, DECIDED_BY, REASON],
-  },
-};
+// PANEL_SPEC (which tile shows which of the columns above) moved to
+// `dashboardPanelSpec.ts` on 2026-08-17 to keep this file under the 300-line
+// hard rule — it holds no logic of its own, only a per-tile pick from COLUMN,
+// so nothing about the split changes what either file means. Import
+// `PANEL_SPEC` / `DashboardPanelSpec` from there.

@@ -15,9 +15,25 @@ type Props = {
 // The checkbox is the record of the exchange, like carrying_material: a ticked
 // box means "I have it", and there is no inference path.
 //
-// A visitor with no card on record (legacy rows, kiosk check-ins) has nothing
-// to collect, so no checkbox — but the dialog still names the visitor so the
-// guard confirms the right person is leaving.
+// THE TICK IS REQUIRED ON EVERY CHECK-OUT, WITH OR WITHOUT A CARD (client
+// instruction, 2026-08-17: "without this checkbox checked the guard cannot
+// check out that person, no matter whether it's a walk-in visitor or a
+// pre-approved visitor — do this for all kinds of checkout").
+//
+// It used to render no checkbox at all when `visitor_card_number` was null, and
+// Complete Check Out was enabled immediately. That was defensible when the null
+// meant a legacy row, and indefensible once migration 080's shortcut started
+// producing new walk-ins with no card: the ONE route where a card had most
+// likely been handed over off-book was the one route the gate waved through.
+// Migration 083 closes the source of those rows, but the ones already on record
+// still have to leave the building, and so does anyone checked in at the kiosk.
+//
+// So the no-card branch keeps a checkbox and changes only what it ASSERTS: not
+// "the card came back" — there is nothing to bring back — but "I have looked
+// and no card was issued for this visit". Both are a deliberate act by the
+// guard, which is the whole point; neither can be reached by clicking straight
+// past the dialog. The number the guard has to match against is printed in the
+// dialog either way, so the tick is always made against a stated fact.
 export default function CardReturnConfirm({ visit, onConfirm, onClose }: Props): React.ReactElement {
   const [collected, setCollected] = useState(false);
   const hasCard = Boolean(visit.visitor_card_number);
@@ -43,32 +59,34 @@ export default function CardReturnConfirm({ visit, onConfirm, onClose }: Props):
           )}
         </div>
 
-        {hasCard ? (
-          <label className="flex items-start gap-3 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={collected}
-              onChange={(e) => setCollected(e.target.checked)}
-              className="mt-0.5 h-4 w-4 shrink-0 rounded border-surface-300 text-brand-600 focus:ring-2 focus:ring-brand-500 cursor-pointer"
-            />
-            <span className="min-w-0">
-              <span className="block text-sm font-bold text-navy-800 dark:text-white">Card collected from visitor</span>
-              <span className="block text-[11px] text-navy-500 dark:text-navy-400 mt-0.5">
-                The check-out cannot complete until the card is back at the gate.
-              </span>
+        {/* One control, two things it can assert — never zero controls. The
+            label changes with `hasCard`; the requirement does not. */}
+        <label className="flex items-start gap-3 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={collected}
+            onChange={(e) => setCollected(e.target.checked)}
+            className="mt-0.5 h-4 w-4 shrink-0 rounded border-surface-300 text-brand-600 focus:ring-2 focus:ring-brand-500 cursor-pointer"
+          />
+          <span className="min-w-0">
+            <span className="block text-sm font-bold text-navy-800 dark:text-white">
+              {hasCard
+                ? `Card ${visit.visitor_card_number} collected from visitor`
+                : 'Confirmed — no visitor card was issued for this visit'}
             </span>
-          </label>
-        ) : (
-          <p className="text-[11px] text-navy-500 dark:text-navy-400">
-            No card was issued at check-in, so there is nothing to collect.
-          </p>
-        )}
+            <span className="block text-[11px] text-navy-500 dark:text-navy-400 mt-0.5">
+              {hasCard
+                ? 'Check the number on the card against the one above. The check-out cannot complete until the card is back at the gate.'
+                : 'Nothing was recorded at check-in. Tick only if the visitor is not holding a card.'}
+            </span>
+          </span>
+        </label>
 
         <div className="flex gap-3">
           <button onClick={onClose} className="flex-1 bg-surface-50 hover:bg-surface-100 text-navy-700 font-bold rounded-xl py-2.5 text-sm transition-all">Cancel</button>
           <button
             type="button"
-            disabled={hasCard && !collected}
+            disabled={!collected}
             onClick={onConfirm}
             className="flex-1 bg-brand-600 hover:bg-brand-700 text-white font-bold rounded-xl py-2.5 text-sm transition-all disabled:opacity-50"
           >

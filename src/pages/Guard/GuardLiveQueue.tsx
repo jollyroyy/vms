@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useGateActivity } from '../../lib/useGateActivity';
 import { istDateKey } from '../../lib/visitExpiry';
-import { formatStamp } from '../../lib/formatDate';
+import { formatDateTime } from '../../lib/formatDate';
 import type { ReportVisit } from '../../lib/reportRow';
 import { safeErrorMessage } from '../../lib/errors';
 import QRCode from 'qrcode';
@@ -58,15 +58,24 @@ import EntryExitTabs, { type EntryExitLane } from './EntryExitTabs';
 // query requires `checked_in_at`); the exit is an em dash until it happens,
 // never a blank — blank reads as "not recorded", and on this list it means
 // "still here", which is the difference the guard is looking for.
-// formatStamp pins IST and adds the DATE whenever the instant is not today.
-// This list carries visitors who arrived on an earlier day by design, so a
-// bare time was exactly the "is this today?" ambiguity to avoid.
+//
+// ALWAYS THE DATE AS WELL AS THE TIME (client instruction, 2026-08-17). These
+// were `formatStamp`, which prints a bare time when the instant falls on
+// today's IST day and pays for the date only on older rows. The saving is not
+// worth what it costs the reader: the two formats are indistinguishable at a
+// glance, so a guard scanning the In column cannot tell whether "09:15" is a
+// today row rendered short or an older row whose date they have skipped past —
+// and this list carries visitors from earlier days BY DESIGN (anyone still
+// inside is here regardless of when they arrived, and an exit that crossed
+// midnight is the row most often asked about). `formatDateTime` states the day
+// on every row, so no row has to be read against the format of its neighbours.
+// This is the same rule CLAUDE.md already applies to every expected time.
 function timeOf(v: ReportVisit): string {
-  return formatStamp(v.checked_in_at ?? v.scheduled_for ?? v.created_at);
+  return formatDateTime(v.checked_in_at ?? v.scheduled_for ?? v.created_at);
 }
 
 function exitTimeOf(v: ReportVisit): string {
-  return v.checked_out_at ? formatStamp(v.checked_out_at) : '—';
+  return v.checked_out_at ? formatDateTime(v.checked_out_at) : '—';
 }
 
 const initialsOf = (name: string | null | undefined) =>

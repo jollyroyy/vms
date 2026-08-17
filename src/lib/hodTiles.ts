@@ -30,7 +30,8 @@
 // own. The split is not a duplicate of the Type column below it — the column
 // tells you what a row IS, these tiles are the two lanes you can open.
 import type { Visit } from '../types/index';
-import { COLUMN, type DashboardPanelSpec } from './dashboardColumns';
+import { COLUMN } from './dashboardColumns';
+import type { DashboardPanelSpec } from './dashboardPanelSpec';
 import { ICON_CALENDAR, ICON_CLOCK, ICON_PEOPLE, ICON_WALKING, ICON_X_CIRCLE } from './tileIcons';
 import { isApprovedWalkIn, isGivenPreApproval } from './visitOrigin';
 

@@ -124,12 +124,17 @@ async function statusOf(id: string): Promise<string> {
 describe('082: an unanswered walk-in request lapses at day end', () => {
   it('an HOD sweep closes their own department\'s stale request and leaves today\'s alone', async () => {
     // Through mark_no_shows(), which runs the UPDATE under the HOD's own JWT —
-    // so this also proves the trigger accepts pending_approval -> lapsed. The
-    // count is not pinned: live rows of the HOD's own department can lapse in
-    // the same call, and pinning it would make a real request break the test.
-    const { data, error } = await hodIT.rpc('mark_no_shows');
+    // so this also proves the trigger accepts pending_approval -> lapsed.
+    //
+    // The RETURN COUNT IS NOT ASSERTED, and that is not laziness. The sweep is
+    // idempotent by design (077), so the row's END STATE is the fact this test
+    // is about; the count only says who got there first. noShowWorkflow.test.ts
+    // sweeps the SAME department under the SAME HOD, vitest runs the two files
+    // in parallel, and whichever call lands second correctly reports 0 rows —
+    // its work was already done. Asserting >= 1 made a passing system fail on
+    // scheduling order alone.
+    const { error } = await hodIT.rpc('mark_no_shows');
     expect(error).toBeNull();
-    expect(data).toBeGreaterThanOrEqual(1);
 
     expect(await statusOf(itOldId)).toBe('lapsed');
     // 077's rule: the day containing the VISIT's own moment must have ended, not

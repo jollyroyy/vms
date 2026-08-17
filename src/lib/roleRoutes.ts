@@ -36,7 +36,29 @@ export const ROLE_ROUTES: Record<UserRole, string[]> = {
   // fail rather than merely being unlinked.
   hod:         ['/overview', '/approvals', '/reports', '/profile', '/search'],
   staff:       ['/visitors', '/whos-inside', '/reports', '/profile', '/search'],
-  admin:       ['/analytics', '/reports', '/admin', '/profile', '/search'], // admin is restricted to analytics, reports and settings — no visitor data
+  // ADMIN SEES VISITOR RECORDS, READ-ONLY (client instruction, 2026-08-17).
+  // This reverses the standing rule that admin had no route to visitor data at
+  // all. The reasoning that rule carried — that an admin who can act on a visit
+  // is acting on somebody they cannot see — is preserved by the READ-ONLY half,
+  // not by the absence of the route: the admin's Live Check-In, Visitors Log,
+  // Pre-Registration and Security tabs display and export, and none of them
+  // renders a control that writes to `visits`. Check-in, check-out, approval
+  // and badge minting stay at the gate and on the HOD's desk.
+  //
+  // `/analytics` is GONE — deleted, not merely unlinked (client instruction,
+  // same date). Its charts moved onto the admin Dashboard and Reports, which
+  // is where the reference screens put them; leaving the old page routable
+  // would mean two screens answering "what happened this week" with separately
+  // written queries, the same defect the guard dashboard's tile-vs-drilldown
+  // mismatch was.
+  //
+  // Every `/admin/*` tab is covered by the `/admin` prefix (isForbidden matches
+  // on startsWith), so the entries below are listed for the reader, not for the
+  // matcher. `/admin/dashboard` is FIRST because the first entry of each list
+  // is that role's landing page.
+  admin:       ['/admin/dashboard', '/admin/live-check-in', '/admin/pre-registration',
+                '/admin/visitors-log', '/admin/hosts', '/admin/badges', '/admin/security',
+                '/admin/settings', '/admin', '/reports', '/profile', '/search'],
 };
 
 /** Returns true if the given pathname is forbidden for this role. */

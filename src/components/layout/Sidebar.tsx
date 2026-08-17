@@ -4,7 +4,6 @@ import type { Session } from '@supabase/supabase-js';
 import { supabase } from '../../supabaseClient';
 import type { UserRole } from '../../types/index';
 import { useTheme } from '../../lib/theme';
-import SidebarAnalytics from './SidebarAnalytics';
 import SidebarProfile from './SidebarProfile';
 import Logo from '../Logo';
 import { linksForRole } from './navLinks';
@@ -29,7 +28,6 @@ export default function Sidebar({ session, role, collapsed: collapsedProp, onCol
   const [mobileOpen, setMobileOpen] = useState(false);
   const [profileName, setProfileName] = useState<string>('');
   const [deptName, setDeptName] = useState<string>('');
-  const [profileDeptId, setProfileDeptId] = useState<string>('');
   const [collapsedInternal, setCollapsedInternal] = useState<boolean>(() => {
     try { return window.localStorage.getItem(COLLAPSE_KEY) === '1'; } catch { return false; }
   });
@@ -68,7 +66,6 @@ export default function Sidebar({ session, role, collapsed: collapsedProp, onCol
         const jwtDeptId = ((authData?.user as any)?.app_metadata?.department_id ?? '') as string;
         const localProfileDeptId = (profile as any)?.department_id ?? '';
         const deptId = jwtDeptId || localProfileDeptId;
-        setProfileDeptId(deptId);
         if (deptId) {
           const { data: dept } = await supabase.from('departments').select('name').eq('id', deptId).maybeSingle();
           setDeptName(dept?.name ?? '');
@@ -118,12 +115,16 @@ export default function Sidebar({ session, role, collapsed: collapsedProp, onCol
         })}
       </div>
 
-      {/* Live analytics widget — admin only */}
-      {profileDeptId && role === 'admin' && (
-        <div className="shrink-0 pb-3">
-          <SidebarAnalytics deptId={profileDeptId} isCollapsed={isCollapsed} />
-        </div>
-      )}
+      {/* The live analytics widget that sat here is DELETED (2026-08-17,
+          client instruction to remove the analytics part of the admin view).
+          It was three counts scoped to the profile's department — which an
+          admin does
+          not have, so it almost never rendered — and where it did, it answered
+          "who is inside, pending, approved" with its own query while the new
+          admin Dashboard answers the same question from `lib/adminDashboard.ts`.
+          Two sources for one number on one screen is the defect that rule
+          exists to prevent. Its window was also a UTC day, so between 00:00 and
+          05:30 IST it counted yesterday. */}
 
       {/* Bottom: theme toggle + profile */}
       <div className="shrink-0 px-3 pb-5 space-y-2">

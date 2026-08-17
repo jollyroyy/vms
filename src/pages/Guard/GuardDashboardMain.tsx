@@ -5,7 +5,7 @@ import {
 } from '../../lib/guardTiles';
 import { useTodayVisits } from '../../lib/useTodayVisits';
 import { istDateKey } from '../../lib/visitExpiry';
-import { PANEL_SPEC } from '../../lib/dashboardColumns';
+import { PANEL_SPEC } from '../../lib/dashboardPanelSpec';
 import type { ReportVisit } from '../../lib/reportRow';
 import DashboardVisitorTable from '../../components/DashboardVisitorTable';
 import DashboardPanel from '../../components/DashboardPanel';
@@ -15,7 +15,8 @@ import VisitorDetails from '../../components/VisitorDetails';
 
 // Guard Dashboard — the whole board, on one screen.
 //
-//   row 1  — the gate's four tiles: Expected Today / Checked In / In Premises /
+//   row 1  — the gate's five tiles, in the order a visit passes through it:
+//            Expected Today / Checked In / In Premises / Checked Out Today /
 //            Overstaying
 //   row 2  — the five lanes moved off the Visitors tab (2026-08-15, client
 //            instruction): All Visitors / Pending Approval / Approved Walk-ins /
@@ -93,8 +94,10 @@ export default function GuardDashboardMain(): React.ReactElement {
 
   return (
     <div className="space-y-4 animate-fade-in pb-4">
-      {/* Row 1 — the gate's own board. */}
-      <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
+      {/* Row 1 — the gate's own board. Five across at xl since Checked Out
+          joined it (2026-08-17), matching row 2's five so the two rows share a
+          column rhythm instead of a four-and-five stagger. */}
+      <div className="grid grid-cols-2 xl:grid-cols-5 gap-4">
         {GUARD_TILE_KEYS.map((k) => renderTile(k, false))}
       </div>
 

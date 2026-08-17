@@ -24,10 +24,8 @@ import RegisterWalkIn     from './pages/Guard/RegisterWalkIn';
 import GuardSearch        from './pages/Guard/Search';
 import WhosInside         from './pages/Shared/WhosInside';
 import ReportsPage        from './pages/Shared/Reports';
-import AnalyticsPage      from './pages/Shared/Analytics';
 import ProfilePage        from './pages/Shared/Profile';
-import AdminPanel         from './pages/Admin/AdminPanel';
-import ActivityPage       from './pages/Admin/Activity';
+import { adminRoutes } from './routes/adminRoutes';
 import NotFoundPage       from './pages/NotFound';
 import KioskPage          from './pages/Kiosk/Kiosk';
 import AppShell           from './components/layout/AppShell';
@@ -276,9 +274,12 @@ export default function App(): React.ReactElement {
             <Route path="/overview"        element={<ProtectedRoute role={role}><HODConsole /></ProtectedRoute>} />
             <Route path="/whos-inside"     element={<ProtectedRoute role={role}><WhosInside /></ProtectedRoute>} />
             <Route path="/reports"         element={<ProtectedRoute role={role}><ReportsPage /></ProtectedRoute>} />
-            <Route path="/analytics"      element={<ProtectedRoute role={role}><AnalyticsPage /></ProtectedRoute>} />
-            <Route path="/admin"           element={<ProtectedRoute role={role}><AdminPanel /></ProtectedRoute>} />
-            <Route path="/admin/activity"  element={<ProtectedRoute role={role}><ActivityPage /></ProtectedRoute>} />
+            {/* The admin console's nine tabs, plus the /admin redirect, live in
+                routes/adminRoutes.tsx — inlining them put this file over the
+                300-line cap. They are spread into THIS `<Routes>` rather than
+                nested in one of their own, so the `path="*"` fallback below
+                still sees them. */}
+            {adminRoutes((el) => <ProtectedRoute role={role}>{el}</ProtectedRoute>)}
             <Route path="/profile"         element={<ProtectedRoute role={role}><ProfilePage session={session} role={role} /></ProtectedRoute>} />
             <Route path="*"                element={<NotFoundPage />} />
           </Routes>

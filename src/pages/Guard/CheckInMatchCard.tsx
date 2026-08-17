@@ -1,7 +1,7 @@
 ﻿import React from 'react';
 import { getInitials } from '../../components/DailyVisitorTypes';
 import { formatDateTime } from '../../lib/formatDate';
-import { CRISP_CARD_INTERACTIVE } from '../../lib/cardStyles';
+import { CRISP_CARD, CRISP_CARD_INTERACTIVE } from '../../lib/cardStyles';
 import type { MatchItem } from './checkInTypes';
 import type { VisitStatus } from '../../types/index';
 
@@ -55,8 +55,23 @@ export default function CheckInMatchCard({ match: m, disabled, isCheckedIn, expi
   const statusMeta = !isCheckedIn && !expired && m.dueToday && m.status ? STATUS_META[m.status] : undefined;
 
   return (
+    // A ROW THAT CANNOT BE ACTED ON IS STILL FULLY LEGIBLE (client instruction,
+    // 2026-08-17: searching by mobile number "should not be grayed out, it
+    // should be properly showing all the details").
+    //
+    // It used to carry `opacity-50 pointer-events-none`, and the dimming was
+    // the wrong tool for the job it was doing. What is unavailable here is the
+    // CHECK-IN, not the record — this search deliberately spans every status
+    // precisely so a guard can find out what became of a pass, and half-fading
+    // the answer makes the times, the phone number and the host harder to read
+    // exactly when they are the only thing the row has to offer. The row is
+    // non-actionable by construction already: the Check In button does not
+    // render and `onSelect` is gated below. So the disabled state now drops the
+    // click AFFORDANCE (no pointer cursor, no hover lift) and keeps full
+    // contrast. `pointer-events-none` went with the opacity — it also blocked
+    // selecting the phone number to copy it, on the one card built to show it.
     <div
-      className={`${CRISP_CARD_INTERACTIVE} p-4 flex items-start gap-3.5 ${disabled ? 'opacity-50 pointer-events-none' : ''}`}
+      className={`${disabled ? CRISP_CARD : CRISP_CARD_INTERACTIVE} p-4 flex items-start gap-3.5`}
       onClick={() => { if (!disabled) onSelect(); }}
     >
       <div className="h-11 w-11 rounded-2xl avatar-gradient flex items-center justify-center text-sm font-bold shrink-0">
@@ -114,15 +129,62 @@ export default function CheckInMatchCard({ match: m, disabled, isCheckedIn, expi
               <span className="truncate">{m.vendorName}</span>
             </span>
           )}
+          {/* The mobile number (client instruction, 2026-08-17). Half of what
+              a guard types into this box IS a phone number, and the row it
+              found could not show it back — so a search that matched the wrong
+              Sharma gave the guard no way to tell. It has been on `MatchItem`
+              since the type was written; only the rendering was missing. */}
+          {m.visitorPhone && (
+            <span className="flex items-center gap-1.5">
+              <svg className="w-3.5 h-3.5 shrink-0 text-navy-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z" />
+              </svg>
+              <span className="truncate tabular-nums">{m.visitorPhone}</span>
+            </span>
+          )}
+          {/* THE THREE INSTANTS, EACH ON ITS OWN LINE AND EACH NAMED (client
+              instruction, 2026-08-17: a checked-out visitor must show "checked
+              out at", "pre-approved at" and "checked in at" with the date and
+              the time — "don't vaguely mention it").
+              Checked Out used to be an 11px sub-line hanging off Checked In,
+              which made the one fact a guard is asking about — has this person
+              already left? — the smallest text on the card. Every value is
+              `formatDateTime`, so each carries its own date and none of them
+              has to be read against the row above it.
+              Absent rather than dashed: an em dash beside "Checked out" on a
+              visitor who is still inside restates the status badge in a weaker
+              form, and each of these is only ever a fact once it exists. */}
           {m.approvedAt && (
             <span className="flex items-center gap-1.5">
               <svg className="w-3.5 h-3.5 shrink-0 text-navy-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6l4 2m5-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
-              {/* "Approved on", not the type of visitor again: the badge above
-                  already says which desk this pass came through, and this line
-                  is about WHEN somebody cleared it. */}
-              <span className="truncate">Approved on <span className="font-semibold text-navy-700">{formatDateTime(m.approvedAt)}</span></span>
+              {/* "Approved at", not "Pre-approved at" — the badge beside the
+                  name already prints the desk, and the same word twice on one
+                  card is the duplicate-render rule. This row is about WHEN. */}
+              <span className="truncate">
+                Approved at <span className="font-semibold text-navy-700">{formatDateTime(m.approvedAt)}</span>
+              </span>
+            </span>
+          )}
+          {m.checkedInAt && (
+            <span className="flex items-center gap-1.5">
+              <svg className="w-3.5 h-3.5 shrink-0 text-navy-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l3 3m0 0l-3 3m3-3H2.25" />
+              </svg>
+              <span className="truncate">
+                Checked in at <span className="font-semibold text-navy-700">{formatDateTime(m.checkedInAt)}</span>
+              </span>
+            </span>
+          )}
+          {m.checkedOutAt && (
+            <span className="flex items-center gap-1.5">
+              <svg className="w-3.5 h-3.5 shrink-0 text-navy-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" />
+              </svg>
+              <span className="truncate">
+                Checked out at <span className="font-semibold text-navy-700">{formatDateTime(m.checkedOutAt)}</span>
+              </span>
             </span>
           )}
         </div>

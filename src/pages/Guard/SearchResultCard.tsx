@@ -8,6 +8,7 @@ import React from 'react';
 import type { Visit } from '../../types/index';
 import { formatDateTime } from '../../lib/formatDate';
 import { STATUS_STYLES } from '../../lib/statusStyles';
+import { visitOrigin, visitOriginLabel } from '../../lib/visitOrigin';
 import CardField from '../../components/CardField';
 import { CRISP_CARD_INTERACTIVE } from '../../lib/cardStyles';
 
@@ -61,7 +62,35 @@ export default function SearchResultCard({ visit: v, onClick }: { visit: Visit; 
         <CardField label="Purpose" value={PURPOSE_LABELS[v.purpose] ?? v.purpose} />
         <CardField label="Phone" value={v.visitor?.phone} />
         <CardField label="Ref" value={v.ref_number} className="font-mono" />
-        <CardField label="Date & Time" value={formatDateTime(v.scheduled_for ?? v.created_at)} />
+        {/* WHICH DESK they came through (client instruction, 2026-08-17). Same
+            `lib/visitOrigin.ts` the popup and every list use, so this card and
+            the record it opens cannot disagree. Unconditional, unlike
+            VisitorGridCard's chip: the status pill above prints
+            STATUS_STYLES.approved as "Pre-approved" only for that one status,
+            and on the eight others there is nothing saying which desk this is.
+            Read the INFERRED caveat in visitOrigin.ts before trusting it on a
+            pre-2026-08 row. */}
+        <CardField label="Type of Visitor" value={visitOriginLabel(visitOrigin(v))} />
+        {/* Split apart. It was one "Date & Time" row falling back from
+            `scheduled_for` to `created_at`, so the same label meant "the slot
+            they were booked for" on a pre-approval and "when the request was
+            raised" on a walk-in — two different facts under one heading, on the
+            card whose whole job is telling one visitor from another. Each is
+            now named, and each is absent rather than guessed at. */}
+        {/* "NA", not a dash — the same wording `COLUMN.scheduled` uses on both
+            dashboards (client instruction, 2026-08-16). A dash reads as a slot
+            somebody forgot to record; the honest answer for a walk-in is that
+            it never had one. Beside Type of Visitor the pair reads
+            "Walk-in / NA". */}
+        <CardField label="Scheduled" value={v.scheduled_for ? formatDateTime(v.scheduled_for) : null} empty="NA" />
+        <CardField label="Registered" value={formatDateTime(v.created_at)} />
+        {/* Conditional, not dashed. Before a visitor arrives their absence from
+            the building is already stated by the status pill at the top of this
+            card, and an "Checked In —" row under it would be that same fact a
+            second time, in the weaker form. Once there is a time, it is a fact
+            only this row carries. */}
+        {v.checked_in_at && <CardField label="Checked In" value={formatDateTime(v.checked_in_at)} />}
+        {v.checked_out_at && <CardField label="Checked Out" value={formatDateTime(v.checked_out_at)} />}
       </div>
     </div>
   );

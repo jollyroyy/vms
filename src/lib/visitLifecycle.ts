@@ -22,17 +22,24 @@ export type Visit = {
 };
 
 const TRANSITIONS: Record<VisitStatus, VisitStatus[]> = {
-  // `checked_in` direct from `pending_approval` is migration 080's shortcut: the
-  // approver admits the walk-in in the same act as the decision, because since
-  // 2026-08-16 the registration form already carries the ID scan, the photo and
-  // the card number that the old gate step existed to collect. Mirrors
-  // `enforce_visit_update_rules` — this map and that trigger must not disagree
-  // about what the database will accept.
+  // `checked_in` is NOT reachable from here (migration 083, 2026-08-17). It was
+  // for one day: 080 let the approver admit the walk-in in the same act as the
+  // decision, on the grounds that the registration form already carried the ID
+  // scan and the photo the old gate step collected. It did not carry the
+  // VISITOR CARD NUMBER, so every visitor admitted that way reached check-out
+  // with nothing for the card-return gate to demand back. 083 puts the
+  // admission back at the gate, where the card is physically handed over: the
+  // host clears the request to `walkin_approved`, and the guard's own check-in
+  // — which will not submit without a card number — is what makes it
+  // `checked_in`.
+  //
+  // Mirrors `enforce_visit_update_rules` — this map and that trigger must not
+  // disagree about what the database will accept.
   // `lapsed` is migration 082's day-end sweep: a request the host never
   // answered, closed when the day it was needed for ended. Reachable from here
   // and nowhere else — an approval that lapses is `expired`, which is a
   // different fact and a different status.
-  pending_approval: ['approved', 'walkin_approved', 'checked_in', 'rejected', 'lapsed'],
+  pending_approval: ['approved', 'walkin_approved', 'rejected', 'lapsed'],
   approved:         ['checked_in', 'cancelled', 'no_show'],
   walkin_approved:  ['checked_in'],
   checked_in:       ['checked_out'],

@@ -38,7 +38,12 @@ const icon = (d: string): React.ReactNode => (
 const ICON_GRID = 'M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z';
 const ICON_USERS = 'M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z';
 const ICON_CHECK = 'M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z';
-const ICON_SPARKLE = 'M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.455 2.456L21.75 6l-1.036.259a3.375 3.375 0 00-2.455 2.456z';
+// ICON_SPARKLE went with the Analytics item (2026-08-17). Do not re-add a
+// glyph for a destination that no longer exists.
+const ICON_CLIPBOARD = 'M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25z';
+const ICON_DOC = 'M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z';
+const ICON_PRINTER = 'M6.72 13.829c-.24.03-.48.062-.72.096m.72-.096a42.415 42.415 0 0110.56 0m-10.56 0L6.34 18m10.94-4.171c.24.03.48.062.72.096m-.72-.096L17.66 18m0 0l.229 2.523a1.125 1.125 0 01-1.12 1.227H7.231c-.662 0-1.18-.568-1.12-1.227L6.34 18m11.318 0h1.091A2.25 2.25 0 0021 15.75V9.456c0-1.081-.768-2.015-1.837-2.175a48.055 48.055 0 00-1.913-.247M6.34 18H5.25A2.25 2.25 0 013 15.75V9.456c0-1.081.768-2.015 1.837-2.175a48.041 48.041 0 011.913-.247m10.5 0a48.536 48.536 0 00-10.5 0m10.5 0V3.375c0-.621-.504-1.125-1.125-1.125h-8.25c-.621 0-1.125.504-1.125 1.125v3.659M18 10.5h.008v.008H18V10.5zm-3 0h.008v.008H15V10.5z';
+const ICON_SHIELD = 'M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751A11.959 11.959 0 0112 2.714z';
 const ICON_REPORT = 'M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z';
 const ICON_SCAN = 'M3.75 4.5h4.5v4.5h-4.5v-4.5zM15.75 4.5h4.5v4.5h-4.5v-4.5zM3.75 15.75h4.5v4.5h-4.5v-4.5zM15.75 15.75h1.5v1.5h-1.5v-1.5zM19.5 15.75h.75v.75h-.75v-.75zM15.75 19.5h.75v.75h-.75v-.75zM18.75 18.75h1.5v1.5h-1.5v-1.5z';
 const ICON_PLUS = 'M12 4.5v15m7.5-7.5h-15';
@@ -127,15 +132,37 @@ export const ALL_LINKS: NavLink[] = [
   // "Pre-Approvals", not "Approvals": the pending walk-in decisions moved to the
   // Overview, so this route is now only the form for booking a visitor ahead.
   { to: '/whos-inside', label: 'On-site', roles: ['staff'], icon: icon(ICON_USERS) },
-  // Analytics is ADMIN ONLY (client instruction, 2026-08-15). An HOD's screen
-  // is a decision desk scoped to one department — the numbers they act on are
-  // already on the Overview, and org-wide charts are the admin's surface, whose
-  // nav is Reports, Analytics and Settings precisely because it holds no
-  // visitor records. `/analytics` is out of ROLE_ROUTES.hod as well, so the URL
-  // is refused and not merely unlinked.
-  { to: '/analytics', label: 'Analytics', roles: ['admin'], icon: icon(ICON_SPARKLE) },
-  { to: '/reports', label: 'Reports', roles: ['hod', 'staff', 'admin'], icon: icon(ICON_REPORT) },
-  { to: '/admin', label: 'Settings', roles: ['admin'], icon: icon(ICON_COG) },
+  { to: '/reports', label: 'Reports', roles: ['hod', 'staff'], icon: icon(ICON_REPORT) },
+
+  // ── Admin: the nine-tab console (client instruction, 2026-08-17) ──────────
+  // THERE IS NO ANALYTICS ITEM. The page was deleted outright, not unlinked:
+  // its charts now live on the Dashboard and on Reports below, which is where
+  // the reference screens put them, and two screens answering "what happened
+  // this week" from separately written queries is the tile-vs-drilldown defect
+  // this project has already fixed once.
+  //
+  // The four visitor-record tabs — Live Check-In, Pre-Registration, Visitors
+  // Log, Blacklist & Security — reverse the standing "admin has no route to
+  // visitor records" rule on client instruction. They are READ-ONLY by
+  // construction (see ROLE_ROUTES.admin): the admin reads and exports, and
+  // every control that changes a visit's state stays at the gate. Badge
+  // Printing is a LOG of what the gate printed, never a print queue — an admin
+  // who could mint an entry credential would be issuing one to somebody they
+  // cannot see, which is the rule at the top of pages/Guard/Console.tsx and it
+  // did not move.
+  { to: '/admin/dashboard', label: 'Dashboard', roles: ['admin'], icon: icon(ICON_GRID) },
+  { to: '/admin/live-check-in', label: 'Live Check-In', roles: ['admin'], icon: icon(ICON_CHECK) },
+  { to: '/admin/pre-registration', label: 'Pre-Registration', roles: ['admin'], icon: icon(ICON_CLIPBOARD) },
+  { to: '/admin/visitors-log', label: 'Visitors Log', roles: ['admin'], icon: icon(ICON_DOC) },
+  { to: '/admin/hosts', label: 'Hosts', roles: ['admin'], icon: icon(ICON_USERS) },
+  { to: '/admin/badges', label: 'Badge Printing', roles: ['admin'], icon: icon(ICON_PRINTER) },
+  { to: '/admin/security', label: 'Blacklist & Security', roles: ['admin'], icon: icon(ICON_SHIELD) },
+  { to: '/reports', label: 'Reports', roles: ['admin'], icon: icon(ICON_REPORT) },
+  // Settings absorbed the old Admin Panel: departments, heads of department,
+  // password reset and the activity log are its Roles & Users section, kept as
+  // they were rather than rebuilt (client instruction, 2026-08-17). `/admin`
+  // still resolves there, since it is the bookmark every admin already holds.
+  { to: '/admin/settings', label: 'Settings', roles: ['admin'], icon: icon(ICON_COG) },
 ];
 
 /** Nav links visible to a role, in declaration order. */

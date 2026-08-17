@@ -1,6 +1,6 @@
 import type { ReportVisit } from './reportRow';
 import type { VisitStatus } from '../types/index';
-import { isOverstaying } from './visitExpiry';
+import { isOverstaying, istDayStart } from './visitExpiry';
 import { isApprovedWalkIn } from './visitOrigin';
 
 // The guard dashboard's four KPI tiles, as PREDICATES over the day's visits.
@@ -31,12 +31,22 @@ import { isApprovedWalkIn } from './visitOrigin';
 // opens the walk-in registration form, and a form does not belong in a board of
 // numbers. It is its own left-hand nav item now (/guard/walk-in).
 export type GuardTileKey =
-  | 'expected' | 'checked' | 'inside' | 'overstaying'
+  | 'expected' | 'checked' | 'inside' | 'checkedOut' | 'overstaying'
   | 'all' | 'pending' | 'walkinApproved'
   | 'declinedByHost' | 'refusedByGuard';
 
-/** Row 1 — the gate's own board. */
-export const GUARD_TILE_KEYS: GuardTileKey[] = ['expected', 'checked', 'inside', 'overstaying'];
+/** Row 1 — the gate's own board, in the order a visit passes through it:
+ *  expected → checked in → inside → checked out, with the exception lane last.
+ *
+ *  `checkedOut` joined on 2026-08-17 (client instruction). The board could say
+ *  how many came through and how many are still here, and left the third number
+ *  — how many have left — to be worked out as the difference. That is the one
+ *  arithmetic the invariant below makes safe, which is precisely why it should
+ *  be printed rather than performed: reading `checked` and `inside` and
+ *  subtracting is a step a guard does in their head at a gate, and the Entry &
+ *  Exit tab's Checked Out lane already states the number one click away. Two
+ *  surfaces, one answer. */
+export const GUARD_TILE_KEYS: GuardTileKey[] = ['expected', 'checked', 'inside', 'checkedOut', 'overstaying'];
 
 /** Row 2 — the lanes that used to live on the Visitors tab, plus the two
  *  refusal lanes (client instruction, 2026-08-15). */
@@ -71,12 +81,17 @@ const isGuardRefusal = (v: ReportVisit) => v.actor?.role === 'guard';
 // gate with no decision made — they are not expected, they are *unanswered*, and
 // counting them as expected told the guard someone had been cleared who had not.
 //
-// `walkin_approved` was here until 2026-08-16 and is not any more, because the
-// host's yes IS the admission since migration 080 (see `checked` below). A row
-// cannot be "cleared but not yet through the gate" and "came through the gate"
-// on one board — the two tiles would contradict each other about one visitor.
+// `walkin_approved` is BACK (migration 083, 2026-08-17). It was dropped on
+// 2026-08-16 because 080 made the host's yes the admission, so a cleared
+// walk-in was already inside and could not also be expected. 083 puts the
+// admission back at the gate: a cleared walk-in is now exactly what this tile
+// means — someone approved who has not come through yet — and it is the same
+// fact for both desks, a pre-registration and an on-the-spot clearance alike.
+// The no-contradiction rule that removed it still holds and is what keeps
+// `checked` below keyed on the timestamp alone.
 const IS_EXPECTED: Partial<Record<VisitStatus, true>> = {
   approved: true,
+  walkin_approved: true,
 };
 
 export const TILE_FILTER: Record<GuardTileKey, (v: ReportVisit, now?: Date) => boolean> = {
@@ -92,20 +107,51 @@ export const TILE_FILTER: Record<GuardTileKey, (v: ReportVisit, now?: Date) => b
   // `checked_out` — counting `status === 'checked_in'` would answer "who is
   // still here", never "how many came through".
   //
-  // `walkin_approved` counts too (client instruction, 2026-08-16). Since
-  // migration 080 the approver's click IS the admission, so a walk-in the host
-  // cleared has been let in whether or not a `checked_in_at` was ever stamped —
-  // and rows approved before 080's function went live rest in that status
-  // permanently with a null timestamp (VIS-20260816-0004 is one). Keyed on
-  // `checked_in_at` alone the tile silently omitted exactly those visitors, who
-  // are inside the building.
+  // Keyed on the TIMESTAMP alone, and that is the whole rule: a visitor came
+  // through the gate if and only if somebody stamped them through it.
   //
-  // The invariant this preserves: checked === inside + departed + host-cleared
-  // walk-ins the desk has not stamped.
-  checked: (v) => v.checked_in_at !== null || v.status === 'walkin_approved',
+  // It briefly also counted `status === 'walkin_approved'` (2026-08-16), which
+  // was the right compensation for the wrong thing — under migration 080 an
+  // approver's click admitted the visitor without ever stamping
+  // `checked_in_at`, so those genuinely-inside people were invisible here.
+  // Migration 083 removed that route: every arrival is once again a guard's own
+  // write, which stamps the timestamp, so the compensation now does the
+  // opposite of its purpose and counts people still waiting outside as having
+  // come through. The rows it was added for are the ones 083 explicitly does
+  // not rewrite — they are `checked_in` with a real stamp and are caught here
+  // on the timestamp like everyone else.
+  //
+  // The invariant: checked === inside + departed. Nothing else.
+  checked: (v) => v.checked_in_at !== null,
 
   // Live: still on the premises. This is the list you hand a fire marshal.
   inside: (v) => v.status === 'checked_in',
+
+  // Everyone who has LEFT since the IST day began.
+  //
+  // Keyed on `checked_out_at` against the day boundary, NOT on
+  // `status === 'checked_out'`, and the two are not the same set. A visitor who
+  // arrived at 21:00 yesterday and left at 09:00 today is `checked_out` and is
+  // today's departure; one who arrived and left yesterday is `checked_out` and
+  // is not. The status alone cannot tell them apart, so it would count whatever
+  // stale rows the query window happened to drag in — which is how a tile stops
+  // being a number anyone can check. This is the SAME rule the Entry & Exit
+  // tab's Checked Out lane uses (`lib/useGateActivity.ts`), so the tile and
+  // that lane cannot report different figures for one day's exits.
+  //
+  // `istDayStart` and never a UTC midnight: the IST day opens at 18:30 UTC the
+  // previous evening, and a UTC boundary here drops every exit made between
+  // 00:00 and 05:30 IST.
+  //
+  // Compared as INSTANTS, not as strings. PostgREST renders a timestamptz as
+  // `…+00:00` while `toISOString()` ends in `Z`, and `'+' < 'Z'`, so a lexical
+  // `>=` between the two is wrong for reasons that have nothing to do with the
+  // time either of them names.
+  checkedOut: (v, now) => {
+    if (!v.checked_out_at) return false;
+    const left = new Date(v.checked_out_at).getTime();
+    return !Number.isNaN(left) && left >= istDayStart(now ?? new Date()).getTime();
+  },
 
   // Inside well past any plausible visit — almost always a check-out the gate
   // forgot. Worth attention BEFORE the nightly sweep closes it, because a guard
@@ -150,6 +196,7 @@ export function tileVisits(visits: ReportVisit[], now: Date = new Date()): Recor
     expected: visits.filter((v) => TILE_FILTER.expected(v, now)),
     checked: visits.filter((v) => TILE_FILTER.checked(v, now)),
     inside: visits.filter((v) => TILE_FILTER.inside(v, now)),
+    checkedOut: visits.filter((v) => TILE_FILTER.checkedOut(v, now)),
     overstaying: visits.filter((v) => TILE_FILTER.overstaying(v, now)),
     all: visits.filter((v) => TILE_FILTER.all(v, now)),
     pending: visits.filter((v) => TILE_FILTER.pending(v, now)),

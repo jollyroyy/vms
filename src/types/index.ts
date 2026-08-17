@@ -1,6 +1,8 @@
 // Shared TypeScript types — mirrors the Supabase schema (supabase/migrations/001_schema.sql).
 // Keep in sync whenever the schema changes.
 
+import type { EntryPoint } from './adminTables';
+
 export type UserRole = 'guard' | 'hod' | 'staff' | 'admin';
 
 export type Department = {
@@ -34,6 +36,11 @@ export type Visitor = {
   id: string;
   phone: string; // normalized (see src/lib/blacklist.ts)
   full_name: string;
+  // Optional and staying optional (migration 085). `phone` is the identity
+  // column — migration 060's one-open-visit rule is built on it — and a
+  // walk-in standing at reception gives a name and a number. Null means we
+  // never asked, which is the truth; it is never a delivery failure.
+  email?: string | null;
   vendor_name: string | null;
   id_type: string | null;
   id_last4: string | null;
@@ -89,6 +96,17 @@ export type Visit = {
   visitor_card_number?: string | null;
   visitor_card_returned_at?: string | null;
   grace_period_minutes?: number;
+  // WHICH DOOR the visitor came through (migration 084). Distinct from
+  // lib/visitOrigin.ts, which answers which ROUTE they took — pre-approved vs
+  // walk-in. Null on every visit recorded before the column existed, and the
+  // utilization panel counts what it knows rather than inventing a location.
+  entry_point_id?: string | null;
+  // When the visitor was told about their own pass (migration 085). A
+  // timestamp, not a flag: "yes" and "when" are one column that way.
+  invitation_sent_at?: string | null;
+  // How long the check-in flow took, in seconds, measured by the client that
+  // ran it (migration 088). Null = unmeasured, never zero.
+  checkin_duration_seconds?: number | null;
   qr_token: string;
   qr_expires_at: string | null;
   created_at: string;
@@ -96,8 +114,14 @@ export type Visit = {
   visitor?: Visitor;
   department?: Department;
   host?: Pick<Profile, 'id' | 'full_name'>;
+  entry_point?: EntryPoint;
   photo_url?: string;
 };
+
+// The admin console's own tables live in their own file (the 300-line cap has
+// no exemption for types) and are re-exported here, so `from '../types/index'`
+// remains the one import path for a DB type.
+export type { EntryPoint, VisitFeedback, BadgeType, BadgePrint, AppSetting } from './adminTables';
 
 export type GatePassType   = 'RGP' | 'NRGP';
 export type GatePassDir    = 'IN' | 'OUT';

@@ -52,7 +52,12 @@ export default function LiveQueueTable({
   onCheckOut,
 }: LiveQueueTableProps): React.ReactElement {
   return (
-    <div className="rounded-xl border border-surface-200/60 dark:border-white/[0.08] overflow-hidden">
+    // `overflow-x-auto`, not `overflow-hidden`. The In and Out cells carry the
+    // full date as well as the time since 2026-08-17 (client instruction), so
+    // nine columns can outgrow a narrow window — and a clipped exit time is
+    // indistinguishable from one that was never recorded, which is the exact
+    // distinction this table exists to draw. Scroll it; never cut it off.
+    <div className="rounded-xl border border-surface-200/60 dark:border-white/[0.08] overflow-x-auto">
       <table className="w-full text-sm">
         <thead>
           <tr className="text-left text-[11px] uppercase tracking-wider text-navy-500 dark:text-navy-400 bg-surface-100/50 dark:bg-white/[0.03]">
@@ -118,9 +123,11 @@ export default function LiveQueueTable({
                   <td className="px-4 py-3 text-[#6fa8dc] dark:text-[#7fb3e3] font-medium">{v.purpose}</td>
                   {/* Host — brightest value so the guard instantly finds who the visitor is meeting */}
                   <td className="px-4 py-3 text-navy-900 dark:text-white font-semibold">{v.host?.full_name ?? v.department?.name ?? '—'}</td>
-                  {/* Times — light silver with tabular numerals so the numbers never compete */}
-                  <td className="px-4 py-3 tabular-nums text-[#9aa3af] dark:text-[#b7c0cb] font-semibold">{timeOf(v)}</td>
-                  <td className="px-4 py-3 tabular-nums text-[#9aa3af] dark:text-[#b7c0cb] font-semibold">{exitTimeOf(v)}</td>
+                  {/* Times — light silver with tabular numerals so the numbers
+                      never compete. Date AND time on every row, `nowrap` so
+                      "14 Aug 2026, 10:30 am" cannot break after "14 Aug". */}
+                  <td className="px-4 py-3 tabular-nums whitespace-nowrap text-[#9aa3af] dark:text-[#b7c0cb] font-semibold">{timeOf(v)}</td>
+                  <td className="px-4 py-3 tabular-nums whitespace-nowrap text-[#9aa3af] dark:text-[#b7c0cb] font-semibold">{exitTimeOf(v)}</td>
                   <td className="px-4 py-3">
                     <GateChips visit={v} />
                   </td>

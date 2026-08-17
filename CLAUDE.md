@@ -15,12 +15,65 @@
 - **Auth**: JWT `app_metadata.role` + `department_id`. Fallback to `profiles` table.
 
 ### Admin scope
-- Admin navigation is **Reports, Analytics and Settings only**. Admins have **no route to
-  visitor records** — `/visitors`, `/whos-inside` and `/kiosk` are all forbidden for the
-  role. Do not re-add them to `ROLE_ROUTES.admin` or to the `/visitors` entry in
-  `ALL_LINKS`.
-- The Admin Panel (`/admin`) manages **departments and their heads of department** only.
-  It has no Users tab and no Blacklist tab.
+- **The admin console is NINE TABS and it READS visitor records** (client instruction,
+  2026-08-17, from a set of reference screens). In order: Dashboard, Live Check-In,
+  Pre-Registration, Visitors Log, Hosts, Badge Printing, Blacklist & Security, Reports,
+  Settings. The order is the reference screens' order — a reader learns the rail by
+  position — so a reshuffle is a behaviour change, not a tidy-up.
+  - **This REVERSES the standing "admin has no route to visitor records" rule.** That
+    rule's reasoning is preserved by the tabs being **READ-ONLY**, not by the routes
+    being absent: no admin screen renders a control that writes to `visits` — no
+    check-in, no check-out, no approve, no reject, no deny-entry, no badge minting, no
+    undo. `lib/useAdminVisits.ts` exports no mutation at all, which is what makes that
+    structural rather than a matter of which buttons a page happened to render. Every
+    admin page test asserts the absence of `/check in|check out|approve|reject/i`.
+  - **`/visitors`, `/whos-inside` and `/kiosk` STAY FORBIDDEN**, and that is not an
+    oversight left over from the old rule. Those three are where a visit is actually
+    mutated — the guard console admits and releases, `/whos-inside` owns the exit, the
+    kiosk writes a self-service check-in. Reading a visit through a read-only tab and
+    reaching the desk that changes it are different permissions. Guarded by
+    `tests/security/routeProtectionAdmin.test.tsx`.
+  - **The ONE write on the admin surface is the blacklist** (`AdminBlacklistForm` →
+    `lib/adminBlacklist.ts`), which writes `visitors.is_blacklisted` and never `visits`.
+    Blacklisting is security administration, not a visitor-record action, and the reason
+    box is mandatory — the confirm stays disabled until one is typed, so the
+    justification is the only route to the write.
+- **There is NO `/analytics`. It was DELETED, not unlinked** (client instruction,
+  2026-08-17). `pages/Shared/Analytics.tsx`, `AnalyticsCharts.tsx`, `AnalyticsKPICards.tsx`,
+  the unrouted `pages/Admin/Analytics.tsx` and the sidebar's `SidebarAnalytics` widget are
+  all gone, and the path is out of every `ROLE_ROUTES` entry so typing it fails rather than
+  landing somewhere stale. Its charts moved onto the admin **Dashboard** (visitor flow,
+  purpose donut) and **Reports** (`ReportsAnalytics.tsx`: visitors by day, check-in time
+  trend, purpose split, entry-point utilization) — **derived from the rows those screens
+  already load**, never a second query. Two screens answering "what happened this week"
+  from separately written queries is the tile-vs-drilldown defect this project has already
+  fixed once. The sidebar widget went for the same reason plus a second: its window was a
+  UTC day, so between 00:00 and 05:30 IST it counted yesterday.
+- **The Admin Panel is gone as a page; it is Settings → Roles & Users** (client
+  instruction, 2026-08-17: keep the current user settings and integrate them into the new
+  tabs). `SettingsRolesUsers.tsx` renders `DepartmentsManager` **unchanged** — departments,
+  heads of department, the HOD invite path and the activity-log link. It was moved, not
+  rebuilt: redrawing working CRUD to fit a new frame risks the one part of that screen that
+  already worked. `/admin` redirects to `/admin/settings`, because it is the bookmark every
+  admin already holds. It still has no Users tab beyond this and no separate Blacklist tab —
+  the blacklist is its own console tab now.
+- **`lib/settingsSections.ts` is the single source of truth for the Settings screen**, the
+  same way `visitorSegments.ts` is for the Visitors surface: the left rail and the right
+  panel are both derived from it, so a section cannot exist in one and not the other.
+  - **EVERY FIELD DECLARES WHETHER THE APP HONOURS IT** (`enforced`). A settings screen
+    where some switches govern behaviour and others merely store a preference, with nothing
+    on screen distinguishing them, is a screen that lies about what it controls — the same
+    class of error as the hardcoded "Gate Status: Operational" chip and the unconditional
+    "Identity verified" line this project has already deleted, and worse, because an admin
+    will act as though the rule is in force. An unenforced field still SAVES and stays
+    editable; it renders "Recorded — not yet enforced" plus its `caveat`. It is not the
+    app's place to refuse to record an administrator's intent, only to be honest about what
+    happens next.
+  - **Unsaved edits survive a section switch.** One Save button across six sections is only
+    honest if moving between them does not quietly discard what was typed. `dirty` tracks
+    which KEYS changed across the whole form and the save writes exactly those — an upsert
+    of all twenty-six would stamp `updated_by`/`updated_at` on rows nobody touched and turn
+    the one audit signal that table carries into noise.
 - **"Awaiting an HOD" stays filtered while you act on it.** The tile drills into
   `UnassignedDepartments`, which lists only departments with no HOD, and each card's
   "Assign HOD" opens `HodForm` **inline on that card**. It used to also
@@ -222,12 +275,16 @@
   witness this exit" and "did the card come back" keep one answer each. Do not
   write a second exit mutation here. `GuardWalkInApprovedExit.test.tsx` guards all
   four states, including that no exit button renders without a handler.
-  - **Known gap, inherited from 080:** `WalkInRequest` never collects a
-    `visitor_card_number`, so a walk-in admitted by the approver reaches this exit
-    with no card on record and `CardReturnConfirm` says so honestly. The card-return
-    control from migration 076 is absent on this route. Closing it means putting the
-    field on the registration form, which assigns a card before the host has
-    answered — a decision about the physical process at the gate.
+  - **CLOSED 2026-08-17 by migration 083.** The gap was: `WalkInRequest` never
+    collects a `visitor_card_number`, so a walk-in admitted by the approver reached
+    this exit with no card on record and the card-return control from 076 was inert
+    on that route. It was closed the other way round from the way this note
+    predicted — not by putting the field on the registration form, but by putting
+    the ADMISSION back at the gate, so the card is recorded at the moment it is
+    physically handed over. `GuardWalkInApproved`'s check-in already demanded one.
+    Rows admitted during 080's single day still have a null card and still reach
+    this exit; they now pass through `CardReturnConfirm`'s no-card branch, which
+    since 2026-08-17 also requires a tick.
 - **The walk-in register is untouched by all of this.** `/visitors/walk-in`
   renders `GuardWalkIns` exactly as before, with its own pending list, because
   registering an unannounced arrival is the one thing on this surface that
@@ -255,6 +312,26 @@
     says, and it read as a menu affordance the tile does not have. Every other tile keeps
     its plate: those glyphs distinguish one lane from another, and this one distinguished
     nothing. Guarded by `GuardConsoleRail.test.tsx`.
+- **The guard dashboard's row 1 is FIVE tiles, not four** (client instruction,
+  2026-08-17): Expected Today / Checked In / In Premises / **Checked Out Today** /
+  Overstaying — the order a visit passes through the gate. The board could say how many
+  came through and how many are still here and left the third number to be worked out as
+  the difference; that is arithmetic a guard was doing in their head, and the Entry &
+  Exit tab's Checked Out lane already stated it one click away. `xl:grid-cols-5` now, so
+  row 1 and row 2 share a column rhythm.
+  - **`TILE_FILTER.checkedOut` is keyed on `checked_out_at` against `istDayStart`, NOT
+    on `status === 'checked_out'`**, and the two are different sets: a visitor who
+    arrived at 21:00 yesterday and left at 09:00 today is today's departure, one who
+    arrived and left yesterday is not, and the status alone cannot tell them apart. It is
+    the SAME window `lib/useGateActivity.ts` gives the Entry & Exit Checked Out lane, so
+    the tile and that lane cannot report different figures for one day. Compared as
+    **instants, never as strings** — PostgREST renders a timestamptz as `…+00:00` while
+    `toISOString()` ends in `Z`, and `'+' < 'Z'`.
+  - **`useTodayVisits` was WIDENED for it**, not given a second query — the rule this
+    file already set. A fourth OR clause, `checked_out_at >= istDayStart()`, because the
+    midnight-crossing exit was created yesterday, scheduled yesterday and is in no open
+    status, so every other clause missed it. That is also the row a guard is most often
+    asked about.
 - **The guard dashboard has no page heading.** `<h1>Dashboard</h1>` was removed
   2026-08-13 (client instruction) — the sidebar item the guard just clicked already
   says it, and the page restating its own name spent the widest line on screen on the
@@ -324,6 +401,103 @@
   photo for a fault that is ours. The upload path is also the ONLY way in on a machine
   with no webcam or served over plain HTTP (`mediaDevices` is hidden on insecure
   origins), which is why it gets primary button styling whenever the camera is down.
+- **THE SCAN PASS TAB DOES NOT OPEN THE CAMERA BY ITSELF** (client instruction,
+  2026-08-17). `/guard/scan-pass` is a TAB, and it is also the search desk — the guard
+  who lands on it to look someone up by mobile number is the common case, and they were
+  getting the webcam light and a live picture of themselves for it. `GuardQRScan` now
+  takes **`autoStart`** (default true) and `ScanPass` passes `false`: a dark placeholder
+  the same shape as the video frame, and a primary **"Scan QR code"** button that arms
+  it. Arming is one-way, so a refused code does not send the guard back to the button.
+  `CheckInScanGate` keeps the default and must — it is a modal opened by pressing Scan,
+  and asking for a second press would be a button behind a button.
+  - **The gate is `useQrScanner`'s new `enabled`, NOT `paused`, and that distinction is
+    the whole point.** `paused` acts on a scanner that has already started: the device is
+    acquired and the light is on before anything is paused. `enabled: false` returns from
+    the effect before the `hasCamera()` probe, so nothing is ever acquired. Same rule
+    `WalkInIdentityStep`'s `armed` flag follows.
+  - The page subtitle is the client's own line, verbatim: **"Scan the QR code of the
+    visitor pass or search it."**
+- **A SEARCH HIT THAT CANNOT BE CHECKED IN IS STILL FULLY LEGIBLE** (client instruction,
+  2026-08-17: searching by mobile number "should not be grayed out, it should be properly
+  showing all the details"). `CheckInMatchCard` carried `opacity-50 pointer-events-none`
+  when `disabled`, and the dimming was the wrong tool: what is unavailable is the
+  CHECK-IN, not the record, and this search deliberately spans every status precisely so
+  a guard can find out what became of a pass — half-fading the answer hides the times,
+  the phone number and the host exactly when they are all the row has to offer. The
+  disabled state now drops the click AFFORDANCE (`CRISP_CARD` instead of
+  `CRISP_CARD_INTERACTIVE`) and keeps full contrast. `pointer-events-none` went with the
+  opacity: it also blocked selecting the phone number to copy it, on the one card built
+  to show it. The row stays non-actionable by construction — no Check In button renders
+  and `onSelect` is gated.
+  - **The three instants are each on their own line and each named**: Approved at /
+    Checked in at / Checked out at, every one a `formatDateTime` carrying its own date.
+    Checked Out used to be an 11px sub-line hanging off Checked In, which made the fact a
+    guard is actually asking about — has this person already left? — the smallest text on
+    the card.
+  - **"Approved at", not "Pre-approved at"**, though the client asked for the latter by
+    name. Every one of these surfaces already prints the desk in a badge or a Type of
+    Visitor field directly above, and the same word twice on one card is the
+    duplicate-render rule `VisitorDetailsOrigin.test.tsx` actively enforces. The row's
+    job is WHEN; the desk is already stated.
+  - **`VisitorTimelineCard` shows a guard the APPROVAL instant now too.** It was behind
+    `showAudit`, which is false for a guard, so the popup could say a visitor was approved
+    without ever saying when — and a guard challenged on why somebody was let in needs the
+    moment the clearance was given. What is left behind `showAudit` is **Duration**, and
+    that is the right thing to leave there: it is not a fact about the visit, it is a
+    running subtraction. Consequence: an approved visitor who has not arrived now gets a
+    Timeline card holding that one stamp, where before a guard got none.
+- **A REFUSED SCAN SHOWS THE RECORD, NOT A RED LINE** (client instruction,
+  2026-08-17: *"as soon as he scans it, it should show up all the details about the
+  visitor"* — name, phone, company, reason, check-in time, scheduled time, walk-in
+  vs pre-approved, person to meet, department, status). A pass that resolved but
+  failed its gate used to render a one-line banner plus the visitor's name and
+  nothing else, so "This visitor is already checked in" was the start of a question
+  the guard had no way to answer: checked in *when*, to see *whom*, and is the person
+  in front of them even the right one.
+  - `GuardQRScan` gained an **optional** `onBlocked(visit, reason)`. Optional
+    matters: without a handler it keeps its inline banner, which is all
+    `CheckInScanGate` (a modal with no room for a record) wants. `ScanPass` supplies
+    one and swaps the scanner for the record.
+  - **The gate decision did not move.** `evaluateQrVisit` still decides, and
+    `onBlocked` is never reached for a pass that may proceed. Only the presentation
+    of a refusal changed. The refused view has no photo step and no Check In button.
+  - It renders the **same `CheckInVisitorSummary`** the accepted path renders, built
+    by the **same `visitToMatchItem`** — so the record read off a refused scan is
+    field-for-field the one read off an accepted scan. The refusal changes what the
+    guard may DO, never what they are TOLD. Record first, refusal underneath: a guard
+    holding a scanner identifies before adjudicating.
+- **The fields the scan and the search were missing were a RENDERING gap, not a data
+  gap.** `MatchItem` already carried `visitorPhone` and `status`; neither was ever
+  drawn. Added 2026-08-17: `CheckInVisitorSummary` gains Phone, a Status pill (from
+  `STATUS_STYLES`, so the word and colour match every list on the board) and
+  conditional Checked in at / Checked out at rows; `CheckInMatchCard` gains the phone
+  and the arrival stamps; `SearchResultCard` gains Type of Visitor (via
+  `lib/visitOrigin.ts`, unconditional — the status pill only names the origin for
+  `approved`) and splits its one **"Date & Time"** row, which fell back from
+  `scheduled_for` to `created_at` and so meant *the booked slot* on a pre-approval
+  and *when the request was raised* on a walk-in — two facts under one label, on the
+  card whose job is telling one visitor from another. Now `Scheduled` (empty reads
+  **"NA"**, matching `COLUMN.scheduled`), `Registered`, and conditional
+  `Checked In` / `Checked Out`.
+  - `MatchItem` gained `checkedInAt` / `checkedOutAt`, both null on the ordinary
+    arrival — that is the point of the scan — and populated on the **re-scan**, which
+    is the case the whole change exists for. Every construction site had to be fed:
+    `qrMatchItem.ts` and both branches of `checkInMatches.ts` (the recurring branch
+    gets nulls, having no visit row yet).
+  - **The guard's search needed no work.** `/search` and `/guard/search` are one
+    component and already opened `VisitorDetails`, which carries every requested
+    field. **The HOD reaches the identical page** — `/search` is in `ROLE_ROUTES.hod`
+    and is wired to the top bar in `AppShell` — so "the same for the HOD" was already
+    true and only the timestamp gate below was in the way.
+- **A guard now sees ARRIVAL times but still not AUDIT times** (client instruction,
+  2026-08-17, partially reversing 2026-08-13). `VisitorTimelineCard`'s single
+  `showTimestamps` prop is split into **`showArrival`** (Checked In / Checked Out —
+  true for every role) and **`showAudit`** (Approved / Duration — still false for a
+  guard). 2026-08-13's point survives: a guard is not auditing state changes. What it
+  cannot survive is hiding when a visitor walked in, which is the question a guard is
+  most often asked. The card renders nothing at all when this viewer may see no stamp
+  and there is no rejection reason, so a guard's popup does not end on an empty box.
+  The rejection reason is gated by neither, unchanged.
 - **The two arrival routes are two destinations.** A visitor either was booked in
   advance or was not, and a guard is doing one or the other:
   - `/guard/pre-approvals` is the **pre-booked** desk. `CheckInPanel` (QR gate,
@@ -479,6 +653,9 @@
   migration 060 then makes the obvious fix (check them in again) create a *second* visit
   row for one continuous presence. The window is the restriction — an admin-only undo was
   rejected because admins have no route to visitor records at all, so the capability would
+  -- STILL TRUE AFTER 2026-08-17, though the reason narrowed: the admin console now
+  READS visitor records, but every one of its tabs is read-only, so an admin-only undo
+  would still have nowhere to be invoked. The rest of this note is unchanged. --
   have had nowhere to be invoked. The undo nulls `checked_out_at`/`exit_verified` rather
   than annotating them (the visitor never left), and deliberately does **not** re-stamp
   `checked_in_at`. The sweep's auto-closed rows get no exemption — revisit that only when
@@ -496,6 +673,50 @@
   The **company name** on the pass was invisible in dark mode for the inverted-scale reason
   below: its value was `text-navy-700 dark:text-navy-200`, so the word "Company" rendered
   and the company itself did not.
+- **The pass can be sent to the visitor's WhatsApp, and it needs no Meta account.**
+  Added 2026-08-17 on the client's question *"can the HOD forward the QR / visitor
+  pass directly to the mobile or WhatsApp number of the visitor?"*. Before this, the
+  only ways out of `PreApprovalPass` were Download Image and Download PDF — both of
+  which end with a file in the HOD's downloads folder, which is not where the visitor
+  is. **Send on WhatsApp** is now the primary action on that card. `lib/sharePass.ts`.
+  - **TWO mechanisms behind one button, and neither is optional — they do different
+    halves of the job.** `navigator.share({ files })` carries the **file**: the OS
+    share sheet opens with the pass PNG attached and the HOD picks WhatsApp. `wa.me`
+    carries the **recipient**: click-to-chat opens the visitor's own chat with the
+    details prefilled, and it **categorically cannot attach anything** — there is no
+    file parameter in the click-to-chat spec and never has been. The sheet knows the
+    file but not the recipient; the link knows the recipient but not the file.
+    Fallback order is sheet → link, and the link path **downloads the PNG alongside**
+    because otherwise the QR never reaches the visitor at all.
+  - **TRANSIENT ACTIVATION IS THE TRAP, and it is why `dataUrlToFile` is synchronous.**
+    `navigator.share` throws unless it is called inside a live user gesture, and an
+    `await` in front of it spends that gesture. `fetch(dataUrl).then(r => r.blob())`
+    is the tidier spelling and is exactly what must not be used here — the decode is
+    hand-rolled `atob` + `Uint8Array` so nothing is awaited before the share call.
+    There is a test pinning the signature, not just the output. **Do not put a photo
+    fetch, a canvas re-encode or a PDF build in front of that call.**
+  - `canShare({ files })` returns **false**, never throws, where unsupported —
+    Firefox has no file sharing at all, and neither does any http origin. That is the
+    gate. Desktop Chrome/Edge work but depend on registered OS share targets.
+  - **A wrong recipient is worse than none.** `waPhone` runs the number through
+    `normalizePhone` and puts `91` back on a 10-digit Indian mobile; anything it
+    refuses yields `null`, and the link then opens WhatsApp's **contact picker**
+    rather than a stranger's chat with a visitor's name already typed into it. The
+    caption under the button names the number it is about to open, or says there
+    isn't one.
+  - **No CSP change was needed.** Link/`window.open` navigation to an external origin
+    is not governed by any shipped CSP directive — `form-action` covers only form
+    submissions, and `navigate-to` was dropped from CSP3 and never shipped. The app's
+    `index.html` meta CSP has neither.
+  - **This is a shortcut to a human action, not automated messaging**, which is also
+    why no TRAI/DLT registration applies: that framework governs bulk commercial
+    traffic over telecom operators, not a person forwarding one message from their
+    own account. **An automated send is a different project** — Meta Business
+    account, verified sender number, an approved *utility* template (media-header
+    templates need the image at a public HTTPS URL or an uploaded media ID) and a new
+    edge function beside `notify-host`. Utility messages are cheap in India (~₹0.11–0.15
+    each at Meta's 2026 rates, plus any BSP markup), so the cost is not the obstacle;
+    the account, the number and the template approval are.
 - **A popup's close (×) must never be able to overlap its own header.**
   `ModalCloseButton` takes an **`inline`** prop (added 2026-08-15, client report). The
   default is still `absolute top-4 right-4`, which is right when the × floats over a tall
@@ -666,7 +887,19 @@
     one screen is what that rule exists to prevent. Each lane also carries its own
     empty state (`emptyMessage` on `LiveQueueTable`), because "nobody is inside"
     and "nobody has left yet" are different facts and were the same sentence.
-  - **The table carries BOTH times, in an `In` column and an `Out` column.** A visitor
+  - **The table carries BOTH times, in an `In` column and an `Out` column, each with
+    the DATE as well as the time** (client instruction, 2026-08-17). They were
+    `formatStamp`, which prints a bare time on a today row and pays for the date only on
+    an older one — and the two shapes are indistinguishable at a glance, so a guard
+    scanning the column could not tell a today row rendered short from an older row whose
+    date they had skipped past. This list carries earlier days BY DESIGN (anyone still
+    inside is here regardless of when they arrived; an exit that crossed midnight is the
+    row most often asked about), so it is now `formatDateTime` on every row. Same change
+    to `lib/dashboardColumns.ts`'s shared `stamp`, which is every time cell on the guard
+    AND HOD boards — one rule, both surfaces. The cells are `whitespace-nowrap` and
+    `LiveQueueTable`'s wrapper is `overflow-x-auto` rather than `overflow-hidden`: nine
+    columns can outgrow a narrow window, and a clipped exit time is indistinguishable
+    from one that was never recorded. A visitor
     still on site shows an **em dash** under Out, never a blank cell: blank reads as "not
     recorded", and here it means "still here", which is precisely the distinction being
     looked for. A `checked_out` row offers no action at all — a grey "Left" tick where the
@@ -924,7 +1157,7 @@
   `pressed`/`controlsId`/`caption` for the aria contract; a tile's accessible name joins
   its block spans without spaces (e.g. "0ExpectedBooked ahead…"), so tests must query
   unanchored unique substrings, never `^` anchors. Plain stat numbers that open nothing
-  (Analytics, VisitorsDashboard) stay `stat-card` divs — same surface and hover via CSS
+  (VisitorsDashboard) stay `stat-card` divs — same surface and hover via CSS
   only, no chevron. The unified rules live in `components-surfaces.css`.
   - **There is NO top cap, accent bar or per-card border treatment.** A 3px gold
     `::after` used to sit on `.stat-card` and `.gate-tile`. It was one declaration but
@@ -1281,6 +1514,18 @@
   confirm without one, while the format CHECK stays a backstop. Check-out records the
   return (074's undo nulls it again — the visitor never left). `lib/cardNumber.ts`
   mirrors the CHECK.
+- **THE RETURN TICK IS REQUIRED ON EVERY CHECK-OUT, CARD OR NO CARD** (client
+  instruction, 2026-08-17: *"without this checkbox checked the guard cannot check out
+  that person, no matter whether it's a walk-in visitor or a pre-approved visitor —
+  do this for all kinds of checkout"*). `CardReturnConfirm` used to render **no
+  checkbox at all** when `visitor_card_number` was null and enable Complete Check Out
+  immediately. Defensible while a null meant a legacy row; indefensible once 080
+  started minting new walk-ins with no card. The no-card branch now keeps the
+  checkbox and changes only what it asserts — not "the card came back" but "I have
+  looked and no card was issued". The issued number is printed **inside the label**
+  as well as above it, so the tick is always made against a stated number rather
+  than against the word "card". Both surfaces that check anyone out (`Console.tsx`
+  and `GuardLiveQueue.tsx`) open this one dialog, so there is one gate, not two.
 
 ### Notifications bell
 - **The dropdown's click-away is a LISTENER, not an overlay** (client report,
@@ -1403,6 +1648,13 @@ close:
 
 ### `080` — the approver admits the visitor in the same click (2026-08-16, applied live)
 
+> **SUPERSEDED BY `083` ON 2026-08-17. READ THAT SECTION FIRST.** The shortcut
+> described below was live for one day and is gone: an HOD's approval lands a
+> walk-in in `walkin_approved` again, and the guard admits them at the gate.
+> Everything here is kept because 083 is a partial revert — §4 (`pre_approve_visitor_v2`
+> writing its own `visit_approved` row) and §5 (`get_profile_names`) are still
+> the live definitions and were not touched.
+
 - **A walk-in the HOD approves goes straight to `checked_in`.** `approve_visit()`
   writes `status = 'checked_in'` + `checked_in_at`, and the state machine learns
   `pending_approval -> checked_in` gated on the APPROVER's roles. Safe only since
@@ -1436,6 +1688,74 @@ close:
   present. If a walk-in approval is ever seen resting in `walkin_approved` again,
   check the LIVE function first — the app half shipped a commit before the DB half
   was applied, and the symptom was exactly that.
+
+### `083` — the approver clears, the GUARD admits (2026-08-17, applied + verified live)
+
+**Reverts 080's shortcut.** Client instruction: *"once the guard sends out for the
+approval it will still not show as check-in. Once the walk-in is approved by the HOD
+then only the check-in box should appear for that person. When the guard clicks on
+check-in that time he can enter the [card] number … until and unless approval is
+given the guard cannot check in. Till that time it will show as waiting for
+approval. Make sure you follow this workflow everywhere."*
+
+The workflow, end to end: `WalkInRequest` → `pending_approval` (guard sees "Awaiting
+Approval", no action) → HOD approves → `walkin_approved` → `GuardWalkInApproved`'s
+**Check In** button, which will not submit without a photo, an ID scan and a
+**visitor card number** → `checked_in`.
+
+- **Why it was reverted, and it is not a matter of taste.** 080's own header records
+  the gap: `WalkInRequest` does not collect a `visitor_card_number`, so every walk-in
+  admitted by the shortcut reached check-out with that column null and migration
+  076's card-return gate had nothing to demand back. The one route where a card was
+  most likely handed over off-book was the one route the exit waved through. The two
+  fixes were to move the card onto the registration form (issuing a card before the
+  host has answered, burning one on every refusal) or to put the admission back at
+  the gate where the card physically changes hands. The client chose the gate.
+- **REBASE ON `082`, NOT ON `080`.** `enforce_visit_update_rules` has been recreated
+  three times and the live body is **082's** — it carried 080's shortcut forward and
+  added `pending_approval -> lapsed` and `lapsed -> pending_approval`. Writing 083
+  from 080's text compiles, applies cleanly, and silently deletes both, breaking the
+  10 PM sweep with no error anywhere. That is `memory.md` **SB-15** repeating itself
+  (015 dropped the `walkin_approved` branches exactly this way; 022 restored them).
+  Verified by diffing the two function bodies with comments stripped: the ONLY
+  difference is the removed branch.
+- `approve_visit()` writes `walkin_approved` and **does not stamp `checked_in_at`**.
+  080's `unique_violation` handler is dropped with it — migration 060's index is
+  partial on `status = 'checked_in'`, so a write landing on `walkin_approved` could
+  never have fired it. That clash now raises at the gate again, where it belongs.
+- `log_visit_approval()` loses the branch that wrote `visit_approved` (`admitted:
+  true`) **and** `visit_checked_in` off one click. `approvalTimestamp()` and the
+  admin register's "Approved By" still read the `visit_approved` row the first
+  branch writes; the activity log's `visit_checked_in` now comes from the guard's
+  own write, which is what it always described.
+- **Rows already admitted by the shortcut are NOT rewritten.** Those visitors really
+  did enter the building. They keep a null card number and leave through the
+  "no card was issued" branch of the return gate.
+- **Applied + verified live 2026-08-17**, not just written: `approve_visit` now writes
+  `walkin_approved` and does not stamp `checked_in_at`; `enforce_visit_update_rules` was
+  diffed against the live 082 body before applying and, after, was confirmed to retain
+  BOTH `pending_approval -> lapsed` and `lapsed -> pending_approval` while no longer
+  containing the `pending_approval -> checked_in` branch — the rebase trap above was
+  checked for, not just guarded against; and `log_visit_approval` no longer contains the
+  `admitted` key.
+
+**The app was barely collapsed to match 080, so the revert is four logic changes and
+a lot of stale prose.** `checkableStatus`, `qrToken`, `statusStyles`,
+`CheckInMatchCard` ("Awaiting Approval"), `PreRegisteredCard`, `LiveQueueTable`,
+`GuardWalkInApproved`, `WhosInside`, `Kiosk`, `visitOrigin`, `hodTiles` and
+`visitorSegments` were all still pre-080-shaped and needed nothing. What did change:
+
+- `lib/visitLifecycle.ts` — `pending_approval` loses `checked_in`.
+- `lib/visitGateChips.ts` — a `walkin_approved` row read **"Checked in", tone
+  `inside`**. That is the tone the fire-marshal list is read off, on a visitor still
+  standing outside. Now "Awaiting entry", neutral.
+- `lib/guardTiles.ts` — `IS_EXPECTED` gains `walkin_approved` back; `checked` drops
+  `|| status === 'walkin_approved'` and is keyed on `checked_in_at` alone. The
+  invariant is once again **checked === inside + departed**, nothing else.
+- `pages/HOD/HODOverview.tsx` — the Upcoming query `.in()` list gains
+  `walkin_approved`, or an HOD's own decision vanishes off their board between the
+  click and the arrival. `OverviewUpcoming` has carried the badge for it
+  (`awaitingGate`) throughout; the query was the only thing making it dead code.
 
 ### `081`/`082` — an unanswered walk-in request lapses at 10 PM (2026-08-17, applied live)
 
@@ -1492,6 +1812,85 @@ close:
   UPDATE, not on the insert** — `generate_visit_ref` is a BEFORE INSERT trigger that stamps
   `new.created_at := now()` unconditionally, which is why `noShowWorkflow.test.ts` ages its
   rows through `scheduled_for` and this one cannot.
+
+### `084`–`089` — the data the admin console needed (2026-08-17, applied + verified live)
+
+The client's reference screens asked for six figures this schema could not answer.
+Rather than render them as placeholders — which would put numbers on an admin screen
+that the system cannot stand behind, the same defect as the deleted "Gate Status:
+Operational" chip — the columns were added. **Every one is NULLABLE and every screen
+says what it does not know.**
+
+- **`084` — `entry_points` + `visits.entry_point_id`.** WHICH DOOR a visitor came
+  through. This is **not** `lib/visitOrigin.ts`, which answers which ROUTE they took
+  (pre-approved vs walk-in) — "desk" in this codebase has always meant the route, so it
+  could not be borrowed for the door. A TABLE, not a text column (a free-text gate name
+  spells one door four ways within a month and the utilization panel then shows four
+  doors) and not an enum (a door opening would need a migration). `active` retires a
+  closed gate while keeping its history, which is why there is **no delete policy**.
+  Seeded with the four doors the reference screen names. Arrivals with a null entry
+  point are reported **separately as `unrecorded`**, never folded into a gate:
+  attributing them to Reception A would put a fabricated location on a record somebody
+  may later be asked to account for.
+- **`085` — `visitors.email`, `visits.invitation_sent_at`.** Email is **optional and
+  stays optional**: `phone` is the identity column (migration 060's one-open-visit rule
+  is built on it) and demanding an address from someone standing at reception would
+  block the registration this system exists to make fast. The CHECK is a loose typo
+  guard, deliberately not an RFC 5322 attempt — the only authority on whether an address
+  works is a delivery attempt. `invitation_sent_at` is a TIMESTAMP, not a flag: "yes"
+  and "when" are one column that way. **Nothing sends the invitation yet** — there is no
+  invite button on the Pre-Registration tab for that reason.
+- **`086` — `visit_feedback`.** Guest satisfaction. ONE ROW PER VISIT, enforced by a
+  unique index rather than by whichever screen collects it — three plausible writers
+  (kiosk, guard check-out, a future emailed link) with no constraint is how one visit
+  gets rated three times and the mean drifts toward whoever pressed hardest. That index
+  is also what makes the wide insert policy safe. The mean is computed **at read time**
+  and never stored, so it cannot go stale against the rows. Read is admin/HOD only — a
+  rating judges the people who hosted the visit, and a gate screen is where the visitor
+  who wrote it may be standing. **No update and no delete policy**: a rating the rated
+  party can edit is not a rating.
+- **`087` — `badge_prints`.** A LOG, not a queue. `lib/printBadge.ts` already existed
+  and the gate was already printing; nothing recorded it, so a reprint was
+  indistinguishable from a first print. The admin tab **reads it and never writes it** —
+  the standing rule that a badge is minted at the gate by the guard who can see the
+  visitor did not move. Append-only by construction (no update, no delete policy).
+- **`088` — `visits.checkin_duration_seconds`.** How long the DESK took. The obvious
+  substitutes are both wrong: `checked_in_at - scheduled_for` measures how punctual the
+  VISITOR was and is undefined for every walk-in, and `checked_in_at - created_at` is
+  days long for a pre-approval booked in advance. A single integer rather than a start
+  timestamp, because a start is only meaningful paired with an end and invites the
+  reader to subtract two columns that may straddle a guard walking away mid-flow. Bounded
+  1..3600 — a flow abandoned over lunch is recorded as **unmeasured**, not as slow, or a
+  38-second mean drags into the minutes exactly when the tile matters. **Null on every
+  existing row**, and the tile says how many arrivals carried a measurement rather than
+  averaging over nothing.
+- **`089` — `app_settings`.** Key/value with a jsonb value. The alternative was leaving
+  the toggles as constants in the bundle — which on a Vercel deployment means
+  unchangeable from the running app, the exact trap the deleted `qr` feature flag fell
+  into. Key/value rather than a column per setting so a new toggle needs no migration and
+  no schema-cache reload. Nothing in the database enforces a value's SHAPE, which is why
+  **`src/lib/appSettings.ts` owns the typed schema and COERCES on read** — a wrong-typed
+  row falls back to the documented default rather than being cast into something
+  plausible. **The seed and that file are ONE schema written twice; edit them together.**
+  Every default is the behaviour the app already had, so applying the migration changes
+  nothing until an admin moves a switch — in particular `checkin.require_photo` /
+  `require_id_scan` / `require_card_number` seed **true**, because seeding them false
+  would silently loosen four live gates on the day this applies. Read is granted to every
+  signed-in role: a setting only the admin can see cannot change how the gate behaves,
+  which is the entire point. **No delete policy** — a removed key falls back to a default
+  silently, indistinguishable from the setting turning itself back on.
+
+**Applied + verified live 2026-08-17**: `entry_points`, `visit_feedback`, `badge_prints`
+and `app_settings` all exist, `visits.entry_point_id` / `invitation_sent_at` /
+`checkin_duration_seconds` and `visitors.email` all exist, RLS is enabled on all four new
+tables, `entry_points` holds its 4 seed rows and `app_settings` its 26. **What is not yet
+true is that anything WRITES the new columns or rows** — no screen sets
+`entry_point_id`, no flow stamps `checkin_duration_seconds`, and nothing inserts a
+`visit_feedback` or `badge_prints` row yet, because wiring those writers was a separate,
+deliberate scope decision from adding the schema they need. Until a writer exists, the
+admin tabs render their honest empty states: "Not measured", "No visitor has rated
+today", "No arrival in this range recorded an entry point". That is the design, not a
+failure mode.
 
 ### Migration drift
 - This project has always been migrated by hand, so
@@ -1559,10 +1958,12 @@ src/
                      # Approvals (the pre-approval FORM), ApprovalsPendingList,
                      # ApprovalsVisitList, HODOverview, OverviewStatCards,
                      # OverviewUpcoming, OverviewNotifications, PreApproveForm
-  pages/Shared/      # Analytics (shell) + AnalyticsKPICards, AnalyticsCharts;
-                     # WhosInside + WhosInsideVisitorCard;
-                     # Reports + ReportsToolbar, VisitorsDashboard
-  pages/Admin/       # AdminPanel (shell), DepartmentsManager (state), DepartmentCard,
+  pages/Shared/      # Reports (+ReportsToolbar, ReportsAnalytics — the admin-only
+                     #   chart band that /analytics became — and ReportsDownloadCards,
+                     #   the four standing CSV reports, each built from the rows
+                     #   already on screen so the file and the register agree);
+                     # WhosInside + WhosInsideVisitorCard; VisitorsDashboard
+  pages/Admin/       # DepartmentsManager (state), DepartmentCard,
                      # DepartmentForm, HodList, HodForm, AdminStats, AdminAlerts,
                      # ConfirmDialog, AdminConfirmDialogs, Activity;
                      # click-to-drill overview: adminOverviewView (view keys),
@@ -1573,12 +1974,46 @@ src/
                      # useKioskAutoReset (idle timeout + badge countdown)
   components/        # DashboardTile, DashboardPanel, DashboardVisitorTable — the
                      #   guard board AND the HOD board render these same three, which
-                     #   is what stops the two views drifting apart visually
+                     #   is what stops the two views drifting apart visually;
+                     # AdminKpiTile (the admin console's own card — a DIV, not a
+                     #   button: it opens nothing, unlike the two drill-down tiles
+                     #   above, whose contract is "a tile's count is the length of
+                     #   the list it opens"); SettingToggle
+  components/charts/ # ChartCard, LineChart, DonutChart, BarChart, UtilizationRows —
+                     #   hand-rolled SVG, no charting dependency. Every chart also
+                     #   emits an `sr-only` list of its label/value pairs: that is
+                     #   its accessible content AND what the tests assert on, so a
+                     #   cosmetic change cannot break a test about the data.
+  pages/Admin/       # The nine-tab console: AdminDashboard (+AdminDashboardKpis),
+                     #   AdminLiveCheckIn (+LiveCheckInTabs), AdminPreRegistration
+                     #   (+Kpis, +Filters), AdminVisitorsLog (+VisitorsLogFilters),
+                     #   AdminHosts (+HostDirectoryCard, HostNotificationsPanel),
+                     #   AdminBadges (+BadgePrintsTable), AdminSecurity (+Kpis,
+                     #   BlacklistPanel, AlertsPanel, DeniedEntriesPanel,
+                     #   BlacklistForm), AdminSettings (+SettingsRail, SettingsField,
+                     #   SettingsRolesUsers — which renders the OLD Admin Panel's
+                     #   DepartmentsManager unchanged); AdminPageHeader,
+                     #   AdminTablePagination (generic — holds no idea what a row is)
+  routes/            # adminRoutes.tsx — the console's nine routes, returned as an
+                     #   ARRAY of <Route> spread into App.tsx's one <Routes>. A
+                     #   nested <Routes> would create a second matcher and break the
+                     #   path="*" fallback.
   components/layout/ # AppShell, Sidebar, navLinks (ALL_LINKS — the one
                      #   source of truth; SidebarNavGroup.tsx was deleted
                      #   2026-08-13, there are no nav groups),
-                     # SidebarAnalytics, SidebarProfile
+                     # SidebarProfile (SidebarAnalytics was deleted 2026-08-17)
   lib/               # roleRoutes, theme, errors, mfa,
+                     # adminDashboard / adminReports / adminHosts / adminSecurity /
+                     #   adminBadges / adminLiveCheckIn / preRegistration /
+                     #   visitorsLog / reportBundles — the admin console's figures,
+                     #   as PURE functions over Visit[]. Same rule as guardTiles:
+                     #   one predicate feeds both a count and the rows it opens, and
+                     #   a pure module is what makes every figure unit-testable,
+                     # useAdminVisits (the ONE admin visit query — and it exports no
+                     #   mutation, which is what makes the read-only rule structural),
+                     # appSettings + settingsSections (the typed half of migration
+                     #   089; the defaults here and the seed there are one schema
+                     #   written twice), chartPalette, initials,
                      # guardTiles (ONE predicate per dashboard tile — the count
                      #   and the drill-down list are both derived from it),
                      # useTodayVisits (the whole day, one fetch, feeds every

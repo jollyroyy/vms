@@ -6,6 +6,7 @@
 import React from 'react';
 import PassIdentity from '../../components/PassIdentity';
 import { formatDateTime } from '../../lib/formatDate';
+import { STATUS_STYLES } from '../../lib/statusStyles';
 import type { MatchItem } from './checkInTypes';
 
 // THE TYPE OF VISITOR — walk-in or pre-approved — named in full on the one
@@ -50,18 +51,42 @@ export default function CheckInVisitorSummary({ match }: Props): React.ReactElem
           "Walk-in" is only legible to someone who already knows what that badge
           is for, and this is the moment a guard is being asked to recognise it.
           The pill stays as the value — it is what makes the answer glanceable
-          at a gate — so the fact is still rendered exactly once. */}
+          at a gate — so the fact is still rendered exactly once.
+
+          THE VISIT'S OWN STATUS sits beside it (client instruction,
+          2026-08-17: the scanned record must say "whether he has checked in,
+          checked out, has not arrived, or no-show"). It is a different
+          question from Type of Visitor — which desk they came through versus
+          where they are now — and until this landed the summary answered only
+          the first. It matters most on the scan the guard did NOT expect: a
+          pass held up a second time now names the state it is already in
+          instead of a bare refusal. `STATUS_STYLES` so the word and the colour
+          are the same ones every list on the board uses. Absent for a
+          recurring visitor, who has no visit row to have a status. */}
       <div className="flex items-center gap-2 flex-wrap">
         <span className="text-xs text-navy-500 dark:text-navy-400">Type of Visitor</span>
         <span className={`inline-flex items-center text-xs font-semibold px-2 py-0.5 rounded-full ${APPROVAL_BADGE[match.approvalType]}`}>
           {label}
         </span>
+        {match.status && (
+          <>
+            <span className="text-xs text-navy-500 dark:text-navy-400">Status</span>
+            <span className={`inline-flex items-center gap-1.5 text-xs font-semibold px-2 py-0.5 rounded-full ${STATUS_STYLES[match.status].bg} ${STATUS_STYLES[match.status].text}`}>
+              <span className={`h-1.5 w-1.5 rounded-full ${STATUS_STYLES[match.status].dot}`} />
+              {STATUS_STYLES[match.status].label}
+            </span>
+          </>
+        )}
         {match.refNumber && (
           <span className="text-[11px] font-mono text-navy-500 dark:text-navy-400">{match.refNumber}</span>
         )}
       </div>
 
       <dl className="text-xs space-y-1.5 border-t border-surface-100 pt-3">
+        {/* The number the visitor can always tell you, and the one the guard
+            reads back to confirm they have the right record. It was on
+            `MatchItem` from the start and simply never rendered. */}
+        <Row term="Phone" value={match.visitorPhone} />
         <Row term="Purpose" value={match.purpose} capitalize />
         {/* Department used to be its own row above this one — folded under
             Person to Meet instead, so it is never printed twice on this
@@ -76,6 +101,11 @@ export default function CheckInVisitorSummary({ match }: Props): React.ReactElem
         {/* Date and time, never a bare time: an open pre-approval can be booked
             for any day, so the date is what says whether this one is due now. */}
         <Row term="Expected" value={match.scheduledFor ? formatDateTime(match.scheduledFor) : 'Anytime today'} />
+        {/* Both conditional, and on the ordinary arrival both are absent —
+            which is the correct summary of a visitor who has not come in yet.
+            They appear on the re-scan, where they are the whole answer. */}
+        {match.checkedInAt && <Row term="Checked in at" value={formatDateTime(match.checkedInAt)} />}
+        {match.checkedOutAt && <Row term="Checked out at" value={formatDateTime(match.checkedOutAt)} />}
       </dl>
     </div>
   );

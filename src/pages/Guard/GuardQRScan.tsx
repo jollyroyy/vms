@@ -17,7 +17,40 @@ import type { Visit } from '../../types/index';
 type Props = {
   /** A pass that PASSED its gate and may proceed straight to check-in. */
   onResolved: (visit: Visit) => void;
+  /** A pass that RESOLVED to a real visit but may not proceed — already
+   *  checked in, already completed, expired, refused, a no-show.
+   *
+   *  Optional, and the fallback matters: without a handler this component
+   *  keeps its own inline red banner, which is all `CheckInScanGate` (a modal
+   *  with no room for a record) wants. `ScanPass` supplies one so it can show
+   *  the visitor's full record instead of a one-line refusal — client
+   *  instruction, 2026-08-17: as soon as a pass is scanned the guard should
+   *  see the name, the number, the company, the reason, the times, the type
+   *  of visitor, the host, the department and the status. A blocked scan is
+   *  the case where they need all of that MOST: "already checked in" is the
+   *  start of a question, not the answer to one.
+   *
+   *  The gate decision itself does not move — `evaluateQrVisit` still decides,
+   *  and this callback is never reached for a pass that may proceed. What
+   *  changes is only how the refusal is presented. */
+  onBlocked?: (visit: Visit, reason: string) => void;
   onCancel: () => void;
+  /**
+   * Open the camera on mount. Default true.
+   *
+   * `CheckInScanGate` leaves it true and must: it is a modal a guard opened by
+   * pressing Scan, so the press has already happened and asking for a second
+   * one would be a button behind a button.
+   *
+   * `ScanPass` passes false (client instruction, 2026-08-17). That page is a
+   * whole TAB, and it is also the search desk — the guard who lands on it to
+   * look someone up by mobile number is the common case, not the exception,
+   * and they were getting the webcam light and a live picture of themselves
+   * for their trouble. Nothing here reads the camera until the guard says
+   * "Scan QR code", and `useQrScanner`'s `enabled` makes that structural: no
+   * device is acquired, rather than acquired and then paused.
+   */
+  autoStart?: boolean;
 };
 
 type ScanMessage = {
@@ -42,12 +75,16 @@ const UPLOAD_FAIL_TEXT: Record<'no_code' | 'engine', string> = {
   engine: 'We could not read that file on this device — this is a fault in the app, not the pass. Search manually and report it; a clearer photo will not help.',
 };
 
-export default function GuardQRScan({ onResolved, onCancel }: Props): React.ReactElement {
+export default function GuardQRScan({ onResolved, onBlocked, onCancel, autoStart = true }: Props): React.ReactElement {
   const videoRef = useRef<HTMLVideoElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const inFlightRef = useRef(false);
   const [message, setMessage] = useState<ScanMessage | null>(null);
   const [uploading, setUploading] = useState(false);
+  // Has the guard asked for the camera? Seeded from `autoStart`, and one-way:
+  // once armed it stays armed for the life of the component, so a refused code
+  // does not send them back to the button.
+  const [armed, setArmed] = useState(autoStart);
 
   const handleDecode = useCallback((raw: string) => {
     if (inFlightRef.current) return;
@@ -57,17 +94,21 @@ export default function GuardQRScan({ onResolved, onCancel }: Props): React.Reac
       inFlightRef.current = false;
 
       switch (result.status) {
-        case 'found':
+        case 'found': {
           if (result.gate.ok) {
             onResolved(result.visit);
-          } else {
-            setMessage({
-              kind: 'blocked',
-              text: result.gate.reason ?? 'This visit cannot proceed.',
-              visitorName: result.visit.visitor?.full_name,
-            });
+            break;
           }
+          const reason = result.gate.reason ?? 'This visit cannot proceed.';
+          // Hand the whole visit up when the parent can render it; fall back to
+          // the inline banner when it cannot. The scanner is left PAUSED either
+          // way (`paused: message !== null` below only covers the fallback), so
+          // the parent that takes the visit is responsible for unmounting or
+          // resetting this component — ScanPass swaps it out for the record.
+          if (onBlocked) onBlocked(result.visit, reason);
+          else setMessage({ kind: 'blocked', text: reason, visitorName: result.visit.visitor?.full_name });
           break;
+        }
         case 'invalid':
         case 'not_found':
           setMessage({ kind: result.status, text: STATUS_TEXT[result.status] });
@@ -83,9 +124,9 @@ export default function GuardQRScan({ onResolved, onCancel }: Props): React.Reac
       inFlightRef.current = false;
       setMessage({ kind: 'error', text: 'Could not read that code. Try again or search manually.' });
     });
-  }, [onResolved]);
+  }, [onResolved, onBlocked]);
 
-  const { state } = useQrScanner({ videoRef, onDecode: handleDecode, paused: message !== null });
+  const { state } = useQrScanner({ videoRef, onDecode: handleDecode, paused: message !== null, enabled: armed });
 
   const retry = useCallback(() => setMessage(null), []);
 
@@ -113,12 +154,33 @@ export default function GuardQRScan({ onResolved, onCancel }: Props): React.Reac
         <div>
           <h2 className="text-xl font-bold text-navy-900">Scan QR</h2>
           <p className="text-sm text-navy-500 dark:text-navy-400">
-            Hold the visitor's QR code up to the camera, or upload the pass as
-            an image or a PDF.
+            {armed
+              ? "Hold the visitor's QR code up to the camera, or upload the pass as an image or a PDF."
+              : 'The camera stays off until you start a scan. You can also upload the pass as an image or a PDF, or search for the visitor.'}
           </p>
         </div>
 
-        {state === 'unavailable' || state === 'error' ? (
+        {!armed ? (
+          // The camera is not open yet and nothing on this branch touches it.
+          // A dark placeholder the same shape as the video frame, so arming it
+          // swaps a picture for a picture rather than reflowing the page under
+          // the guard's hand.
+          <div className="space-y-4">
+            <div
+              className="w-full max-w-xs mx-auto rounded-xl bg-navy-950 ring-2 ring-surface-200 flex flex-col items-center justify-center gap-2 text-center px-6"
+              style={{ aspectRatio: '3/4' }}>
+              <svg className="w-10 h-10 text-white/40" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5} aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 013.75 9.375v-4.5zm9.75 0c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5a1.125 1.125 0 01-1.125-1.125v-4.5zm-9.75 9.75c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5a1.125 1.125 0 01-1.125-1.125v-4.5zm9.75 0h2.25v2.25H13.5v-2.25zm4.5 0h2.25v2.25H18v-2.25zm-4.5 4.5h2.25v2.25H13.5V19.125zm4.5 0h2.25v2.25H18V19.125z" />
+              </svg>
+            </div>
+            <button
+              type="button"
+              onClick={() => setArmed(true)}
+              className="bg-brand-600 hover:bg-brand-700 text-white font-bold w-full max-w-xs mx-auto block px-5 py-2.5 rounded-xl text-sm transition-all">
+              Scan QR code
+            </button>
+          </div>
+        ) : state === 'unavailable' || state === 'error' ? (
           <p className="text-sm font-semibold text-navy-600">
             {state === 'error'
               ? 'The QR scanner failed to start on this device. Upload the pass file below, or search for the visitor instead.'

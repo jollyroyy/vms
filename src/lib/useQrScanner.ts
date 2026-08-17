@@ -18,10 +18,24 @@ type Options = {
   videoRef: React.RefObject<HTMLVideoElement | null>;
   onDecode: (raw: string) => void;
   paused?: boolean;
+  /**
+   * Whether the camera may be opened AT ALL. Default true.
+   *
+   * This is NOT `paused` with a different name and the difference is the whole
+   * point: `paused` acts on a scanner that has already started, so the device
+   * has been acquired and the webcam light is already on. `enabled: false`
+   * means the effect never runs — no `hasCamera()` probe, no `QrScanner`
+   * instance, no `getUserMedia`. The Scan Pass page needs that (client
+   * instruction, 2026-08-17): a guard who opened the tab to search for a
+   * visitor should not have the camera come on at them, and the light going on
+   * before anybody asked for a scan is the visible half of that. Same rule
+   * `WalkInIdentityStep` follows with its `armed` flag.
+   */
+  enabled?: boolean;
 };
 
 export function useQrScanner(opts: Options): { state: QrScannerState } {
-  const { videoRef, onDecode, paused = false } = opts;
+  const { videoRef, onDecode, paused = false, enabled = true } = opts;
   const [state, setState] = useState<QrScannerState>('starting');
 
   const onDecodeRef = useRef(onDecode);
@@ -36,6 +50,13 @@ export function useQrScanner(opts: Options): { state: QrScannerState } {
   useEffect(() => {
     mountedRef.current = true;
     let cancelled = false;
+
+    // Disarmed: touch no device and build no scanner. Reset to 'starting' so a
+    // later arm does not begin on a stale 'unavailable' from a previous run.
+    if (!enabled) {
+      setState('starting');
+      return () => { mountedRef.current = false; };
+    }
 
     const destroy = (scanner: QrScannerType | null) => {
       if (!scanner) return;
@@ -106,7 +127,7 @@ export function useQrScanner(opts: Options): { state: QrScannerState } {
     // Deliberately excludes onDecode: a fresh closure each render must not
     // tear down and rebuild the scanner (that would restart the camera).
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [videoRef]);
+  }, [videoRef, enabled]);
 
   useEffect(() => {
     const scanner = scannerRef.current;

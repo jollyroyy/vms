@@ -1,8 +1,8 @@
 import type { GuardTileKey } from '../../lib/guardTiles';
 import type { ReportVisit } from '../../lib/reportRow';
 import {
-  ICON_CALENDAR, ICON_CHECK_CIRCLE, ICON_CLOCK, ICON_LIST, ICON_PEOPLE,
-  ICON_SHIELD_X, ICON_WALKING, ICON_X_CIRCLE,
+  ICON_CALENDAR, ICON_CHECK_CIRCLE, ICON_CLOCK, ICON_EXIT, ICON_LIST,
+  ICON_PEOPLE, ICON_SHIELD_X, ICON_WALKING, ICON_X_CIRCLE,
 } from '../../lib/tileIcons';
 
 // Look and sort order for the guard dashboard's nine tiles. Split out of
@@ -22,6 +22,7 @@ export const TILE_ICONS: Record<GuardTileKey, string> = {
   expected: ICON_CALENDAR,
   checked: ICON_CHECK_CIRCLE,
   inside: ICON_PEOPLE,
+  checkedOut: ICON_EXIT,
   overstaying: ICON_CLOCK,
   all: ICON_LIST,
   pending: ICON_CLOCK,
@@ -34,6 +35,13 @@ export const TILE_RING: Record<GuardTileKey, string> = {
   expected: 'border-brand-500/30 text-brand-500',
   checked: 'border-success-500/40 text-success-500',
   inside: 'border-brand-400/30 text-brand-400',
+  // Neutral on purpose, and the only tile on row 1 that is. The palette rule
+  // above assigns hue by what the lane DEMANDS — brand for the pre-booked
+  // lane, success for who is on site, warning for what is owed attention,
+  // danger for a refusal. A completed exit demands nothing: it is a finished
+  // record, and giving it success green would put the same signal on "arrived"
+  // and "left" while making a routine departure look like an outcome.
+  checkedOut: 'border-navy-400/30 text-navy-700',
   overstaying: 'border-warning-400/40 text-warning-400',
   all: 'border-navy-400/30 text-navy-700',
   pending: 'border-warning-400/40 text-warning-400',
@@ -49,6 +57,8 @@ const SORT_KEY: Record<GuardTileKey, (v: ReportVisit) => string> = {
   expected: (v) => v.scheduled_for ?? v.created_at,
   checked: (v) => v.checked_in_at ?? v.created_at,
   inside: (v) => v.checked_in_at ?? v.created_at,
+  // The exit is why the row is in this lane, so it is what the lane is read by.
+  checkedOut: (v) => v.checked_out_at ?? v.checked_in_at ?? v.created_at,
   overstaying: (v) => v.checked_in_at ?? v.created_at,
   all: (v) => v.checked_out_at ?? v.checked_in_at ?? v.scheduled_for ?? v.created_at,
   pending: (v) => v.created_at,

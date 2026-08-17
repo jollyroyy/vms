@@ -16,6 +16,8 @@ import { ALL_DEPTS, deptOptions, filterVisitsByDept } from '../../lib/reportsDep
 import ReportsToolbar from './ReportsToolbar';
 import ReportsDeptFilter from './ReportsDeptFilter';
 import ReportsPrintHeader from './ReportsPrintHeader';
+import ReportsAnalytics from './ReportsAnalytics';
+import ReportsDownloadCards from './ReportsDownloadCards';
 
 const TODAY = new Date().toISOString().slice(0, 10);
 
@@ -50,7 +52,12 @@ export default function ReportsPage(): React.ReactElement {
 
   const load = useCallback(async () => {
     setLoading(true);
-    let query = supabase.from('visits').select(`*, visitor:visitors(*), department:departments(id,name,code,created_at)`)
+    // `entry_point` is joined for the admin analytics band above the register
+    // (which door each visitor came through, migration 084). It is additive —
+    // the register's seventeen columns are untouched, and `styles/print.css`
+    // pins their widths by nth-child, so a column added here would silently
+    // mis-column the printed copy.
+    let query = supabase.from('visits').select(`*, visitor:visitors(*), department:departments(id,name,code,created_at), entry_point:entry_points(id,name,code,kind,active,sort_order,created_at)`)
       .gte('created_at', `${range.from}T00:00:00Z`).lte('created_at', `${range.to}T23:59:59Z`);
     if (deptScoped && userDeptId) {
       query = query.eq('department_id', userDeptId);
@@ -141,6 +148,24 @@ export default function ReportsPage(): React.ReactElement {
           </div>
         )}
       </div>
+
+      {/* ADMIN ONLY. The charts are an org-wide read — an HOD's register is
+          already scoped to one department, so a "Visitors by Day" bar there
+          would be that department's day beside a title that does not say so,
+          and the guard has no route to this page at all. This is where
+          /analytics went (deleted 2026-08-17): the charts are derived from the
+          exact rows the register below prints, so the two cannot disagree. */}
+      {userRole === 'admin' && !loading && (
+        <>
+          <ReportsAnalytics visits={shown} from={range.from} to={range.to} />
+          <ReportsDownloadCards
+            visits={shown}
+            from={range.from}
+            to={range.to}
+            filenameSuffix={filenameSuffix}
+          />
+        </>
+      )}
 
       <ReportsToolbar
         date={date}

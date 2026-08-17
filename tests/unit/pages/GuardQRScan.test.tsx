@@ -51,6 +51,36 @@ describe('S-QR-SCAN: GuardQRScan', () => {
     expect(screen.getByText(/hold the visitor's qr code/i)).toBeInTheDocument();
   });
 
+  // autoStart={false} — the Scan Pass tab's mode (client instruction,
+  // 2026-08-17). Nothing may touch the camera until the guard asks for it: the
+  // page is also the search desk, and a guard who opened it to look somebody up
+  // by mobile number was getting the webcam light for their trouble. The gate
+  // is `enabled` on useQrScanner, not `paused`, because pausing happens AFTER
+  // the device has already been acquired.
+  describe('autoStart={false}', () => {
+    it('does not arm the scanner until the guard presses Scan QR code', () => {
+      render(<GuardQRScan autoStart={false} onResolved={vi.fn()} onCancel={vi.fn()} />);
+      expect(mockUseQrScanner).toHaveBeenCalledWith(expect.objectContaining({ enabled: false }));
+      expect(screen.queryByText(/hold the visitor's qr code/i)).not.toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /scan qr code/i })).toBeInTheDocument();
+    });
+
+    it('arms it on that press, and stays armed', () => {
+      render(<GuardQRScan autoStart={false} onResolved={vi.fn()} onCancel={vi.fn()} />);
+      fireEvent.click(screen.getByRole('button', { name: /scan qr code/i }));
+      expect(mockUseQrScanner).toHaveBeenLastCalledWith(expect.objectContaining({ enabled: true }));
+      expect(screen.getByText(/hold the visitor's qr code/i)).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /^scan qr code$/i })).not.toBeInTheDocument();
+    });
+  });
+
+  // The default, which `CheckInScanGate` relies on: a modal the guard opened by
+  // pressing Scan must not ask them to press Scan again.
+  it('arms the camera on mount by default', () => {
+    render(<GuardQRScan onResolved={vi.fn()} onCancel={vi.fn()} />);
+    expect(mockUseQrScanner).toHaveBeenCalledWith(expect.objectContaining({ enabled: true }));
+  });
+
   it('always offers a manual-search escape hatch', () => {
     const onCancel = vi.fn();
     render(<GuardQRScan onResolved={vi.fn()} onCancel={onCancel} />);

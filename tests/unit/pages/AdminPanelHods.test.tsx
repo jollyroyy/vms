@@ -6,7 +6,10 @@ import React from 'react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, cleanup, waitFor, within, fireEvent } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
-import AdminPanel from '../../../src/pages/Admin/AdminPanel';
+// AdminPanel.tsx is DELETED (2026-08-17). Its content is now the Roles & Users
+// section of the admin Settings screen — moved, not rebuilt, so everything these
+// tests cover still ships and still behaves identically.
+import SettingsRolesUsers from '../../../src/pages/Admin/SettingsRolesUsers';
 import type { Department, Profile } from '../../../src/types/index';
 
 /* â”€â”€â”€ Mocks â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
@@ -84,7 +87,7 @@ beforeEach(() => {
 
 afterEach(cleanup);
 
-const renderPanel = () => render(<MemoryRouter><AdminPanel /></MemoryRouter>);
+const renderPanel = () => render(<MemoryRouter><SettingsRolesUsers /></MemoryRouter>);
 const setValue = (el: Element, value: string) => fireEvent.change(el, { target: { value } });
 
 /** Opens the add-HOD form on the first department card, fills it, and confirms the dialog. */

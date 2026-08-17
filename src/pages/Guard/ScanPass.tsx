@@ -22,6 +22,7 @@ import GuardQRScan from './GuardQRScan';
 import ScanPassLookup from './ScanPassLookup';
 import ScanPassSearchBar from './ScanPassSearchBar';
 import CheckInPhotoStep from './CheckInPhotoStep';
+import CheckInVisitorSummary from './CheckInVisitorSummary';
 import { visitToMatchItem } from './qrMatchItem';
 import type { MatchItem } from './checkInTypes';
 import type { IdScanResult } from './IdScanOverlay';
@@ -29,6 +30,11 @@ import type { IdScanResult } from './IdScanOverlay';
 export default function GuardScanPass(): React.ReactElement {
   const navigate = useNavigate();
   const [match, setMatch] = useState<MatchItem | null>(null);
+  // A pass that resolved to a real visit but may not be honoured. It is held
+  // separately from `match` on purpose: `match` means "this person is checking
+  // in", and merging the two would put a photo step under a visitor who is
+  // already inside.
+  const [blocked, setBlocked] = useState<{ match: MatchItem; reason: string } | null>(null);
   // Owned here, not in the box: the box is in the header and the results render
   // below it, so the two halves of one search live on either side of the title.
   const [query, setQuery] = useState('');
@@ -42,7 +48,7 @@ export default function GuardScanPass(): React.ReactElement {
   const [successMsg, setSuccessMsg] = useState('');
 
   const backToScanner = useCallback(() => {
-    setMatch(null); setPhotoBlob(null); setIdScan(null); setCardNumber(''); setCarrying(false); setRemarks(''); setError('');
+    setMatch(null); setBlocked(null); setPhotoBlob(null); setIdScan(null); setCardNumber(''); setCarrying(false); setRemarks(''); setError('');
   }, []);
 
   const handleResolved = useCallback(async (visit: Visit) => {
@@ -51,7 +57,21 @@ export default function GuardScanPass(): React.ReactElement {
     // needs the person they are here to meet.
     const [withHost] = await attachHostNames([visit]);
     setMatch(visitToMatchItem(withHost ?? visit));
+    setBlocked(null);
     setPhotoBlob(null); setIdScan(null); setCardNumber(''); setCarrying(false); setRemarks(''); setError('');
+  }, []);
+
+  // A pass the gate refused. It goes through the SAME host-name attachment and
+  // the SAME `visitToMatchItem` as an accepted one, so the record a guard reads
+  // off a refused scan is field-for-field the record they would have read off
+  // an accepted one — the refusal changes what they may DO, never what they are
+  // told. Anything less and "already checked in" is a dead end: the guard
+  // cannot see when, or who the visitor is here to meet, or whether the person
+  // in front of them is even the right one.
+  const handleBlocked = useCallback(async (visit: Visit, reason: string) => {
+    const [withHost] = await attachHostNames([visit]);
+    setBlocked({ match: visitToMatchItem(withHost ?? visit), reason });
+    setMatch(null);
   }, []);
 
   const handleConfirm = useCallback(async () => {
@@ -76,9 +96,13 @@ export default function GuardScanPass(): React.ReactElement {
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
         <div>
           <h1 className="font-display text-xl font-bold text-navy-950 dark:text-white">Scan Pass</h1>
-          <p className="text-sm text-navy-500 dark:text-navy-400 mt-0.5">Scan a visitor's entry pass to check them in — or find them by name or mobile number.</p>
+          {/* Client copy, verbatim (2026-08-17). It replaced a longer line that
+              described the two routes; this one NAMES them as the two things
+              the guard may do here, which is what the tab needed once the
+              camera stopped opening by itself. */}
+          <p className="text-sm text-navy-500 dark:text-navy-400 mt-0.5">Scan the QR code of the visitor pass or search it.</p>
         </div>
-        {!match && <ScanPassSearchBar onQueryChange={setQuery} />}
+        {!match && !blocked && <ScanPassSearchBar onQueryChange={setQuery} />}
       </div>
 
       {successMsg && (
@@ -89,7 +113,26 @@ export default function GuardScanPass(): React.ReactElement {
         </div>
       )}
 
-      {match ? (
+      {blocked ? (
+        /* The record, then the refusal — in that order. A guard holding a
+           scanner is identifying a person first and adjudicating second, and a
+           red bar with no name under it cannot be checked against anybody.
+           The same summary the accepted path renders, with no photo step and no
+           Check In button, because the one thing this scan may not do is admit
+           them. */
+        <div className="max-w-lg mx-auto space-y-4 animate-fade-in">
+          <div className="bg-white dark:bg-white/[0.06] rounded-2xl p-5 shadow-sm border border-surface-100 dark:border-white/[0.07] space-y-4">
+            <CheckInVisitorSummary match={blocked.match} />
+            <div className="rounded-xl bg-danger-50 border border-danger-200 dark:border-danger-500/25 px-4 py-3">
+              <p className="text-sm font-bold text-danger-700">Cannot check this pass in</p>
+              <p className="text-sm text-danger-700/90 mt-0.5">{blocked.reason}</p>
+            </div>
+            <button type="button" onClick={backToScanner} className="btn-secondary w-full py-2.5 text-sm">
+              Scan another pass
+            </button>
+          </div>
+        </div>
+      ) : match ? (
         <CheckInPhotoStep
           selectedMatch={match}
           photoBlob={photoBlob}
@@ -118,7 +161,18 @@ export default function GuardScanPass(): React.ReactElement {
               returns are non-actionable unless the pass is genuinely honourable
               today. Renders nothing until a search is submitted. */}
           <ScanPassLookup query={query} onSelect={setMatch} />
-          <GuardQRScan onResolved={(v) => void handleResolved(v)} onCancel={() => navigate('/guard/pre-approvals')} />
+          {/* autoStart={false}: this is a TAB, not a modal somebody pressed
+              Scan to open, and it is the search desk as well. The camera used
+              to come on the moment the tab was clicked — webcam light and a
+              live picture of the guard — for the very common case of looking
+              a visitor up by mobile number. Nothing acquires the device until
+              they press Scan QR code. */}
+          <GuardQRScan
+            autoStart={false}
+            onResolved={(v) => void handleResolved(v)}
+            onBlocked={(v, reason) => void handleBlocked(v, reason)}
+            onCancel={() => navigate('/guard/pre-approvals')}
+          />
         </div>
       )}
     </div>

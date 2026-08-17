@@ -11,13 +11,16 @@ describe('S1/S2a: visit lifecycle', () => {
     expect(canTransition('checked_in', 'checked_out')).toBe(true);
   });
 
-  // Migration 080: the approver ADMITS the walk-in in the same act as the
-  // decision, so this edge is now legal — it is not "skipping approval", it is
-  // the approval. What must stay impossible is reaching `checked_in` without
-  // anybody having decided, which is the `rejected` case just below and the
-  // `no_show` case further down.
-  it('the approver can admit a walk-in in the same act as the decision', () => {
-    expect(canTransition('pending_approval', 'checked_in')).toBe(true);
+  // Migration 083 (2026-08-17) reverses 080: the approver CLEARS the walk-in,
+  // the guard admits them. The edge is illegal again, and the reason is the
+  // visitor card — the guard's check-in is the only step that collects one, and
+  // 080's shortcut skipped it, leaving the card-return gate with nothing to
+  // demand back at check-out. The host's yes has to land in `walkin_approved`
+  // and wait for the gate.
+  it('the approver cannot admit a walk-in — only clear it for the gate', () => {
+    expect(canTransition('pending_approval', 'checked_in')).toBe(false);
+    expect(canTransition('pending_approval', 'walkin_approved')).toBe(true);
+    expect(canTransition('walkin_approved', 'checked_in')).toBe(true);
   });
 
   it('rejection is terminal', () => {
@@ -112,12 +115,11 @@ describe('M2-VISIT: edge cases', () => {
     expect(canTransition('approved', 'rejected')).toBe(false);
   });
 
-  // Was "skip approval not allowed". Migration 080 made this the approver's own
-  // shortcut — see the note on the same edge above. The rule it must not weaken
-  // is that an UNDECIDED or REFUSED visit can never reach the gate, which the
-  // rejected/no_show cases in this block still pin.
-  it('pending → checked_in IS valid — it is the approver admitting them', () => {
-    expect(canTransition('pending_approval', 'checked_in')).toBe(true);
+  // "Skip approval not allowed", restored. It briefly became legal as 080's
+  // approver shortcut and migration 083 removed it again — see the note on the
+  // same edge above. The rule: an UNDECIDED visit can never reach the gate.
+  it('pending → checked_in is NOT valid — nobody has cleared them yet', () => {
+    expect(canTransition('pending_approval', 'checked_in')).toBe(false);
   });
 
   it('rejected → rejected (same state) is NOT valid — no no-op transitions', () => {

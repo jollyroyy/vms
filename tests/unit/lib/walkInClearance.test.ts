@@ -120,14 +120,15 @@ describe('the three lanes answer with one rule', () => {
   });
 });
 
-describe('the client state machine mirrors migration 080', () => {
-  it('allows the approver to admit a walk-in in one act', () => {
-    expect(canTransition('pending_approval', 'checked_in')).toBe(true);
+describe('the client state machine mirrors migration 083', () => {
+  // The one-act shortcut was 080's and is gone. `walkin_approved` is not a
+  // legacy holding pen any more — it is where every cleared walk-in waits for
+  // the guard to hand over a card and stamp them in.
+  it('refuses to let the approver admit a walk-in in one act', () => {
+    expect(canTransition('pending_approval', 'checked_in')).toBe(false);
   });
 
-  // 080 explicitly does NOT retire the holding state — live rows sit in it and
-  // /visitors/approved still admits them.
-  it('still allows the two-step route through walkin_approved', () => {
+  it('routes every cleared walk-in through walkin_approved', () => {
     expect(canTransition('pending_approval', 'walkin_approved')).toBe(true);
     expect(canTransition('walkin_approved', 'checked_in')).toBe(true);
   });

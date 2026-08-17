@@ -31,6 +31,8 @@ export function visitToMatchItem(visit: Visit & { approvedAt?: string | null }):
     // the scan path must report the same fact the search path does.
     dueToday: isDueToday(visit),
     status: visit.status,
+    checkedInAt: visit.checked_in_at,
+    checkedOutAt: visit.checked_out_at,
     visitId: visit.id,
     // The QR itself encodes nothing but an opaque token. These come from the
     // visit row the token resolved to, and are what the guard checks the person

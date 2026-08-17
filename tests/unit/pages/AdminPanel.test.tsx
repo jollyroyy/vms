@@ -7,7 +7,9 @@ import React from 'react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, cleanup, waitFor, within, fireEvent } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
-import AdminPanel from '../../../src/pages/Admin/AdminPanel';
+// AdminPanel.tsx is DELETED (2026-08-17); its content is the Roles & Users
+// section of admin Settings — moved, not rebuilt.
+import SettingsRolesUsers from '../../../src/pages/Admin/SettingsRolesUsers';
 import type { Department, Profile } from '../../../src/types/index';
 
 /* â”€â”€â”€ Mocks â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
@@ -85,7 +87,7 @@ beforeEach(() => {
 
 afterEach(cleanup);
 
-const renderPanel = () => render(<MemoryRouter><AdminPanel /></MemoryRouter>);
+const renderPanel = () => render(<MemoryRouter><SettingsRolesUsers /></MemoryRouter>);
 const setValue = (el: Element, value: string) => fireEvent.change(el, { target: { value } });
 
 /** Fills and submits the "add department" form. */
@@ -98,9 +100,11 @@ function submitNewDepartment(name: string, code: string) {
 /* â”€â”€â”€ Page shell â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 describe('AdminPanel â€” page shell', () => {
-  it('renders the page heading', () => {
+  // No heading of its own: the Settings page above it is titled and the sidebar
+  // item says it too. The old AdminPanel page header did not come across.
+  it('renders no page heading of its own', () => {
     renderPanel();
-    expect(screen.getByRole('heading', { name: /admin/i, level: 1 })).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { level: 1 })).not.toBeInTheDocument();
   });
 
   it('does NOT expose a Users tab or a Blacklist tab (removed)', () => {
@@ -111,10 +115,15 @@ describe('AdminPanel â€” page shell', () => {
     expect(screen.queryByText(/invite new user/i)).not.toBeInTheDocument();
   });
 
-  it('does not render any visitor data or visitor links', () => {
+  // Asserted on LINKS, not on the word: the blurb says an HOD "approves their
+  // visitors", which is prose about the role, not a visitor record. The rule is
+  // that user administration never becomes a second route into visitor data.
+  it('renders no link into any visitor surface', () => {
     h.departments = [dept()];
-    renderPanel();
-    expect(screen.queryByText(/visitors/i)).not.toBeInTheDocument();
+    const { container } = renderPanel();
+    for (const href of ['/visitors', '/whos-inside', '/kiosk', '/admin/visitors-log']) {
+      expect(container.querySelector(`a[href="${href}"]`)).toBeNull();
+    }
   });
 });
 

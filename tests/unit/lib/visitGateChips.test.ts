@@ -30,13 +30,15 @@ describe('gateChips — presence', () => {
     expect(presence(visit({ status: 'checked_in' })).label).toBe('Checked in');
   });
 
-  // Since migration 080 the approver's click IS the admission, which is why
-  // TILE_FILTER.checked counts these rows. A row counted as admitted must not
-  // report itself as something else.
-  it('says Checked in for a host-cleared walk-in the desk never stamped', () => {
+  // Migration 083 (2026-08-17). This read "Checked in" for the one day 080's
+  // shortcut made the approver's click the admission. The admission is the
+  // guard's again, so a cleared walk-in is a visitor the host said yes to who
+  // is still outside — and must never be toned as inside, because that tone is
+  // what the fire-marshal list is read off.
+  it('says Awaiting entry for a host-cleared walk-in still at the gate', () => {
     const chip = presence(visit({ status: 'walkin_approved', checked_in_at: null }));
-    expect(chip.label).toBe('Checked in');
-    expect(chip.tone).toBe('inside');
+    expect(chip.label).toBe('Awaiting entry');
+    expect(chip.tone).not.toBe('inside');
   });
 
   // The one distinction that survives: a visitor who has left is not on site,

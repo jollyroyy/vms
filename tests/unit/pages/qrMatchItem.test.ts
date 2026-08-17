@@ -68,12 +68,32 @@ describe('visitToMatchItem', () => {
       approvedAt: '2026-08-01T08:00:00Z',
       scheduledFor: '2026-08-01T10:00:00Z',
       dueToday: true,
+      // Both null on an approved-but-not-arrived pass, which is the ordinary
+      // scan. They carry the answer on the RE-scan, where the guard has to be
+      // told when this pass was already used rather than just that it was.
+      checkedInAt: null,
+      checkedOutAt: null,
       visitId: 'visit-1',
       photoUrl: null,
       idType: null,
       idLast4: null,
       refNumber: 'VMS-2026-0001',
     });
+  });
+
+  // The scan the guard did not expect: a pass held up a second time. The gate
+  // refuses it either way, but `ScanPass` now renders the record behind the
+  // refusal, and these two fields are what turn "already checked in" into
+  // something the guard can act on.
+  it('carries the arrival and departure stamps off a spent pass', () => {
+    const item = visitToMatchItem(makeVisit({
+      status: 'checked_out',
+      checked_in_at: '2026-08-01T09:00:00Z',
+      checked_out_at: '2026-08-01T11:30:00Z',
+    }));
+    expect(item.checkedInAt).toBe('2026-08-01T09:00:00Z');
+    expect(item.checkedOutAt).toBe('2026-08-01T11:30:00Z');
+    expect(item.status).toBe('checked_out');
   });
 
   it('maps walkin_approved status to the walk_in type of visitor', () => {

@@ -1,8 +1,7 @@
 // CHECK for goal.md SEC-7 — Frontend route protection.
 //
-// Imports ROLE_ROUTES and isForbidden from the SAME source used by ProtectedRoute in App.tsx.
-// This guarantees that passing tests mean the actual component enforces the correct rules.
-// If ROLE_ROUTES changes in roleRoutes.ts, these tests automatically reflect the change.
+// Imports ROLE_ROUTES and isForbidden from the SAME source ProtectedRoute uses in
+// App.tsx, so a passing test means the real component enforces the rule.
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import React from 'react';
@@ -122,7 +121,8 @@ describe('SEC-7: frontend route protection', () => {
     });
     // Analytics is admin-only since 2026-08-15 (client instruction). Removed
     // from ROLE_ROUTES.hod, not just from the sidebar, so the URL is refused.
-    it('hod is FORBIDDEN on /analytics (admin-only surface)', () => {
+    // Admin-only from 2026-08-15; DELETED outright 2026-08-17.
+    it('hod is FORBIDDEN on /analytics (the page was deleted)', () => {
       expect(isForbidden('/analytics', role)).toBe(true);
     });
     it('hod is FORBIDDEN on /admin', () => {
@@ -154,36 +154,7 @@ describe('SEC-7: frontend route protection', () => {
     });
   });
 
-  // ── Admin ──────────────────────────────────────────────────
-  describe('admin', () => {
-    const role = 'admin' as const;
-
-    it('admin is allowed on /admin', () => {
-      expect(isForbidden('/admin', role)).toBe(false);
-    });
-    it('admin is FORBIDDEN on /guard', () => {
-      expect(isForbidden('/guard', role)).toBe(true);
-    });
-    it('admin is FORBIDDEN on /approvals', () => {
-      expect(isForbidden('/approvals', role)).toBe(true);
-    });
-    it('admin is allowed on /reports', () => {
-      expect(isForbidden('/reports', role)).toBe(false);
-    });
-    it('admin is allowed on /analytics', () => {
-      expect(isForbidden('/analytics', role)).toBe(false);
-    });
-    it('admin is FORBIDDEN on /visitors (visitor data access removed — settings/reports/analytics only)', () => {
-      expect(isForbidden('/visitors', role)).toBe(true);
-    });
-    it('admin is FORBIDDEN on /whos-inside (visitor data access removed — settings/reports/analytics only)', () => {
-      expect(isForbidden('/whos-inside', role)).toBe(true);
-    });
-    it('admin is FORBIDDEN on /kiosk (visitor data access removed — settings/reports/analytics only)', () => {
-      expect(isForbidden('/kiosk', role)).toBe(true);
-    });
-  });
-
+  // ADMIN block: see routeProtectionAdmin.test.tsx (2026-08-17).
   // ── Deleted gate-pass feature ──────────────────────────────
   // The standalone gate-pass module (Guard/GatePassQueue, Shared/GatePassList,
   // Shared/GatePassForm and their routes) was removed from App.tsx. ROLE_ROUTES
@@ -208,14 +179,13 @@ describe('SEC-7: frontend route protection', () => {
     // true and isForbidden returns false for the guard role on this exact
     // path — the frontend sign-out gate in ProtectedRoute does NOT trigger.
     // This is not a data-exposure hole: App.tsx no longer registers a <Route>
-    // for '/guard/gate-passes' at all, so React Router falls through to the
+    // for '/guard/gate-passes', so React Router falls through to the
     // catch-all `<Route path="*" element={<NotFoundPage />} />` regardless of
-    // role. But it IS a gap in the isForbidden() prefix model worth flagging:
-    // any now-deleted sub-path of an allowed prefix (e.g. anything starting
-    // with '/guard', '/visitors', '/reports', '/analytics') is silently
+    // role. It IS a gap in the isForbidden() prefix model worth flagging:
+    // any now-deleted sub-path of an allowed prefix (e.g. anything under
+    // '/guard', '/visitors' or '/reports') is silently
     // "allowed" by this function even though no such route exists anymore.
-    // Document the current (safe-by-router, not safe-by-isForbidden) behavior
-    // explicitly instead of leaving it uncovered:
+    // Documented rather than left uncovered:
     it("guard's own '/guard' prefix makes isForbidden() return false for the now-deleted /guard/gate-passes path (safety comes from App.tsx's catch-all NotFoundPage route, not from isForbidden)", () => {
       expect(isForbidden('/guard/gate-passes', 'guard')).toBe(false);
     });

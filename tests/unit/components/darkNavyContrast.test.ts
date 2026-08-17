@@ -87,12 +87,20 @@ const KNOWN_VIOLATIONS = new Set([
   '/DailyVisitors.tsx:138',
   '/DemoDataPanel.tsx:67', '/DemoDataPanel.tsx:75', '/DemoDataPanel.tsx:102',
   '/DocumentSign.tsx:107',
-  '/layout/Sidebar.tsx:91', '/layout/Sidebar.tsx:149', '/layout/Sidebar.tsx:165',
-  '/layout/SidebarAnalytics.tsx:53', '/layout/SidebarAnalytics.tsx:64',
+  // Shifted 91/149/165 -> 88/150/166 on 2026-08-17: the admin console rebuild
+  // deleted the sidebar's live-analytics widget, which moved the lines around
+  // it. The call sites themselves are unchanged.
+  '/layout/Sidebar.tsx:88', '/layout/Sidebar.tsx:150', '/layout/Sidebar.tsx:166',
+  // SidebarAnalytics.tsx is DELETED (2026-08-17) — two entries left the
+  // baseline with it. That is the list shrinking, which is the direction this
+  // guard wants.
   '/layout/SidebarProfile.tsx:51', '/layout/SidebarProfile.tsx:75',
   '/PhotoCapture.tsx:134',
   '/SessionTimeout.tsx:104',
-  '/VisitorDetailsTimeline.tsx:55',
+  // Moved 55 -> 72 on 2026-08-17 when the timeline's single `showTimestamps`
+  // gate was split into `showAudit` / `showArrival`. Same line of markup, same
+  // grandfathered violation — only its line number changed.
+  '/VisitorDetailsTimeline.tsx:86',
 ]);
 
 describe('src/components/** — no inverted dark:text-navy pair', () => {
