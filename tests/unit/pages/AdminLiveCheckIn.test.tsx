@@ -4,8 +4,8 @@ import { render, screen, cleanup, fireEvent, within } from '@testing-library/rea
 import AdminLiveCheckIn from '../../../src/pages/Admin/AdminLiveCheckIn';
 
 // AdminLiveCheckIn is the admin's read-only mirror of the guard's Entry & Exit
-// tab: one `useAdminVisits({ kind: 'today' })` fetch and three lanes (Inside /
-// Checked Out / Awaiting Approval) over the same array. Mocking the hook
+// tab: one `useAdminVisits({ kind: 'today' })` fetch and four lanes (Expected /
+// Inside / Checked Out / Awaiting Approval) over the same array. Mocking the hook
 // directly — the pattern EntryExitTab.test.tsx uses for `useGateActivity` —
 // keeps this suite about what the page composes, not about the supabase query
 // chain.
@@ -93,6 +93,23 @@ function pendingVisit(over: Record<string, any> = {}): any {
   };
 }
 
+// TODAY'S PRE-APPROVAL THAT HAS NOT ARRIVED — the Expected lane, which is the
+// whole of what the merged-away Pre-Registration tab had that nothing else
+// said (client instruction, 2026-08-18). `isPreRegisteredArrival` is the
+// guard's own predicate, so this row is on the gate's Pre-Registered board at
+// the same moment.
+function expectedVisit(over: Record<string, any> = {}): any {
+  return {
+    id: 'v-exp', ref_number: 'VIS-4', status: 'approved',
+    checked_in_at: null, checked_out_at: null,
+    created_at: '2026-08-16T05:00:00Z', scheduled_for: '2026-08-17T10:00:00Z',
+    purpose: 'interview', qr_token: 't4',
+    visitor: { full_name: 'Meera Shah', vendor_name: 'Shah & Co' },
+    host: { full_name: 'K. Bose' }, department: { name: 'HR' },
+    ...over,
+  };
+}
+
 describe('AdminLiveCheckIn', () => {
   afterEach(() => { mockVisits.current = { visits: [], loading: false }; });
 
@@ -101,6 +118,42 @@ describe('AdminLiveCheckIn', () => {
     expect(screen.getByRole('heading', { name: 'Live Check-In' })).toBeInTheDocument();
     expect(screen.getByText('Live')).toBeInTheDocument();
     expect(screen.queryByText('Historical')).toBeNull();
+    // NO BLURB (client instruction, 2026-08-18) — the lanes name themselves.
+    expect(screen.queryByText(/gate is handling right now/i)).toBeNull();
+  });
+
+  // PRE-REGISTRATION MERGED IN HERE (client instruction, 2026-08-18). A booked
+  // visitor who has not walked in is a person the gate is waiting for, which is
+  // what this roster is a roster of; the old tab's ranged history of every
+  // booking ever made is the Reports register's job.
+  it('lists today’s un-arrived pre-approvals on their own Expected lane', () => {
+    mockVisits.current = { visits: [expectedVisit(), insideVisit()], loading: false };
+    render(<AdminLiveCheckIn />);
+    // Not on the default (Inside) lane — that visitor has not arrived.
+    expect(screen.queryByText('Meera Shah')).toBeNull();
+    fireEvent.click(screen.getByRole('tab', { name: /Expected/i }));
+    expect(screen.getByText('Meera Shah')).toBeInTheDocument();
+    expect(screen.queryByText('Aarav Mehta')).toBeNull();
+  });
+
+  it('gives the Expected lane its own empty state', () => {
+    render(<AdminLiveCheckIn />);
+    fireEvent.click(screen.getByRole('tab', { name: /Expected/i }));
+    expect(screen.getByText('Nobody is booked in for the rest of today.')).toBeInTheDocument();
+  });
+
+  // A visitor who has arrived is the Inside lane's subject and leaves this one
+  // — the same one-visitor-on-one-surface rule the guard's board follows.
+  it('drops a pre-approval from Expected the moment it is checked in', () => {
+    mockVisits.current = {
+      visits: [expectedVisit({ status: 'checked_in', checked_in_at: '2026-08-17T05:00:00Z' })],
+      loading: false,
+    };
+    render(<AdminLiveCheckIn />);
+    fireEvent.click(screen.getByRole('tab', { name: /Expected/i }));
+    expect(screen.queryByText('Meera Shah')).toBeNull();
+    fireEvent.click(screen.getByRole('tab', { name: /^Inside/i }));
+    expect(screen.getByText('Meera Shah')).toBeInTheDocument();
   });
 
   it('shows the Inside lane empty state by default', () => {
@@ -178,11 +231,11 @@ describe('AdminLiveCheckIn', () => {
 
   it('each lane shows its own count on its own tab, including the pending one', () => {
     mockVisits.current = {
-      visits: [insideVisit(), departedVisit(), pendingVisit()],
+      visits: [expectedVisit(), insideVisit(), departedVisit(), pendingVisit()],
       loading: false,
     };
     render(<AdminLiveCheckIn />);
-    for (const name of [/Inside/i, /Checked Out/i, /Awaiting Approval/i]) {
+    for (const name of [/Expected/i, /^Inside/i, /Checked Out/i, /Awaiting Approval/i]) {
       expect(within(screen.getByRole('tab', { name })).getByText('1')).toBeInTheDocument();
     }
   });

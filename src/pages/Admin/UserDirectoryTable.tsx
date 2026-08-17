@@ -34,14 +34,14 @@ export default function UserDirectoryTable({
     <div className="overflow-x-auto rounded-2xl border border-surface-200/60 dark:border-white/[0.07]">
       <table className="w-full text-sm">
         <thead>
-          <tr className="text-left text-xs uppercase tracking-wide text-navy-700 bg-surface-100/60 dark:bg-white/[0.03]">
-            <th scope="col" className="px-4 py-3 font-semibold">Name</th>
-            <th scope="col" className="px-4 py-3 font-semibold">Email</th>
-            <th scope="col" className="px-4 py-3 font-semibold">Role</th>
-            <th scope="col" className="px-4 py-3 font-semibold">Status</th>
-            <th scope="col" className="px-4 py-3 font-semibold">Department</th>
-            <th scope="col" className="px-4 py-3 font-semibold">Added</th>
-            <th scope="col" className="px-4 py-3 font-semibold text-right">Actions</th>
+          <tr className="table-head">
+            <th scope="col" className="px-4 py-3 font-bold">Name</th>
+            <th scope="col" className="px-4 py-3 font-bold">Email</th>
+            <th scope="col" className="px-4 py-3 font-bold">Role</th>
+            <th scope="col" className="px-4 py-3 font-bold">Status</th>
+            <th scope="col" className="px-4 py-3 font-bold">Department</th>
+            <th scope="col" className="px-4 py-3 font-bold">Added</th>
+            <th scope="col" className="px-4 py-3 font-bold text-right">Actions</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-surface-200/60 dark:divide-white/[0.07]">

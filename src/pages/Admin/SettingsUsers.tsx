@@ -20,12 +20,18 @@ import { isAccountActive } from '../../lib/userStatus';
 // One in-flight id covers deactivate and reactivate, because a row can only
 // ever offer one of the two.
 
-type Filter = 'all' | 'guard' | 'hod' | 'staff' | 'suspended';
+// One chip per assignable role, plus All and Suspended. Senior Manager gets its
+// OWN filter rather than being folded in with HODs (2026-08-18): the two share
+// every permission, but the reason the role exists is that an admin needs to
+// see which departments are headed by which title, and a filter that answered
+// "HODs" with a mixed list would take that answer away.
+type Filter = 'all' | 'guard' | 'hod' | 'senior_manager' | 'staff' | 'suspended';
 
 const FILTERS: { key: Filter; label: string }[] = [
   { key: 'all', label: 'All' },
   { key: 'guard', label: 'Guards' },
   { key: 'hod', label: 'HODs' },
+  { key: 'senior_manager', label: 'Senior Managers' },
   { key: 'staff', label: 'Staff' },
   { key: 'suspended', label: 'Suspended' },
 ];

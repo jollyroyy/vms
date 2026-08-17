@@ -13,18 +13,22 @@ type Props = { kpis: AdminKpis; loading: boolean };
 
 // The dashboard's six tiles, in the reference screen's order.
 //
-// EVERY CAPTION EITHER STATES A COMPARISON OR NAMES WHAT THE FIGURE IS OF.
-// Where the comparison cannot be made — yesterday was zero, nothing was
-// measured, nobody has rated a visit — the caption says so in words rather than
-// printing a plausible-looking number. A dashboard tile is the shortest thing
-// on the screen and therefore the most likely to be quoted onward, so a figure
-// here that the system cannot stand behind travels further than one anywhere
-// else.
+// NO TILE COMPARES ITSELF WITH YESTERDAY (client instruction, 2026-08-18: "too
+// much clutter"). Total Visitors used to carry an arrow and a percentage, and
+// on the days the comparison could not be made — yesterday was zero — it
+// carried a sentence explaining that instead. Three states of caption, on a
+// card whose job is to say one number. A trend is a chart's answer and the
+// Visitor Flow chart is four inches below; what a tile owes the reader is what
+// the figure IS OF, and nothing else.
+//
+// EVERY CAPTION NOW NAMES WHAT THE FIGURE IS OF. Where there is no figure —
+// nothing was measured, nobody has rated a visit — the tile says so in words
+// rather than printing a plausible-looking zero. A dashboard tile is the
+// shortest thing on the screen and therefore the most likely to be quoted
+// onward, so a figure here that the system cannot stand behind travels further
+// than one anywhere else.
 
 export default function AdminDashboardKpis({ kpis, loading }: Props): React.ReactElement {
-  const change = kpis.changeVsYesterday;
-  const arrow = change === null ? '' : change > 0 ? '↗ ' : change < 0 ? '↘ ' : '';
-
   return (
     // Six across only from 2xl. At xl the content area (sidebar plus page
     // padding gone) leaves each of six cards around 165px, which is narrower
@@ -37,10 +41,7 @@ export default function AdminDashboardKpis({ kpis, loading }: Props): React.Reac
         icon={ICON_PEOPLE}
         tone="brand"
         loading={loading}
-        captionToned={change !== null && change !== 0}
-        caption={change === null
-          ? 'No arrivals yesterday to compare'
-          : `${arrow}${Math.abs(change)}% vs yesterday`}
+        caption="Arrivals through the gate today"
       />
 
       <AdminKpiTile
@@ -49,7 +50,7 @@ export default function AdminDashboardKpis({ kpis, loading }: Props): React.Reac
         icon={ICON_CHECK_CIRCLE}
         tone="success"
         loading={loading}
-        caption="Live in facility"
+        caption="On site right now"
       />
 
       <AdminKpiTile

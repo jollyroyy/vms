@@ -4,6 +4,10 @@ import type { VisitActor } from './visitActors';
 const ROLE_LABELS: Record<string, string> = {
   guard: 'Guard',
   hod: 'Person to Meet',
+  // Same phrase as an HOD, and deliberately so: this label names the actor's
+  // relationship to the VISITOR, not their rank. Falling through to the raw
+  // `senior_manager` would have printed a snake_case enum on a visitor's row.
+  senior_manager: 'Person to Meet',
   admin: 'Admin',
   super_admin: 'Admin',
   staff: 'Staff',

@@ -11,6 +11,7 @@ import { istDateKey } from '../../lib/visitExpiry';
 import type { ReportVisit } from '../../lib/reportRow';
 import { ALL_DEPTS, deptOptions, filterVisitsByDept } from '../../lib/reportsDeptFilter';
 import ReportsToolbar from './ReportsToolbar';
+import ReportsAdminBar from './ReportsAdminBar';
 import ReportsDeptFilter from './ReportsDeptFilter';
 import ReportsAnalytics from './ReportsAnalytics';
 import ReportsDownloadCards from './ReportsDownloadCards';
@@ -50,9 +51,9 @@ export default function ReportsPage(): React.ReactElement {
   // filter is offered at all — an HOD locked to their own department has
   // nothing to pick between, so showing them a picker would be a lie.
   const deptScoped = Boolean(userDeptId && userRole && !['admin', 'guard'].includes(userRole));
-  // Three things hang off this: the analytics band and the download cards are
-  // an admin's, and the register below is NOT an admin's — it lives on the
-  // Visitors Log tab, which only this role can reach.
+  // Two things hang off this: the analytics band and the download cards are an
+  // admin's alone, and an admin gets the console's own range bar in place of
+  // this page's toolbar. The REGISTER is everybody's again — see below.
   const isAdmin = userRole === 'admin';
 
   const load = useCallback(async () => {
@@ -138,34 +139,45 @@ export default function ReportsPage(): React.ReactElement {
         </>
       )}
 
-      <ReportsToolbar
-        date={date}
-        today={today}
-        onDateChange={setDate}
-        preset={preset}
-        onPresetChange={setPreset}
-        visits={shown}
-        filenameSuffix={filenameSuffix}
-        showRegisterActions={!isAdmin}
-      />
-
-      {/* THE REGISTER IS NOT DRAWN FOR AN ADMIN (client instruction, 2026-08-17):
-          the same rows, the same redaction seam, the same CSV and now the same
-          department filter and printout are on the Visitors Log tab, and one
-          register read off two screens is one register that can disagree with
-          itself. An HOD and staff keep it — /admin/visitors-log is admin-only,
-          so it is the only visit list those two roles have. */}
-      {!isAdmin && (
-        <ReportsRegister
-          shown={shown}
-          total={visits.length}
-          activeDept={activeDept}
-          rangeLabel={rangeLabel}
-          from={range.from}
-          to={range.to}
-          loading={loading}
+      {isAdmin ? (
+        <ReportsAdminBar
+          preset={preset}
+          date={date}
+          today={today}
+          onPresetChange={setPreset}
+          onDateChange={setDate}
+          visits={shown}
+          filenameSuffix={filenameSuffix}
+        />
+      ) : (
+        <ReportsToolbar
+          date={date}
+          today={today}
+          onDateChange={setDate}
+          preset={preset}
+          onPresetChange={setPreset}
+          visits={shown}
+          filenameSuffix={filenameSuffix}
         />
       )}
+
+      {/* THE REGISTER IS DRAWN FOR EVERY ROLE AGAIN (client instruction,
+          2026-08-18: merge the Visitors Log tab into Reports, keep the reports
+          part). It came off this page in the first place because the admin had
+          a second copy of it on that tab; with the tab gone the reason went
+          with it, and the alternative — an admin console whose report page
+          holds charts, four CSV bundles and no visits — would have been the
+          only surface in the app that summarises rows it will not show you.
+          One register, one `shown`, one redaction seam, one printout. */}
+      <ReportsRegister
+        shown={shown}
+        total={visits.length}
+        activeDept={activeDept}
+        rangeLabel={rangeLabel}
+        from={range.from}
+        to={range.to}
+        loading={loading}
+      />
     </div>
   );
 }

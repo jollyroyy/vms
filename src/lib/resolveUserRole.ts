@@ -7,7 +7,7 @@ import type { UserRole } from '../types/index';
 // not a cosmetic gap. `satisfies` makes that a compile error rather than a
 // support call: `ceo` (migration 090) had to be added here as well as to the
 // type.
-const ROLES = ['guard', 'hod', 'staff', 'admin', 'ceo'] as const satisfies readonly UserRole[];
+const ROLES = ['guard', 'hod', 'senior_manager', 'staff', 'admin', 'ceo'] as const satisfies readonly UserRole[];
 
 export const isUserRole = (value: unknown): value is UserRole =>
   (ROLES as readonly string[]).includes(value as string);

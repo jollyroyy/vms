@@ -74,17 +74,21 @@ function renderSidebar(role: UserRole, initialEntries: string[] = ['/'], collaps
 }
 
 describe('Sidebar navigation links per role', () => {
-  // The eight-tab admin console (2026-08-17, client instruction). Analytics and
-  // Badge Printing are asserted ABSENT: both pages were deleted outright, so a
-  // link reappearing would point at a route that 404s.
-  it('admin sees the eight console tabs and no Analytics or Badge Printing link', () => {
+  // The SIX-tab admin console (2026-08-18, client instruction: merge
+  // Pre-Registration into Live Check-In and Visitors Log into Reports).
+  // Analytics and Badge Printing are asserted absent because those pages were
+  // deleted outright; the two merged tabs are absent because their paths are
+  // now redirects, and a nav item pointing at a bounce is worse than no item.
+  it('admin sees the six console tabs and no deleted or merged-away link', () => {
     renderSidebar('admin');
-    for (const label of ['Dashboard', 'Live Check-In', 'Pre-Registration', 'Visitors Log',
+    for (const label of ['Dashboard', 'Live Check-In',
       'Hosts', 'Blacklist & Security', 'Reports', 'Settings']) {
       expect(screen.getByText(label)).toBeInTheDocument();
     }
     expect(screen.queryByText('Analytics')).not.toBeInTheDocument();
     expect(screen.queryByText('Badge Printing')).not.toBeInTheDocument();
+    expect(screen.queryByText('Pre-Registration')).not.toBeInTheDocument();
+    expect(screen.queryByText('Visitors Log')).not.toBeInTheDocument();
     expect(screen.queryByText('Approvals')).not.toBeInTheDocument();
     expect(screen.queryByText('Self-Service Kiosk')).not.toBeInTheDocument();
     expect(screen.queryByText('Daily Staff')).not.toBeInTheDocument();
@@ -94,11 +98,12 @@ describe('Sidebar navigation links per role', () => {
   // Each nav link renders as a single <a class="sidebar-link ...">. The mobile
   // drawer is not rendered by default (mobileOpen starts false), so only the
   // desktop <aside> tree contributes matches here.
-  // Eight since Badge Printing was deleted (2026-08-17, client instruction).
-  it('admin sidebar has exactly 8 nav links', () => {
+  // Six since the 2026-08-18 merges (was eight; Badge Printing took it from
+  // nine on 2026-08-17).
+  it('admin sidebar has exactly 6 nav links', () => {
     const { container } = renderSidebar('admin');
     const links = container.querySelectorAll('a.sidebar-link');
-    expect(links.length).toBe(8);
+    expect(links.length).toBe(6);
   });
 
   // The guard's Visitors nav item was removed outright 2026-08-15 (client
@@ -142,15 +147,15 @@ describe('Sidebar navigation links per role', () => {
 
   // Every guard nav item is a single <a> (2026-08-13): the segments that used
   // to expand under a group button live on the page as KPI tiles
-  // (VisitorKpiRail), not in the sidebar. FOUR since 2026-08-18: Pre-Registered
-  // went, its board being the dashboard's Expected Today panel from the same
-  // predicate on a screen that can also act. No item is a group, so no click
-  // ever reveals a <button> in this nav.
-  it('guard sidebar has exactly 4 nav links and no group button', () => {
+  // (VisitorKpiRail), not in the sidebar. FIVE since 2026-08-18: the four short
+  // items plus Pre-Registered, dropped and asked back the same day, whose board
+  // is the dashboard's Expected Today panel from the same predicate. No item is
+  // a group, so no click ever reveals a <button> in this nav.
+  it('guard sidebar has exactly 5 nav links and no group button', () => {
     renderSidebar('guard');
     const links = screen.getAllByRole('link').filter((l) => l.className.includes('sidebar-link'));
-    expect(links.length).toBe(4);
-    const navLabels = ['Dashboard', 'Entry & Exit', 'Find & Scan', 'Register Walk-in'];
+    expect(links.length).toBe(5);
+    const navLabels = ['Dashboard', 'Entry & Exit', 'Find & Scan', 'Register Walk-in', 'Pre-Registered'];
     for (const label of navLabels) {
       expect(screen.queryByRole('button', { name: label })).not.toBeInTheDocument();
     }

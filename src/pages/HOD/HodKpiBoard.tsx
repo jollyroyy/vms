@@ -59,11 +59,22 @@ export default function HodKpiBoard({
       <GlanceHeader caption="Your department's visitors today — plus anyone still on site, and any walk-in still waiting on you." />
 
       {/* Seven since check-ins and check-outs joined the board (client
-          instruction, 2026-08-17). Four across at lg keeps the two rows even
-          at 4+3 rather than stranding a single tile on a line of its own; all
-          seven only from 2xl, where a tile still has room for "Awaiting Walk-in
-          Approval" without the label becoming the whole card. */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 2xl:grid-cols-7 gap-4">
+          instruction, 2026-08-17), and NEVER SEVEN ACROSS (2026-08-18, client
+          report: the tile labels could not be read).
+          `2xl:grid-cols-7` was arithmetic that did not survive contact with the
+          longest label. A tile spends 104px before a letter is drawn — `px-5`
+          each side plus the 48px icon plate and its `gap-4` — so at 2xl, where
+          the content column beside the sidebar is ~1230px, seven tiles left
+          about 58px of text column. `break-words` then does what it is for and
+          splits INSIDE the word, so "Pre-Approvals Given" came out stacked as
+          "Pre-/Approva/ls Given": four lines, one of them not a word.
+          Four across is the widest this board goes. It fills 4+3 with no tile
+          stranded alone on a line, and at every step the longest label
+          ("Awaiting Walk-in Approval") wraps only between words. One column on
+          a phone for the same reason — two 172px tiles put the label back under
+          70px — which is also the ladder KpiTile already climbs on the Visitors
+          rail. */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         {HOD_TILE_KEYS.map((key) => (
           <DashboardTile
             key={key}

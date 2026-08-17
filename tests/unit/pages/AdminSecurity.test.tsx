@@ -109,8 +109,17 @@ describe('AdminSecurity', () => {
     expect(screen.getByText('No visitor is currently blacklisted.')).toBeInTheDocument();
     expect(screen.getByText('Nothing needs attention.')).toBeInTheDocument();
     expect(screen.getByText('No entry was denied in this window.')).toBeInTheDocument();
-    // The Watchlist panel never fabricates a row — it says so honestly.
-    expect(screen.getByText(/not recorded separately from the blacklist/i)).toBeInTheDocument();
+  });
+
+  // NO WATCHLIST PANEL (deleted 2026-08-18, client instruction). It could only
+  // ever print a sentence explaining that the Blacklist panel above it is the
+  // whole story — there is no watchlist table in this schema, the same reason
+  // the guard's Watchlist tab went on 2026-08-15. Re-adding one means adding a
+  // table first.
+  it('renders no Watchlist panel at all', () => {
+    renderPage();
+    expect(screen.queryByText('Watchlist')).not.toBeInTheDocument();
+    expect(screen.queryByText(/not recorded separately from the blacklist/i)).not.toBeInTheDocument();
   });
 
   it('renders a blacklisted visitor as an Active row with their reason', () => {

@@ -1,7 +1,8 @@
 import type { Visit } from '../types/index';
 import { istDateKey } from './visitExpiry';
+import { isPreRegisteredArrival } from './preRegisteredBoard';
 
-// The Live Check-In tab's three lanes — one predicate each, `guardTiles.ts`'s
+// The Live Check-In tab's four lanes — one predicate each, `guardTiles.ts`'s
 // rule again: a lane's badge is the length of the list that lane opens, so the
 // number and the rows can never describe different sets.
 
@@ -29,6 +30,34 @@ export function departedOn(v: Visit, dayKey: string): boolean {
 // today's SHAPE (trend against yesterday, hourly flow, purpose split, host
 // ranking); this tab reads today's PEOPLE, by name. Neither states the other's
 // figures.
+
+/**
+ * The Expected lane: today's pre-approvals that have not walked in yet —
+ * which is what the whole Pre-Registration tab was for, folded in here on
+ * client instruction (2026-08-18: merge pre-registration and live check-in,
+ * drop whatever is redundant).
+ *
+ * WHAT WAS REDUNDANT: the tab was a HISTORICAL, ranged read of every booking
+ * ever made, with its own date bar, three KPI tiles, a filter row and a pager
+ * — and the admin's historical read of any visit, booking included, is the
+ * Reports register. A booking that already arrived is in the Inside or Checked
+ * Out lane beside this one; a booking that never did is in Reports, marked
+ * `no_show`. What was left, and had no home, is the one thing this tab exists
+ * to answer: who is the gate still expecting today.
+ *
+ * THE PREDICATE IS THE GUARD'S OWN (`isPreRegisteredArrival`), not a fourth
+ * spelling of it. The guard's Pre-Registered board and Expected Today panel
+ * already run off it, so the admin now watches the same list the gate is
+ * working from — if the membership rule changes it changes in
+ * `lib/preRegisteredBoard.ts` and all three follow.
+ *
+ * Soonest slot first: the top row is the next person through the door.
+ */
+export function expectedLane(visits: Visit[], now: Date = new Date()): Visit[] {
+  return visits
+    .filter((v) => isPreRegisteredArrival(v, now))
+    .sort((a, b) => (a.scheduled_for ?? '').localeCompare(b.scheduled_for ?? ''));
+}
 
 /** The Inside lane: everyone on site right now, oldest arrival first — the
  *  same ordering the guard's Entry & Exit tab uses, and for the same reason:

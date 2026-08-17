@@ -1,0 +1,18 @@
+-- 098 — `senior_manager`, the fifth assignable role (client instruction, 2026-08-18).
+--
+-- A senior manager IS an HOD: same routes, same department scoping, same
+-- walk-in desk, same pre-approval form. What differs is the job title on the
+-- screen and in the user directory, so that a department headed by somebody
+-- who is not called "HOD" can be represented honestly instead of being filed
+-- under a title they do not hold.
+--
+-- THIS FILE DOES ONE THING AND NOTHING ELSE, and that is not tidiness.
+-- `ALTER TYPE ... ADD VALUE` cannot be used by any statement in the same
+-- transaction that adds it, and Supabase applies a migration inside one — the
+-- same trap migrations 090/091/092 were split for. Everything that USES the new
+-- value therefore lives in 099. Apply 098 first; 099 will fail with
+-- "unsafe use of new value" if they are ever merged back together.
+--
+-- `if not exists` makes this idempotent: re-running it is a no-op, never an
+-- error, and the enum's order carries no meaning anywhere in this schema.
+alter type public.user_role add value if not exists 'senior_manager';

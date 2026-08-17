@@ -12,11 +12,11 @@ import type { ReportVisit } from '../../lib/reportRow';
 // whose order must track the header array below — so a second copy of this table
 // anywhere would be a second thing that has to be edited in lockstep with that
 // block, and the failure mode is silent: the paper mis-columns, the screen looks
-// fine. Two surfaces render it:
-//   • `ReportsRegister` — the HOD's and staff's register on `/reports`, on
-//     screen and on paper.
-//   • `RegisterPrintSheet` — the admin's printout on the Visitors Log tab,
-//     paper only (that tab reads its rows through `DashboardVisitorTable`).
+// fine. ONE surface renders it: `ReportsRegister` on `/reports`, for every role
+// that can reach the page, on screen and on paper. `RegisterPrintSheet` was the
+// second — the admin's paper-only copy on the Visitors Log tab — and it went
+// with that tab when it merged into Reports on 2026-08-18, which is the whole
+// point of the merge: one register, one print path, nothing to keep in step.
 //
 // The rows are drawn in `components/DashboardVisitorTable`'s language (client
 // instruction, 2026-08-16) so a report and the board it was read off do not look
@@ -77,9 +77,9 @@ export default function RegisterTable({ rows, empty }: Props): React.ReactElemen
   return (
     <table className="register-table w-full text-sm tabular-nums">
       <thead>
-        <tr className="text-left text-[11px] uppercase tracking-wider text-navy-500 bg-surface-100/50 dark:bg-white/[0.03]">
+        <tr className="table-head">
           {REGISTER_HEADERS.map((h) => (
-            <th key={h} className="px-4 py-3 font-semibold whitespace-nowrap">{h}</th>
+            <th key={h} className="px-4 py-3 font-bold whitespace-nowrap">{h}</th>
           ))}
         </tr>
       </thead>

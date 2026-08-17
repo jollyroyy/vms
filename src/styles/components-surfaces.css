@@ -251,4 +251,29 @@
     box-shadow: var(--shadow-contact), 0 0 0 1px rgb(255 255 255 / 0.05), 0 32px 84px -16px rgb(0 0 0 / 0.65),
                 var(--edge-highlight);
   }
+
+  /* --- Table header row --- */
+  /* THE ONE HEADER ROW STYLE, AND IT IS GOLD (client instruction, 2026-08-18:
+     the headers must stand out from the sub-text beneath them). Every table in
+     this app wears it — the guard's Entry & Exit queue, the shared dashboard
+     panel the guard and HOD boards both render, the admin blacklist roster, the
+     user directory and the 17-column paper register — so a column heading reads
+     the same on every screen, which is the same argument DashboardTile and
+     KpiTile make for the cards above them.
+     It replaces five hand-written copies that had already drifted: four were
+     `text-navy-500`, below the 600 minimum this project sets for anything the
+     eye has to find, one was `text-navy-700`, and one carried a
+     `dark:text-navy-400` override — forbidden, because the navy scale is
+     already inverted per theme. The colour resolves through `--c-gold`, which
+     is defined once per theme in tokens.css, so this class needs no `.dark`
+     twin at all. Set the SIZE and SPACING here too, or the next table to be
+     written picks its own. */
+  .table-head {
+    @apply text-left text-[11px] uppercase tracking-wider font-bold;
+    color: rgb(var(--c-gold));
+    background: rgb(var(--c-surface-100) / 0.5);
+  }
+  .dark .table-head {
+    background: rgb(255 255 255 / 0.03);
+  }
 }

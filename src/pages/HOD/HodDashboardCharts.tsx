@@ -86,6 +86,7 @@ export default function HodDashboardCharts({ visits, now }: Props): React.ReactE
           <UtilizationRows
             headers={['Host', 'Share', 'Visitors']}
             unit="visitors"
+            showShare
             rows={hosts.map((h, i) => ({
               label: h.label,
               value: h.value,

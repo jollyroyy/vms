@@ -25,10 +25,12 @@ import type { ReportVisit } from '../../lib/reportRow';
 // about how many people came in — which is exactly the defect that made the
 // guard dashboard's tile read 1 while its panel listed five.
 //
-// THE WINDOW IS TWO DAYS, not one. The first tile states a change against
-// yesterday, and a comparison needs both sides of itself in the same fetch;
-// pulling yesterday separately would let the two halves of one sentence be
-// loaded at different moments and describe different sets.
+// THE WINDOW IS TWO DAYS, not one — and it stayed two days after the
+// yesterday COMPARISON came off the first tile (client instruction,
+// 2026-08-18). The reason changed, not the query: Currently Inside and
+// Overstays are LIVE figures, and the visitor they are most likely to be about
+// is the one who arrived at 21:00 last night and has not left. A one-day fetch
+// would drop that row and both tiles would quietly under-count the building.
 //
 // NOTHING HERE WRITES. The admin's visitor access is read-only (2026-08-17):
 // the feed opens `VisitorDetails` because reading a record is the point, and
@@ -60,11 +62,12 @@ export default function AdminDashboard(): React.ReactElement {
           Today" each give the word back.
 
           The caption names the two-day fetch rather than claiming a flat
-          "today": the first tile states a change against yesterday, so both
-          days are genuinely on this screen and a reader who sees "Currently
-          Inside" hold somebody who arrived last night has been told why. */}
+          "today", so a reader who sees "Currently Inside" hold somebody who
+          arrived last night has been told why. It no longer says "measured
+          against yesterday": nothing on this screen measures anything against
+          yesterday since the comparison came off the first tile. */}
       <div className="mb-5">
-        <GlanceHeader caption="Arrivals across the site today, measured against yesterday — plus everyone still inside." />
+        <GlanceHeader caption="Arrivals across the site today, plus everyone still inside from earlier." />
       </div>
 
       <AdminDashboardKpis kpis={kpis} loading={loading} />
@@ -114,6 +117,7 @@ export default function AdminDashboard(): React.ReactElement {
           <UtilizationRows
             headers={['Host', 'Share', 'Visitors']}
             unit="visitors"
+            showShare
             rows={hosts.map((h, i) => ({
               label: h.label,
               value: h.value,

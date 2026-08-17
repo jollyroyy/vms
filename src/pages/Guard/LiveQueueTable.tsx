@@ -60,16 +60,16 @@ export default function LiveQueueTable({
     <div className="rounded-xl border border-surface-200/60 dark:border-white/[0.08] overflow-x-auto">
       <table className="w-full text-sm">
         <thead>
-          <tr className="text-left text-[11px] uppercase tracking-wider text-navy-500 dark:text-navy-400 bg-surface-100/50 dark:bg-white/[0.03]">
-            <th className="px-4 py-3 font-semibold">Name</th>
-            <th className="px-4 py-3 font-semibold">Type of Visitor</th>
-            <th className="px-4 py-3 font-semibold">Company</th>
-            <th className="px-4 py-3 font-semibold">Purpose</th>
-            <th className="px-4 py-3 font-semibold">Host</th>
-            <th className="px-4 py-3 font-semibold">In</th>
-            <th className="px-4 py-3 font-semibold">Out</th>
-            <th className="px-4 py-3 font-semibold">Status</th>
-            <th className="px-4 py-3 font-semibold" />
+          <tr className="table-head">
+            <th className="px-4 py-3 font-bold">Name</th>
+            <th className="px-4 py-3 font-bold">Type of Visitor</th>
+            <th className="px-4 py-3 font-bold">Company</th>
+            <th className="px-4 py-3 font-bold">Purpose</th>
+            <th className="px-4 py-3 font-bold">Host</th>
+            <th className="px-4 py-3 font-bold">In</th>
+            <th className="px-4 py-3 font-bold">Out</th>
+            <th className="px-4 py-3 font-bold">Status</th>
+            <th className="px-4 py-3 font-bold" />
           </tr>
         </thead>
         <tbody>

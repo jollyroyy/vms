@@ -1,7 +1,8 @@
 import React from 'react';
 
-// The Live Check-In tab's three lanes: who is on site, who has left today, and
-// who is still waiting on a host's answer.
+// The Live Check-In tab's four lanes: who the gate is still expecting today,
+// who is on site, who has left today, and who is still waiting on a host's
+// answer.
 //
 // Modelled directly on the guard's `EntryExitTabs` (`pages/Guard/EntryExitTabs.tsx`)
 // and its reasoning, not imported from it: that component is styled with the
@@ -23,18 +24,26 @@ import React from 'react';
 // people. As a tile it was a count with no list to open — the inverse of the
 // rule above — so an admin could see that three visitors were waiting and had
 // no route on this screen to find out who.
+//
+// EXPECTED IS A LANE FOR THE SAME REASON (client instruction, 2026-08-18:
+// merge Pre-Registration into this tab). A booked visitor who has not arrived
+// is a person the gate is waiting for, which is exactly what this roster is a
+// roster of — see `expectedLane` in `lib/adminLiveCheckIn.ts` for what of the
+// old tab was redundant and where the rest of it went.
 
-export type LiveCheckInLane = 'inside' | 'departed' | 'pending';
+export type LiveCheckInLane = 'expected' | 'inside' | 'departed' | 'pending';
 
 export const LANE_LABEL: Record<LiveCheckInLane, string> = {
+  expected: 'Expected',
   inside: 'Inside',
   departed: 'Checked Out',
   pending: 'Awaiting Approval',
 };
 
 // Order is the order a visitor passes through the gate as the admin meets
-// them: still here, already gone, not yet cleared.
-const LANES: LiveCheckInLane[] = ['inside', 'departed', 'pending'];
+// them: due in, still here, already gone — and then the one lane that is not a
+// stage of the journey but a decision nobody has taken.
+const LANES: LiveCheckInLane[] = ['expected', 'inside', 'departed', 'pending'];
 
 type Props = {
   lane: LiveCheckInLane;

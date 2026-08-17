@@ -283,9 +283,15 @@ describe('M12-REPORTS: Reports', () => {
     });
     const header = screen.getByText('Visitor Name');
     expect(header.tagName).toBe('TH');
-    expect(header.className).toContain('font-semibold');
-    expect(header.parentElement!.className).toContain('uppercase');
-    expect(header.parentElement!.className).toContain('text-[11px]');
+    // BOLD, not semibold (client instruction, 2026-08-18: table headers bold).
+    expect(header.className).toContain('font-bold');
+    // The header ROW carries `.table-head` and nothing else (2026-08-18): the
+    // size, the uppercasing and the gold colour moved into one class in
+    // styles/components-surfaces.css, so all five tables in this app share
+    // them. jsdom applies no stylesheet, so this asserts the class contract —
+    // and in particular that this row still opts into the shared style rather
+    // than growing a private copy of it.
+    expect(header.parentElement!.className).toBe('table-head');
     const table = header.closest('table')!;
     expect(table.className).toContain('tabular-nums');
   });

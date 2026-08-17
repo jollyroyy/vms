@@ -19,7 +19,10 @@ export default function NotificationBell({ userId, role }: Props): React.ReactEl
   const dropdownRef = useRef<HTMLDivElement>(null);
   const unreadCount = notifications.length;
 
-  const isEligible = role && ['hod', 'guard', 'admin'].includes(role);
+  // A senior manager receives an HOD's notifications, because they receive an
+  // HOD's walk-in requests — omitting them here would leave the one role whose
+  // job is to answer those requests with no sign that any had arrived.
+  const isEligible = role && ['hod', 'senior_manager', 'guard', 'admin'].includes(role);
 
   const fetchNotifications = useCallback(async () => {
     try {

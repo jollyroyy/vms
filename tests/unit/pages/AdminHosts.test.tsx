@@ -117,37 +117,28 @@ describe('AdminHosts', () => {
     expect(screen.getByText('Department Summary')).toBeInTheDocument();
   });
 
-  it('renders the three host notification toggles reflecting loaded settings', async () => {
+  // THE HOST NOTIFICATIONS PANEL IS GONE (client instruction, 2026-08-18) and
+  // its three switches with it. Two were labelled "Recorded — not yet enforced"
+  // on the screen itself — no SMS provider, no per-host reminder job — and the
+  // third gated nothing: `notifyHostCheckIn` writes an in-app notification on
+  // every check-in and never consulted it. Asserted ABSENT rather than deleted
+  // silently, because the store behind them (`app_settings`, its `notify.*`
+  // rows, `lib/appSettings.ts`) deliberately stays.
+  it('renders no host notification panel and no switch of any kind', async () => {
     renderPage();
-    // Settings load asynchronously; flush the effect.
     await act(async () => { await Promise.resolve(); });
 
+    expect(screen.queryByText('Host Notifications')).not.toBeInTheDocument();
     for (const label of ['Email on arrival', 'SMS on arrival', 'Auto sign-out reminder']) {
-      expect(screen.getByText(label)).toBeInTheDocument();
+      expect(screen.queryByText(label)).not.toBeInTheDocument();
     }
-
-    const emailToggle = screen.getByRole('switch', { name: 'Email on arrival' });
-    expect(emailToggle).toHaveAttribute('aria-checked', String(SETTING_DEFAULTS['notify.host_email_on_arrival']));
-    const smsToggle = screen.getByRole('switch', { name: 'SMS on arrival' });
-    expect(smsToggle).toHaveAttribute('aria-checked', String(SETTING_DEFAULTS['notify.host_sms_on_arrival']));
+    expect(screen.queryAllByRole('switch')).toHaveLength(0);
+    expect(screen.queryByText(/Recorded — not yet enforced/)).not.toBeInTheDocument();
   });
 
-  it('shows the not-yet-enforced caveat under both unenforced toggles', async () => {
+  it('never writes a setting from this tab', async () => {
     renderPage();
     await act(async () => { await Promise.resolve(); });
-    // SMS on arrival and Auto sign-out reminder are both `enforced: false` in
-    // settingsSections.ts; Email on arrival is enforced and carries none.
-    expect(screen.getAllByText(/Recorded — not yet enforced/).length).toBe(2);
-  });
-
-  it('saves through saveSettings when a toggle is clicked', async () => {
-    renderPage();
-    await act(async () => { await Promise.resolve(); });
-    const emailToggle = screen.getByRole('switch', { name: 'Email on arrival' });
-    await act(async () => { emailToggle.click(); });
-    expect(mockSaveSettings).toHaveBeenCalledWith(
-      { 'notify.host_email_on_arrival': !SETTING_DEFAULTS['notify.host_email_on_arrival'] },
-      'admin1',
-    );
+    expect(mockSaveSettings).not.toHaveBeenCalled();
   });
 });

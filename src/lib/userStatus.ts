@@ -20,6 +20,7 @@ export type DirectoryRole = UserRole | 'super_admin';
 export const ROLE_LABEL: Record<DirectoryRole, string> = {
   guard: 'Guard',
   hod: 'HOD',
+  senior_manager: 'Senior Manager',
   staff: 'Staff',
   admin: 'Admin',
   super_admin: 'Super Admin',
@@ -30,6 +31,9 @@ export const ROLE_LABEL: Record<DirectoryRole, string> = {
 export const ROLE_CHIP: Record<DirectoryRole, string> = {
   guard: 'bg-brand-50 text-brand-700 border border-brand-500/25',
   hod: 'bg-accent-50 text-accent-700 border border-accent-500/25',
+  // The same chip as an HOD, because it is the same authority — and the chip
+  // prints the role's name, so the two are never told apart by colour alone.
+  senior_manager: 'bg-accent-50 text-accent-700 border border-accent-500/25',
   staff: 'bg-surface-100 text-navy-700 border border-surface-300',
   admin: 'bg-danger-50 text-danger-700 border border-danger-500/25',
   super_admin: 'bg-danger-50 text-danger-700 border border-danger-500/25',
@@ -51,6 +55,14 @@ export const ROLE_CHIP: Record<DirectoryRole, string> = {
 export const ASSIGNABLE_ROLES = [
   { key: 'guard', label: 'Guard' },
   { key: 'hod', label: 'HOD' },
+  // SENIOR MANAGER (client instruction, 2026-08-18): an HOD's permissions under
+  // a different job title, for a department headed by somebody who is not
+  // called an HOD. Assignable here because that is the whole point of the role
+  // — and accepted server-side by migration 099's widened allowlist, so this
+  // entry and the RPC agree. It takes a department for the same reason an HOD
+  // does: it IS one, and `get_hosts_for_department` returns everybody attached
+  // to a department, so a senior manager appears in the host picker unedited.
+  { key: 'senior_manager', label: 'Senior Manager' },
   { key: 'staff', label: 'Staff' },
 ] as const satisfies readonly { key: UserRole; label: string }[];
 

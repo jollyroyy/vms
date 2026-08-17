@@ -1,23 +1,30 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import AdminPageHeader from './AdminPageHeader';
 import AdminKpiTile from '../../components/AdminKpiTile';
 import ChartCard from '../../components/charts/ChartCard';
 import UtilizationRows from '../../components/charts/UtilizationRows';
 import HostDirectoryCard from './HostDirectoryCard';
-import HostNotificationsPanel from './HostNotificationsPanel';
 import { useAdminVisits } from '../../lib/useAdminVisits';
 import { useHods } from '../../lib/useHods';
 import { useDepartments } from '../../lib/useDepartments';
 import { hostKpis, hostDirectory, departmentSummary } from '../../lib/adminHosts';
 import { istDateKey } from '../../lib/visitExpiry';
-import { loadSettings, saveSettings } from '../../lib/appSettings';
-import type { SettingKey, SettingsMap } from '../../lib/appSettings';
-import { supabase } from '../../supabaseClient';
 import { ICON_PEOPLE, ICON_CHECK_CIRCLE, ICON_LIST } from '../../lib/tileIcons';
 
-// The admin Hosts tab: who receives visitors, how many they received this
-// week, and the two settings that shape what a host is told about it.
+// The admin Hosts tab: who receives visitors and how many they received this
+// week.
+//
+// THE HOST NOTIFICATIONS PANEL IS DELETED (client instruction, 2026-08-18).
+// Three switches, and two of them were openly labelled "Recorded — not yet
+// enforced": no SMS provider is configured and no per-host reminder job exists,
+// so those two could only record an intention the system had no way to act on
+// — the same reason the five stored-switch Settings sections went the same day.
+// The third, the arrival email, is not a decision this screen needs to host: a
+// host is notified in-app on every check-in by `notifyHostCheckIn`, which no
+// switch has ever gated. `app_settings`, its `notify.*` rows and
+// `lib/appSettings.ts` STAY — deleting a store because its last screen went is
+// how the next feature finds the table missing.
 //
 // NO "ADD HOST" BUTTON. Host/HOD administration already exists in Settings →
 // Roles & Users (the Admin Panel embedded there) — a second create-a-host
@@ -40,10 +47,7 @@ import { ICON_PEOPLE, ICON_CHECK_CIRCLE, ICON_LIST } from '../../lib/tileIcons';
 // so a console left open overnight went on reporting yesterday's seven days
 // under a chip promising the latest state.
 //
-// THIS TAB WRITES NOTHING TO `visits`. The three toggles at the bottom
-// persist to `app_settings`, which is configuration, not a visitor record —
-// the admin surface's read-only rule is about the gate's data, not about
-// whether the admin can turn a notification on.
+// THIS TAB WRITES NOTHING AT ALL — it is a read of `visits` and `profiles`.
 
 export default function AdminHosts(): React.ReactElement {
   // Ticking the IST date key rather than the clock: React bails out of a state
@@ -73,27 +77,6 @@ export default function AdminHosts(): React.ReactElement {
 
   const loading = visitsLoading || hodsLoading;
 
-  // Settings: loaded once, saved one key at a time. Errors resolve to
-  // whatever was already on screen — a failed write must not silently flip a
-  // switch back without saying so, so the state is only updated once the
-  // write itself confirms.
-  const [settings, setSettings] = useState<SettingsMap | null>(null);
-  const [userId, setUserId] = useState<string | null>(null);
-  const [saving, setSaving] = useState<SettingKey | null>(null);
-
-  useEffect(() => {
-    void loadSettings().then(setSettings);
-    void supabase.auth.getUser().then(({ data }) => setUserId(data.user?.id ?? null));
-  }, []);
-
-  const onToggle = useCallback(async (key: SettingKey, next: boolean) => {
-    if (!settings) return;
-    setSaving(key);
-    const { error } = await saveSettings({ [key]: next } as Partial<SettingsMap>, userId);
-    if (!error) setSettings({ ...settings, [key]: next });
-    setSaving(null);
-  }, [settings, userId]);
-
   return (
     <div className="p-6 max-w-[1600px] mx-auto">
       {/* LIVE, WITH NO RANGE PICKER — the window is the trailing 7 IST days
@@ -105,7 +88,7 @@ export default function AdminHosts(): React.ReactElement {
       <AdminPageHeader
         title="Hosts"
         scope="live"
-        blurb="Everyone visitors are checked in against, over the last 7 days, and what they're told when one arrives."
+        blurb="Everyone visitors are checked in against, over the last 7 days."
         action={
           <Link to="/admin/settings?section=users" className="btn-secondary !px-4 !py-2 text-sm">
             Manage in Settings
@@ -120,7 +103,7 @@ export default function AdminHosts(): React.ReactElement {
           icon={ICON_PEOPLE}
           tone="brand"
           loading={loading}
-          caption="Distinct people visitors can be checked in against"
+          caption="People a visitor can be checked in against"
         />
         <AdminKpiTile
           label="Visitors This Week"
@@ -140,7 +123,7 @@ export default function AdminHosts(): React.ReactElement {
         />
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-5 mb-5">
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-5">
         <div className="xl:col-span-2">
           <ChartCard
             heading="Hosts Directory"
@@ -169,13 +152,6 @@ export default function AdminHosts(): React.ReactElement {
           />
         </ChartCard>
       </div>
-
-      <ChartCard
-        heading="Host Notifications"
-        about="What a host is told when a visitor arrives for them."
-      >
-        <HostNotificationsPanel settings={settings} saving={saving} onToggle={onToggle} />
-      </ChartCard>
     </div>
   );
 }

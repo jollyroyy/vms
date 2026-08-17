@@ -61,19 +61,22 @@ describe('arrivedOn', () => {
 });
 
 describe('adminKpis', () => {
-  it('reads changeVsYesterday as null when yesterday had zero arrivals', () => {
-    // A rise from nothing is not "+100%" — there is no baseline to compare to.
-    const visits = [v({ id: 'a', checked_in_at: '2026-08-14T09:00:00Z' })];
-    expect(adminKpis(visits, [], NOW).changeVsYesterday).toBeNull();
-  });
-
-  it('computes changeVsYesterday against a non-zero baseline', () => {
+  // NO YESTERDAY COMPARISON (client instruction, 2026-08-18: it was clutter on
+  // the tile). `visitorsYesterday` and `changeVsYesterday` are gone from
+  // `AdminKpis` entirely rather than left computed-but-unread — a figure no
+  // screen may print is how the comparison comes back. `visitorsToday` counts
+  // TODAY only, and yesterday's arrivals in the same array must not touch it,
+  // which is what the two-day fetch makes possible to get wrong.
+  it('counts only today into visitorsToday, ignoring yesterday in the same fetch', () => {
     const visits = [
       v({ id: 'a', checked_in_at: '2026-08-14T09:00:00Z' }),
       v({ id: 'b', checked_in_at: '2026-08-14T10:00:00Z' }),
       v({ id: 'y', checked_in_at: '2026-08-13T09:00:00Z' }),
     ];
-    expect(adminKpis(visits, [], NOW).changeVsYesterday).toBe(100);
+    const kpis = adminKpis(visits, [], NOW);
+    expect(kpis.visitorsToday).toBe(2);
+    expect(kpis).not.toHaveProperty('changeVsYesterday');
+    expect(kpis).not.toHaveProperty('visitorsYesterday');
   });
 
   it('reads avgCheckinSeconds as null when nothing was measured', () => {

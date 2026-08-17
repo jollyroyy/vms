@@ -8,7 +8,14 @@ import type { GatePass, GatePassItem, GateSignoff } from './gatePass';
 // blacklist only once an admin has justified it and the CEO has granted it. It
 // inherits nothing — see ROLE_ROUTES.ceo — and is NOT `super_admin`, which is
 // still in the DB enum and still means "administrative ceiling".
-export type UserRole = 'guard' | 'hod' | 'staff' | 'admin' | 'ceo';
+// `senior_manager` (2026-08-18, client instruction) is a JOB TITLE over the
+// HOD's permissions: same routes, same department scoping, same desks — see
+// ROLE_ROUTES in lib/roleRoutes.ts, and migration 099, where `current_user_role()`
+// maps it onto `hod` so every RLS policy treats the two identically without
+// twelve policies being rewritten. It exists so a department can be headed by
+// somebody whose title is not "HOD", and it changes what the screen calls them,
+// never what they may do.
+export type UserRole = 'guard' | 'hod' | 'senior_manager' | 'staff' | 'admin' | 'ceo';
 
 export type Department = {
   id: string;

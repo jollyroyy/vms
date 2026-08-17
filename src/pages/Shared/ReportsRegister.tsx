@@ -17,19 +17,15 @@ type Props = {
 
 // The visitor register on `/reports`, extracted out of Reports.tsx.
 //
-// IT IS NOT RENDERED FOR AN ADMIN (client instruction, 2026-08-17: the same
-// information is already on the Visitors Log tab). That tab carries the same rows
-// through the same `toReportRows` redaction seam, has its own CSV export and — as
-// of the same instruction — its own department filter and printout, so for an
-// admin this section was a second place to read one register, and the two could
-// only ever drift.
-//
-// IT IS STILL RENDERED FOR AN HOD AND FOR STAFF, and that is not an oversight.
-// `/admin/visitors-log` is admin-only (ROLE_ROUTES), so those two roles have no
-// other surface that lists a visit at all; dropping the table for everyone would
-// have left them a page holding a date picker and nothing else. This page was
-// already role-split exactly this way — the charts and the four download cards
-// above it are admin-only, for the mirror reason.
+// IT IS RENDERED FOR EVERY ROLE THAT CAN REACH /reports. It was withheld from
+// an admin between 2026-08-17 and 2026-08-18, because the Visitors Log tab held
+// the same rows through the same `toReportRows` redaction seam with its own
+// department filter, CSV and printout — one register read off two screens is
+// one register that can disagree with itself. That tab has now been merged into
+// this page on client instruction, so there is exactly one copy again and it is
+// this one. The page stays role-split above the register: the charts and the
+// four download cards are an admin's org-wide read, and an HOD's register is
+// already scoped to one department.
 
 export default function ReportsRegister(
   { shown, total, activeDept, rangeLabel, from, to, loading }: Props,

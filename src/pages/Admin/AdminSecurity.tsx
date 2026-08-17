@@ -5,7 +5,6 @@ import AdminSecurityKpis from './AdminSecurityKpis';
 import AdminBlacklistPanel from './AdminBlacklistPanel';
 import AdminSecurityAlertsPanel from './AdminSecurityAlertsPanel';
 import AdminDeniedEntriesPanel from './AdminDeniedEntriesPanel';
-import AdminWatchlistPanel from './AdminWatchlistPanel';
 import AdminBlacklistForm from './AdminBlacklistForm';
 import BlacklistRemovalForm from './BlacklistRemovalForm';
 import BlacklistRemovalsPanel from './BlacklistRemovalsPanel';
@@ -153,10 +152,16 @@ export default function AdminSecurity(): React.ReactElement {
         <AdminSecurityAlertsPanel alerts={alerts} loading={visitsLoading} />
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
-        <AdminDeniedEntriesPanel rows={deniedRows} loading={visitsLoading} now={now} onOpen={setSelected} />
-        <AdminWatchlistPanel />
-      </div>
+      {/* Denied Entries, FULL WIDTH. There is no Watchlist panel beside it any
+          more (deleted 2026-08-18, client instruction). It could never render a
+          row — no watchlist table exists in this schema, which is why the
+          guard's Watchlist tab went on 2026-08-15 — so all it ever did was
+          occupy half a row to say that the panel above it is the whole story.
+          Being honest about an empty panel is better than faking one, but not
+          rendering it at all is better still: a heading with no data behind it
+          reads as a feature that is broken today rather than one that does not
+          exist. If a real watchlist is ever added, it needs a table first. */}
+      <AdminDeniedEntriesPanel rows={deniedRows} loading={visitsLoading} now={now} onOpen={setSelected} />
 
       {/* FULL WIDTH, BELOW BOTH GRIDS. A removal request is the one thing on
           this tab that is still in motion — it is waiting on somebody outside

@@ -34,12 +34,12 @@ export function arrivedOn(v: Visit, dayKey: string): boolean {
 export type AdminKpis = {
   /** Visitors who came through the gate today. */
   visitorsToday: number;
-  /** The same figure for yesterday, so the tile can state a direction. */
-  visitorsYesterday: number;
-  /** Percentage change against yesterday. `null` when yesterday was zero — a
-   *  rise from nothing is not "+100%", it is undefined, and printing a number
-   *  there invents a baseline that did not exist. */
-  changeVsYesterday: number | null;
+  // THERE IS NO `visitorsYesterday` / `changeVsYesterday` (client instruction,
+  // 2026-08-18: no yesterday comparison on an admin KPI card). They existed to
+  // feed one caption, and computing a figure no screen may print is how a
+  // "temporary" comparison comes back. The two-day FETCH stays — see
+  // AdminDashboard.tsx: it is what puts a visitor who arrived last night and
+  // has not left into Currently Inside and into the overstay count.
   /** Live in the facility. The fire-marshal figure: `status === 'checked_in'`,
    *  never widened, never inferred. */
   currentlyInside: number;
@@ -64,10 +64,8 @@ export function adminKpis(
   now: Date = new Date(),
 ): AdminKpis {
   const today = istDateKey(now);
-  const yesterday = istDateKey(new Date(now.getTime() - 86400000));
 
   const arrivalsToday = visits.filter((v) => arrivedOn(v, today));
-  const arrivalsYesterday = visits.filter((v) => arrivedOn(v, yesterday));
 
   const measured = arrivalsToday
     .map((v) => v.checkin_duration_seconds)
@@ -75,14 +73,8 @@ export function adminKpis(
 
   const ratings = feedback.map((f) => f.rating).filter((n) => n >= 1 && n <= 5);
 
-  const yCount = arrivalsYesterday.length;
-
   return {
     visitorsToday: arrivalsToday.length,
-    visitorsYesterday: yCount,
-    changeVsYesterday: yCount === 0
-      ? null
-      : Math.round(((arrivalsToday.length - yCount) / yCount) * 100),
     currentlyInside: visits.filter((v) => v.status === 'checked_in').length,
     avgCheckinSeconds: measured.length === 0
       ? null

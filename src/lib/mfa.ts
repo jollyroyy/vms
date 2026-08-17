@@ -4,8 +4,11 @@
  */
 import type { UserRole } from '../types/index';
 
-/** Roles that are required to complete TOTP MFA before accessing the app */
-const MFA_REQUIRED_ROLES: UserRole[] = ['admin', 'hod'];
+/** Roles that are required to complete TOTP MFA before accessing the app.
+ *  `senior_manager` is here for the same reason `hod` is: the account can clear
+ *  a stranger into the building, and it is the ability rather than the job
+ *  title that decides who needs a second factor. */
+const MFA_REQUIRED_ROLES: UserRole[] = ['admin', 'hod', 'senior_manager'];
 
 /** Returns true if the given role must complete MFA */
 export function requiresMFA(role: UserRole | null): boolean {

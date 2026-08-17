@@ -164,13 +164,14 @@ describe('Sidebar: navigation links', () => {
     expect(screen.queryByText('Settings')).not.toBeInTheDocument();
   });
 
-  // The admin console is nine tabs since 2026-08-17 (client instruction), and
-  // it now DOES reach visitor records — read-only, which each page's own test
-  // asserts. Analytics is gone: deleted, not unlinked.
+  // The admin console is six tabs since 2026-08-18 (client instruction: two
+  // merges), and it DOES reach visitor records — read-only, which each page's
+  // own test asserts. Analytics is gone: deleted, not unlinked. The visitor
+  // register an admin reads is on Reports, which absorbed the Visitors Log.
   it('renders correct nav links for admin role', () => {
     renderWithRouter(<Sidebar session={adminSession} role="admin" />);
     expect(screen.getByText('Live Check-In')).toBeInTheDocument();
-    expect(screen.getByText('Visitors Log')).toBeInTheDocument();
+    expect(screen.queryByText('Visitors Log')).not.toBeInTheDocument();
     expect(screen.getByText('Blacklist & Security')).toBeInTheDocument();
     expect(screen.getByText('Reports')).toBeInTheDocument();
     expect(screen.getByText('Settings')).toBeInTheDocument();

@@ -14,7 +14,8 @@ import NotificationBell from '../NotificationBell';
 // reason `checkableStatus.ts` is a full record rather than a lookup with a
 // default.
 const ROLE_GREETING: Record<UserRole, string> = {
-  guard: 'Guard', hod: 'HOD', staff: 'Staff', admin: 'Admin', ceo: 'CEO',
+  guard: 'Guard', hod: 'HOD', senior_manager: 'Senior Manager', staff: 'Staff',
+  admin: 'Admin', ceo: 'CEO',
 };
 
 type Props = {

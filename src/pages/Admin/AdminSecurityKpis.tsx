@@ -10,7 +10,10 @@ const ICON_WARN = 'M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71
 type Props = { blacklisted: number; alerts: number; denied: number; loading: boolean };
 
 // Three tiles, one per panel below them — no fourth "Watchlist" tile, because
-// there is no watchlist table to count rows out of (see AdminWatchlistPanel).
+// there is no watchlist table to count rows out of. The panel that used to say
+// so on screen was deleted 2026-08-18 (client instruction); a heading with
+// nothing behind it reads as broken rather than absent. Do not add a tile here
+// for a list that does not exist.
 //
 // THE CAPTIONS ARE WHAT CARRIES THE LIVE-VS-HISTORICAL SPLIT (client
 // instruction, 2026-08-17): the range bar above these tiles applies to two of

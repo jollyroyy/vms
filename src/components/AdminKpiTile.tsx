@@ -67,6 +67,15 @@ type Props = {
 // The plate is FILLED here rather than ringed, matching the reference screens
 // the client froze for the admin console. Colour is never the only carrier:
 // every tile prints its label and its caption in words.
+//
+// THE THREE LINES ARE THREE DIFFERENT VOICES (client instruction, 2026-08-18:
+// beautify the text in the KPI boxes). An 11px semibold uppercase EYEBROW names
+// the measure, a display numeral set tight and heavy IS the answer, and an 11px
+// caption with open leading qualifies it. They used to be 13px medium, 2rem
+// medium and 12px — three sizes of roughly the same voice, which is why the
+// cards read as busy: nothing on them was clearly subordinate to anything else.
+// DashboardTile carries the identical treatment, so the guard, HOD and admin
+// boards are one instrument.
 
 // THE CARD IS STACKED, NOT A ROW (2026-08-17). The plate used to sit beside the
 // text, which cost the figure 48px of plate plus 16px of gap out of a card that
@@ -95,7 +104,7 @@ export default function AdminKpiTile({
             for a job one value does. 700 is this file's secondary-text step and
             is a shade firmer than 500 was, which the label needed: it is the
             only thing on the top line that has to be read. */}
-        <span className="min-w-0 text-[13px] font-medium leading-snug text-navy-700 break-words">{label}</span>
+        <span className="min-w-0 text-[11px] font-semibold uppercase tracking-[0.07em] leading-snug text-navy-700 break-words">{label}</span>
         <span className={`shrink-0 w-10 h-10 rounded-full flex items-center justify-center ${TONE[tone]}`}>
           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.7} aria-hidden="true">
             <path strokeLinecap="round" strokeLinejoin="round" d={icon} />
@@ -104,11 +113,11 @@ export default function AdminKpiTile({
       </span>
 
       <span className="block mt-auto min-w-0">
-        <span className={`block font-display ${valueClass(shown)} leading-tight font-medium tracking-tight tabular-nums text-navy-950 break-words`}>
+        <span className={`block font-display ${valueClass(shown)} leading-none font-semibold tracking-tight tabular-nums text-navy-950 break-words`}>
           {shown}
         </span>
         {caption && (
-          <span className={`block text-xs mt-1 leading-snug break-words ${captionToned ? CAPTION_TONE[tone] : 'text-navy-700'}`}>
+          <span className={`block text-[11px] mt-2 leading-relaxed break-words ${captionToned ? CAPTION_TONE[tone] : 'text-navy-700'}`}>
             {caption}
           </span>
         )}

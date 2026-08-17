@@ -78,7 +78,7 @@ describe('AdminKpiTile', () => {
   });
 
   it('carries no dark: navy override — one step resolves in both themes', () => {
-    render(<AdminKpiTile label="Currently Inside" value="1" icon={ICON} caption="Live in facility" />);
+    render(<AdminKpiTile label="Currently Inside" value="1" icon={ICON} caption="On site right now" />);
     expect(tileOf('Currently Inside').innerHTML).not.toContain('dark:text-navy-');
   });
 });

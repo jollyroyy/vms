@@ -24,10 +24,14 @@ afterEach(() => {
 });
 
 describe('M12-HOD: HODApprovals', () => {
-  it('renders the Pre-Approve heading and subtitle', () => {
+  // NO PAGE HEADER (client instruction, 2026-08-18). "Pre-Approve" restated the
+  // sidebar item just pressed and "Invite a visitor before they arrive"
+  // restated the form under it, so both went, and the gradient icon plate with
+  // them. The page is now the form alone.
+  it('renders no page heading and no subtitle', () => {
     render(<MemoryRouter><HODApprovals /></MemoryRouter>);
-    expect(screen.getByRole('heading', { name: /^Pre-Approve$/i })).toBeInTheDocument();
-    expect(screen.getByText('Invite a visitor before they arrive')).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: /^Pre-Approve$/i })).not.toBeInTheDocument();
+    expect(screen.queryByText('Invite a visitor before they arrive')).not.toBeInTheDocument();
   });
 
   it('renders the PreApproveForm', () => {

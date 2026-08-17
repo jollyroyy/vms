@@ -3,14 +3,20 @@ import { Navigate, Route } from 'react-router-dom';
 
 import AdminDashboard from '../pages/Admin/AdminDashboard';
 import AdminLiveCheckIn from '../pages/Admin/AdminLiveCheckIn';
-import AdminPreRegistration from '../pages/Admin/AdminPreRegistration';
-import AdminVisitorsLog from '../pages/Admin/AdminVisitorsLog';
 import AdminHosts from '../pages/Admin/AdminHosts';
 import AdminSecurity from '../pages/Admin/AdminSecurity';
 import AdminSettings from '../pages/Admin/AdminSettings';
 import ActivityPage from '../pages/Admin/Activity';
 
-// The admin console's eight routes, split out of App.tsx.
+// The admin console's routes, split out of App.tsx.
+//
+// PRE-REGISTRATION AND VISITORS LOG ARE REDIRECTS, not pages (client
+// instruction, 2026-08-18). Pre-Registration merged into Live Check-In as its
+// Expected lane and the Visitors Log merged into Reports, which is where its
+// register, department filter, printout and CSV came from. Both paths stay
+// routable and land on what the bookmark was for — the alternative is an admin
+// clicking a saved link and getting a 404 for a screen whose contents are
+// three feet to the left.
 //
 // THERE IS NO `/admin/badges`. The Badge Printing tab was DELETED on 2026-08-17
 // (client instruction) — the page, its table, `lib/adminBadges.ts` and
@@ -51,8 +57,8 @@ export function adminRoutes(wrap: (el: React.ReactElement) => React.ReactElement
 
     <Route key="dashboard" path="/admin/dashboard" element={wrap(<AdminDashboard />)} />,
     <Route key="live" path="/admin/live-check-in" element={wrap(<AdminLiveCheckIn />)} />,
-    <Route key="prereg" path="/admin/pre-registration" element={wrap(<AdminPreRegistration />)} />,
-    <Route key="log" path="/admin/visitors-log" element={wrap(<AdminVisitorsLog />)} />,
+    <Route key="prereg" path="/admin/pre-registration" element={<Navigate to="/admin/live-check-in" replace />} />,
+    <Route key="log" path="/admin/visitors-log" element={<Navigate to="/reports" replace />} />,
     <Route key="hosts" path="/admin/hosts" element={wrap(<AdminHosts />)} />,
     <Route key="security" path="/admin/security" element={wrap(<AdminSecurity />)} />,
     <Route key="settings" path="/admin/settings" element={wrap(<AdminSettings />)} />,

@@ -4,17 +4,17 @@ import type { UserRole } from '../../types/index';
 // Single source of truth for sidebar navigation. Extracted out of Sidebar.tsx
 // so that file stays under the 300-line cap.
 //
-// THE GUARD'S FOUR, in order: Dashboard, Find & Scan, Register Walk-in,
-// Entry & Exit (client instruction, 2026-08-18 — "the guard cannot waste so
-// much time navigating here and there").
-//
-// Pre-Registered was the fifth and is GONE from the nav. It rendered today's
-// approved arrivals who have not turned up yet — which is the dashboard's
-// "Expected Today" panel, from the SAME predicate (`TILE_FILTER.expected` and
-// `isPreRegisteredArrival` both run off `useTodayVisits`). Two sidebar items
-// opening one list is the defect this project has fixed on every other surface,
-// and the copy that survives is the one the guard can also ACT from, in place,
-// without leaving the board they are reading.
+// THE GUARD'S FIVE, in order: Dashboard, Find & Scan, Register Walk-in,
+// Entry & Exit, Pre-Registered. The first four are the 2026-08-18 client
+// instruction — "the guard cannot waste so much time navigating here and
+// there" — and Pre-Registered was briefly dropped that same day before the
+// client asked for it back, so the nav stays short but the pre-approved
+// arrivals board keeps a destination of its own. It renders today's approved
+// arrivals who have not turned up yet, which is also what the dashboard's
+// "Expected Today" panel shows: one predicate feeds both
+// (`isPreRegisteredArrival` / `TILE_FILTER.expected`, both over
+// `useTodayVisits`), so this is one list on two surfaces and never two answers.
+// Both can start the check-in in place.
 //
 // The two ARRIVAL routes sit second and third (client instruction, 2026-08-15) —
 // they are the only items here where a guard starts something. Daily Staff and the
@@ -50,8 +50,9 @@ const ICON_USERS = 'M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.95
 const ICON_CHECK = 'M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z';
 // ICON_SPARKLE went with the Analytics item (2026-08-17). Do not re-add a
 // glyph for a destination that no longer exists.
-const ICON_CLIPBOARD = 'M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25z';
-const ICON_DOC = 'M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z';
+// ICON_CLIPBOARD and ICON_DOC went with the Pre-Registration and Visitors Log
+// items (2026-08-18). Do not re-add a glyph for a destination that was merged
+// away.
 const ICON_SHIELD = 'M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751A11.959 11.959 0 0112 2.714z';
 const ICON_REPORT = 'M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z';
 const ICON_SCAN = 'M3.75 4.5h4.5v4.5h-4.5v-4.5zM15.75 4.5h4.5v4.5h-4.5v-4.5zM3.75 15.75h4.5v4.5h-4.5v-4.5zM15.75 15.75h1.5v1.5h-1.5v-1.5zM19.5 15.75h.75v.75h-.75v-.75zM15.75 19.5h.75v.75h-.75v-.75zM18.75 18.75h1.5v1.5h-1.5v-1.5z';
@@ -65,10 +66,10 @@ export const ALL_LINKS: NavLink[] = [
   // and a guard describing their landing page are describing the same thing. The
   // ROUTE stays /overview: it is in bookmarks and in every `?tab=` link the
   // console emits.
-  { to: '/overview', label: 'Dashboard', roles: ['hod'], icon: icon(ICON_GRID) },
+  { to: '/overview', label: 'Dashboard', roles: ['hod', 'senior_manager'], icon: icon(ICON_GRID) },
   // The FORM — raise a pre-approved visitor pass. The one HOD screen that
   // CREATES a visit rather than deciding one.
-  { to: '/approvals', label: 'Pre-Approvals', roles: ['hod'], icon: icon(ICON_PLUS) },
+  { to: '/approvals', label: 'Pre-Approvals', roles: ['hod', 'senior_manager'], icon: icon(ICON_PLUS) },
   // THERE IS NO APPROVAL DESK (removed 2026-08-16, client instruction). It sat
   // at /overview?tab=preapprovals and listed `pending_approval` rows carrying a
   // `scheduled_for` — a set that cannot exist, since WalkInRequest and the kiosk
@@ -86,8 +87,8 @@ export const ALL_LINKS: NavLink[] = [
   // members live here, in the one left-hand panel. They are `?tab=` views of
   // /overview rather than routes of their own, which is what HODConsole's
   // `tabFromLocation` already reads.
-  { to: '/overview?tab=walkins', label: 'Walk-in Desk', roles: ['hod'], icon: icon(ICON_USERS) },
-  { to: '/overview?tab=schedule', label: 'Visitor Schedule', roles: ['hod'], icon: icon(ICON_GRID) },
+  { to: '/overview?tab=walkins', label: 'Walk-in Desk', roles: ['hod', 'senior_manager'], icon: icon(ICON_USERS) },
+  { to: '/overview?tab=schedule', label: 'Visitor Schedule', roles: ['hod', 'senior_manager'], icon: icon(ICON_GRID) },
 
   // ── Guard: the visitor console ───────────────────────────────────────────
   { to: '/guard/dashboard', label: 'Dashboard', roles: ['guard'], icon: icon(ICON_GRID) },
@@ -122,9 +123,18 @@ export const ALL_LINKS: NavLink[] = [
   // old path — it is in guards' bookmarks and in every ?verify= link the
   // dashboard emits — so only the label moves.
   { to: '/guard/inside-now', label: 'Entry & Exit', roles: ['guard'], icon: icon(ICON_USERS) },
-  // NO PRE-REGISTERED ITEM (removed 2026-08-18 — see the header). The route
-  // still resolves, so a bookmark is not a 404; it redirects to the dashboard,
-  // which is where that list now lives and where it can be acted on.
+  // PRE-REGISTERED — RESTORED 2026-08-18 (client instruction), having been
+  // unlinked earlier the same day. It is the last item because it is a list of
+  // work already under way, not a place a guard starts something: today's
+  // pre-approved visitors who have not walked in yet, with the EXPECTED /
+  // MISSED / LATE chips and a Check In on each card.
+  //
+  // It shares its predicate with the dashboard's Expected Today panel —
+  // `isPreRegisteredArrival` and `TILE_FILTER.expected`, both over
+  // `useTodayVisits` — deliberately and by construction, so the two boards can
+  // never disagree about who is expected. If that membership rule ever changes,
+  // it changes in lib/preRegisteredBoard.ts and both surfaces follow.
+  { to: '/guard/preregistered', label: 'Pre-Registered', roles: ['guard'], icon: icon(ICON_CHECK) },
   // NO VISITORS TAB for the guard (removed 2026-08-15, client instruction).
   // Every card it carried is now on the dashboard: All Visitors, Pending
   // Approval and Approved Walk-ins are tiles in row 2 (lib/guardTiles.ts), and
@@ -145,17 +155,31 @@ export const ALL_LINKS: NavLink[] = [
   // "Pre-Approvals", not "Approvals": the pending walk-in decisions moved to the
   // Overview, so this route is now only the form for booking a visitor ahead.
   { to: '/whos-inside', label: 'On-site', roles: ['staff'], icon: icon(ICON_USERS) },
-  { to: '/reports', label: 'Reports', roles: ['hod', 'staff'], icon: icon(ICON_REPORT) },
+  { to: '/reports', label: 'Reports', roles: ['hod', 'senior_manager', 'staff'], icon: icon(ICON_REPORT) },
 
-  // ── Admin: the nine-tab console (client instruction, 2026-08-17) ──────────
+  // ── Admin: the SIX-tab console ───────────────────────────────────────────
+  // It was eight until 2026-08-18, when the client asked for two merges:
+  //   * Pre-Registration folded into LIVE CHECK-IN as its Expected lane. A
+  //     booking that has not arrived is a person the gate is waiting for, which
+  //     is what that roster is; a booking that HAS arrived was already in the
+  //     lane beside it, and the old tab's ranged history of every booking ever
+  //     made is Reports' job (see lib/adminLiveCheckIn.ts).
+  //   * Visitors Log folded into REPORTS, which is where its register came from
+  //     in the first place — the department filter, the seventeen-column
+  //     printout and the CSV went back with it, and the log's own status/origin
+  //     filter row, pager and eight-column lookup table went, because they were
+  //     a second, thinner view of rows the register prints in full.
+  // Both stale paths REDIRECT rather than 404 (routes/adminRoutes.tsx): they
+  // are in bookmarks, and the destination holds what the bookmark was for.
+  //
   // THERE IS NO ANALYTICS ITEM. The page was deleted outright, not unlinked:
   // its charts now live on the Dashboard and on Reports below, which is where
   // the reference screens put them, and two screens answering "what happened
   // this week" from separately written queries is the tile-vs-drilldown defect
   // this project has already fixed once.
   //
-  // The four visitor-record tabs — Live Check-In, Pre-Registration, Visitors
-  // Log, Blacklist & Security — reverse the standing "admin has no route to
+  // The visitor-record tabs — Live Check-In, Blacklist & Security and the
+  // register on Reports — reverse the standing "admin has no route to
   // visitor records" rule on client instruction. They are READ-ONLY by
   // construction (see ROLE_ROUTES.admin): the admin reads and exports, and
   // every control that changes a visit's state stays at the gate.
@@ -169,8 +193,6 @@ export const ALL_LINKS: NavLink[] = [
   // (see the top of pages/Guard/Console.tsx).
   { to: '/admin/dashboard', label: 'Dashboard', roles: ['admin'], icon: icon(ICON_GRID) },
   { to: '/admin/live-check-in', label: 'Live Check-In', roles: ['admin'], icon: icon(ICON_CHECK) },
-  { to: '/admin/pre-registration', label: 'Pre-Registration', roles: ['admin'], icon: icon(ICON_CLIPBOARD) },
-  { to: '/admin/visitors-log', label: 'Visitors Log', roles: ['admin'], icon: icon(ICON_DOC) },
   { to: '/admin/hosts', label: 'Hosts', roles: ['admin'], icon: icon(ICON_USERS) },
   { to: '/admin/security', label: 'Blacklist & Security', roles: ['admin'], icon: icon(ICON_SHIELD) },
   { to: '/reports', label: 'Reports', roles: ['admin'], icon: icon(ICON_REPORT) },

@@ -3,7 +3,8 @@ import type { UserRole } from '../../types/index';
 import { formatDateTime } from '../../lib/formatDate';
 
 const ROLE_LABELS: Record<UserRole, string> = {
-  guard: 'Guard', hod: 'Head of Department', staff: 'Staff', admin: 'Administrator',
+  guard: 'Guard', hod: 'Head of Department', senior_manager: 'Senior Manager',
+  staff: 'Staff', admin: 'Administrator',
   ceo: 'Chief Executive Officer',
 };
 

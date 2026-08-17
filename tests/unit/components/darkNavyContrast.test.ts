@@ -94,7 +94,9 @@ const KNOWN_VIOLATIONS = new Set([
   // SidebarAnalytics.tsx is DELETED (2026-08-17) — two entries left the
   // baseline with it. That is the list shrinking, which is the direction this
   // guard wants.
-  '/layout/SidebarProfile.tsx:51', '/layout/SidebarProfile.tsx:75',
+  // Shifted 51/75 -> 52/76 on 2026-08-18: ROLE_LABELS gained `senior_manager`
+  // and wrapped onto a second line. The call sites are unchanged.
+  '/layout/SidebarProfile.tsx:52', '/layout/SidebarProfile.tsx:76',
   '/PhotoCapture.tsx:134',
   '/SessionTimeout.tsx:104',
   // Moved 55 -> 72 on 2026-08-17 when the timeline's single `showTimestamps`

@@ -86,12 +86,19 @@ describe('Settings → Users', () => {
 
   // `staff` is assignable here and is NOT in GatePass's list: in VMS it is what
   // a HOST is, so an admin who cannot create one cannot onboard a host.
-  it('offers Guard, HOD and Staff — and never Admin or CEO', async () => {
+  // `senior_manager` joined the list 2026-08-18 (client instruction): an HOD's
+  // permissions under a different job title, so that a department headed by
+  // somebody not called an HOD can be represented as what they are. Migration
+  // 099 widened the server-side allowlist to match, which is what keeps this
+  // <select> from offering a role the RPC would refuse.
+  it('offers Guard, HOD, Senior Manager and Staff — and never Admin or CEO', async () => {
     render(<SettingsUsers />);
     fireEvent.click(await screen.findByRole('button', { name: 'Add User' }));
 
     const roles = within(screen.getByRole('dialog')).getByLabelText('Role') as HTMLSelectElement;
-    expect([...roles.options].map((o) => o.value)).toEqual(['guard', 'hod', 'staff']);
+    expect([...roles.options].map((o) => o.value)).toEqual(['guard', 'hod', 'senior_manager', 'staff']);
+    expect([...roles.options].map((o) => o.value)).not.toContain('admin');
+    expect([...roles.options].map((o) => o.value)).not.toContain('ceo');
   });
 
   it('creates a user with the typed password and reloads the directory', async () => {

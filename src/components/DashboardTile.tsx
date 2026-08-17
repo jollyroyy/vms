@@ -54,15 +54,21 @@ export default function DashboardTile({
         </svg>
       </span>
       <span className="min-w-0 flex-1">
-        {/* One navy step, no `dark:` override — the scale is inverted per theme,
-            so a single number resolves correctly in both and the old
-            `text-navy-500 dark:text-navy-600` pair was tuning by hand what the
-            tokens already do. Matches AdminKpiTile, so a label reads the same
-            weight on the admin board as on this one. */}
-        <span className={`block font-medium leading-snug break-words text-navy-700 ${compact ? 'text-[12px]' : 'text-[13px]'}`}>
+        {/* THE LABEL IS AN EYEBROW, NOT A SENTENCE (client instruction,
+            2026-08-18: beautify the text in the KPI boxes on the HOD and admin
+            boards). Small, semibold, uppercase and letter-spaced, set above a
+            numeral that now carries the weight instead — which is what makes a
+            row of tiles read as one instrument panel rather than as four
+            paragraphs with big numbers under them. It also buys the label a
+            line: at 11px "Awaiting Walk-in Approval" fits a four-across tile
+            where 13px sentence case wrapped to three.
+            One navy step, no `dark:` override — the scale is inverted per
+            theme, so a single number resolves correctly in both. Identical to
+            AdminKpiTile by intent: a label must read the same on both boards. */}
+        <span className={`block font-semibold uppercase tracking-[0.07em] leading-snug break-words text-navy-700 ${compact ? 'text-[10px]' : 'text-[11px]'}`}>
           {label}
         </span>
-        <span className={`block font-display leading-tight font-medium tracking-tight tabular-nums text-navy-950 ${compact ? 'text-[1.5rem]' : 'text-[2rem]'}`}>
+        <span className={`block font-display leading-none font-semibold tracking-tight tabular-nums text-navy-950 mt-1.5 ${compact ? 'text-[1.5rem]' : 'text-[2rem]'}`}>
           {loading ? '—' : value}
         </span>
       </span>

@@ -26,6 +26,17 @@
     --c-brand-50: 239 246 255;
     --c-brand-100: 219 234 254;
 
+    /* GOLD — the one colour a table header is written in (client instruction,
+       2026-08-18: the headers must stand out from the sub-text under them).
+       It is a token and not a hex in a component because a header row appears
+       on five tables across the guard, admin, HOD and shared surfaces, and a
+       rebrand has to be able to move all five at once — the same reason every
+       other colour in this app resolves through this file.
+       Deep bronze on the pale header strip: ~5.2:1 on `--c-surface-100`, which
+       an 11px uppercase label needs, since gold at a lighter step is the first
+       thing to disappear against near-white. */
+    --c-gold: 140 104 20;
+
     --c-success-50: 240 253 244;
     --c-success-100: 220 252 231;
     --c-success-700: 21 128 61;
@@ -94,6 +105,12 @@
 
     --c-brand-50: 23 37 84;
     --c-brand-100: 30 58 138;
+
+    /* The same role, inverted for the dark charcoal surface: a light warm gold
+       (~9:1 on `--c-surface-100`). Defining it HERE rather than as a `dark:`
+       override in markup is what lets `.table-head` carry one class name and
+       still be correct in both themes. */
+    --c-gold: 214 180 92;
 
     --c-success-50: 18 42 30;
     --c-success-100: 22 55 38;

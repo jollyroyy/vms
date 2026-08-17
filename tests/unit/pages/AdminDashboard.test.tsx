@@ -64,7 +64,9 @@ describe('AdminDashboard', () => {
 
   it('shows an honest empty caption on every tile when there is no data, never a fabricated number', () => {
     renderPage();
-    expect(screen.getByText('No arrivals yesterday to compare')).toBeInTheDocument();
+    // NOT a yesterday comparison — that caption is gone (client instruction,
+    // 2026-08-18). Total Visitors states what the figure is OF, in all states.
+    expect(screen.getByText('Arrivals through the gate today')).toBeInTheDocument();
     expect(screen.getByText('No check-in was timed today')).toBeInTheDocument();
     expect(screen.getByText('No visitor has rated today')).toBeInTheDocument();
     expect(screen.getByText('Nobody is overdue')).toBeInTheDocument();
@@ -125,14 +127,21 @@ describe('AdminDashboard', () => {
 
     renderPage();
 
-    // 3 arrived today; 2 arrived yesterday (v4, v5) -> +50%. The tile reads
+    // 3 arrived today; 2 arrived yesterday (v4, v5) and must NOT be counted —
+    // the fetch is two days wide so Currently Inside and Overstays can see last
+    // night's visitor, and this tile has to ignore that half. The tile reads
     // "Total Visitors", not "Visitors Today" — the day is stated once by the
     // "Today at a Glance" header above the board (client instruction,
     // 2026-08-17) — and not a bare "Visitors" either, which would collide with
     // the flow chart's series name and the Top Hosts count column.
+    //
+    // No percentage against yesterday, in any state (client instruction,
+    // 2026-08-18): the comparison was clutter on a card whose job is one
+    // number, and the trend is the Visitor Flow chart's answer.
     const visitorsToday = screen.getByText('Total Visitors').closest('div')!;
     expect(within(visitorsToday).getByText('3')).toBeInTheDocument();
-    expect(within(visitorsToday).getByText(/50% vs yesterday/)).toBeInTheDocument();
+    expect(within(visitorsToday).queryByText(/vs yesterday/)).toBeNull();
+    expect(screen.queryByText(/vs yesterday/)).toBeNull();
 
     // Currently Inside: every row still status checked_in = v1, v2, v3, v5 = 4.
     const inside = screen.getByText('Currently Inside').closest('div')!;

@@ -10,22 +10,20 @@ type Props = {
   onPresetChange: (preset: RangePreset) => void;
   visits: ReportVisit[];
   filenameSuffix: string;
-  /** Export CSV and Print Register act on the REGISTER TABLE, so they render
-   *  only where that table does — which is everyone except an admin since
-   *  2026-08-17 (client instruction). An admin's register, its export and its
-   *  printout are all on the Visitors Log tab; leaving a Print button here would
-   *  hand them a blank sheet, since the only thing `styles/print.css` lays out is
-   *  the table that is no longer on the page. The date range stays for both:
-   *  the charts and the download cards above are bounded by it. */
-  showRegisterActions?: boolean;
 };
 
 // The department filter deliberately does NOT live here — it names the scope of
 // the register and sits beside the page title. This toolbar is for the date
 // range and what you do with the result.
+//
+// AN ADMIN NEVER SEES THIS ROW (client instruction, 2026-08-18). They get
+// `ReportsAdminBar` instead, which wraps the same range in the admin console's
+// own `AdminRangeBar` so one control means one thing across every tab. This
+// component is now an HOD's and staff's only, which is also why its two buttons
+// are unconditional again — the role that used not to have the register is the
+// role that no longer renders this.
 export default function ReportsToolbar({
   date, today, onDateChange, preset, onPresetChange, visits, filenameSuffix,
-  showRegisterActions = true,
 }: Props): React.ReactElement {
   return (
     <div className="card p-4 flex items-center gap-4 flex-wrap no-print">
@@ -47,9 +45,7 @@ export default function ReportsToolbar({
         ))}
       </div>
 
-      {showRegisterActions && (
-        <>
-        {/* Raw Visit rows must never reach the CSV: they carry nested join objects,
+      {/* Raw Visit rows must never reach the CSV: they carry nested join objects,
             the base64 photo blob and the visitor's unmasked phone. toReportRows is
             the redaction seam — see src/lib/reportRow.ts. */}
         <button onClick={() => exportToCsv(toReportRows(visits), `register-${filenameSuffix}.csv`)} className="btn-secondary text-sm flex items-center gap-2 ml-auto" title="Export CSV">
@@ -60,8 +56,6 @@ export default function ReportsToolbar({
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M6.72 13.829c-.24.03-.48.062-.72.096m.72-.096a42.415 42.415 0 0110.56 0m-10.56 0L6.34 18m10.94-4.171c.24.03.48.062.72.096m-.72-.096L17.66 18m0 0l.229 2.523a1.125 1.125 0 01-1.12 1.227H7.231c-.662 0-1.18-.568-1.12-1.227L6.34 18m11.318 0h1.091A2.25 2.25 0 0021 15.75V9.456c0-1.081-.768-2.015-1.837-2.175a48.055 48.055 0 00-1.913-.247M6.34 18H5.25A2.25 2.25 0 013 15.75V9.456c0-1.081.768-2.015 1.837-2.175a48.041 48.041 0 011.913-.247m10.5 0a48.536 48.536 0 00-10.5 0m10.5 0V3.375c0-.621-.504-1.125-1.125-1.125h-8.25c-.621 0-1.125.504-1.125 1.125v3.659M18.75 12h.008v.008h-.008V12zm-3 0h.008v.008h-.008V12z" /></svg>
           Print Register
         </button>
-        </>
-      )}
     </div>
   );
 }

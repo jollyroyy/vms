@@ -56,12 +56,12 @@ export default function AdminBlacklistPanel({
       <div className="rounded-xl border border-surface-200/60 dark:border-white/[0.08] overflow-x-auto">
         <table className="w-full text-sm min-w-[680px]">
           <thead>
-            <tr className="text-left text-[11px] uppercase tracking-wider text-navy-500 bg-surface-100/50 dark:bg-white/[0.03]">
-              <th className="px-4 py-3 font-semibold">Name</th>
-              <th className="px-4 py-3 font-semibold">Reason</th>
-              <th className="px-4 py-3 font-semibold">Date</th>
-              <th className="px-4 py-3 font-semibold">Status</th>
-              <th className="px-4 py-3 font-semibold text-right">Removal</th>
+            <tr className="table-head">
+              <th className="px-4 py-3 font-bold">Name</th>
+              <th className="px-4 py-3 font-bold">Reason</th>
+              <th className="px-4 py-3 font-bold">Date</th>
+              <th className="px-4 py-3 font-bold">Status</th>
+              <th className="px-4 py-3 font-bold text-right">Removal</th>
             </tr>
           </thead>
           <tbody>

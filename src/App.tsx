@@ -17,6 +17,7 @@ import VisitorsDashboard  from './pages/Shared/VisitorsDashboard';
 import GuardDashboard     from './pages/Guard/Dashboard';
 import GuardLiveQueue      from './pages/Guard/GuardLiveQueue';
 import GuardPreApprovals  from './pages/Guard/PreApprovals';
+import GuardPreRegistered from './pages/Guard/GuardPreRegistered';
 import GuardScanPass      from './pages/Guard/ScanPass';
 import RegisterWalkIn     from './pages/Guard/RegisterWalkIn';
 import GuardSearch        from './pages/Guard/Search';
@@ -249,12 +250,13 @@ export default function App(): React.ReactElement {
                 bookmarks and in the ?verify= links the dashboard has been
                 emitting. It renders the same page rather than 404-ing. */}
             <Route path="/guard/live-queue" element={<ProtectedRoute role={role}><GuardLiveQueue /></ProtectedRoute>} />
-            {/* Pre-Registered left the sidebar on 2026-08-18. Its board was
-                today's approved arrivals who have not turned up yet, which is
-                the dashboard's Expected Today panel from the same predicate —
-                and that copy can start the check-in in place. The path stays
-                routable and lands there. */}
-            <Route path="/guard/preregistered" element={<ProtectedRoute role={role}><Navigate to="/guard/dashboard" replace /></ProtectedRoute>} />
+            {/* Pre-Registered: RESTORED 2026-08-18 (client instruction), having
+                redirected to /guard/dashboard earlier the same day. Today's
+                approved arrivals who have not turned up, from the same
+                predicate as the dashboard's Expected Today panel
+                (`isPreRegisteredArrival` / `TILE_FILTER.expected`, both over
+                useTodayVisits), so the two boards cannot disagree. */}
+            <Route path="/guard/preregistered" element={<ProtectedRoute role={role}><GuardPreRegistered /></ProtectedRoute>} />
             <Route path="/guard/scan-pass" element={<ProtectedRoute role={role}><GuardScanPass /></ProtectedRoute>} />
             {/* Register Walk-in — its own destination since 2026-08-15 (client
                 instruction). The form was a `+` button buried in the Visitors

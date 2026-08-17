@@ -2,14 +2,14 @@ import { describe, it, expect } from 'vitest';
 import { ALL_LINKS, linksForRole } from '../../../src/components/layout/navLinks';
 
 describe('navLinks: linksForRole', () => {
-  // FOUR since 2026-08-18 (client instruction: the guard must not waste time
-  // navigating). Pre-Registered was the fifth and its board was today's
-  // approved arrivals who have not turned up yet — which is the dashboard's
-  // Expected Today panel, from the same predicate, on a screen the guard can
-  // also act from. Two nav items opening one list is the defect this project
-  // has fixed on every other surface. The ROUTE stays resolvable and
-  // redirects, like /visitors and /kiosk before it; it is the nav item that
-  // went.
+  // FIVE. The first four are the 2026-08-18 client instruction (the guard must
+  // not waste time navigating); Pre-Registered was dropped that same day and
+  // asked back the same day, so it is last — a list of work already under way,
+  // after the three items where a guard STARTS something. Its board is today's
+  // pre-approved arrivals who have not turned up yet, the same predicate the
+  // dashboard's Expected Today panel uses (`isPreRegisteredArrival` /
+  // `TILE_FILTER.expected`, both over `useTodayVisits`), so the two surfaces
+  // are one list and cannot disagree.
   //
   // The Watchlist tab was deleted 2026-08-15 and the Visitors tab 2026-08-15,
   // both on client instruction. The two ARRIVAL routes sit second and third
@@ -20,15 +20,15 @@ describe('navLinks: linksForRole', () => {
   // camera, and that page is now the one place a guard locates a visitor by
   // any means they have — QR, PDF, name, mobile, reference or the number on
   // the physical card — and performs the single action that visitor needs.
-  it('guard gets exactly 4 links, in order, with the exact labels, and no Visitors, Pre-Registered or Search', () => {
+  it('guard gets exactly 5 links, in order, with the exact labels, and no Visitors or Search', () => {
     const links = linksForRole('guard');
     expect(links.map((l) => l.label)).toEqual([
       'Dashboard',
       'Find & Scan',
       'Register Walk-in',
       'Entry & Exit',
+      'Pre-Registered',
     ]);
-    expect(links.map((l) => l.label)).not.toContain('Pre-Registered');
     expect(links.map((l) => l.label)).not.toContain('Scan Pass');
     expect(links.map((l) => l.label)).not.toContain('Visitors');
     expect(links.map((l) => l.label)).not.toContain('Search');
@@ -42,7 +42,8 @@ describe('navLinks: linksForRole', () => {
     expect(links[1]?.to).toBe('/guard/scan-pass');
     expect(links[2]?.to).toBe('/guard/walk-in');
     expect(links[3]?.to).toBe('/guard/inside-now');
-    expect(links).toHaveLength(4);
+    expect(links[4]?.to).toBe('/guard/preregistered');
+    expect(links).toHaveLength(5);
   });
 
   it('puts the two ways a visitor arrives second and third', () => {
@@ -102,13 +103,24 @@ describe('navLinks: linksForRole', () => {
   // THERE IS NO BADGE PRINTING ITEM EITHER (deleted 2026-08-17, client
   // instruction): its tab read migration 087's `badge_prints` log, which nothing
   // in this app writes, so the item led to three zeroes over an empty table.
-  it('admin gets the eight console tabs, in the reference order, with no Analytics or Badge Printing', () => {
+  //
+  // SIX SINCE 2026-08-18 (client instruction, two merges): Pre-Registration
+  // folded into Live Check-In as its Expected lane, and Visitors Log folded
+  // into Reports, which is where its register came from. Both labels are
+  // asserted ABSENT — unlike Analytics and Badge Printing their paths still
+  // resolve, but as REDIRECTS (routes/adminRoutes.tsx), so a nav item would be
+  // a link to a bounce rather than to a page.
+  it('admin gets the six console tabs, in the reference order, with no merged-away or deleted item', () => {
     const links = linksForRole('admin');
-    expect(links.map((l) => l.label)).toEqual(['Dashboard', 'Live Check-In', 'Pre-Registration', 'Visitors Log', 'Hosts',
+    expect(links.map((l) => l.label)).toEqual(['Dashboard', 'Live Check-In', 'Hosts',
       'Blacklist & Security', 'Reports', 'Settings']);
     expect(links.map((l) => l.label)).not.toContain('Analytics');
     expect(links.map((l) => l.label)).not.toContain('Badge Printing');
+    expect(links.map((l) => l.label)).not.toContain('Pre-Registration');
+    expect(links.map((l) => l.label)).not.toContain('Visitors Log');
     expect(links.map((l) => l.to)).not.toContain('/admin/badges');
+    expect(links.map((l) => l.to)).not.toContain('/admin/pre-registration');
+    expect(links.map((l) => l.to)).not.toContain('/admin/visitors-log');
   });
 
   it('linksForRole(null) returns an empty array', () => {

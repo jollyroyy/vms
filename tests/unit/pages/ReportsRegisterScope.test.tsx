@@ -67,24 +67,40 @@ afterEach(() => {
 });
 
 describe('the Reports register is role-scoped', () => {
-  it('draws NO register for an admin — no heading, no entry count, no Print', async () => {
+  // THE ADMIN HAS THE REGISTER BACK (client instruction, 2026-08-18: merge the
+  // Visitors Log tab into Reports and keep the reports part). It was withheld
+  // from this role for one day, while that tab held a second copy of it; with
+  // the tab merged away there is one register again and this is it, with the
+  // department filter, the CSV and the printout that came across with it.
+  it('draws the register, its count and both register actions for an admin', async () => {
     await renderAs('admin');
     await waitFor(() => {
-      expect(screen.queryByRole('heading', { name: /^Register —/ })).toBeNull();
+      expect(screen.getByRole('heading', { name: /^Register —/ })).toBeInTheDocument();
     });
-    expect(screen.queryByText(/\(1 entries?\)/)).toBeNull();
-    expect(screen.queryByText(/1 entry/)).toBeNull();
-    // The register's own controls go with it. A Print button would hand the
-    // admin a blank sheet: the only thing styles/print.css lays out is the
-    // table that is no longer on the page.
-    expect(screen.queryByRole('button', { name: /Print Register/ })).toBeNull();
-    expect(screen.queryByRole('button', { name: /Export CSV/ })).toBeNull();
-    // The visitor's own name is on no row, since there is no row.
-    expect(screen.queryByText('Ramesh Kumar')).toBeNull();
+    expect(screen.getByText('Ramesh Kumar')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Print Register/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Export CSV/ })).toBeInTheDocument();
   });
 
-  it('keeps the date range for an admin — the charts and CSV cards are bounded by it', async () => {
+  // ONE RANGE CONTROL, AND FOR AN ADMIN IT IS THE CONSOLE'S OWN (client
+  // instruction, 2026-08-18: remove the "Date: … Selected Day / Last 7 Days /
+  // …" toolbar from admin Reports). The WINDOW stays — a report with no period
+  // is not a report, and the charts, the four bundles and the register all read
+  // it — so what went is the second spelling of the picker: this role now gets
+  // `AdminRangeBar`, the same control every other admin tab carries, which
+  // prints the resolved dates as well as the lit preset.
+  it('gives an admin the console range bar, not this page’s own Date: toolbar', async () => {
     await renderAs('admin');
+    expect(screen.queryByText('Date:')).toBeNull();
+    expect(screen.queryByRole('group', { name: 'Report range' })).toBeNull();
+    expect(screen.getByRole('group', { name: 'Date range' })).toBeInTheDocument();
+    expect(screen.getByLabelText('Up to')).toBeInTheDocument();
+  });
+
+  // An HOD and staff keep this page's own toolbar unchanged — they never see
+  // the admin console, so there is nothing for them to unify with.
+  it('keeps the Date: toolbar for an HOD', async () => {
+    await renderAs('hod');
     expect(screen.getByText('Date:')).toBeInTheDocument();
     expect(screen.getByRole('group', { name: 'Report range' })).toBeInTheDocument();
   });

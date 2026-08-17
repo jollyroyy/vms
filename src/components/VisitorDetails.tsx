@@ -66,7 +66,10 @@ export default function VisitorDetails({
   // matching a government document to the face in front of it is the guard's
   // job at the gate. So the HOD's copy has no ID tab at all, rather than a tab
   // that opens onto a refusal.
-  const showIdTab = viewerRole !== 'hod';
+  // A senior manager is an HOD in everything but title, so the ID proof is
+  // hidden from them by the same rule — an approver decides whether to admit a
+  // visitor, which never requires seeing their identity document.
+  const showIdTab = viewerRole !== 'hod' && viewerRole !== 'senior_manager';
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };

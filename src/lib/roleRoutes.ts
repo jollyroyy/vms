@@ -35,6 +35,19 @@ export const ROLE_ROUTES: Record<UserRole, string[]> = {
   // dropping it here — not just from the sidebar — is what makes typing the URL
   // fail rather than merely being unlinked.
   hod:         ['/overview', '/approvals', '/reports', '/profile', '/search'],
+  // SENIOR MANAGER IS AN HOD WITH A DIFFERENT TITLE (client instruction,
+  // 2026-08-18) — the same list, deliberately written out rather than aliased
+  // to `ROLE_ROUTES.hod`. A shared array reference would make the two roles
+  // impossible to separate later without first discovering they were joined,
+  // and this file is the one place a reader looks to ask "what can this role
+  // reach?". The answer must be readable here, not one hop away.
+  //
+  // The DATABASE agrees by a different mechanism: migration 099's
+  // `current_user_role()` maps `senior_manager` onto `hod`, so all twelve
+  // department-scoped policies and every SECURITY DEFINER RPC admit them
+  // without being rewritten. Audit rows still record `auth.uid()`, so a senior
+  // manager's approval is never mistaken for somebody else's.
+  senior_manager: ['/overview', '/approvals', '/reports', '/profile', '/search'],
   staff:       ['/visitors', '/whos-inside', '/reports', '/profile', '/search'],
   // ADMIN SEES VISITOR RECORDS, READ-ONLY (client instruction, 2026-08-17).
   // This reverses the standing rule that admin had no route to visitor data at

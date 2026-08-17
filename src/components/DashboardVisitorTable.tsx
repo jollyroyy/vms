@@ -43,9 +43,9 @@ export default function DashboardVisitorTable({
       <div className="overflow-x-auto">
         <table className="w-full text-sm min-w-[720px]">
           <thead>
-            <tr className="text-left text-[11px] uppercase tracking-wider text-navy-500 bg-surface-100/50 dark:bg-white/[0.03]">
+            <tr className="table-head">
               {columns.map((c) => (
-                <th key={c.key} className="px-4 py-3 font-semibold whitespace-nowrap">{c.header}</th>
+                <th key={c.key} className="px-4 py-3 font-bold whitespace-nowrap">{c.header}</th>
               ))}
             </tr>
           </thead>

@@ -12,7 +12,7 @@ const ROWS = [
 
 describe('UtilizationRows', () => {
   it('renders all three headers and one row per entry with its label and value', () => {
-    render(<UtilizationRows rows={ROWS} headers={['Host', 'Share', 'Visitors']} emptyMessage="none" />);
+    render(<UtilizationRows rows={ROWS} headers={['Host', 'Share', 'Visitors']} showShare emptyMessage="none" />);
     expect(screen.getByText('Host')).toBeInTheDocument();
     expect(screen.getByText('Share')).toBeInTheDocument();
     expect(screen.getByText('Visitors')).toBeInTheDocument();
@@ -27,18 +27,32 @@ describe('UtilizationRows', () => {
     expect(screen.queryByText('Share')).toBeNull();
   });
 
-  it('shows share as a percentage of the TOTAL while scaling the bar to the LARGEST row — two different questions, both answered', () => {
+  // THE BAR IS GONE (client instruction, 2026-08-18: on Top Hosts show the
+  // host's name in full and the share). It was the only element on the row
+  // carrying no figure of its own, and it was paid for out of the label
+  // column — so the share is now the whole middle column and the name takes
+  // the width back. This asserts both halves: the percentages are still the
+  // share of the TOTAL, and nothing on the row is width-driven any more.
+  it('shows share as a percentage of the TOTAL, and draws no proportional bar', () => {
     const { container } = render(
       <UtilizationRows rows={ROWS} headers={['Host', 'Share', 'Visitors']} showShare emptyMessage="none" />,
     );
     // Share: 6/(6+2) = 75%, 2/8 = 25%.
     expect(screen.getByText('75%')).toBeInTheDocument();
     expect(screen.getByText('25%')).toBeInTheDocument();
-    // Bar width: scaled against the peak row (6), not the total (8) — the
-    // larger row is a full-width bar, not 75%.
-    const bars = container.querySelectorAll('li span[style*="width"]');
-    expect((bars[0] as HTMLElement).style.width).toBe('100%');
-    expect((bars[1] as HTMLElement).style.width).toBe(`${(2 / 6) * 100}%`);
+    expect(container.querySelectorAll('li span[style*="width"]')).toHaveLength(0);
+  });
+
+  // THE NAME IS NEVER CLIPPED. `truncate` on the label cell is what made a long
+  // host name indistinguishable from a short one; it wraps now, so a card one
+  // third of a grid wide still shows every host in full.
+  it('does not truncate the row label', () => {
+    const { container } = render(
+      <UtilizationRows rows={[{ label: 'Priyadarshini Venkataraman', value: 1 }]}
+                       headers={['Host', 'Share', 'Visitors']} showShare emptyMessage="none" />,
+    );
+    expect(screen.getByText('Priyadarshini Venkataraman')).toBeInTheDocument();
+    expect(container.querySelector('li .truncate')).toBeNull();
   });
 
   it('renders the empty message for an empty list', () => {
@@ -58,7 +72,7 @@ describe('UtilizationRows', () => {
   it('prints the bare number in the count cell, with the unit only in its aria-label, and carries no fixed-width column classes', () => {
     const { container } = render(
       <UtilizationRows rows={[{ label: 'Asha Rao', value: 3 }]} headers={['Host', 'Share', 'Visitors']}
-                       unit="visitors" emptyMessage="none" />,
+                       unit="visitors" showShare emptyMessage="none" />,
     );
     expect(screen.queryByText('3 visitors')).toBeNull();
     expect(screen.getByLabelText('3 visitors')).toBeInTheDocument();
