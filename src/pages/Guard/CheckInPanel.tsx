@@ -6,7 +6,7 @@ import { attachHostNames } from '../../lib/hostNames';
 import { attachVisitActors } from '../../lib/visitActors';
 import { buildMatchItems, type PreApprovedVisit, type RecurringWithDept } from './checkInMatches';
 import { useDepartments } from '../../lib/useDepartments';
-import { isVisitExpired } from '../../lib/visitExpiry';
+import { isVisitExpired, istDayStart } from '../../lib/visitExpiry';
 import { isAlreadyInsideError, ALREADY_INSIDE_FALLBACK } from '../../lib/activeVisit';
 import CheckInPhotoStep from './CheckInPhotoStep';
 import CheckInMatchList from './CheckInMatchList';
@@ -45,7 +45,11 @@ export default function CheckInPanel({ today, onCheckInSuccess }: Props): React.
 
   const loadData = useCallback(async () => {
     setLoading(true);
-    const todayStart = `${today}T00:00:00Z`;
+    // IST midnight. `${today}T00:00:00Z` is 05:30 IST, so a visitor checked in
+    // before dawn was absent from the already-inside set this panel checks
+    // against — the one guard that stops a second visit row being opened for
+    // somebody who never left.
+    const todayStart = istDayStart().toISOString();
 
     const [preRes, recurringRes, checkedRes] = await Promise.all([
       // No date bound on the fetch. Filtering on `created_at` being today meant

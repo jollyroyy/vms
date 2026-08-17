@@ -970,6 +970,36 @@
   the UTC date, so between 00:00 and 05:30 IST the app thought today was yesterday: a
   visit booked for 01:00 IST was filed under the previous day and was invisible on the
   morning it was due. Use `istDateKey` / `istDayStart` from `lib/visitExpiry.ts`.
+  - **THE RULE WAS STATED AND NINE QUERIES STILL BROKE IT** (fixed 2026-08-17). The
+    spelling `${utcDateKey}T00:00:00Z` had been retyped at nine call sites: the guard
+    board's whole day (`useTodayVisits` — its own departures clause already used
+    `istDayStart`, so one hook was asking about two different days at once),
+    `CheckInPanel`'s already-inside check, `WhosInside`, `HODOverview`, `HODConsole`,
+    `VisitorsDashboard`, `useExpectedToday`, `NotificationBell` and the Reports
+    register. That bound is **05:30 IST**, so every screen began the day five and a
+    half hours late and dropped the night shift; the `T23:59:59Z` ceilings paired with
+    it ran to 05:29 IST the FOLLOWING morning and lost the range's final second.
+  - **`rangeBounds(range)` in `lib/reportsDateRange.ts` is the ONE definition of what a
+    calendar day covers** — IST midnight to the next IST midnight, `[from, to)`,
+    exclusive at the top so no second is lost. `useAdminVisits.windowBounds` delegates
+    to it, so the register and the admin tabs cannot disagree about which instants
+    "17 Aug" means. A date-only key is a calendar DAY, not a moment: parsing and
+    formatting one in UTC (as `computeDateRange` / `formatDay` do) stays correct and is
+    the deliberate exception.
+  - Guarded by `tests/unit/lib/istDayWindows.test.ts`, a SOURCE scan: the defect is a
+    spelling that keeps being retyped at new call sites, and a per-page test only
+    catches the pages somebody remembered to write one for. It fails on any
+    `T00:00:00Z`/`T23:59:59Z` template bound in `src/lib`, `src/pages` or
+    `src/components`, and on any UTC date key in a page or component.
+- **A page-level `delete()` carries its own scope.** `HODOverview` tidied notifications
+  with `delete().lt('created_at', dayStart)` and NO `recipient_id` filter — "delete
+  every notification in the table older than today", held back only by whatever RLS
+  happens to allow. RLS is the backstop, never the statement's blast radius.
+- **`VisitorsDashboard`'s select had an unbalanced `))`** and PostgREST rejects a
+  malformed embed outright, so the staff view of `/visitors` had never returned a row —
+  the parse error was swallowed by an `if (error) return` and the page rendered its
+  empty state permanently. An error branch that returns silently makes a broken query
+  and a quiet day look identical.
 - **Open visits are never date-bounded.** `Console.loadVisits`, `useTodayVisits` and
   `useTodayVisits` all used a bare `created_at >= today` window, which silently dropped
   unfinished work at midnight: a walk-in registered at 23:50 and approved at 00:05 was

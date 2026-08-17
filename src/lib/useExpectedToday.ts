@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '../supabaseClient';
 import type { Visit } from '../types/index';
 import { attachHostNames } from './hostNames';
+import { rangeBounds } from './reportsDateRange';
 
 export type UseExpectedToday = {
   visits: Visit[];
@@ -17,12 +18,17 @@ export function useExpectedToday(today: string): UseExpectedToday {
 
   const load = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
+    // `today` is an IST calendar day, so its bounds are IST midnights —
+    // `${today}T00:00:00Z` is 05:30 IST and `T23:59:59Z` both stops 5h30m
+    // short of the end and loses the final second. `rangeBounds` is the one
+    // definition, shared with Reports and the admin tabs.
+    const bounds = rangeBounds({ from: today, to: today });
     const { data } = await supabase
       .from('visits')
       .select(`*, visitor:visitors(*), department:departments(id, name, code, created_at)`)
       .in('status', ['approved', 'walkin_approved'])
-      .gte('created_at', `${today}T00:00:00Z`)
-      .lte('created_at', `${today}T23:59:59Z`);
+      .gte('created_at', bounds.from)
+      .lt('created_at', bounds.to);
     let rows = ((data as unknown as Visit[]) ?? []);
     rows = await attachHostNames(rows);
     rows.sort((a, b) => {

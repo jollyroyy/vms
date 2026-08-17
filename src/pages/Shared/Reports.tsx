@@ -10,7 +10,8 @@ import { visitStatusLabel } from '../../lib/visitStatusLabel';
 import { maskPhone, maskIdProof } from '../../lib/pii';
 import { approvalTimestamp } from '../../lib/visitApproval';
 import { visitOrigin, visitOriginLabel } from '../../lib/visitOrigin';
-import { computeDateRange, type RangePreset } from '../../lib/reportsDateRange';
+import { computeDateRange, rangeBounds, type RangePreset } from '../../lib/reportsDateRange';
+import { istDateKey } from '../../lib/visitExpiry';
 import type { ReportVisit } from '../../lib/reportRow';
 import { ALL_DEPTS, deptOptions, filterVisitsByDept } from '../../lib/reportsDeptFilter';
 import ReportsToolbar from './ReportsToolbar';
@@ -19,10 +20,11 @@ import ReportsPrintHeader from './ReportsPrintHeader';
 import ReportsAnalytics from './ReportsAnalytics';
 import ReportsDownloadCards from './ReportsDownloadCards';
 
-const TODAY = new Date().toISOString().slice(0, 10);
-
 export default function ReportsPage(): React.ReactElement {
-  const [date, setDate] = useState(TODAY);
+  // The IST date, per mount. It was the UTC key at MODULE scope: wrong before
+  // 05:30 IST, and a constant that never rolls over in an open console.
+  const today = useMemo(() => istDateKey(new Date()), []);
+  const [date, setDate] = useState(today);
   const [preset, setPreset] = useState<RangePreset>('today');
   const [visits, setVisits] = useState<ReportVisit[]>([]);
   const [loading, setLoading] = useState(true);
@@ -31,6 +33,9 @@ export default function ReportsPage(): React.ReactElement {
   const [deptId, setDeptId] = useState<string>(ALL_DEPTS);
 
   const range = computeDateRange(preset, date);
+  // `rangeBounds`, shared with the admin tabs — see ReportsWindow.test.tsx for
+  // what the old `T00:00:00Z`..`T23:59:59Z` pair cost the register.
+  const bounds = useMemo(() => rangeBounds(range), [range.from, range.to]);
 
   useEffect(() => {
     try {
@@ -58,7 +63,7 @@ export default function ReportsPage(): React.ReactElement {
     // pins their widths by nth-child, so a column added here would silently
     // mis-column the printed copy.
     let query = supabase.from('visits').select(`*, visitor:visitors(*), department:departments(id,name,code,created_at), entry_point:entry_points(id,name,code,kind,active,sort_order,created_at)`)
-      .gte('created_at', `${range.from}T00:00:00Z`).lte('created_at', `${range.to}T23:59:59Z`);
+      .gte('created_at', bounds.from).lt('created_at', bounds.to);
     if (deptScoped && userDeptId) {
       query = query.eq('department_id', userDeptId);
     }
@@ -70,7 +75,7 @@ export default function ReportsPage(): React.ReactElement {
       setVisits(withActors.map((v) => ({ ...v, photo_url: v.photo_data ?? undefined })));
     }
     setLoading(false);
-  }, [range.from, range.to, userDeptId, deptScoped]);
+  }, [bounds.from, bounds.to, userDeptId, deptScoped]);
 
   useEffect(() => { void load(); }, [load]);
 
@@ -169,7 +174,7 @@ export default function ReportsPage(): React.ReactElement {
 
       <ReportsToolbar
         date={date}
-        today={TODAY}
+        today={today}
         onDateChange={setDate}
         preset={preset}
         onPresetChange={setPreset}

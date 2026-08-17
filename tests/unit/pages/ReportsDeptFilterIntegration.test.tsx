@@ -19,7 +19,8 @@ vi.mock('../../../src/supabaseClient', () => ({
       if (table === 'gate_passes') {
         return { select: () => ({ eq: () => ({ in: mockIn }) }) };
       }
-      return { select: () => ({ gte: () => ({ lte: () => ({ order: mockOrder }) }) }) };
+      // `[gte, lt)` on IST bounds — see Reports.test.tsx.
+      return { select: () => ({ gte: () => ({ lt: () => ({ order: mockOrder }) }) }) };
     },
   },
 }));

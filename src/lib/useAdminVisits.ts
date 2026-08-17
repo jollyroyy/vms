@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '../supabaseClient';
 import type { Visit } from '../types/index';
 import { istDayStart } from './visitExpiry';
+import { rangeBounds } from './reportsDateRange';
 
 // The admin surface's one visit query.
 //
@@ -78,16 +79,11 @@ export type VisitWindow =
 export function windowBounds(win: VisitWindow, now = new Date()): { from: string | null; to: string | null } {
   if (win.kind === 'today') return { from: istDayStart(now).toISOString(), to: null };
   if (win.kind === 'recent') return { from: null, to: null };
-  // A date-only string is midnight IST of that day. The upper bound is the
-  // start of the day AFTER `to`, so the last day of the range is fully
-  // included — a `<` on the next boundary rather than a `<=` on 23:59:59,
-  // which would lose the final second of the range and with it a real visit at
-  // a busy gate.
-  const startOfTo = new Date(`${win.to}T00:00:00+05:30`).getTime();
-  return {
-    from: new Date(`${win.from}T00:00:00+05:30`).toISOString(),
-    to: new Date(startOfTo + 86400000).toISOString(),
-  };
+  // What an inclusive IST date range means is defined once, in the file that
+  // owns the range vocabulary — Reports resolves its own window through the
+  // same function, so the register and the admin tabs cannot disagree about
+  // which instants "17 Aug" covers.
+  return rangeBounds({ from: win.from, to: win.to });
 }
 
 type State = { visits: Visit[]; loading: boolean; error: string | null };

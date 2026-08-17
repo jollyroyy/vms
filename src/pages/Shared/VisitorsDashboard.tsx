@@ -3,6 +3,7 @@ import { supabase } from '../../supabaseClient';
 import { attachHostNames } from '../../lib/hostNames';
 import { formatTime } from '../../lib/formatDate';
 import { STATUS_STYLES } from '../../lib/statusStyles';
+import { istDayStart } from '../../lib/visitExpiry';
 import type { Visit } from '../../types/index';
 
 type VisitRow = Visit & { host?: { id: string; full_name: string } };
@@ -11,14 +12,21 @@ export default function VisitorsDashboard(): React.ReactElement {
   const [visits, setVisits] = useState<VisitRow[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const today = useMemo(() => new Date().toISOString().slice(0, 10), []);
+  // IST midnight. This was the UTC date key passed as a bare `2026-08-17`,
+  // which Postgres casts to 00:00 UTC — 05:30 IST — so the staff view of
+  // today's visitors began five and a half hours into the day.
+  const dayStart = useMemo(() => istDayStart().toISOString(), []);
 
   const fetchVisits = useCallback(async () => {
     try {
       const { data, error } = await supabase
         .from('visits')
-        .select('*, visitor:visitor_id(*), department:department_id(name), host:host_id(id))')
-        .gte('created_at', today)
+        // The host embed carried an unbalanced `))`, which PostgREST rejects
+        // outright — so this select had never returned a row and the page
+        // rendered its empty state permanently, with the parse error swallowed
+        // by the `if (error) return` below.
+        .select('*, visitor:visitor_id(*), department:department_id(name), host:host_id(id)')
+        .gte('created_at', dayStart)
         .order('created_at', { ascending: false })
         .limit(100);
       if (error) return;
@@ -28,7 +36,7 @@ export default function VisitorsDashboard(): React.ReactElement {
     } finally {
       setLoading(false);
     }
-  }, [today]);
+  }, [dayStart]);
 
   useEffect(() => { void fetchVisits(); }, [fetchVisits]);
 

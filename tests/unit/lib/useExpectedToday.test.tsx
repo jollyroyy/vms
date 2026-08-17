@@ -18,7 +18,8 @@ vi.mock('../../../src/supabaseClient', () => ({
           select: () => ({
             in: () => ({
               gte: () => ({
-                lte: () => Promise.resolve({ data: state.rows, error: null }),
+                // `[gte, lt)` on IST midnights, not a `lte` on 23:59:59Z.
+                lt: () => Promise.resolve({ data: state.rows, error: null }),
               }),
             }),
           }),

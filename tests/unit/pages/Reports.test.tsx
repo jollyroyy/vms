@@ -3,6 +3,7 @@ import { describe, it, expect, vi, afterEach } from 'vitest';
 import { render, screen, cleanup, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import ReportsPage from '../../../src/pages/Shared/Reports';
+import { istDateKey } from '../../../src/lib/visitExpiry';
 
 const mockOrder = vi.hoisted(() => vi.fn());
 const mockIn = vi.hoisted(() => vi.fn());
@@ -19,7 +20,8 @@ vi.mock('../../../src/supabaseClient', () => ({
       if (table === 'gate_passes') {
         return { select: () => ({ eq: () => ({ in: mockIn }) }) };
       }
-      return { select: () => ({ gte: () => ({ lte: () => ({ order: mockOrder }) }) }) };
+      // `[gte, lt)` on IST bounds — see ReportsWindow.test.tsx.
+      return { select: () => ({ gte: () => ({ lt: () => ({ order: mockOrder }) }) }) };
     },
   },
 }));
@@ -37,7 +39,7 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-const TODAY = new Date().toISOString().slice(0, 10);
+const TODAY = istDateKey(new Date());
 
 describe('M12-REPORTS: Reports', () => {
   it('renders title', async () => {

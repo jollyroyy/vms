@@ -27,6 +27,7 @@ import type { Visit } from '../../types/index';
 import type { ReportVisit } from '../../lib/reportRow';
 import { attachHostNames } from '../../lib/hostNames';
 import { usePreApprovals } from '../../lib/usePreApprovals';
+import { istDayStart } from '../../lib/visitExpiry';
 import { useVisitDecisions } from './useVisitDecisions';
 import { hodTileVisits, type HodTileKey } from '../../lib/hodTiles';
 import HodKpiBoard from './HodKpiBoard';
@@ -92,14 +93,17 @@ export default function HODConsole(): React.ReactElement {
   const load = useCallback(async (silent = false) => {
     if (!deptId) { setLoading(false); return; }
     if (!silent) setLoading(true);
-    const today = new Date().toISOString().slice(0, 10);
+    // IST midnight. `${utcDateKey}T00:00:00Z` is 05:30 IST, so the board's
+    // day query and its on-site lane both began five and a half hours late and
+    // an HOD's early arrivals were absent from their own department's screen.
+    const dayStart = istDayStart().toISOString();
     try {
       const [todayResult, walkInResult, onSiteResult] = await Promise.all([
-        supabase.from('visits').select(SELECT).eq('department_id', deptId).gte('created_at', `${today}T00:00:00Z`).order('created_at', { ascending: false }).limit(200),
+        supabase.from('visits').select(SELECT).eq('department_id', deptId).gte('created_at', dayStart).order('created_at', { ascending: false }).limit(200),
         // NOT day-bounded: a request raised at 11pm is still someone standing at
         // reception at 12:05am.
         supabase.from('visits').select(SELECT).eq('department_id', deptId).eq('status', 'pending_approval').order('created_at', { ascending: false }).limit(50),
-        supabase.from('visits').select(SELECT).eq('department_id', deptId).eq('status', 'checked_in').gte('checked_in_at', `${today}T00:00:00Z`).order('checked_in_at', { ascending: false }).limit(20),
+        supabase.from('visits').select(SELECT).eq('department_id', deptId).eq('status', 'checked_in').gte('checked_in_at', dayStart).order('checked_in_at', { ascending: false }).limit(20),
       ]);
       const [nextDay, nextWalkIns, nextOnSite] = await Promise.all([
         normaliseRows(todayResult.data as unknown as Visit[] | null),

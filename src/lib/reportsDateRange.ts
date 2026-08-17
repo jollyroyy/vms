@@ -56,6 +56,26 @@ export function computeDateRange(preset: RangePreset, endDate: string): DateRang
   return { from: from.toISOString().slice(0, 10), to: endDate };
 }
 
+/**
+ * The instants an inclusive IST date range covers: `[from, to)`.
+ *
+ * A `YYYY-MM-DD` here is a CALENDAR DAY IN IST, not a UTC one, so its bounds
+ * are `T00:00:00+05:30` — never `T00:00:00Z`, which is 05:30 IST and drops
+ * every arrival made between midnight and dawn on the first day of the range.
+ *
+ * The upper bound is the start of the day AFTER `to` and the caller compares
+ * with `<`, rather than a `<=` on 23:59:59: a second-precision ceiling loses
+ * the final second of the range, and at a busy gate that is a real visit that
+ * an admin is then told never happened.
+ */
+export function rangeBounds(range: DateRange): { from: string; to: string } {
+  const startOfTo = new Date(`${range.to}T00:00:00+05:30`).getTime();
+  return {
+    from: new Date(`${range.from}T00:00:00+05:30`).toISOString(),
+    to: new Date(startOfTo + 86400000).toISOString(),
+  };
+}
+
 const DAY_FORMAT: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'short', year: 'numeric' };
 
 function formatDay(dayKey: string): string {

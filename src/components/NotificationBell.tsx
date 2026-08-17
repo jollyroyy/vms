@@ -3,6 +3,7 @@ import { supabase } from '../supabaseClient';
 import type { UserRole, Notification } from '../types/index';
 import ModalCloseButton from './ModalCloseButton';
 import { useEscapeKey } from '../lib/useEscapeKey';
+import { istDayStart } from '../lib/visitExpiry';
 
 interface Props {
   userId: string;
@@ -22,7 +23,12 @@ export default function NotificationBell({ userId, role }: Props): React.ReactEl
 
   const fetchNotifications = useCallback(async () => {
     try {
-      const todayStart = `${new Date().toISOString().slice(0, 10)}T00:00:00Z`;
+      // IST midnight, not `${utcDateKey}T00:00:00Z` — that bound is 05:30 IST,
+      // so every notification raised on a night shift was missing from the bell
+      // that exists to surface it, and the count beside the glyph said zero
+      // while unread rows sat in the table. Resolved per fetch, so a console
+      // left open across midnight rolls over on the next poll.
+      const todayStart = istDayStart().toISOString();
       const { data, error } = await supabase
         .from('notifications')
         .select('*')

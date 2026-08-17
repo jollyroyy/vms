@@ -5,6 +5,7 @@ import type { Visit } from '../types/index';
 import { attachHostNames } from './hostNames';
 import { attachVisitActors } from './visitActors';
 import { istDayStart } from './visitExpiry';
+import { rangeBounds } from './reportsDateRange';
 
 export type UseTodayVisits = {
   visits: ReportVisit[];
@@ -26,8 +27,13 @@ export function useTodayVisits(today: string): UseTodayVisits {
 
   const load = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
-    const start = `${today}T00:00:00Z`;
-    const end = `${today}T23:59:59Z`;
+    // IST bounds, `[start, end)`. These two clauses used to read
+    // `${today}T00:00:00Z` .. `T23:59:59Z` while the departures clause below
+    // already used `istDayStart` — one hook asking about two different days at
+    // once. The UTC pair begins at 05:30 IST and runs to 05:29 IST tomorrow,
+    // so a visitor who arrived at 02:00 was missing from every tile on the
+    // guard board while tomorrow's small hours were counted into today.
+    const { from: start, to: end } = rangeBounds({ from: today, to: today });
     // Same widened window as useGateStats.ts, and it must stay in lockstep:
     // this feeds the drill-down LIST for the same tiles that hook counts. A
     // pre-approval created last week for today, or a no-show swept overnight
@@ -37,8 +43,8 @@ export function useTodayVisits(today: string): UseTodayVisits {
       .from('visits')
       .select(`*, visitor:visitors(*), department:departments(id, name, code, created_at)`)
       .or(
-        `and(created_at.gte.${start},created_at.lte.${end}),` +
-        `and(scheduled_for.gte.${start},scheduled_for.lte.${end}),` +
+        `and(created_at.gte.${start},created_at.lt.${end}),` +
+        `and(scheduled_for.gte.${start},scheduled_for.lt.${end}),` +
         // Open statuses, UNBOUNDED — the third clause useGateStats has always
         // carried, and the reason the two hooks are now in lockstep. Without it
         // a visitor who came in at 21:00 yesterday and has not left falls out of
@@ -55,7 +61,7 @@ export function useTodayVisits(today: string): UseTodayVisits {
         // add a second query, so the tile's count stays the length of the list
         // it opens.
         //
-        // `istDayStart`, never `${today}T00:00:00Z`: the IST day opens at
+        // `istDayStart`, never a UTC midnight: the IST day opens at
         // 18:30 UTC the previous evening, and a UTC boundary drops every exit
         // made between 00:00 and 05:30 IST.
         `checked_out_at.gte.${istDayStart(new Date()).toISOString()}`,

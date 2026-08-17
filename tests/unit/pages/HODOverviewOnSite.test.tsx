@@ -3,6 +3,7 @@ import { describe, it, expect, vi, afterEach } from 'vitest';
 import { render, screen, cleanup, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import HODOverview from '../../../src/pages/HOD/HODOverview';
+import { istDayStart } from '../../../src/lib/visitExpiry';
 
 const mockGetUser = vi.hoisted(() => vi.fn());
 
@@ -199,8 +200,10 @@ describe('M12-HOD: HODOverview — on-site section', () => {
     });
     expect(screen.queryByText(/Stale Visitor/)).not.toBeInTheDocument();
 
-    // And pin the bound itself: the component must ask for today's arrivals.
-    const today = new Date().toISOString().slice(0, 10);
-    expect(onSiteGteArgs).toEqual(['checked_in_at', `${today}T00:00:00Z`]);
+    // And pin the bound itself: the component must ask for today's arrivals,
+    // where "today" is the IST day. The old assertion pinned
+    // `${utcDateKey}T00:00:00Z`, which is 05:30 IST — so an HOD whose visitor
+    // arrived before dawn was told nobody was on site.
+    expect(onSiteGteArgs).toEqual(['checked_in_at', istDayStart().toISOString()]);
   });
 });

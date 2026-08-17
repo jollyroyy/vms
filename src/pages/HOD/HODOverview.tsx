@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { supabase } from '../../supabaseClient';
 import type { Visit, Notification, VisitStatus } from '../../types/index';
 import { attachHostNames } from '../../lib/hostNames';
+import { istDayStart, istDateKey } from '../../lib/visitExpiry';
 import { useVisitDecisions } from './useVisitDecisions';
 import OverviewStatCards from './OverviewStatCards';
 import OverviewUpcoming from './OverviewUpcoming';
@@ -69,14 +70,16 @@ export default function HODOverview(): React.ReactElement {
     });
   }, []);
 
-  const today = useMemo(() => new Date().toISOString().slice(0, 10), []);
+  // IST midnight, never a UTC one — 00:00Z is 05:30 IST, so every tile on this
+  // board under-counted a morning already under way.
+  const dayStart = useMemo(() => istDayStart().toISOString(), []);
 
   const load = useCallback(async (silent = false) => {
     if (!deptId || !userId) { setLoading(false); return; }
     if (!silent) setLoading(true);
     try {
       const { data: todayData } = await supabase
-        .from('visits').select('id, status').eq('department_id', deptId).gte('created_at', `${today}T00:00:00Z`);
+        .from('visits').select('id, status').eq('department_id', deptId).gte('created_at', dayStart);
       const todayRows = (todayData ?? []) as Array<{ id: string; status: string }>;
 
       setStats({
@@ -114,7 +117,7 @@ export default function HODOverview(): React.ReactElement {
       const nowMs = Date.now();
       const isGenuinelyUpcoming = (v: Visit) => v.scheduled_for
         ? new Date(v.scheduled_for).getTime() >= nowMs
-        : v.created_at.slice(0, 10) >= today;
+        : istDateKey(v.created_at) >= istDateKey(new Date(nowMs));
       const upcomingSortKey = (v: Visit) => new Date(v.scheduled_for ?? v.created_at).getTime();
       rows = rows
         .filter(isGenuinelyUpcoming)
@@ -125,25 +128,28 @@ export default function HODOverview(): React.ReactElement {
       // Only today's arrivals. A visit that was checked in on an earlier day and
       // never checked out still carries status 'checked_in', so without the date
       // bound "On-site now" accumulates stale visitors from previous days.
-      // Same UTC day boundary the stats and notifications queries above use.
+      // Same IST day boundary the stats and notifications queries above use.
       const { data: onSiteData } = await supabase
         .from('visits').select('*, visitor:visitors(*), department:departments(id, name, code, created_at)')
         .eq('department_id', deptId).in('status', ['checked_in'])
-        .gte('checked_in_at', `${today}T00:00:00Z`)
+        .gte('checked_in_at', dayStart)
         .order('checked_in_at', { ascending: false }).limit(20);
       let onSiteRows = ((onSiteData as unknown as Visit[]) ?? []);
       onSiteRows = await attachHostNames(onSiteRows);
       setOnSite(onSiteRows.map(v => ({ ...v, photo_url: v.photo_data ?? undefined })));
 
-      await supabase.from('notifications').delete().lt('created_at', `${today}T00:00:00Z`);
+      // SCOPED TO THIS USER. With no `recipient_id` filter, an HOD tidying
+      // their own inbox issued "delete every notification older than today",
+      // held back only by whatever RLS happens to allow.
+      await supabase.from('notifications').delete().eq('recipient_id', userId).lt('created_at', dayStart);
       const { data: notifData } = await supabase
         .from('notifications').select('*').eq('recipient_id', userId)
-        .gte('created_at', `${today}T00:00:00Z`)
+        .gte('created_at', dayStart)
         .order('created_at', { ascending: false }).limit(10);
       setNotifs((notifData ?? []) as Notification[]);
     } catch { /* dashboard is read-only and defensive */ }
     if (!silent) setLoading(false);
-  }, [deptId, userId, today]);
+  }, [deptId, userId, dayStart]);
 
   useEffect(() => { void load(); }, [load]);
 
@@ -161,14 +167,14 @@ export default function HODOverview(): React.ReactElement {
       const { data } = await supabase
         .from('visits').select('*, visitor:visitors(*), department:departments(id, name, code, created_at)')
         .eq('department_id', deptId).in('status', statuses)
-        .gte('created_at', `${today}T00:00:00Z`)
+        .gte('created_at', dayStart)
         .order('created_at', { ascending: false }).limit(50);
       let rows = ((data as unknown as Visit[]) ?? []);
       rows = await attachHostNames(rows);
       setFilteredVisits(rows.map(v => ({ ...v, photo_url: v.photo_data ?? undefined })));
     } catch { /* defensive */ }
     setFilterLoading(false);
-  }, [deptId, today]);
+  }, [deptId, dayStart]);
 
   useEffect(() => {
     if (!deptId || !userId) return;

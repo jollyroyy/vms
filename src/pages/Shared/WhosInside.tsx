@@ -4,6 +4,7 @@ import type { UserRole, Visit } from '../../types/index';
 import { attachHostNames } from '../../lib/hostNames';
 import { attachVisitActors } from '../../lib/visitActors';
 import { safeErrorMessage } from '../../lib/errors';
+import { istDayStart, istDateKey } from '../../lib/visitExpiry';
 import { exportToCsv } from '../../lib/exportUtils';
 import { toReportRows, type ReportVisit } from '../../lib/reportRow';
 import VisitorDetails from '../../components/VisitorDetails';
@@ -22,7 +23,14 @@ export default function WhosInside(): React.ReactElement {
   const [authReady, setAuthReady] = useState(false);
   const [userRole, setUserRole] = useState<string | null>(null);
   const [userDeptId, setUserDeptId] = useState<string | null>(null);
-  const [today] = useState(() => new Date().toISOString().slice(0, 10));
+  // IST midnight, never `${utcDateKey}T00:00:00Z` — that bound resolves to
+  // 05:30 IST, so a visitor who checked in at 02:00 was missing from the one
+  // list that answers "who is in the building", which is the list a fire
+  // marshal is handed.
+  const [dayStart] = useState(() => istDayStart().toISOString());
+  // The IST calendar day, for the export filename — the same day the window
+  // above covers, so the file is never named after a date it does not contain.
+  const [today] = useState(() => istDateKey(new Date()));
 
   const load = useCallback(async () => {
     setLoading(true); setError(''); setClearError('');
@@ -30,7 +38,7 @@ export default function WhosInside(): React.ReactElement {
       .from('visits')
       .select(`*, visitor:visitors(*), department:departments(id, name, code, created_at)`)
       .in('status', ['pending_approval', 'approved', 'walkin_approved', 'checked_in'])
-      .gte('created_at', `${today}T00:00:00Z`);
+      .gte('created_at', dayStart);
     if (userDeptId && userRole && !['admin', 'guard'].includes(userRole)) {
       query = query.eq('department_id', userDeptId);
     }
@@ -44,7 +52,7 @@ export default function WhosInside(): React.ReactElement {
     const enriched = withActors.map((v) => ({ ...v, photo_url: v.photo_data ?? undefined }));
     setVisits(enriched);
     setLoading(false);
-  }, [userDeptId, userRole, today]);
+  }, [userDeptId, userRole, dayStart]);
 
   useEffect(() => {
     try {

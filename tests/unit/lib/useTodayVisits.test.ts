@@ -4,6 +4,7 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { renderHook, waitFor, cleanup } from '@testing-library/react';
 import { useTodayVisits } from '../../../src/lib/useTodayVisits';
+import { rangeBounds } from '../../../src/lib/reportsDateRange';
 
 const mockRows = vi.hoisted(() => ({ current: null as any[] | null }));
 const orSpy = vi.hoisted(() => vi.fn());
@@ -56,17 +57,26 @@ describe('useTodayVisits', () => {
   // created_at-only window. Must match created_at OR scheduled_for today, so
   // this list stays in lockstep with the dashboard tile counts derived from it
   // (lib/guardTiles.ts).
-  it('fetches the whole day: matches created_at OR scheduled_for within midnight-to-midnight UTC', async () => {
+  // THE DAY IS AN IST DAY. This test used to pin `${TODAY}T00:00:00Z` ..
+  // `T23:59:59Z`, which is 05:30 IST to 05:29 IST the following morning — so
+  // it asserted a window that began five and a half hours into the day it
+  // claimed to cover, on the one query every guard KPI tile is sliced from.
+  it('fetches the whole IST day: created_at OR scheduled_for between IST midnights', async () => {
     mockRows.current = [];
     const { result } = renderHook(() => useTodayVisits(TODAY));
     await waitFor(() => expect(result.current.loading).toBe(false));
 
     expect(orSpy).toHaveBeenCalledTimes(1);
     const filter = orSpy.mock.calls[0][0];
-    expect(filter).toContain(`created_at.gte.${TODAY}T00:00:00Z`);
-    expect(filter).toContain(`created_at.lte.${TODAY}T23:59:59Z`);
-    expect(filter).toContain(`scheduled_for.gte.${TODAY}T00:00:00Z`);
-    expect(filter).toContain(`scheduled_for.lte.${TODAY}T23:59:59Z`);
+    const { from, to } = rangeBounds({ from: TODAY, to: TODAY });
+    expect(from).toBe('2026-08-02T18:30:00.000Z');
+    expect(to).toBe('2026-08-03T18:30:00.000Z');
+    expect(filter).toContain(`created_at.gte.${from}`);
+    // Exclusive upper bound — a `lte` on 23:59:59 loses the range's last second.
+    expect(filter).toContain(`created_at.lt.${to}`);
+    expect(filter).toContain(`scheduled_for.gte.${from}`);
+    expect(filter).toContain(`scheduled_for.lt.${to}`);
+    expect(filter).not.toContain('T23:59:59Z');
   });
 
   it('does not filter by status — every status shares this one fetch', async () => {
