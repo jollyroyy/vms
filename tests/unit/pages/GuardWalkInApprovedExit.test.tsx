@@ -1,21 +1,24 @@
 import React from 'react';
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { render, screen, cleanup, fireEvent } from '@testing-library/react';
+import { render, screen, cleanup } from '@testing-library/react';
 import GuardWalkInApproved from '../../../src/pages/Guard/GuardWalkInApproved';
 import type { Visit } from '../../../src/types/index';
 
-// The exit half of the walk-in desk.
+// The desk lists NOBODY who is already through the gate, and it carries no exit
+// (client instruction, 2026-08-17).
 //
-// Since migration 080 the approver admits the visitor in the same click, so a
-// walk-in never passes through this desk on the way IN — they are already
-// `checked_in` by the time the guard looks. That left the lane holding rows the
-// guard could see and not act on, and the only way to let one of those visitors
-// out was to know that a different tab (Entry & Exit) owns the exit. The desk
-// that shows a walk-in's whole life must be able to end it.
+// It used to hold an "Already checked in (N)" section with a Check Out button on
+// each admitted row — added on 2026-08-16, when migration 080 briefly made the
+// approver's click the admission and left this desk holding rows it could not
+// act on. 083 put the admission back at the gate, so the only thing this lane
+// owes a visitor is the way IN. An admitted visitor is the Entry & Exit tab's
+// subject: that page holds their entry time, their exit time and the one exit
+// control, and listing them here as well put one visitor on two surfaces with
+// nothing saying which was authoritative.
 //
-// The write is NOT duplicated: the parent opens the same CardReturnConfirm and
-// calls the same lib/checkOutFlow.logVisitExit the Entry & Exit tab uses. This
-// component only asks.
+// This file is the guard on that: the heading names the one wait, only rows
+// still outside are listed, and no exit control exists on this component at any
+// state. lib/checkOutFlow.logVisitExit has exactly one caller again.
 
 vi.mock('../../../src/components/PhotoCapture', () => ({
   default: ({ onCapture }: { onCapture: (blob: Blob) => void }) => (
@@ -45,8 +48,13 @@ function visit(overrides: Partial<Visit> = {}): Visit {
   } as unknown as Visit;
 }
 
-const admitted = (overrides: Partial<Visit> = {}) =>
-  visit({ id: 'admitted', status: 'checked_in', checked_in_at: '2026-08-16T04:30:00Z', ...overrides });
+const admitted = () =>
+  visit({
+    id: 'admitted',
+    status: 'checked_in',
+    checked_in_at: '2026-08-16T04:30:00Z',
+    visitor: { full_name: 'Already Inside' } as any,
+  });
 
 const departed = () =>
   visit({
@@ -54,6 +62,7 @@ const departed = () =>
     status: 'checked_out',
     checked_in_at: '2026-08-16T04:30:00Z',
     checked_out_at: '2026-08-16T06:30:00Z',
+    visitor: { full_name: 'Gone Home' } as any,
   });
 
 function baseProps(overrides: Record<string, any> = {}) {
@@ -62,58 +71,45 @@ function baseProps(overrides: Record<string, any> = {}) {
     approved: [] as Visit[],
     busyId: null as string | null,
     onCheckIn: vi.fn(),
-    onCheckOut: vi.fn(),
     ...overrides,
   };
 }
 
-describe('GuardWalkInApproved — letting an admitted walk-in out', () => {
-  it('offers Check Out on a walk-in the approver admitted', () => {
-    render(<GuardWalkInApproved {...baseProps({ approved: [admitted()] })} />);
-    expect(screen.getByText('Already checked in (1)')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Check Out' })).toBeInTheDocument();
-  });
-
-  it('asks the parent to check that visitor out, naming the row that was clicked', () => {
-    const onCheckOut = vi.fn();
-    const v = admitted();
-    render(<GuardWalkInApproved {...baseProps({ approved: [v], onCheckOut })} />);
-
-    fireEvent.click(screen.getByRole('button', { name: 'Check Out' }));
-
-    expect(onCheckOut).toHaveBeenCalledTimes(1);
-    expect(onCheckOut.mock.calls[0][0]).toBe(v);
-  });
-
-  // The rule the rest of the guard surface follows: a control the guard cannot
-  // honour is worse than no control. This visitor has already left.
-  it('offers no action on a walk-in who has already checked out', () => {
-    render(<GuardWalkInApproved {...baseProps({ approved: [departed()] })} />);
-    expect(screen.queryByRole('button', { name: 'Check Out' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Check In' })).not.toBeInTheDocument();
-  });
-
-  // A row still resting in `walkin_approved` (approved before 080 landed) is
-  // the one kind that still needs the gate's check-in step, and it must not be
-  // offered an exit — nobody has come in yet.
-  it('offers Check In, and never Check Out, on a walk-in still waiting at the gate', () => {
+describe('GuardWalkInApproved — only the visitors still at the gate', () => {
+  it('names the one wait it owns', () => {
     render(<GuardWalkInApproved {...baseProps({ approved: [visit()] })} />);
-    expect(screen.getByText('Check In')).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Check Out' })).not.toBeInTheDocument();
+    expect(screen.getByText('Awaiting gate check-in')).toBeInTheDocument();
+    expect(screen.queryByText(/Already checked in/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Approved walk-ins/i)).not.toBeInTheDocument();
   });
 
-  it('separates the two groups: one waiting to enter, one able to leave', () => {
+  it('lists a walk-in still outside, with a Check In button and no exit', () => {
+    render(<GuardWalkInApproved {...baseProps({ approved: [visit()] })} />);
+    expect(screen.getByText('Rahul Verma')).toBeInTheDocument();
+    expect(screen.getByText('Check In')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Check Out/i })).not.toBeInTheDocument();
+  });
+
+  it('does not list a walk-in who is already inside', () => {
+    render(<GuardWalkInApproved {...baseProps({ approved: [admitted()] })} />);
+    expect(screen.queryByText('Already Inside')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Check Out/i })).not.toBeInTheDocument();
+    // Nothing left to do here, so the box reads as empty rather than showing a
+    // row the guard cannot act on.
+    expect(screen.getByText('Nobody is waiting to be checked in.')).toBeInTheDocument();
+  });
+
+  it('does not list a walk-in who has already left', () => {
+    render(<GuardWalkInApproved {...baseProps({ approved: [departed()] })} />);
+    expect(screen.queryByText('Gone Home')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Check Out/i })).not.toBeInTheDocument();
+  });
+
+  // The count beside the heading is the number of Check In buttons under it —
+  // the guardTiles.ts rule — so admitted and departed rows must not inflate it.
+  it('counts only the rows it lists', () => {
     render(<GuardWalkInApproved {...baseProps({ approved: [visit(), admitted(), departed()] })} />);
-    expect(screen.getByText('Check In')).toBeInTheDocument();
-    expect(screen.getByText('Already checked in (2)')).toBeInTheDocument();
-    // Only the one still on site can be let out.
-    expect(screen.getAllByRole('button', { name: 'Check Out' })).toHaveLength(1);
-  });
-
-  // The desk is read-only for a viewer with no exit handler wired in, rather
-  // than rendering a button that resolves to nothing.
-  it('renders no exit control when the parent supplies no handler', () => {
-    render(<GuardWalkInApproved {...baseProps({ approved: [admitted()], onCheckOut: undefined })} />);
-    expect(screen.queryByRole('button', { name: 'Check Out' })).not.toBeInTheDocument();
+    expect(screen.getByText('1')).toBeInTheDocument();
+    expect(screen.getAllByText('Check In')).toHaveLength(1);
   });
 });

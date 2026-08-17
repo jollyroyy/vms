@@ -19,11 +19,20 @@
 // The check-in rows themselves are PendingGateCheckIn, shared with the walk-in
 // register (client instruction, 2026-08-17) — the same control on both screens,
 // written once.
+//
+// IT LISTS NOBODY WHO IS ALREADY THROUGH THE GATE, and it carries no exit
+// (client instruction, 2026-08-17). The heading is **Awaiting gate check-in**,
+// the same words the register uses, and every row under it has a Check In button
+// — the guardTiles.ts rule, the count being the length of the list it opens. The
+// "Already checked in (N)" section that used to sit below, and the Check Out it
+// carried, are gone: an admitted visitor is the Entry & Exit tab's subject, which
+// holds their entry time, their exit time and the one exit control. That is the
+// same one-visitor-on-two-surfaces reasoning that took Checked Out off the
+// Visitors segments. Do not re-add an exit here — lib/checkOutFlow.logVisitExit
+// has exactly one caller again.
 import React from 'react';
 import type { Visit } from '../../types/index';
-import VisitorCard from './VisitorCard';
 import PendingGateCheckIn from './PendingGateCheckIn';
-import { formatDateTime } from '../../lib/formatDate';
 import { isAwaitingGateCheckIn } from '../../lib/visitOrigin';
 
 // The shape moved to lib/checkInWalkInApproved.ts with the write it describes,
@@ -32,78 +41,40 @@ import type { WalkInCheckIn } from '../../lib/checkInWalkInApproved';
 
 type Props = {
   loading: boolean;
-  /** Every walk-in the host cleared — those still at the gate AND those already
-   *  admitted. The component splits them; only the first group is actionable. */
+  /** Every walk-in the host cleared. The component narrows to the ones still at
+   *  the gate — the only rows this desk can act on. */
   approved: Visit[];
   busyId: string | null;
   onCheckIn: (visit: Visit, details: WalkInCheckIn) => void;
-  /** Let an admitted walk-in leave. The parent opens the same
-   *  `CardReturnConfirm` and calls the same `lib/checkOutFlow.logVisitExit` the
-   *  Entry & Exit tab uses — this desk asks for the exit, it does not write it,
-   *  so "did a human witness this?" and "did the card come back?" keep one
-   *  answer each. Optional: without a handler the admitted rows stay read-only
-   *  rather than growing a button that resolves to nothing. */
-  onCheckOut?: (visit: Visit) => void;
 };
 
-export default function GuardWalkInApproved({ loading, approved, busyId, onCheckIn, onCheckOut }: Props): React.ReactElement {
-  // The lane holds every walk-in the host cleared. Only a row still resting in
-  // `walkin_approved` has anything left for this desk to do on the way IN, so
-  // only that row gets a Check In button.
-  //
-  // An admitted row is not inert, though. It used to render read-only on the
-  // reasoning that the visitor is through the gate and there is nothing left to
-  // do — which was true of the ENTRY and forgot the exit. `checked_in` gets
-  // Check Out; `checked_out` gets neither, since the one action left has
-  // already happened.
+export default function GuardWalkInApproved({ loading, approved, busyId, onCheckIn }: Props): React.ReactElement {
+  // isAwaitingGateCheckIn is the NARROW half of isApprovedWalkIn: cleared by the
+  // host AND still outside. Filtering here rather than in the parent keeps the
+  // heading's count and the list underneath it derived from one predicate.
   const waiting = approved.filter(isAwaitingGateCheckIn);
-  const admitted = approved.filter((v) => !isAwaitingGateCheckIn(v));
 
   return (
     <div>
       <div className="flex items-center justify-between mb-2.5">
-        <h2 className="gate-section-title">Approved walk-ins</h2>
-        <span className="glass-chip !py-1 tabular-nums">{approved.length}</span>
+        <h2 className="gate-section-title">Awaiting gate check-in</h2>
+        <span className="glass-chip !py-1 tabular-nums">{waiting.length}</span>
       </div>
 
       {loading ? (
         <div className="space-y-2">
           {[0, 1].map((i) => <div key={i} className="skeleton h-[68px] w-full rounded-2xl" />)}
         </div>
-      ) : approved.length === 0 ? (
+      ) : waiting.length === 0 ? (
         <div className="card empty-state !py-14">
-          <p className="text-sm font-semibold text-navy-500">No walk-ins have been approved.</p>
+          <p className="text-sm font-semibold text-navy-500">Nobody is waiting to be checked in.</p>
           <p className="text-xs text-navy-500 dark:text-navy-400 mt-1">
-            Once a person to meet approves a walk-in they appear here, and stay here after they enter.
+            Once the person to meet approves a walk-in they appear here with a Check In button.
           </p>
         </div>
       ) : (
         <div className="space-y-2">
           <PendingGateCheckIn waiting={waiting} busyId={busyId} onCheckIn={onCheckIn} />
-
-          {/* Cleared AND already through the gate. They stay on this lane
-              because "who did the host approve?" is not answered by a list that
-              deletes people the moment they walk in — that is the complaint this
-              section exists to answer. Read-only, and labelled, so the guard is
-              never in doubt which rows still need them. */}
-          {admitted.length > 0 && (
-            <>
-              <p className="gate-section-title !text-[11px] pt-3 pb-0.5">
-                Already checked in ({admitted.length})
-              </p>
-              {admitted.map((v, i) => (
-                <div key={v.id} className="animate-slide-up" style={{ animationDelay: `${i * 0.03}s` }}>
-                  <VisitorCard
-                    visit={v}
-                    timeLabel={formatDateTime(v.checked_in_at ?? v.created_at)}
-                    action={onCheckOut && v.status === 'checked_in'
-                      ? { label: 'Check Out', onClick: () => onCheckOut(v) }
-                      : undefined}
-                  />
-                </div>
-              ))}
-            </>
-          )}
         </div>
       )}
     </div>

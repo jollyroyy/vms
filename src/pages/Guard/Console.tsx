@@ -12,8 +12,6 @@ import { checkInApprovedWalkIn, type WalkInCheckIn } from '../../lib/checkInWalk
 import { uploadPhoto } from '../../lib/photoUpload';
 import { isAlreadyInsideError } from '../../lib/activeVisit';
 import { notifyHostOnCheckIn } from '../../lib/notifyHostCheckIn';
-import CardReturnConfirm from './CardReturnConfirm';
-import { logVisitExit } from '../../lib/checkOutFlow';
 // No Badge import: the guard console must never render an entry pass. See
 // canRoleShowPass in lib/passVisibility.ts for why. Badge draws a live QR
 // straight from visit.qr_token and has no role gate of its own, so wiring it
@@ -24,16 +22,13 @@ import { logVisitExit } from '../../lib/checkOutFlow';
 // under which category. Entry is the Scan Pass and Pre-Approvals desks; exit is
 // the Entry & Exit tab (/guard/inside-now), which owns the undo banner.
 //
-// The walk-in desk (/visitors/approved) is the standing exception, and since
-// 2026-08-16 it is an exception in BOTH directions. It always held the check-in
-// for a walk-in the host cleared. It now also asks for the exit, because
-// migration 080 made the approver's click the admission: a walk-in no longer
-// passes through this desk on the way in, so the guard who registered them was
-// left watching a row they could not act on and had to learn that a different
-// tab lets people out. The exit is a REQUEST, not a second implementation — the
-// same CardReturnConfirm and the same lib/checkOutFlow.logVisitExit the Entry &
-// Exit tab uses, so there is still exactly one answer to "did a human witness
-// this exit" and "did the card come back".
+// The walk-in desk (/visitors/approved) is the standing exception, and it is an
+// exception in ONE direction only: it holds the check-in for a walk-in the host
+// cleared, because CheckInPanel searches pre-approvals and nothing else on this
+// surface can let that visitor in. It briefly carried the exit too (2026-08-16);
+// that was removed on 2026-08-17 with the "already checked in" list it hung off,
+// so lib/checkOutFlow.logVisitExit has exactly one caller again — the Entry &
+// Exit tab, which owns the card-return gate and the undo banner.
 
 // The Visitors surface. One page, one fetch, one realtime subscription — and a
 // segment picked off the URL (`/visitors`, `/visitors/expected`, …) deciding
@@ -107,22 +102,6 @@ export default function GuardConsole(): React.ReactElement {
     onCheckInSuccess(res.visitorName);
   };
 
-  // The visitor the guard has asked to let out. The VISIT is held, not a
-  // boolean, so the confirm dialog always names the row that was clicked even
-  // if the realtime subscription reorders the list underneath it — the same
-  // reason GuardLiveQueue holds one.
-  const [exitTarget, setExitTarget] = useState<Visit | null>(null);
-
-  const confirmExit = async (visit: Visit) => {
-    setActionErr('');
-    const res = await logVisitExit(visit);
-    if (!res.ok) { setActionErr(res.message); return; }
-    setExitTarget(null);
-    setSuccessMsg(`"${visit.visitor?.full_name ?? 'Visitor'}" checked out.`);
-    void loadVisits(true);
-    setTimeout(() => setSuccessMsg(''), 6000);
-  };
-
   const onCheckInSuccess = useCallback((name: string) => {
     setSuccessMsg(`"${name}" checked in successfully.`);
     void loadVisits(true);
@@ -162,17 +141,8 @@ export default function GuardConsole(): React.ReactElement {
           busyId={busyId}
           onWalkInCheckIn={(v, details) => { void checkInWalkIn(v, details); }}
           onWalkInSubmitted={onCheckInSuccess}
-          onWalkInCheckOut={setExitTarget}
         />
       </div>
-
-      {exitTarget && (
-        <CardReturnConfirm
-          visit={exitTarget}
-          onConfirm={() => { void confirmExit(exitTarget); }}
-          onClose={() => setExitTarget(null)}
-        />
-      )}
     </div>
   );
 }

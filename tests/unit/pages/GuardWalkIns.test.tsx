@@ -120,7 +120,7 @@ describe('GuardWalkIns', () => {
   it('shows the empty state when nothing is pending', () => {
     render(<GuardWalkIns {...baseProps()} />);
     expect(screen.getByText('Nothing waiting on a person to meet.')).toBeInTheDocument();
-    // Two boxes, two counts — the gate-check-in one and the approval one.
+    // Two boxes, two counts — the approval one and the gate-check-in one.
     expect(screen.getAllByText('0')).toHaveLength(2);
   });
 
@@ -138,10 +138,10 @@ describe('GuardWalkIns', () => {
 // checkable in from the register itself, not only from the Approved Walk-ins
 // tab. The count beside the heading is the number of Check In buttons under it
 // (the guardTiles.ts rule), and the card number is collected here.
-describe('GuardWalkIns — pending gate check-in', () => {
+describe('GuardWalkIns — awaiting gate check-in', () => {
   it('names the box and shows its empty state when nobody is cleared', () => {
     render(<GuardWalkIns {...baseProps()} />);
-    expect(screen.getByText('Pending gate check-in')).toBeInTheDocument();
+    expect(screen.getByText('Awaiting gate check-in')).toBeInTheDocument();
     expect(screen.getByText('Nobody is waiting to be checked in.')).toBeInTheDocument();
     expect(screen.queryByText('Check In')).not.toBeInTheDocument();
   });
@@ -207,10 +207,21 @@ describe('GuardWalkIns — pending gate check-in', () => {
   it('keeps the undecided requests in their own box, with no Check In button', () => {
     render(<GuardWalkIns {...baseProps({ pending: [visit()], awaitingCheckIn: [cleared()] })} />);
 
-    const approvalHeading = screen.getByText('Awaiting approval from person to meet');
+    const approvalHeading = screen.getByText('Awaiting host approval');
     const approvalBox = approvalHeading.closest('div')!.parentElement!;
     expect(within(approvalBox).getByText('Walk-in Person')).toBeInTheDocument();
     expect(within(approvalBox).queryByText('Check In')).not.toBeInTheDocument();
     expect(screen.getAllByText('Check In')).toHaveLength(1);
+  });
+
+  // The two waits are stacked in the order they happen (client instruction,
+  // 2026-08-17): the host answers first, the gate lets them in second, so a row
+  // crossing from one to the other moves one box DOWN rather than jumping the
+  // page. Asserted on document order, not on styling.
+  it('puts "Awaiting host approval" above "Awaiting gate check-in"', () => {
+    render(<GuardWalkIns {...baseProps()} />);
+    const host = screen.getByText('Awaiting host approval');
+    const gate = screen.getByText('Awaiting gate check-in');
+    expect(host.compareDocumentPosition(gate) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 });

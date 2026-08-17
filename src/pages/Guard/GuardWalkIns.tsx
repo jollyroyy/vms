@@ -25,10 +25,13 @@ type Props = {
 // you register the arrival, you wait for the person to meet to decide, and you
 // let the cleared visitor in.
 //
-// The middle box is watch-only and the third one acts, which is why the
-// actionable one leads: a guard opening this page while a queue builds is
-// looking for the row they can do something about, and burying it under a list
-// of rows they cannot is what made the Check In button feel absent.
+// THE TWO WAITS ARE STACKED IN THAT ORDER: **Awaiting host approval**, then
+// **Awaiting gate check-in** directly below it (client instruction,
+// 2026-08-17). Both headings are the client's words. "Awaiting approval" left
+// unsaid WHOSE — this desk waits on two different people in sequence — and a row
+// crossing from one wait to the other now moves one box down rather than jumping
+// the page. This is the same column /guard/walk-in (RegisterWalkIn) reads, so a
+// guard learns the sequence once.
 export default function GuardWalkIns(
   { loading, pending, awaitingCheckIn, busyId, onCheckIn, onSubmitted }: Props,
 ): React.ReactElement {
@@ -58,37 +61,11 @@ export default function GuardWalkIns(
         </button>
       )}
 
-      {/* Pending gate check-in — approved, still outside. The count is the
-          number of Check In buttons below it, the guardTiles.ts rule: a figure
-          on this surface is the length of the list it opens. */}
+      {/* Wait one: the host has not answered yet. Watch-only — nothing here can
+          be acted on until somebody else decides. */}
       <div>
         <div className="flex items-center justify-between mb-2.5">
-          <h2 className="gate-section-title">Pending gate check-in</h2>
-          <span className="glass-chip !py-1 tabular-nums">{awaitingCheckIn.length}</span>
-        </div>
-
-        {loading ? (
-          <div className="space-y-2">
-            {[0, 1].map((i) => <div key={i} className="skeleton h-[68px] w-full rounded-2xl" />)}
-          </div>
-        ) : awaitingCheckIn.length === 0 ? (
-          <div className="card empty-state !py-12">
-            <p className="text-sm font-semibold text-navy-500">Nobody is waiting to be checked in.</p>
-            <p className="text-xs text-navy-500 dark:text-navy-400 mt-1">
-              Once the person to meet approves a walk-in they appear here with a Check In button.
-            </p>
-          </div>
-        ) : (
-          <div className="space-y-2">
-            <PendingGateCheckIn waiting={awaitingCheckIn} busyId={busyId} onCheckIn={onCheckIn} />
-          </div>
-        )}
-      </div>
-
-      {/* Awaiting approval */}
-      <div>
-        <div className="flex items-center justify-between mb-2.5">
-          <h2 className="gate-section-title">Awaiting approval from person to meet</h2>
+          <h2 className="gate-section-title">Awaiting host approval</h2>
           <span className="glass-chip !py-1 tabular-nums">{pending.length}</span>
         </div>
 
@@ -108,6 +85,36 @@ export default function GuardWalkIns(
             {pending.map((v) => (
               <VisitorCard key={v.id} visit={v} timeLabel={formatTime(v.created_at)} />
             ))}
+          </div>
+        )}
+      </div>
+
+      {/* Wait two: the host said yes and the visitor is still outside. Every row
+          in this box has a Check In button under it — the guardTiles.ts rule,
+          the count being the length of the list it opens. Nobody already through
+          the gate is listed: that visitor is the Entry & Exit tab's subject,
+          which holds their entry time, their exit time and the only exit
+          control. */}
+      <div>
+        <div className="flex items-center justify-between mb-2.5">
+          <h2 className="gate-section-title">Awaiting gate check-in</h2>
+          <span className="glass-chip !py-1 tabular-nums">{awaitingCheckIn.length}</span>
+        </div>
+
+        {loading ? (
+          <div className="space-y-2">
+            {[0, 1].map((i) => <div key={i} className="skeleton h-[68px] w-full rounded-2xl" />)}
+          </div>
+        ) : awaitingCheckIn.length === 0 ? (
+          <div className="card empty-state !py-12">
+            <p className="text-sm font-semibold text-navy-500">Nobody is waiting to be checked in.</p>
+            <p className="text-xs text-navy-500 dark:text-navy-400 mt-1">
+              Once the person to meet approves a walk-in they appear here with a Check In button.
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            <PendingGateCheckIn waiting={awaitingCheckIn} busyId={busyId} onCheckIn={onCheckIn} />
           </div>
         )}
       </div>

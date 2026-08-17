@@ -174,7 +174,7 @@ describe('GuardConsole segments', () => {
     renderAt('/visitors/walk-in');
     await waitFor(() => {
       expect(screen.getByText('Register a walk-in')).toBeInTheDocument();
-      expect(screen.getByText('Awaiting approval from person to meet')).toBeInTheDocument();
+      expect(screen.getByText('Awaiting host approval')).toBeInTheDocument();
     });
   });
 
@@ -182,7 +182,7 @@ describe('GuardConsole segments', () => {
     mockVisitData.current = [visit({ id: 'v4', status: 'walkin_approved', checked_in_at: null })];
     renderAt('/visitors/approved');
     await waitFor(() => {
-      expect(screen.getByText('Approved walk-ins')).toBeInTheDocument();
+      expect(screen.getByText('Awaiting gate check-in')).toBeInTheDocument();
       expect(screen.getByText('Alice Johnson')).toBeInTheDocument();
     });
   });
