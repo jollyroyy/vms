@@ -173,7 +173,7 @@ describe('GuardWalkIns — awaiting gate check-in', () => {
 
     fireEvent.click(screen.getByText('Mock Capture'));
     expect(confirm).toBeDisabled();
-    expect(screen.getByText('Enter the card number before checking in.')).toBeInTheDocument();
+    expect(screen.getByText('Enter the visitor card number before checking in.')).toBeInTheDocument();
 
     fireEvent.change(screen.getByLabelText(/Visitor card number/i), { target: { value: 'C-104' } });
     expect(confirm).not.toBeDisabled();

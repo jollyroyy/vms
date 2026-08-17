@@ -64,6 +64,28 @@ describe('GuardWalkInApproved', () => {
     expect(screen.getByText('2')).toBeInTheDocument();
   });
 
+  // The bug the client reported: the Check In button was carried off the right
+  // edge of the card. Every child of .visitor-card used to be a shrink-0
+  // sibling on one non-wrapping row, so in a container narrower than the `md`
+  // VIEWPORT breakpoint that reveals the Person to Meet column — the register's
+  // xl:col-span-5 lane is one — the row overflowed and the trailing child, the
+  // only control on this lane, ended up outside the box. jsdom applies no
+  // stylesheet, so what is asserted is the STRUCTURE that lets the CSS wrap
+  // safely (components-guard.css: .visitor-card is flex-wrap): the identity and
+  // the trailing group are two boxes, and the action travels inside the
+  // trailing group rather than as a loose last sibling that can wrap alone.
+  it('keeps the Check In button inside the card, grouped so it can wrap', () => {
+    const { container } = render(<GuardWalkInApproved {...baseProps({ approved: [visit()] })} />);
+
+    const card = container.querySelector('.visitor-card');
+    expect(card).not.toBeNull();
+    expect(card!.querySelector('.visitor-card-lead')).not.toBeNull();
+
+    const button = screen.getByText('Check In');
+    expect(button.closest('.visitor-card-trail')).not.toBeNull();
+    expect(button.closest('.visitor-card')).toBe(card);
+  });
+
   it("renders an approved walk-in's name", () => {
     render(<GuardWalkInApproved {...baseProps({ approved: [visit()] })} />);
     expect(screen.getByText('Rahul Verma')).toBeInTheDocument();
@@ -102,7 +124,10 @@ describe('GuardWalkInApproved', () => {
 
     fireEvent.click(screen.getByText('Mock Capture'));
     expect(confirm).toBeDisabled();
-    expect(screen.getByText('Enter the card number before checking in.')).toBeInTheDocument();
+    // The outstanding requirement is named in one line above the buttons, the
+    // same way CheckInPhotoStep names it — a greyed-out button on its own does
+    // not tell a guard which of three things is missing.
+    expect(screen.getByText('Enter the visitor card number before checking in.')).toBeInTheDocument();
 
     fireEvent.change(screen.getByLabelText(/Visitor card number/i), { target: { value: 'C-104' } });
     expect(confirm).not.toBeDisabled();

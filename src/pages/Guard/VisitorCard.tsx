@@ -27,54 +27,63 @@ export default function VisitorCard({ visit: v, action, onSelect, timeLabel }: P
 
   const inner = (
     <>
-      {timeLabel && (
-        <div className="shrink-0 w-14 text-center">
-          <span className="visitor-card-fact">{timeLabel}</span>
-        </div>
-      )}
+      <div className="visitor-card-lead">
+        {timeLabel && (
+          <div className="shrink-0 w-14 text-center">
+            <span className="visitor-card-fact">{timeLabel}</span>
+          </div>
+        )}
 
-      {v.photo_url ? (
-        <img src={v.photo_url} alt="" className="visitor-photo" />
-      ) : (
-        <div className="visitor-photo-empty" aria-hidden="true">
-          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0" />
-          </svg>
-        </div>
-      )}
+        {v.photo_url ? (
+          <img src={v.photo_url} alt="" className="visitor-photo" />
+        ) : (
+          <div className="visitor-photo-empty" aria-hidden="true">
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0" />
+            </svg>
+          </div>
+        )}
 
-      <div className="min-w-0 flex-1">
-        <p className="visitor-card-name">{v.visitor?.full_name ?? 'Unknown visitor'}</p>
-        <p className="visitor-card-meta">
-          {v.visitor?.vendor_name ? `${v.visitor.vendor_name}` : ''}
-          {v.purpose ? `${v.visitor?.vendor_name ? ' · ' : ''}${v.purpose}` : ''}
-        </p>
+        <div className="min-w-0 flex-1">
+          <p className="visitor-card-name">{v.visitor?.full_name ?? 'Unknown visitor'}</p>
+          <p className="visitor-card-meta">
+            {v.visitor?.vendor_name ? `${v.visitor.vendor_name}` : ''}
+            {v.purpose ? `${v.visitor?.vendor_name ? ' · ' : ''}${v.purpose}` : ''}
+          </p>
+        </div>
       </div>
 
-      {/* Person to Meet — the second-most-asked question at a gate ("who are
-          you here to see?"), so it gets its own column rather than being
-          folded into meta. Department moved here too, under their name —
-          it used to also sit in the meta line above, which rendered the
-          same value twice on one card. */}
-      <div className="hidden md:block text-right shrink-0 min-w-0 max-w-[9rem]">
-        <p className="text-[11px] text-navy-300 uppercase tracking-wide">Person to Meet</p>
-        <p className="text-[13px] font-semibold text-navy-700 truncate">{v.host?.full_name ?? '—'}</p>
-        {v.host?.full_name && (
-          <p className="text-[11px] text-navy-500 dark:text-navy-400 truncate">{v.department?.name ?? '—'}</p>
+      {/* Everything that is TRUE of this visitor and everything you can DO about
+          them, in one wrapping group. Grouped rather than left as loose siblings
+          so that when the card is narrow the status and the action drop together
+          onto a second line, instead of the action alone being carried off the
+          right-hand edge of the box. */}
+      <div className="visitor-card-trail">
+        {/* Person to Meet — the second-most-asked question at a gate ("who are
+            you here to see?"), so it gets its own column rather than being
+            folded into meta. Department moved here too, under their name —
+            it used to also sit in the meta line above, which rendered the
+            same value twice on one card. */}
+        <div className="hidden sm:block text-right min-w-0 max-w-[9rem]">
+          <p className="text-[11px] text-navy-600 uppercase tracking-wide">Person to Meet</p>
+          <p className="text-[13px] font-semibold text-navy-700 truncate">{v.host?.full_name ?? '—'}</p>
+          {v.host?.full_name && (
+            <p className="text-[11px] text-navy-700 truncate">{v.department?.name ?? '—'}</p>
+          )}
+        </div>
+
+        <span className={`status-badge shrink-0 ${style.bg} ${style.text}`}>
+          <span className={`h-1.5 w-1.5 rounded-full ${style.dot}`} />
+          {style.label}
+        </span>
+
+        {action && (
+          <button type="button" className="gate-action"
+            onClick={(e) => { e.stopPropagation(); action.onClick(); }}>
+            {action.label}
+          </button>
         )}
       </div>
-
-      <span className={`status-badge shrink-0 ${style.bg} ${style.text}`}>
-        <span className={`h-1.5 w-1.5 rounded-full ${style.dot}`} />
-        {style.label}
-      </span>
-
-      {action && (
-        <button type="button" className="gate-action"
-          onClick={(e) => { e.stopPropagation(); action.onClick(); }}>
-          {action.label}
-        </button>
-      )}
     </>
   );
 

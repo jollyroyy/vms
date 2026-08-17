@@ -187,6 +187,36 @@ describe('GuardConsole segments', () => {
     });
   });
 
+  // Client instruction, 2026-08-17: the walk-in gate lane says at the top what
+  // board the guard is standing on. A kicker, not a second heading — the page
+  // keeps exactly one h1 and the lane keeps its own h2.
+  it('heads the approved segment with "Walk-in Visitors at a Glance"', async () => {
+    renderAt('/visitors/approved');
+    await waitFor(() => {
+      expect(screen.getByText('Walk-in Visitors at a Glance')).toBeInTheDocument();
+    });
+    expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1);
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Approved Walk-ins');
+  });
+
+  // The count and the list are one rule. The page lists only the rows still at
+  // the gate, so a walk-in already through it must not be counted by the tile
+  // or the sidebar badge that open this page.
+  it('the approved segment drops a walk-in who is already inside', async () => {
+    mockVisitData.current = [
+      visit({ id: 'v4', status: 'walkin_approved', checked_in_at: null }),
+      visit({
+        id: 'v5', status: 'checked_in', checked_in_at: new Date().toISOString(), scheduled_for: null,
+        visitor: { full_name: 'Already Inside', phone: '9990000000' },
+      }),
+    ];
+    renderAt('/visitors/approved');
+    await waitFor(() => {
+      expect(screen.getByText('Alice Johnson')).toBeInTheDocument();
+    });
+    expect(screen.queryByText('Already Inside')).not.toBeInTheDocument();
+  });
+
   // Old bookmarks and old dashboard tiles carry these slugs. None may 404 into
   // a blank page — segmentFromSlug degrades every one onto a live segment.
   describe('legacy slugs degrade onto a live segment', () => {

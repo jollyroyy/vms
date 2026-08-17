@@ -13,7 +13,7 @@
 // never exist in the nav without existing on the page, or be counted by a rule
 // different from the one that lists it. Adding a segment is one edit here.
 import type { Visit } from '../types/index';
-import { isApprovedWalkIn } from './visitOrigin';
+import { isAwaitingGateCheckIn } from './visitOrigin';
 
 export type VisitorSegment =
   | 'all'
@@ -138,9 +138,9 @@ export const SEGMENT_META: Record<VisitorSegment, SegmentMeta> = {
   walkinApproved: {
     navLabel: 'Approved Walk-ins',
     title: 'Approved Walk-ins',
-    subtitle: 'Walk-ins the host cleared — waiting at the gate, and already inside',
-    empty: 'No walk-ins have been approved.',
-    emptyHint: 'Once a host approves a walk-in it appears here, and stays here after they enter.',
+    subtitle: 'Cleared by the person to meet and still at the gate — check them in here',
+    empty: 'Nobody is waiting to be checked in.',
+    emptyHint: 'Once the person to meet approves a walk-in they appear here with a Check In button.',
     showCount: true,
   },
   walkin: {
@@ -166,15 +166,18 @@ export const SEGMENT_FILTER: Record<ListSegment, (v: Visit) => boolean> = {
   // an arrival due now is exactly the mistake this list must not invite.
   inside: (v) => v.status === 'checked_in',
   pending: (v) => v.status === 'pending_approval',
-  // Every walk-in the host cleared — waiting at the gate AND already inside.
+  // Cleared by the host and STILL AT THE GATE — the narrow half.
   //
-  // This was `status === 'walkin_approved'`, which stopped listing anything the
-  // moment migration 080 made the approver's click admit the visitor outright:
-  // the row jumps `pending_approval -> checked_in` and never rests in the status
-  // this lane was keyed on. The rule is now the clearance, not the holding
-  // state — see `isApprovedWalkIn`, shared with the guard tile and the HOD tile
-  // that ask the same question.
-  walkinApproved: isApprovedWalkIn,
+  // It was `isApprovedWalkIn` (the wide half: cleared, whether or not they have
+  // since walked through) until the already-checked-in list was deleted from
+  // this segment's page on 2026-08-17. From that moment the KPI tile and the
+  // sidebar badge counted admitted walk-ins that the page underneath no longer
+  // listed — the count was not the length of the list it opened, which is the
+  // one thing a count on this project may never be. The wide question is still
+  // asked where it is still answered: TILE_FILTER.walkinApproved on the guard
+  // dashboard and the HOD's Walk-ins Approved tile both drill into lists that
+  // DO include the admitted, and both still use `isApprovedWalkIn`.
+  walkinApproved: isAwaitingGateCheckIn,
 };
 
 /** The rows behind a segment, most recent activity first. */

@@ -36,16 +36,30 @@ export default function WalkInCheckInForm({ visit: v, busy, onConfirm, onCancel 
   const [remarks, setRemarks] = useState('');
 
   const cardBad = !isValidCardNumber(cardNumber);
+  const mismatch = Boolean(scanResult?.name) && !namesMatch(scanResult?.name ?? '', v.visitor?.full_name ?? '');
   const canConfirm = (): boolean => {
     if (!photoBlob || cardBad || busy) return false;
-    if (!scanResult?.name) return true;
-    return namesMatch(scanResult.name, v.visitor?.full_name ?? '');
+    return !mismatch;
   };
+
+  // Why Confirm Check In is refused, in one line — same rule as
+  // CheckInPhotoStep. The field hints are spread down a long card and the guard
+  // is standing in front of somebody, so a greyed-out button with nothing
+  // saying which requirement is outstanding is the one thing this desk cannot
+  // afford. (The ID scan is NOT among the requirements here on purpose: this
+  // visitor's document was read at registration and is already on the row.)
+  const blockedReason = !photoBlob
+    ? 'Capture the photo, then press Use Photo, before checking in.'
+    : mismatch
+      ? 'The scanned ID does not match the approved visitor.'
+      : cardBad
+        ? 'Enter the visitor card number before checking in.'
+        : '';
 
   const scanSection = () => {
     const status = scanResult
       ? scanResult.name
-        ? namesMatch(scanResult.name, v.visitor?.full_name ?? '') ? 'match' : 'mismatch'
+        ? mismatch ? 'mismatch' : 'match'
         : 'no-name'
       : null;
     if (!scanResult) {
@@ -59,9 +73,9 @@ export default function WalkInCheckInForm({ visit: v, busy, onConfirm, onCancel 
     }
     if (status === 'match') {
       return (
-        <div className="rounded-xl bg-success-50 border border-success-200 dark:border-success-500/25 px-4 py-2.5 text-sm flex items-center justify-between gap-2">
+        <div className="rounded-xl bg-success-50 border border-success-200 dark:border-success-500/25 px-4 py-2.5 text-sm flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
           <span className="font-bold text-success-700">Identity verified</span>
-          <span className="text-xs text-success-700/80">{scanResult.idType} •••• {scanResult.idLast4}</span>
+          <span className="text-xs text-success-700 break-words">{scanResult.idType} •••• {scanResult.idLast4}</span>
         </div>
       );
     }
@@ -69,16 +83,16 @@ export default function WalkInCheckInForm({ visit: v, busy, onConfirm, onCancel 
       return (
         <div className="rounded-xl bg-danger-50 border border-danger-200 dark:border-danger-500/25 px-4 py-2.5 text-sm space-y-1.5">
           <p className="font-bold text-danger-700">Name doesn't match the approved visitor</p>
-          <p className="text-xs text-danger-700/80">Card shows {scanResult.name} — approved as {v.visitor?.full_name}</p>
+          <p className="text-xs text-danger-700 break-words">Card shows {scanResult.name} — approved as {v.visitor?.full_name}</p>
           <button type="button" onClick={() => setScanResult(null)}
             className="text-xs font-bold text-danger-700 underline underline-offset-2">Discard scan</button>
         </div>
       );
     }
     return (
-      <div className="rounded-xl bg-accent-50 border border-accent-200 dark:bg-accent-500/10 dark:border-accent-500/25 px-4 py-2.5 text-sm flex items-center justify-between gap-2">
+      <div className="rounded-xl bg-accent-50 border border-accent-200 dark:bg-accent-500/10 dark:border-accent-500/25 px-4 py-2.5 text-sm flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
         <span className="font-bold text-accent-700 dark:text-accent-300">ID recorded — no name could be read</span>
-        <span className="text-xs text-accent-700/80">{scanResult.idType} •••• {scanResult.idLast4}</span>
+        <span className="text-xs text-accent-700 dark:text-accent-300 break-words">{scanResult.idType} •••• {scanResult.idLast4}</span>
       </div>
     );
   };
@@ -119,15 +133,17 @@ export default function WalkInCheckInForm({ visit: v, busy, onConfirm, onCancel 
           onChange={(e) => setCardNumber(e.target.value)}
           placeholder="e.g. C-104"
           maxLength={20}
-          aria-invalid={cardBad}
+          aria-invalid={cardBad && cardNumber !== ''}
           aria-describedby={`walkin-card-hint-${v.id}`}
           className="input w-full"
         />
-        {cardBad && (
+        {/* Only once something has been TYPED. An empty field is not yet a
+            mistake, and painting the box red the moment the form opens spent the
+            one error colour on the normal case; the outstanding-requirement line
+            above the buttons is what names an untouched field. */}
+        {cardBad && cardNumber !== '' && (
           <p id={`walkin-card-hint-${v.id}`} className="text-[11px] text-danger-600 font-semibold">
-            {cardNumber.trim() === ''
-              ? 'Enter the card number before checking in.'
-              : 'Letters, digits and hyphens only — e.g. C-104.'}
+            Letters, digits and hyphens only — e.g. C-104.
           </p>
         )}
       </div>
@@ -154,6 +170,10 @@ export default function WalkInCheckInForm({ visit: v, busy, onConfirm, onCancel 
           placeholder="What are they carrying?"
           className="input"
         />
+      )}
+
+      {blockedReason && (
+        <p className="text-xs font-semibold text-danger-600" role="status">{blockedReason}</p>
       )}
 
       <div className="flex gap-2.5">

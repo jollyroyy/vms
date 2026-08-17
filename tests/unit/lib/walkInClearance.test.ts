@@ -96,9 +96,13 @@ describe('the three lanes answer with one rule', () => {
   const admitted = walkIn('checked_in', { id: 'admitted', checked_in_at: '2026-08-16T05:00:00Z' });
   const waiting = walkIn('walkin_approved', { id: 'waiting' });
 
-  it('the /visitors segment lists an admitted walk-in alongside a waiting one', () => {
-    expect(SEGMENT_FILTER.walkinApproved(admitted)).toBe(true);
+  // The /visitors segment is the NARROW half, and deliberately so: its page
+  // (GuardWalkInApproved) lists only the rows still at the gate, so a filter
+  // that also counted the admitted made the KPI tile and the sidebar badge
+  // report a number longer than the list they open.
+  it('the /visitors segment lists only the walk-in still at the gate', () => {
     expect(SEGMENT_FILTER.walkinApproved(waiting)).toBe(true);
+    expect(SEGMENT_FILTER.walkinApproved(admitted)).toBe(false);
   });
 
   it('the guard tile counts it too', () => {

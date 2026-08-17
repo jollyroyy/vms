@@ -149,6 +149,15 @@ Tests in `VisitorCard` and `GuardConsole` assert the absence.
   same face as `PreRegisteredCard`. `VisitorCard.tsx` (single row) still serves
   `GuardWalkIns`/`GuardWalkInApproved`; do not delete. `VisitorStackCard`/`StackFacts`
   deleted. Styles: `styles/components-visitor-stack.css`.
+  - **`.visitor-card` WRAPS, in two groups** (2026-08-17): `.visitor-card-lead` (time,
+    photo, name — `flex-1`, `basis: 14rem`) and `.visitor-card-trail` (Person to Meet,
+    status badge, action — `ml-auto`, wraps). Every child used to be a `shrink-0` sibling
+    on one non-wrapping row, and Person to Meet appears at the `md` VIEWPORT breakpoint
+    while the card lives in containers far narrower (`RegisterWalkIn`'s `xl:col-span-5`
+    lane is ~420px at 1280px) — the row overflowed its box and the **Check In button, the
+    only control on the walk-in lane, was carried outside the card**. Never re-flatten the
+    two groups: a loose trailing action wraps alone. Guarded by
+    `GuardWalkInApproved.test.tsx`.
   - **No leading colour rail** (deleted, not transparented; nothing holds its space). Test
     fails on any `rail-` class. `.visitor-card` keeps its rail — `lib/statusRail.ts` stays.
   - **No "Details" control** — the card IS the record. What only the sheet held (ID image,
@@ -183,6 +192,18 @@ Tests in `VisitorCard` and `GuardConsole` assert the absence.
   the segments. `Console.tsx`'s `exitTarget`/`CardReturnConfirm`/`logVisitExit` wiring went
   with it, so **`lib/checkOutFlow.logVisitExit` has exactly one caller again**. Do not
   re-add an exit here. Guarded by `GuardWalkInApprovedExit.test.tsx`.
+  - **`SEGMENT_FILTER.walkinApproved` is `isAwaitingGateCheckIn`, the NARROW half**
+    (2026-08-17). It was `isApprovedWalkIn` (wide) and stayed wide when the
+    already-checked-in list was deleted, so the KPI tile and the sidebar badge counted
+    admitted walk-ins the page no longer listed — a count that is not the length of the
+    list it opens. The tile's own hint already read "Approved at the gate, not yet in".
+    The wide question is still asked where it is still answered: `TILE_FILTER.walkinApproved`
+    (guard dashboard) and the HOD's Walk-ins Approved tile both keep `isApprovedWalkIn`.
+  - **Kicker on top: "Walk-in Visitors at a Glance"** (client instruction, 2026-08-17) —
+    `SegmentShell`'s `eyebrow`, a `<p>` above the `h1`, NOT a heading: the page keeps
+    exactly one `h1` ("Approved Walk-ins") and the lane keeps its `h2`. Only this segment
+    carries it; over the register, whose `h1` is already "Walk-in Visitors", it would print
+    the same two words twice.
 - **`/guard/walk-in` → `RegisterWalkIn`**: form on the right, the same two waits stacked in
   the left column, and **no already-checked-in list**. Ordering here is the opposite of
   `GuardWalkIns`' pre-2026-08-17 layout on purpose: the form is the page's subject and the
@@ -194,6 +215,10 @@ Tests in `VisitorCard` and `GuardConsole` assert the absence.
   `checkInApprovedWalkIn`, so there is exactly one route from `walkin_approved` to
   `checked_in`. `PendingGateCheckIn` holds the OPEN ROW (not each row) because the form
   mounts a camera — **ONE CAMERA AT A TIME** — and renders no heading/count of its own.
+  **`WalkInCheckInForm` names the outstanding requirement in one line above the buttons**
+  (`blockedReason`, the same rule as `CheckInPhotoStep`): photo → ID match → card number.
+  The card field only turns red once something has been TYPED — an untouched field is not
+  yet a mistake, and the requirement line is what speaks for it.
 - **`isAwaitingGateCheckIn` (`lib/visitOrigin.ts`) is the narrow half of
   `isApprovedWalkIn`.** Wide = "who did the host clear?" (a record of issuance, keeps the
   visitor after entry); narrow = "who is still at the gate?", so the count beside a box is

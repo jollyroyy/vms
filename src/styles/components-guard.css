@@ -49,8 +49,17 @@
      The workhorse row. A 4px status rail runs down the leading edge so a
      guard can scan a column of these and pick out the one they need without
      reading a word. */
+  /* IT WRAPS. Every child used to be a shrink-0 sibling on one non-wrapping
+     row — time, photo, identity, person-to-meet, status badge, action — and the
+     person-to-meet column appears at the `md` VIEWPORT breakpoint while the card
+     itself lives in containers far narrower than that (the walk-in register's
+     xl:col-span-5 column is ~420px on a 1280px screen). The row then overflowed
+     its box and the trailing child — the Check In button, the only control on
+     the lane — was pushed outside the visible card. Wrapping puts the trailing
+     group on its own line instead of off the edge, so the action can never be
+     unreachable at any width. */
   .visitor-card {
-    @apply relative flex items-center gap-4 rounded-2xl px-4 py-3.5;
+    @apply relative flex flex-wrap items-center gap-x-4 gap-y-3 rounded-2xl px-4 py-3.5;
     background: rgb(var(--glass-bg) / 0.62);
     backdrop-filter: blur(18px) saturate(165%);
     -webkit-backdrop-filter: blur(18px) saturate(165%);
@@ -83,6 +92,18 @@
   .rail-pending::before  { background: linear-gradient(180deg, #f59e0b, #d97706); }
   .rail-out::before      { background: rgb(var(--c-surface-300)); }
   .rail-flagged::before  { background: linear-gradient(180deg, #ef4444, #b91c1c); }
+
+  /* The two halves of a wrapping card. The lead is who this is (time, face,
+     name) and stays together; the trail is what is true of them and what you
+     can do about it. `basis` is the width below which the trail drops to its
+     own line rather than squeezing the name to nothing. */
+  .visitor-card-lead {
+    @apply flex items-center gap-3.5 min-w-0 flex-1;
+    flex-basis: 14rem;
+  }
+  .visitor-card-trail {
+    @apply flex flex-wrap items-center justify-end gap-x-3 gap-y-2 ml-auto;
+  }
 
   /* Text hierarchy inside a visitor card. Exactly one loud line. */
   .visitor-card-name {
