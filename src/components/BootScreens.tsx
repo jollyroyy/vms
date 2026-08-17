@@ -3,7 +3,7 @@ import { supabase } from '../supabaseClient';
 import Logo from './Logo';
 
 /**
- * The two screens App renders before any route exists.
+ * The screens App renders before any route exists.
  *
  * BootSplash was written out twice in App.tsx — once for the auth restore and
  * once for the must-change-password check — which is two copies of one screen
@@ -50,6 +50,40 @@ export function NoRoleScreen(): React.ReactElement {
           onClick={() => { void supabase.auth.signOut(); }}
           className="mt-6 rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-700">
           Return to sign in
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * An account an admin has suspended (migration 094).
+ *
+ * The suspension is enforced in Postgres — `current_user_role()` returns null,
+ * so every policy refuses — which without this screen would be INVISIBLE: the
+ * person signs in, lands on their role's page, and every list on it is empty. A
+ * guard staring at a gate board that shows nobody inside cannot tell that from
+ * a quiet morning, and would keep working from it. Being told is the point.
+ *
+ * `admin_deactivate_user` also deletes every live session, so in practice this
+ * is reached by someone who tries to sign in AFTER being suspended rather than
+ * by someone sitting in front of an open tab.
+ */
+export function SuspendedScreen(): React.ReactElement {
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-surface-50 p-6 text-center">
+      <div className="max-w-sm rounded-2xl border border-surface-200 bg-white p-8 shadow-lg">
+        <Logo size="lg" className="mx-auto mb-5" />
+        <h1 className="font-display text-xl font-semibold text-navy-700">Your access has been withdrawn</h1>
+        <p className="mt-3 text-sm leading-6 text-slate-600">
+          This account has been deactivated by an administrator. Nothing you have done has been removed — ask an
+          administrator to reactivate the account if this is not expected.
+        </p>
+        <button
+          type="button"
+          onClick={() => { void supabase.auth.signOut(); }}
+          className="mt-6 rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-700">
+          Sign out
         </button>
       </div>
     </div>

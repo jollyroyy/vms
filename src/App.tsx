@@ -16,8 +16,6 @@ import { hasRecoveryHash, isRecoveryPending, markRecoveryPending, clearRecoveryP
 import VisitorsDashboard  from './pages/Shared/VisitorsDashboard';
 import GuardDashboard     from './pages/Guard/Dashboard';
 import GuardLiveQueue      from './pages/Guard/GuardLiveQueue';
-import GuardPreRegistered   from './pages/Guard/GuardPreRegistered';
-import GuardConsole       from './pages/Guard/Console';
 import GuardPreApprovals  from './pages/Guard/PreApprovals';
 import GuardScanPass      from './pages/Guard/ScanPass';
 import RegisterWalkIn     from './pages/Guard/RegisterWalkIn';
@@ -32,18 +30,15 @@ import KioskPage          from './pages/Kiosk/Kiosk';
 import AppShell           from './components/layout/AppShell';
 import SessionTimeout     from './components/SessionTimeout';
 import RouteErrorBoundary from './components/RouteErrorBoundary';
-import { BootSplash, NoRoleScreen } from './components/BootScreens';
+import { BootSplash, NoRoleScreen, SuspendedScreen } from './components/BootScreens';
 import { isUserRole, resolveUserRole } from './lib/resolveUserRole';
+import { fetchAccountActive, fetchMustChangePassword } from './lib/startupGates';
 
 /**
  * SEC-7: Signs the user out immediately if their role is not allowed on the current route.
  * Uses ROLE_ROUTES as the single source of truth — never trusts the URL or a per-route prop.
  * Renders nothing until signOut completes to prevent flash of forbidden content.
  */
-type MustChangePasswordRpc = (
-  fn: 'my_must_change_password',
-) => Promise<{ data: boolean | null; error: { message: string } | null }>;
-
 function ProtectedRoute({ children, role }: { children: React.ReactElement; role: UserRole | null }) {
   const location = useLocation();
   const allowed = role !== null ? (ROLE_ROUTES[role] ?? []) : [];
@@ -67,53 +62,29 @@ export default function App(): React.ReactElement {
     if (hasRecoveryHash()) { markRecoveryPending(); return true; }
     return isRecoveryPending();
   });
-  // Admin-reset gate (migration 064). `null` means "unknown / still checking" —
-  // rendered as the same loading screen as `loading` so the app shell can never
-  // flash before we know the answer. `false` is also the value used when there is
-  // no session, or when the RPC itself fails (see checkMustChangePassword below).
+  // The two startup gates: an admin-set temporary password (migration 064) and
+  // a withdrawn account (migration 094). `null` means "unknown / still
+  // checking" and renders the same loading screen as `loading`, so the app
+  // shell can never flash before we know either answer. Each gate's fail-open
+  // value is decided in lib/startupGates.ts, not here.
   const [mustChangePassword, setMustChangePassword] = useState<boolean | null>(null);
+  const [accountActive, setAccountActive] = useState<boolean | null>(null);
 
   useEffect(() => {
     document.title = 'Secure Gate — Visitor Management';
   }, []);
 
-  // Asks `my_must_change_password()` (SECURITY DEFINER, scoped to auth.uid()) whether
-  // this session owes a password change. Deliberately never queries `profiles` directly
-  // — see CLAUDE.md's recursive-policy history on that table.
-  //
-  // Fail-open-but-not-silent on error: an RPC failure logs loudly to the console (so a
-  // real outage or typo is visible to whoever is watching logs) but does NOT block
-  // sign-in. The alternative — failing closed — would turn any transient error into an
-  // outage that locks out every single existing user, which is strictly worse than the
-  // temporary-password gate this feature exists to add in the first place.
-  //
-  // Database['public']['Functions'] is Record<string, never> (src/types/index.ts), which
-  // types every supabase.rpc(name, args) call as taking `undefined`. Widening that shared
-  // type ripples into postgrest-js's relationship inference elsewhere (see
-  // src/pages/Admin/HodPasswordReset.tsx for the same note) — cast narrowly instead.
-  //
-  // INVOKED ON THE CLIENT, never lifted off it. `supabase.rpc` reads
-  // `this.rest` internally, so the old `const f = supabase.rpc` made every call
-  // throw "Cannot read properties of undefined (reading 'rest')" — which the
-  // fail-open branch below then swallowed into a console error. The gate had
-  // therefore never fired for anybody since it shipped.
-  const callMustChangePassword: MustChangePasswordRpc = (fn) =>
-    (supabase.rpc as unknown as MustChangePasswordRpc).call(supabase, fn);
-
+  // The two startup gates live in lib/startupGates.ts — one shape, asked twice,
+  // both failing OPEN and neither failing silently. See that file for why
+  // neither may read `profiles` or `user_status` directly.
   const checkMustChangePassword = async () => {
     setMustChangePassword(null);
-    try {
-      const { data, error } = await callMustChangePassword('my_must_change_password');
-      if (error) {
-        console.error('[VMS] my_must_change_password check failed — failing OPEN (not blocking sign-in):', error);
-        setMustChangePassword(false);
-        return;
-      }
-      setMustChangePassword(Boolean(data));
-    } catch (err) {
-      console.error('[VMS] my_must_change_password threw — failing OPEN (not blocking sign-in):', err);
-      setMustChangePassword(false);
-    }
+    setMustChangePassword(await fetchMustChangePassword());
+  };
+
+  const checkAccountActive = async () => {
+    setAccountActive(null);
+    setAccountActive(await fetchAccountActive());
   };
 
   useEffect(() => {
@@ -134,9 +105,11 @@ export default function App(): React.ReactElement {
           void resolveUserRole(data.session.user.id, metadataRole).then(setRole);
         }
         void checkMustChangePassword();
+        void checkAccountActive();
       } else {
         setRole(null);
         setMustChangePassword(false);
+        setAccountActive(true);
       }
       setLoading(false);
     }).catch((err: unknown) => {
@@ -147,6 +120,7 @@ export default function App(): React.ReactElement {
       setSession(null);
       setRole(null);
       setMustChangePassword(false);
+      setAccountActive(true);
       setLoading(false);
     });
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, s) => {
@@ -166,10 +140,11 @@ export default function App(): React.ReactElement {
           setRole(null);
           void resolveUserRole(s.user.id, metadataRole).then(setRole);
         }
-        if (event === 'SIGNED_IN') void checkMustChangePassword();
+        if (event === 'SIGNED_IN') { void checkMustChangePassword(); void checkAccountActive(); }
       } else {
         setRole(null);
         setMustChangePassword(false);
+        setAccountActive(true);
       }
     });
     return () => subscription.unsubscribe();
@@ -211,8 +186,16 @@ export default function App(): React.ReactElement {
   // this session must not reach any role's screens or be escapable via a typed URL —
   // there are no <Route>s rendered at all while this branch is active, so react-router
   // never gets a chance to match a deep link.
-  if (mustChangePassword === null) {
+  if (mustChangePassword === null || accountActive === null) {
     return <ThemeProvider><BootSplash /></ThemeProvider>;
+  }
+
+  // A suspended account outranks the password gate: there is no point making
+  // somebody choose a new password for an account that may not sign in. Like
+  // the branch below it, this renders NO <Route>s at all, so a typed deep link
+  // never reaches react-router.
+  if (!accountActive) {
+    return <ThemeProvider><SuspendedScreen /></ThemeProvider>;
   }
 
   if (mustChangePassword) {
@@ -239,21 +222,39 @@ export default function App(): React.ReactElement {
           <RouteErrorBoundary>
           <Routes>
             <Route path="/" element={<Navigate to={allowed[0] ?? '/visitors'} replace />} />
-            <Route path="/visitors"       element={<ProtectedRoute role={role}>{role === 'guard' ? <GuardConsole /> : <VisitorsDashboard />}</ProtectedRoute>} />
-            {/* The guard's Visitors segments — /visitors/expected, /inside, … .
-                Each is a real URL so it can be bookmarked and the back button
-                works between them; segmentFromSlug (lib/visitorSegments.ts)
-                degrades an unknown slug onto "all" rather than 404-ing. Staff
-                have no sub-nav, so they land on their own page either way. */}
-            <Route path="/visitors/:segment" element={<ProtectedRoute role={role}>{role === 'guard' ? <GuardConsole /> : <VisitorsDashboard />}</ProtectedRoute>} />
-            <Route path="/guard"           element={<ProtectedRoute role={role}><GuardConsole /></ProtectedRoute>} />
+            {/* THE GUARD'S BROWSING SURFACES DEGRADE ONTO THE BOARD (client
+                instruction, 2026-08-18: the guard must not waste time
+                navigating). `/visitors`, its five segments and `/guard` were
+                DISPLAY-ONLY lists — no card on them carried an action — and
+                every one of them restated a list that exists somewhere a guard
+                can also act: Inside is Entry & Exit's first lane, Pending
+                Approval and Approved Walk-ins are dashboard tiles, and the
+                Walk-in Register is /guard/walk-in.
+
+                They REDIRECT rather than 404: these paths are in guards'
+                bookmarks, and a bookmark that lands on the board is a bookmark
+                that still works. Staff keep their own page here — the route was
+                always two different components behind one path.
+
+                `GuardConsole` and its segment machinery are still on disk and
+                still tested; `lib/visitorSegments.ts` in particular is
+                load-bearing for `guardTiles`, `gateLanes` and `useGateVisits`,
+                so this is an unlinking, not a deletion. */}
+            <Route path="/visitors" element={<ProtectedRoute role={role}>{role === 'guard' ? <Navigate to="/guard/dashboard" replace /> : <VisitorsDashboard />}</ProtectedRoute>} />
+            <Route path="/visitors/:segment" element={<ProtectedRoute role={role}>{role === 'guard' ? <Navigate to="/guard/dashboard" replace /> : <VisitorsDashboard />}</ProtectedRoute>} />
+            <Route path="/guard" element={<ProtectedRoute role={role}><Navigate to="/guard/dashboard" replace /></ProtectedRoute>} />
             <Route path="/guard/dashboard" element={<ProtectedRoute role={role}><GuardDashboard /></ProtectedRoute>} />
             <Route path="/guard/inside-now" element={<ProtectedRoute role={role}><GuardLiveQueue /></ProtectedRoute>} />
             {/* Legacy path, kept routable: /guard/live-queue is in guards'
                 bookmarks and in the ?verify= links the dashboard has been
                 emitting. It renders the same page rather than 404-ing. */}
             <Route path="/guard/live-queue" element={<ProtectedRoute role={role}><GuardLiveQueue /></ProtectedRoute>} />
-            <Route path="/guard/preregistered" element={<ProtectedRoute role={role}><GuardPreRegistered /></ProtectedRoute>} />
+            {/* Pre-Registered left the sidebar on 2026-08-18. Its board was
+                today's approved arrivals who have not turned up yet, which is
+                the dashboard's Expected Today panel from the same predicate —
+                and that copy can start the check-in in place. The path stays
+                routable and lands there. */}
+            <Route path="/guard/preregistered" element={<ProtectedRoute role={role}><Navigate to="/guard/dashboard" replace /></ProtectedRoute>} />
             <Route path="/guard/scan-pass" element={<ProtectedRoute role={role}><GuardScanPass /></ProtectedRoute>} />
             {/* Register Walk-in — its own destination since 2026-08-15 (client
                 instruction). The form was a `+` button buried in the Visitors
