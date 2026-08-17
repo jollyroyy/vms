@@ -5,16 +5,17 @@
 // /guard/pre-approvals, and it searches pre-approvals, so a visitor who was
 // never booked could be approved and then never checked in. This is their gate.
 //
-// A photo is taken here rather than at registration because at registration
-// nobody knows yet whether the visitor is coming in: WalkInRequest deliberately
-// inserts photo_path/photo_data as null. Capturing it at the moment of entry is
-// also what the pre-approved lane does, so every checked-in visit carries a
-// photo taken at the gate, however the visitor got approved.
+// THE PHOTO AND THE ID SCAN ARE NOT ASKED FOR AGAIN (client instruction,
+// 2026-08-17). A walk-in cannot even be sent for approval without both —
+// WalkInRequest blocks submit until they exist and uploads the photo before the
+// visit row is inserted — so the identity record is complete before the host
+// ever sees the request, and repeating it at the gate photographed the same
+// person twice for one visit. WalkInCheckInForm shows what is already on file
+// and asks only for the visitor card number, which is the one thing the gate
+// alone knows (migration 076 demands it back at check-out).
 //
-// The ID scan and the visitor card number are UNCONDITIONAL here, exactly as on
-// the pre-approved photo step (CheckInPhotoStep): a walk-in is the one arrival
-// the guard has never seen a pass for, so reading the document at the gate is
-// not optional polish, it is the identity check.
+// This is why /guard/pre-approvals is different: THAT visitor's document has
+// never been read by this system, so CheckInPhotoStep's scan stays mandatory.
 //
 // The check-in rows themselves are PendingGateCheckIn, shared with the walk-in
 // register (client instruction, 2026-08-17) — the same control on both screens,

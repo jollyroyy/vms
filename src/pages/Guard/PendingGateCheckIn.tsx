@@ -6,10 +6,12 @@
 // register's "Pending gate check-in" panel) and each states its own heading.
 // Duplicating the count here would put the same number twice on one screen.
 //
-// The open row is held HERE rather than inside each row, because
-// WalkInCheckInForm mounts a camera: two rows expanded at once is two live
-// streams, which is the ONE CAMERA AT A TIME rule CheckInPhotoStep and
-// WalkInIdentityStep both follow.
+// The open row is held HERE rather than inside each row, so exactly one
+// check-in is in progress at a time. It began as the ONE CAMERA AT A TIME rule
+// (the form used to mount a webcam; since 2026-08-17 it asks only for the card
+// number), and it still stands on its own: a guard hands over one physical card
+// to one visitor, and two card fields open side by side is how the wrong number
+// lands on the wrong row.
 import React, { useState } from 'react';
 import type { Visit } from '../../types/index';
 import VisitorCard from './VisitorCard';

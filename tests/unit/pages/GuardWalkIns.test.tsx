@@ -20,24 +20,9 @@ vi.mock('../../../src/pages/Guard/WalkInRequest', () => ({
   ),
 }));
 
-// jsdom has no camera. Same stubs the Approved Walk-ins lane uses — the form
-// is now the SAME component on both screens (WalkInCheckInForm).
-vi.mock('../../../src/components/PhotoCapture', () => ({
-  default: ({ onCapture }: { onCapture: (blob: Blob) => void }) => (
-    <button type="button" onClick={() => onCapture(new Blob(['photo'], { type: 'image/webp' }))}>
-      Mock Capture
-    </button>
-  ),
-}));
-
-vi.mock('../../../src/pages/Guard/IdScanOverlay', () => ({
-  default: ({ onScanned }: { onScanned: (r: any) => void }) => (
-    <button type="button" onClick={() => onScanned({ idType: 'PAN', idLast4: '234F', name: 'Cleared Person' })}>
-      Mock Scan
-    </button>
-  ),
-}));
-
+// No camera stubs are needed: the gate check-in form (WalkInCheckInForm, the
+// SAME component on both screens) asks only for the visitor card number since
+// 2026-08-17 — the photo and the ID scan happen at registration.
 afterEach(cleanup);
 
 function visit(overrides: Partial<Visit> = {}): Visit {
@@ -160,18 +145,17 @@ describe('GuardWalkIns — awaiting gate check-in', () => {
 
   // The whole point of putting the button here: it must reach the same write,
   // with the card number the gate hands over.
-  it('checks a cleared walk-in in with a photo and a card number', () => {
+  it('checks a cleared walk-in in on the card number alone', () => {
     const onCheckIn = vi.fn();
     const v = cleared();
     render(<GuardWalkIns {...baseProps({ awaitingCheckIn: [v], onCheckIn })} />);
 
     fireEvent.click(screen.getByText('Check In'));
-    expect(screen.getByText('Photo of the visitor')).toBeInTheDocument();
+    // Neither is asked for again — both were taken at registration.
+    expect(screen.queryByText('Photo of the visitor')).not.toBeInTheDocument();
+    expect(screen.queryByText('Scan ID card')).not.toBeInTheDocument();
 
     const confirm = screen.getByText('Confirm Check In');
-    expect(confirm).toBeDisabled();
-
-    fireEvent.click(screen.getByText('Mock Capture'));
     expect(confirm).toBeDisabled();
     expect(screen.getByText('Enter the visitor card number before checking in.')).toBeInTheDocument();
 
@@ -182,24 +166,23 @@ describe('GuardWalkIns — awaiting gate check-in', () => {
     expect(onCheckIn).toHaveBeenCalledTimes(1);
     const [calledVisit, details] = onCheckIn.mock.calls[0];
     expect(calledVisit).toBe(v);
-    expect(details.cardNumber).toBe('C-104');
-    expect(details.photoBlob).toBeInstanceOf(Blob);
+    expect(details).toEqual({ cardNumber: 'C-104', carrying: false, remarks: '' });
   });
 
-  // ONE CAMERA AT A TIME: the open row is held by PendingGateCheckIn, so
-  // opening a second row must close the first rather than mount a second
-  // PhotoCapture beside it.
+  // The open row is held by PendingGateCheckIn, so opening a second row closes
+  // the first: one card is handed to one visitor, and two card fields open at
+  // once is how the wrong number lands on the wrong row.
   it('opens only one check-in form at a time', () => {
     render(<GuardWalkIns {...baseProps({
       awaitingCheckIn: [cleared(), cleared({ id: 'w2', visitor: { ...visit().visitor!, full_name: 'Other Cleared' } })],
     })} />);
 
     fireEvent.click(screen.getAllByText('Check In')[0]);
-    expect(screen.getAllByText('Photo of the visitor')).toHaveLength(1);
+    expect(screen.getAllByLabelText(/Visitor card number/i)).toHaveLength(1);
 
     fireEvent.click(screen.getByText('Check In'));
-    expect(screen.getAllByText('Photo of the visitor')).toHaveLength(1);
-    expect(screen.getAllByText('Mock Capture')).toHaveLength(1);
+    expect(screen.getAllByLabelText(/Visitor card number/i)).toHaveLength(1);
+    expect(screen.getAllByText('Confirm Check In')).toHaveLength(1);
   });
 
   // The register still watches undecided requests; the two boxes must not be

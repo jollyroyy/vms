@@ -1,5 +1,18 @@
-// The gate check-in for a walk-in the host has already cleared: photo, ID scan,
-// visitor card number, carrying declaration.
+// The gate check-in for a walk-in the host has already cleared: the visitor
+// card number and the carrying declaration, and nothing else.
+//
+// IT ASKS FOR NO PHOTO AND NO ID SCAN (client instruction, 2026-08-17). Both
+// were already taken at registration — WalkInRequest refuses to submit without
+// a scan and a photo, uploads the photo BEFORE inserting the visit row, and
+// writes id_type/id_last4 onto the visitor — so this desk was making the same
+// person face the same camera twice, minutes apart, for a record the row
+// already carries. What is on file is SHOWN here instead, as a read-only
+// confirmation line built from the row itself: no claim is made about a photo
+// or a document that is not actually there (the no-fabricated-facts rule).
+//
+// The one thing registration cannot know is which physical card gets handed
+// over at the gate, so that is the one field left, and it is still mandatory
+// (migration 076 demands it back at check-out).
 //
 // It was inline in GuardWalkInApproved until 2026-08-17, when the client asked
 // for the same control to sit on the walk-in register itself — the guard who
@@ -13,10 +26,7 @@
 // which routes to lib/checkInWalkInApproved — this file never touches supabase.
 import React, { useState } from 'react';
 import type { Visit } from '../../types/index';
-import PhotoCapture from '../../components/PhotoCapture';
-import { namesMatch } from '../../lib/ai/nameMatch';
 import { isValidCardNumber } from '../../lib/cardNumber';
-import IdScanOverlay, { type IdScanResult } from './IdScanOverlay';
 import type { WalkInCheckIn } from '../../lib/checkInWalkInApproved';
 
 type Props = {
@@ -28,96 +38,42 @@ type Props = {
 };
 
 export default function WalkInCheckInForm({ visit: v, busy, onConfirm, onCancel }: Props): React.ReactElement {
-  const [photoBlob, setPhotoBlob] = useState<Blob | null>(null);
-  const [scanOpen, setScanOpen] = useState(false);
-  const [scanResult, setScanResult] = useState<IdScanResult | null>(null);
   const [cardNumber, setCardNumber] = useState('');
   const [carrying, setCarrying] = useState(false);
   const [remarks, setRemarks] = useState('');
 
   const cardBad = !isValidCardNumber(cardNumber);
-  const mismatch = Boolean(scanResult?.name) && !namesMatch(scanResult?.name ?? '', v.visitor?.full_name ?? '');
-  const canConfirm = (): boolean => {
-    if (!photoBlob || cardBad || busy) return false;
-    return !mismatch;
-  };
+  const canConfirm = !cardBad && !busy;
 
   // Why Confirm Check In is refused, in one line — same rule as
-  // CheckInPhotoStep. The field hints are spread down a long card and the guard
-  // is standing in front of somebody, so a greyed-out button with nothing
-  // saying which requirement is outstanding is the one thing this desk cannot
-  // afford. (The ID scan is NOT among the requirements here on purpose: this
-  // visitor's document was read at registration and is already on the row.)
-  const blockedReason = !photoBlob
-    ? 'Capture the photo, then press Use Photo, before checking in.'
-    : mismatch
-      ? 'The scanned ID does not match the approved visitor.'
-      : cardBad
-        ? 'Enter the visitor card number before checking in.'
-        : '';
+  // CheckInPhotoStep. There is only one requirement left, but a greyed-out
+  // button with nothing saying why is what this desk cannot afford.
+  const blockedReason = cardBad ? 'Enter the visitor card number before checking in.' : '';
 
-  const scanSection = () => {
-    const status = scanResult
-      ? scanResult.name
-        ? mismatch ? 'mismatch' : 'match'
-        : 'no-name'
-      : null;
-    if (!scanResult) {
-      return (
-        <button type="button" onClick={() => setScanOpen(true)}
-          className="w-full flex items-center justify-center gap-2 bg-surface-50 hover:bg-surface-100 border border-surface-200 rounded-xl px-4 py-2.5 text-sm font-semibold text-brand-700 transition-all">
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7zm13 5h.01M10 12a2.5 2.5 0 115 0 2.5 2.5 0 01-5 0z" /></svg>
-          Scan ID card
-        </button>
-      );
-    }
-    if (status === 'match') {
-      return (
-        <div className="rounded-xl bg-success-50 border border-success-200 dark:border-success-500/25 px-4 py-2.5 text-sm flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
-          <span className="font-bold text-success-700">Identity verified</span>
-          <span className="text-xs text-success-700 break-words">{scanResult.idType} •••• {scanResult.idLast4}</span>
-        </div>
-      );
-    }
-    if (status === 'mismatch') {
-      return (
-        <div className="rounded-xl bg-danger-50 border border-danger-200 dark:border-danger-500/25 px-4 py-2.5 text-sm space-y-1.5">
-          <p className="font-bold text-danger-700">Name doesn't match the approved visitor</p>
-          <p className="text-xs text-danger-700 break-words">Card shows {scanResult.name} — approved as {v.visitor?.full_name}</p>
-          <button type="button" onClick={() => setScanResult(null)}
-            className="text-xs font-bold text-danger-700 underline underline-offset-2">Discard scan</button>
-        </div>
-      );
-    }
-    return (
-      <div className="rounded-xl bg-accent-50 border border-accent-200 dark:bg-accent-500/10 dark:border-accent-500/25 px-4 py-2.5 text-sm flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
-        <span className="font-bold text-accent-700 dark:text-accent-300">ID recorded — no name could be read</span>
-        <span className="text-xs text-accent-700 dark:text-accent-300 break-words">{scanResult.idType} •••• {scanResult.idLast4}</span>
-      </div>
-    );
-  };
+  // What registration already put on the row. Each line renders only if the
+  // record actually holds it — an unconditional "Identity verified" would be a
+  // claim the system cannot stand behind.
+  const hasPhoto = Boolean(v.photo_data || v.photo_path);
+  const idType = v.visitor?.id_type ?? null;
+  const idLast4 = v.visitor?.id_last4 ?? null;
+  const onFile: string[] = [];
+  if (hasPhoto) onFile.push('Photo taken at registration');
+  if (idType) onFile.push(`ID recorded — ${idType}${idLast4 ? ` •••• ${idLast4}` : ''}`);
 
   return (
     <div className="bg-white dark:bg-white/[0.06] rounded-2xl p-5 mt-2 shadow-sm border border-surface-100 dark:border-white/[0.07] space-y-4">
-      {scanOpen && (
-        <IdScanOverlay
-          onScanned={(r) => { setScanResult(r); setScanOpen(false); }}
-          onClose={() => setScanOpen(false)}
-        />
+      {onFile.length > 0 && (
+        <div className="rounded-xl bg-success-50 border border-success-200 dark:border-success-500/25 px-4 py-2.5 text-sm space-y-1">
+          {onFile.map((line) => (
+            <p key={line} className="flex items-start gap-2 font-semibold text-success-700">
+              <svg className="w-4 h-4 mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+              <span className="break-words">{line}</span>
+            </p>
+          ))}
+        </div>
       )}
-      {/* Same rule as CheckInPhotoStep: ONE camera at a time. This lane used to
-          mount PhotoCapture underneath the open scan overlay, so the scan's rear
-          camera and the photo's front camera were both live at once — the scan
-          fails to start on phones, and the second feed shows through the
-          translucent backdrop as what looks like a second scan page. */}
-      <div>
-        <p className="text-sm font-bold text-navy-950">Photo of the visitor</p>
-        <p className="text-[11px] text-navy-700 mt-0.5">
-          Point the camera at the visitor, not at the ID card.
-        </p>
-      </div>
-      {!scanOpen && <PhotoCapture onCapture={setPhotoBlob} />}
-      {scanSection()}
 
       <div className="rounded-xl border border-surface-200 dark:border-white/[0.07] p-3.5 space-y-2">
         <label htmlFor={`walkin-card-${v.id}`} className="block">
@@ -151,7 +107,8 @@ export default function WalkInCheckInForm({ visit: v, busy, onConfirm, onCancel 
       {/* A tick box, never inferred from whether remarks were typed — an empty
           box must mean "carrying nothing", not "the guard was interrupted".
           Unticking discards the text so no orphaned description survives on a
-          visit flagged as carrying nothing. */}
+          visit flagged as carrying nothing. It stays on this form because it is
+          the one fact only the gate can see: registration always writes false. */}
       <label className="flex items-center gap-2.5 cursor-pointer">
         <input
           type="checkbox"
@@ -183,8 +140,8 @@ export default function WalkInCheckInForm({ visit: v, busy, onConfirm, onCancel 
         </button>
         <button
           type="button"
-          disabled={!canConfirm()}
-          onClick={() => { if (photoBlob) onConfirm({ photoBlob, carrying, remarks, idScan: scanResult, cardNumber }); }}
+          disabled={!canConfirm}
+          onClick={() => { if (canConfirm) onConfirm({ carrying, remarks, cardNumber }); }}
           className="btn-accent flex-1 !py-2.5 disabled:opacity-50"
         >
           {busy ? 'Checking in…' : 'Confirm Check In'}

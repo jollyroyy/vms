@@ -20,18 +20,8 @@ import type { Visit } from '../../../src/types/index';
 // still outside are listed, and no exit control exists on this component at any
 // state. lib/checkOutFlow.logVisitExit has exactly one caller again.
 
-vi.mock('../../../src/components/PhotoCapture', () => ({
-  default: ({ onCapture }: { onCapture: (blob: Blob) => void }) => (
-    <button type="button" onClick={() => onCapture(new Blob(['photo'], { type: 'image/webp' }))}>
-      Mock Capture
-    </button>
-  ),
-}));
-
-vi.mock('../../../src/pages/Guard/IdScanOverlay', () => ({
-  default: () => <div>Mock Scanner</div>,
-}));
-
+// No camera stubs: since 2026-08-17 the check-in form on this lane asks only
+// for the visitor card number.
 afterEach(() => cleanup());
 
 function visit(overrides: Partial<Visit> = {}): Visit {

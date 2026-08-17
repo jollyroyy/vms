@@ -5,25 +5,9 @@ import GuardWalkInApproved from '../../../src/pages/Guard/GuardWalkInApproved';
 import { formatDateTime } from '../../../src/lib/formatDate';
 import type { Visit } from '../../../src/types/index';
 
-// jsdom has no camera. Stub PhotoCapture with a button that fires onCapture
-// with a real Blob, mirroring the "user took a photo" moment.
-vi.mock('../../../src/components/PhotoCapture', () => ({
-  default: ({ onCapture }: { onCapture: (blob: Blob) => void }) => (
-    <button type="button" onClick={() => onCapture(new Blob(['photo'], { type: 'image/webp' }))}>
-      Mock Capture
-    </button>
-  ),
-}));
-
-// Same for the ID scanner: a button that fires onScanned with a canned result.
-vi.mock('../../../src/pages/Guard/IdScanOverlay', () => ({
-  default: ({ onScanned }: { onScanned: (r: any) => void }) => (
-    <button type="button" onClick={() => onScanned({ idType: 'PAN', idLast4: '234F', name: 'Rahul Verma' })}>
-      Mock Scan
-    </button>
-  ),
-}));
-
+// NOTHING IS STUBBED FOR A CAMERA HERE, on purpose: this lane asks for no
+// photo and no ID scan (client instruction, 2026-08-17). Both were taken at
+// registration, so a stub would only prove a mock renders.
 afterEach(() => cleanup());
 
 function visit(overrides: Partial<Visit> = {}): Visit {
@@ -33,8 +17,8 @@ function visit(overrides: Partial<Visit> = {}): Visit {
     created_at: '2026-08-04T04:00:00Z',
     checked_in_at: null,
     checked_out_at: null,
-    photo_data: null,
-    visitor: { full_name: 'Rahul Verma' } as any,
+    photo_data: 'data:image/webp;base64,AAAA',
+    visitor: { full_name: 'Rahul Verma', id_type: 'PAN', id_last4: '234F' } as any,
     department: { name: 'Engineering' } as any,
     ...overrides,
   } as unknown as Visit;
@@ -50,10 +34,9 @@ function baseProps(overrides: Record<string, any> = {}) {
   };
 }
 
-// Opens the check-in panel and fills the mandatory fields (photo + card).
+// Opens the check-in panel and fills the one mandatory field, the card number.
 function openAndFillCard(value = 'C-104') {
   fireEvent.click(screen.getByText('Check In'));
-  fireEvent.click(screen.getByText('Mock Capture'));
   fireEvent.change(screen.getByLabelText(/Visitor card number/i), { target: { value } });
 }
 
@@ -104,29 +87,48 @@ describe('GuardWalkInApproved', () => {
     expect(screen.getByText('Nobody is waiting to be checked in.')).toBeInTheDocument();
   });
 
-  it('clicking Check In opens the photo step', () => {
+  // The client's instruction, and the reason this file mocks no camera: the
+  // photo and the ID scan were taken when the request was raised (WalkInRequest
+  // refuses to submit without both), so the gate asks for neither again.
+  it('asks for NO photo and NO ID scan — only the card number', () => {
     render(<GuardWalkInApproved {...baseProps({ approved: [visit()] })} />);
     fireEvent.click(screen.getByText('Check In'));
-    // The heading names WHICH camera this is. The ID scan and the visitor photo
-    // are the same physical webcam on a laptop, so an unlabelled "take a photo"
-    // read as the ID scan starting over.
-    expect(screen.getByText('Photo of the visitor')).toBeInTheDocument();
-    expect(screen.getByText(/not at the ID card/i)).toBeInTheDocument();
+
+    expect(screen.queryByText('Photo of the visitor')).not.toBeInTheDocument();
+    expect(screen.queryByText(/not at the ID card/i)).not.toBeInTheDocument();
+    expect(screen.queryByText('Scan ID card')).not.toBeInTheDocument();
+    expect(screen.getByLabelText(/Visitor card number/i)).toBeInTheDocument();
   });
 
-  // The bug this flow exists to prevent: a check-in recorded with no photo.
-  it('disables Confirm Check In until a photo AND a card number are present', () => {
+  // What replaced them: a tick against what the row actually holds. Neither
+  // line is unconditional — a row with no photo and no ID on file must not
+  // claim either (the no-fabricated-facts rule).
+  it('shows what registration already recorded, and only when the row holds it', () => {
+    render(<GuardWalkInApproved {...baseProps({ approved: [visit()] })} />);
+    fireEvent.click(screen.getByText('Check In'));
+    expect(screen.getByText('Photo taken at registration')).toBeInTheDocument();
+    expect(screen.getByText(/ID recorded — PAN •••• 234F/)).toBeInTheDocument();
+
+    cleanup();
+    render(<GuardWalkInApproved {...baseProps({
+      approved: [visit({ photo_data: null, visitor: { full_name: 'Rahul Verma' } as any })],
+    })} />);
+    fireEvent.click(screen.getByText('Check In'));
+    expect(screen.queryByText('Photo taken at registration')).not.toBeInTheDocument();
+    expect(screen.queryByText(/ID recorded/)).not.toBeInTheDocument();
+  });
+
+  // The card number is the one thing registration cannot know, so it stays
+  // mandatory — migration 076 demands it back at check-out.
+  it('disables Confirm Check In until a card number is present', () => {
     render(<GuardWalkInApproved {...baseProps({ approved: [visit()] })} />);
     fireEvent.click(screen.getByText('Check In'));
 
     const confirm = screen.getByText('Confirm Check In');
     expect(confirm).toBeDisabled();
-
-    fireEvent.click(screen.getByText('Mock Capture'));
-    expect(confirm).toBeDisabled();
     // The outstanding requirement is named in one line above the buttons, the
     // same way CheckInPhotoStep names it — a greyed-out button on its own does
-    // not tell a guard which of three things is missing.
+    // not tell a guard what is missing.
     expect(screen.getByText('Enter the visitor card number before checking in.')).toBeInTheDocument();
 
     fireEvent.change(screen.getByLabelText(/Visitor card number/i), { target: { value: 'C-104' } });
@@ -136,7 +138,6 @@ describe('GuardWalkInApproved', () => {
   it('rejects a card number with characters outside the allowlist', () => {
     render(<GuardWalkInApproved {...baseProps({ approved: [visit()] })} />);
     fireEvent.click(screen.getByText('Check In'));
-    fireEvent.click(screen.getByText('Mock Capture'));
     fireEvent.change(screen.getByLabelText(/Visitor card number/i), { target: { value: 'C 104' } });
 
     expect(screen.getByText('Confirm Check In')).toBeDisabled();
@@ -145,30 +146,24 @@ describe('GuardWalkInApproved', () => {
     ).toBeInTheDocument();
   });
 
-  it('calls onCheckIn with the captured photo, card number and scan once confirmed', () => {
+  it('calls onCheckIn with the card number and the carrying declaration only', () => {
     const onCheckIn = vi.fn();
     const v = visit();
     render(<GuardWalkInApproved {...baseProps({ approved: [v], onCheckIn })} />);
     openAndFillCard();
-    fireEvent.click(screen.getByText('Scan ID card'));
-    fireEvent.click(screen.getByText('Mock Scan'));
     fireEvent.click(screen.getByText('Confirm Check In'));
 
     expect(onCheckIn).toHaveBeenCalledTimes(1);
     const [calledVisit, details] = onCheckIn.mock.calls[0];
     expect(calledVisit).toBe(v);
-    expect(details.photoBlob).toBeInstanceOf(Blob);
-    expect(details.cardNumber).toBe('C-104');
-    expect(details.idScan).toEqual({ idType: 'PAN', idLast4: '234F', name: 'Rahul Verma' });
-    expect(details.carrying).toBe(false);
-    expect(details.remarks).toBe('');
+    expect(details).toEqual({ cardNumber: 'C-104', carrying: false, remarks: '' });
   });
 
-  it('flushes the captured photo and card after confirm', () => {
+  it('closes the form after confirm', () => {
     render(<GuardWalkInApproved {...baseProps({ approved: [visit()] })} />);
     openAndFillCard();
     fireEvent.click(screen.getByText('Confirm Check In'));
-    expect(screen.queryByText('Take a photo to check in')).not.toBeInTheDocument();
+    expect(screen.queryByText('Confirm Check In')).not.toBeInTheDocument();
   });
 
   // Mirrors the documented carrying_material rule: the box gates the textarea,

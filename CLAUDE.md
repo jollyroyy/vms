@@ -213,12 +213,25 @@ Tests in `VisitorCard` and `GuardConsole` assert the absence.
   `GuardWalkIns`, `GuardWalkInApproved`, `RegisterWalkIn`). The form owns CAPTURE state
   only and never touches supabase — every screen routes through `Console.checkInWalkIn` /
   `checkInApprovedWalkIn`, so there is exactly one route from `walkin_approved` to
-  `checked_in`. `PendingGateCheckIn` holds the OPEN ROW (not each row) because the form
-  mounts a camera — **ONE CAMERA AT A TIME** — and renders no heading/count of its own.
-  **`WalkInCheckInForm` names the outstanding requirement in one line above the buttons**
-  (`blockedReason`, the same rule as `CheckInPhotoStep`): photo → ID match → card number.
-  The card field only turns red once something has been TYPED — an untouched field is not
-  yet a mistake, and the requirement line is what speaks for it.
+  `checked_in`. `PendingGateCheckIn` holds the OPEN ROW (not each row) — one card is handed
+  to one visitor, so two card fields open at once is how the wrong number lands on the wrong
+  row — and renders no heading/count of its own.
+- **THE GATE CHECK-IN OF AN APPROVED WALK-IN ASKS ONLY FOR THE CARD NUMBER** (client
+  instruction, 2026-08-17). No photo, no ID scan, no `PhotoCapture`, no `IdScanOverlay` in
+  `WalkInCheckInForm` — `WalkInRequest` refuses to submit without both and uploads the photo
+  BEFORE the visit row exists, so the identity record is complete before the host ever sees
+  the request; asking again photographed the same person twice for one visit. What is on
+  file is SHOWN instead as a ticked read-only line, and each line renders **only if the row
+  holds it** (`photo_data || photo_path`, `visitor.id_type`) — no unconditional "Identity
+  verified". `WalkInCheckIn` is `{ carrying, remarks, cardNumber }`; `checkInApprovedWalkIn`
+  no longer calls `uploadPhoto` or writes `visitors.id_type` — **do not re-add a photo/scan
+  argument, it would overwrite what registration filled**. The card number stays mandatory
+  (076 demands it back at check-out) and `blockedReason` still names it in one line above
+  the buttons, the same rule as `CheckInPhotoStep`. The card field only turns red once
+  something has been TYPED — an untouched field is not yet a mistake. `/guard/pre-approvals`
+  is the opposite case and keeps its mandatory scan: that document has never been read.
+  Guarded by `GuardWalkInApproved.test.tsx` and `GuardWalkIns.test.tsx`, which mock no
+  camera at all.
 - **`isAwaitingGateCheckIn` (`lib/visitOrigin.ts`) is the narrow half of
   `isApprovedWalkIn`.** Wide = "who did the host clear?" (a record of issuance, keeps the
   visitor after entry); narrow = "who is still at the gate?", so the count beside a box is
@@ -228,8 +241,8 @@ Tests in `VisitorCard` and `GuardConsole` assert the absence.
   re-checks (an Enter-key submit must not skip it). The photo uploads via `uploadPhoto`
   BEFORE the visit row is inserted, so a `pending_approval` row never reaches an approver
   without the face. `PhotoCapture` is unmounted while `IdScanOverlay` is open.
-  `GuardWalkInApproved` still captures its own photo at entry — that records who *walked
-  through*, this records who *asked*.
+  This capture is the ONLY one on the walk-in route: the gate lane reuses it rather than
+  taking a second face (see the card-number-only rule above).
 - **The walk-in form's camera is OFF until asked for**: `armed` is false on mount and after
   every accepted photo (a submitted request remounts the step via `identityKey`, which
   previously relit the webcam at an empty form pointing at the next person in the queue).
@@ -368,10 +381,12 @@ routable (bookmarks, `?verify=` links). The FILE is still `GuardLiveQueue.tsx`.
   `blockedReason` names WHICH requirement is outstanding in one line. **Discarding a scan
   puts the check-in back behind the requirement** (discard must still clear a mismatch, but
   must not be the way to skip the gate). One step, so one edit — `/guard/pre-approvals`,
-  Scan Pass and the Verify ID modal all render it. **`GuardWalkInApproved` is deliberately
-  NOT changed**: that visitor's ID was scanned at registration and is on the row.
-- **A photo is mandatory on every check-in path** (structurally in `CheckInPanel`, Confirm
-  disabled in `GuardWalkInApproved`, and `VisitorForm.checkInPreApproved` uploads one).
+  Scan Pass and the Verify ID modal all render it. **The approved-walk-in lane is
+  deliberately EXEMPT** — that visitor's ID was scanned at registration and is on the row,
+  and since 2026-08-17 the lane asks for neither scan nor photo.
+- **Every check-in path RECORDS a photo; only the pre-approved ones TAKE it** — structurally
+  in `CheckInPanel`, and `VisitorForm.checkInPreApproved` uploads one. The approved-walk-in
+  lane carries the photo `WalkInRequest` already uploaded onto the row.
 - **`carrying_material` is a tick box, not an inference** — it gates the remarks textarea
   and unticking discards the text. Reports carries **two** columns, `Carrying` (Yes/No) and
   `Carrying Remarks`; never merge them.
