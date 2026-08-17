@@ -154,6 +154,27 @@ describe('SEC-7: frontend route protection', () => {
     });
   });
 
+  // ── CEO ────────────────────────────────────────────────────
+  // The CEO exists for one decision — a blacklisted visitor comes off the
+  // list only when an admin has justified it and the CEO has granted it —
+  // and inherits nothing from admin. Not a super-admin with a nicer title.
+  describe('ceo', () => {
+    const role = 'ceo' as const;
+
+    it('ceo is allowed on /ceo/blacklist-removals', () => {
+      expect(isForbidden('/ceo/blacklist-removals', role)).toBe(false);
+    });
+    it('ceo is allowed on /profile', () => {
+      expect(isForbidden('/profile', role)).toBe(false);
+    });
+    for (const route of ['/admin', '/admin/security', '/visitors', '/whos-inside', '/reports',
+                          '/guard/dashboard', '/overview', '/search']) {
+      it(`ceo is FORBIDDEN on ${route} (the CEO inherits no admin console)`, () => {
+        expect(isForbidden(route, role)).toBe(true);
+      });
+    }
+  });
+
   // ADMIN block: see routeProtectionAdmin.test.tsx (2026-08-17).
   // ── Deleted gate-pass feature ──────────────────────────────
   // The standalone gate-pass module (Guard/GatePassQueue, Shared/GatePassList,

@@ -59,6 +59,16 @@ export const ROLE_ROUTES: Record<UserRole, string[]> = {
   admin:       ['/admin/dashboard', '/admin/live-check-in', '/admin/pre-registration',
                 '/admin/visitors-log', '/admin/hosts', '/admin/badges', '/admin/security',
                 '/admin/settings', '/admin', '/reports', '/profile', '/search'],
+  // THE CEO HAS ONE DESTINATION AND `/profile` (client instruction,
+  // 2026-08-17). This role exists for a single decision — a visitor comes off
+  // the blacklist only when an admin has justified it and the CEO has granted
+  // it — and it inherits nothing from `admin`. No visitor log, no settings, no
+  // reports: they are not a super-admin with a nicer title, and a role handed
+  // screens it has no reason to read is a role whose real scope nobody can
+  // state. `/search` is omitted for the same reason — it is a visitor-record
+  // lookup, and the CEO's business is with the one visitor already named on
+  // the request in front of them.
+  ceo:         ['/ceo/blacklist-removals', '/profile'],
 };
 
 /** Returns true if the given pathname is forbidden for this role. */

@@ -70,9 +70,15 @@ export const SETTINGS_SECTIONS: SettingsSection[] = [
         fields: [
           { key: 'general.facility_name', label: 'Facility Name', control: 'text', enforced: true,
             hint: 'Printed on the visitor pass and the exported register.' },
-          { key: 'general.timezone', label: 'Time Zone', control: 'select', enforced: false,
-            options: [{ value: 'Asia/Kolkata', label: 'Asia/Kolkata (IST)' }],
-            caveat: 'The app is IST end to end — the day boundary lives in the database (vms_day_start_ist). Changing this needs a migration, so only IST is offered.' },
+          // NO TIME ZONE FIELD (client instruction, 2026-08-17). It was a
+          // select with exactly ONE option, marked "Recorded — not yet
+          // enforced": a control that cannot be changed, governing nothing.
+          // The app is IST end to end and the day boundary lives in the
+          // database (`vms_day_start_ist` / `vms_day_end_ist`), so moving it
+          // has always needed a migration — which is precisely why it did not
+          // belong on a screen that invites an admin to set it. Do not re-add
+          // it as a read-only label either: the facility's zone is not a fact
+          // an admin comes to Settings to look up.
         ],
       },
       {

@@ -79,6 +79,7 @@ export type HostSummary = {
   name: string;
   departmentName: string;
   visitsThisWeek: number;
+  avatarUrl: string | null;
 };
 
 /**
@@ -88,7 +89,11 @@ export type HostSummary = {
  * they are one — the live, realtime-scoped truth — and fall back to whatever
  * the visit row itself joined (`v.host`, `v.department`) for a host who is
  * not an HOD. A host neither list can name at all reads "Not recorded",
- * never a blank cell or an invented one.
+ * never a blank cell or an invented one. The avatar follows the identical
+ * ordering: `useHods()` is the realtime-subscribed truth (an HOD who changes
+ * their photo updates here without a refetch), a visit's own join is the
+ * fallback for a host who is not an HOD, and `null` — never a broken `<img>`
+ * — when neither source has one, which the card renders as an initials disc.
  */
 export function hostDirectory(
   hods: Profile[],
@@ -101,17 +106,20 @@ export function hostDirectory(
 
   const nameById = new Map<string, string>();
   const deptOf = new Map<string, string>();
+  const avatarById = new Map<string, string | null>();
   for (const h of hods) {
     nameById.set(h.id, h.full_name);
     deptOf.set(h.id, h.department_id ? (deptNameById.get(h.department_id) ?? 'Not recorded') : 'Not recorded');
+    avatarById.set(h.id, h.avatar_url ?? null);
   }
   // A host who is not an HOD has no entry above yet — fill it from whichever
-  // visit named them, which is the only place their name and department are
-  // known at all.
+  // visit named them, which is the only place their name, department and
+  // photo are known at all.
   for (const v of visits) {
     if (!v.host_id) continue;
     if (!nameById.has(v.host_id)) nameById.set(v.host_id, v.host?.full_name ?? 'Not recorded');
     if (!deptOf.has(v.host_id)) deptOf.set(v.host_id, v.department?.name ?? 'Not recorded');
+    if (!avatarById.has(v.host_id)) avatarById.set(v.host_id, v.host?.avatar_url ?? null);
   }
 
   const countByHost = new Map<string, number>();
@@ -123,6 +131,7 @@ export function hostDirectory(
       name: nameById.get(hostId) ?? 'Not recorded',
       departmentName: deptOf.get(hostId) ?? 'Not recorded',
       visitsThisWeek: countByHost.get(hostId) ?? 0,
+      avatarUrl: avatarById.get(hostId) ?? null,
     }))
     .sort((a, b) => b.visitsThisWeek - a.visitsThisWeek || a.name.localeCompare(b.name));
 }

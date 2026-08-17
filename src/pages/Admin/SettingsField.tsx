@@ -42,7 +42,7 @@ export default function SettingsField({ field, value, onChange }: Props): React.
           <input
             id={id}
             type="number"
-            className="input w-28 text-right tabular-nums"
+            className="input w-full sm:w-28 text-right tabular-nums"
             value={typeof value === 'number' ? value : ''}
             min={field.min}
             max={field.max}
@@ -60,7 +60,7 @@ export default function SettingsField({ field, value, onChange }: Props): React.
         return (
           <select
             id={id}
-            className="input w-56"
+            className="input w-full sm:w-56"
             value={String(value)}
             onChange={(e) => onChange(e.target.value)}
           >
@@ -74,7 +74,7 @@ export default function SettingsField({ field, value, onChange }: Props): React.
           <input
             id={id}
             type="time"
-            className="input w-32"
+            className="input w-full sm:w-32"
             value={String(value)}
             onChange={(e) => onChange(e.target.value)}
           />
@@ -84,7 +84,7 @@ export default function SettingsField({ field, value, onChange }: Props): React.
           <input
             id={id}
             type="text"
-            className="input w-64"
+            className="input w-full sm:w-64"
             value={String(value)}
             onChange={(e) => onChange(e.target.value)}
           />
@@ -109,7 +109,12 @@ export default function SettingsField({ field, value, onChange }: Props): React.
           <p className="text-xs text-navy-500 mt-1">{field.caveat}</p>
         )}
       </div>
-      <div className="shrink-0 pt-0.5">{control}</div>
+      {/* `w-full` on a phone forces this control onto its own line: the label
+          beside it is `min-w-0 flex-1`, which can shrink all the way to
+          nothing without ever triggering `flex-wrap` on the row above, so a
+          fixed-width control (256px for the text case) was squeezing the
+          label down to an unreadable sliver rather than the two stacking. */}
+      <div className="w-full sm:w-auto sm:shrink-0 pt-0.5">{control}</div>
     </div>
   );
 }

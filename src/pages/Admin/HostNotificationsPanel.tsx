@@ -1,6 +1,19 @@
 import React from 'react';
+import SettingToggle from '../../components/SettingToggle';
 import type { SettingKey, SettingsMap } from '../../lib/appSettings';
 import { SETTINGS_SECTIONS } from '../../lib/settingsSections';
+
+// THE SWITCH IS `components/SettingToggle`, not a second one written here
+// (client report, 2026-08-17: the Host Notifications switches were "not showing
+// properly"). This panel had its own hand-rolled copy, and the copy had drifted
+// in exactly the way a duplicate always does: its OFF track was
+// `bg-surface-200`, which is the same value as the card it sits on
+// (`bg-surface-100/60` over surface), so an off switch was an invisible
+// rectangle with a white dot floating in it — the knob was the only thing
+// drawn, and nothing said there was a control there to press. The shared
+// component uses `bg-surface-300`, which is a step darker than any card it can
+// land on, and it also carries the focus ring and the `aria-hidden` knob the
+// copy had lost. One switch, one look, one accessible contract.
 
 type ToggleSpec = { key: SettingKey; label: string; hint: string };
 
@@ -56,21 +69,14 @@ export default function HostNotificationsPanel({ settings, saving, onToggle }: P
                 <p className="text-xs text-navy-500 mt-1 italic">Recorded — not yet enforced. {caveat}</p>
               )}
             </div>
-            <button
-              type="button"
-              role="switch"
-              aria-checked={checked}
-              aria-label={t.label}
-              disabled={!settings || busy}
-              onClick={() => onToggle(t.key, !checked)}
-              className={`shrink-0 mt-0.5 w-10 h-6 rounded-full transition-colors relative disabled:opacity-50
-                         ${checked ? 'bg-brand-500' : 'bg-surface-200 dark:bg-white/10'}`}
-            >
-              <span
-                className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform
-                           ${checked ? 'translate-x-[18px]' : 'translate-x-0.5'}`}
+            <span className="shrink-0 mt-0.5">
+              <SettingToggle
+                checked={checked}
+                onChange={(next) => onToggle(t.key, next)}
+                label={t.label}
+                disabled={!settings || busy}
               />
-            </button>
+            </span>
           </li>
         );
       })}

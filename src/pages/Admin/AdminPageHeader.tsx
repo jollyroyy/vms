@@ -66,7 +66,13 @@ export default function AdminPageHeader({ title, blurb, action, scope }: Props):
         </div>
         {blurb && <p className="text-sm text-navy-500 mt-1">{blurb}</p>}
       </div>
-      {action && <div className="flex items-center gap-2 shrink-0">{action}</div>}
+      {/* `basis-full` forces the action onto its own line below the title on a
+          narrow window: the title's `min-w-0` lets it shrink all the way to
+          nothing, so `flex-wrap` alone never triggers — the row just squeezes
+          the title down to an unreadable sliver instead of wrapping. Same
+          `basis-full sm:basis-auto` idiom `AdminRangeBar` already uses for its
+          own trailing line. */}
+      {action && <div className="flex items-center gap-2 shrink-0 basis-full sm:basis-auto sm:w-auto justify-end">{action}</div>}
     </div>
   );
 }

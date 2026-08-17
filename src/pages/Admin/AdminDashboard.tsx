@@ -104,10 +104,28 @@ export default function AdminDashboard(): React.ReactElement {
             rows={hosts.map((h, i) => ({
               label: h.label,
               value: h.value,
+              // The lead is the host's FACE, not just a rank — a name on its
+              // own is a lookup, a face is a person recognised at a glance.
+              // The rank survives as a small chip ahead of it (never inside
+              // the `<img>`'s alt, which stays empty: the name is printed
+              // immediately beside it, so the alt would only duplicate it).
               lead: (
-                <span className="shrink-0 w-6 h-6 rounded-full bg-brand-500/15 text-brand-600 dark:text-brand-400
-                                 text-[11px] font-semibold flex items-center justify-center tabular-nums">
-                  {i + 1}
+                <span className="shrink-0 flex items-center gap-1.5">
+                  <span className="w-4 shrink-0 text-[11px] tabular-nums text-navy-500 text-right">
+                    {i + 1}
+                  </span>
+                  {h.avatarUrl ? (
+                    <img
+                      src={h.avatarUrl}
+                      alt=""
+                      className="w-7 h-7 rounded-full object-cover ring-2 ring-brand-500/25"
+                    />
+                  ) : (
+                    <span className="w-7 h-7 rounded-full bg-brand-500/15 text-brand-600 dark:text-brand-400
+                                     text-[11px] font-semibold flex items-center justify-center">
+                      {initialsOf(h.label)}
+                    </span>
+                  )}
                 </span>
               ),
             }))}

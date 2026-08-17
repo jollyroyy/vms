@@ -152,9 +152,9 @@ export function topHosts(
   visits: Visit[],
   now: Date = new Date(),
   limit = 5,
-): { label: string; value: number; hostId: string }[] {
+): { label: string; value: number; hostId: string; avatarUrl: string | null }[] {
   const today = istDateKey(now);
-  const byHost = new Map<string, { name: string; count: number }>();
+  const byHost = new Map<string, { name: string; count: number; avatarUrl: string | null }>();
 
   for (const v of visits) {
     if (!arrivedOn(v, today)) continue;
@@ -163,12 +163,12 @@ export function topHosts(
     // the visitor did arrive, and losing them from the total to keep the list
     // tidy would make this panel disagree with the Visitors Today tile.
     const name = v.host?.full_name ?? 'Unassigned host';
-    const seen = byHost.get(id) ?? { name, count: 0 };
-    byHost.set(id, { name: seen.name, count: seen.count + 1 });
+    const seen = byHost.get(id) ?? { name, count: 0, avatarUrl: v.host?.avatar_url ?? null };
+    byHost.set(id, { name: seen.name, count: seen.count + 1, avatarUrl: seen.avatarUrl });
   }
 
   return [...byHost.entries()]
-    .map(([hostId, { name, count }]) => ({ hostId, label: name, value: count }))
+    .map(([hostId, { name, count, avatarUrl }]) => ({ hostId, label: name, value: count, avatarUrl }))
     .sort((a, b) => b.value - a.value || a.label.localeCompare(b.label))
     .slice(0, limit);
 }

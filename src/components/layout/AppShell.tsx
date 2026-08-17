@@ -7,6 +7,16 @@ import Sidebar from './Sidebar';
 import AuroraBackground from '../AuroraBackground';
 import NotificationBell from '../NotificationBell';
 
+// The greeting's role word. A `Record<UserRole, string>` rather than the chain
+// of ternaries this used to be: that chain ended in `: 'Staff'`, so every role
+// added after it was silently greeted as Staff — which is exactly what a new
+// `ceo` would have been. A map makes a missing role a compile error, the same
+// reason `checkableStatus.ts` is a full record rather than a lookup with a
+// default.
+const ROLE_GREETING: Record<UserRole, string> = {
+  guard: 'Guard', hod: 'HOD', staff: 'Staff', admin: 'Admin', ceo: 'CEO',
+};
+
 type Props = {
   session: Session;
   role: UserRole | null;
@@ -197,7 +207,7 @@ export default function AppShell({ session, role, children }: Props): React.Reac
               <div>
                 <p className="text-sm font-bold text-navy-800">
                   {profileName ? `Welcome, ${profileName}` : 'Welcome'}
-                  {role ? ` — ${role === 'hod' ? 'HOD' : role === 'guard' ? 'Guard' : role === 'admin' ? 'Admin' : 'Staff'}` : ''}
+                  {role ? ` — ${ROLE_GREETING[role]}` : ''}
                 </p>
                 <p className="text-xs text-navy-700 mt-0.5">
                   {deptName}{deptName ? ' · ' : ''}{(() => {

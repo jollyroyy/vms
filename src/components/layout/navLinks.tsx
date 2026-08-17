@@ -163,6 +163,16 @@ export const ALL_LINKS: NavLink[] = [
   // they were rather than rebuilt (client instruction, 2026-08-17). `/admin`
   // still resolves there, since it is the bookmark every admin already holds.
   { to: '/admin/settings', label: 'Settings', roles: ['admin'], icon: icon(ICON_COG) },
+
+  // ── CEO: one item, and it is the whole role ──────────────────────────────
+  // A blacklist removal takes two people (migration 091, client instruction
+  // 2026-08-17): the admin justifies it, the CEO grants it. This is the only
+  // screen that role has, so the sidebar is one link — not a stub console
+  // waiting to be filled in, and deliberately NOT the admin's nine tabs with
+  // most of them hidden. The label names the queue rather than the role,
+  // because a nav item reading "CEO" would tell them who they are and not what
+  // is behind it.
+  { to: '/ceo/blacklist-removals', label: 'Blacklist Removals', roles: ['ceo'], icon: icon(ICON_SHIELD) },
 ];
 
 /** Nav links visible to a role, in declaration order. */

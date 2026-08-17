@@ -26,6 +26,7 @@ import WhosInside         from './pages/Shared/WhosInside';
 import ReportsPage        from './pages/Shared/Reports';
 import ProfilePage        from './pages/Shared/Profile';
 import { adminRoutes } from './routes/adminRoutes';
+import CeoBlacklistRemovals from './pages/CEO/CeoBlacklistRemovals';
 import NotFoundPage       from './pages/NotFound';
 import KioskPage          from './pages/Kiosk/Kiosk';
 import AppShell           from './components/layout/AppShell';
@@ -280,6 +281,11 @@ export default function App(): React.ReactElement {
                 nested in one of their own, so the `path="*"` fallback below
                 still sees them. */}
             {adminRoutes((el) => <ProtectedRoute role={role}>{el}</ProtectedRoute>)}
+            {/* The CEO's whole surface: one queue. A blacklist removal takes
+                two people since migration 092 — the admin justifies it, the
+                CEO grants it — and this role has no other destination, by
+                scope decision. See ROLE_ROUTES.ceo. */}
+            <Route path="/ceo/blacklist-removals" element={<ProtectedRoute role={role}><CeoBlacklistRemovals /></ProtectedRoute>} />
             <Route path="/profile"         element={<ProtectedRoute role={role}><ProfilePage session={session} role={role} /></ProtectedRoute>} />
             <Route path="*"                element={<NotFoundPage />} />
           </Routes>

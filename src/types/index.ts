@@ -2,8 +2,13 @@
 // Keep in sync whenever the schema changes.
 
 import type { EntryPoint } from './adminTables';
+import type { GatePass, GatePassItem, GateSignoff } from './gatePass';
 
-export type UserRole = 'guard' | 'hod' | 'staff' | 'admin';
+// `ceo` (migration 090) exists for ONE decision: a visitor comes off the
+// blacklist only once an admin has justified it and the CEO has granted it. It
+// inherits nothing — see ROLE_ROUTES.ceo — and is NOT `super_admin`, which is
+// still in the DB enum and still means "administrative ceiling".
+export type UserRole = 'guard' | 'hod' | 'staff' | 'admin' | 'ceo';
 
 export type Department = {
   id: string;
@@ -113,7 +118,9 @@ export type Visit = {
   // joined fields (populated by views/RPCs)
   visitor?: Visitor;
   department?: Department;
-  host?: Pick<Profile, 'id' | 'full_name'>;
+  // `avatar_url` is OPTIONAL, not nullable-required: only `ADMIN_VISIT_SELECT`
+  // asks for it. "Nobody asked" must stay distinguishable from "has no photo".
+  host?: Pick<Profile, 'id' | 'full_name'> & Partial<Pick<Profile, 'avatar_url'>>;
   entry_point?: EntryPoint;
   photo_url?: string;
 };
@@ -121,74 +128,18 @@ export type Visit = {
 // The admin console's own tables live in their own file (the 300-line cap has
 // no exemption for types) and are re-exported here, so `from '../types/index'`
 // remains the one import path for a DB type.
-export type { EntryPoint, VisitFeedback, BadgeType, BadgePrint, AppSetting } from './adminTables';
+export type {
+  EntryPoint, VisitFeedback, BadgeType, BadgePrint, AppSetting,
+  BlacklistRemovalStatus, BlacklistRemovalRequest,
+} from './adminTables';
 
-export type GatePassType   = 'RGP' | 'NRGP';
-export type GatePassDir    = 'IN' | 'OUT';
-export type GatePassStatus =
-  | 'draft'
-  | 'pending_approval'
-  | 'approved'
-  | 'dispatched'
-  | 'awaiting_return'
-  | 'partially_returned'
-  | 'returned'
-  | 'closed'
-  | 'rejected'
-  | 'cancelled';
-
-export type GateSignoffAction = 'out' | 'in' | 'hold' | 'rejected' | 'mismatch';
-
-export type GateSignoff = {
-  id: string;
-  gate_pass_id: string;
-  security_user_id: string;
-  security_name: string;
-  security_employee_id: string | null;
-  gate_name: string;
-  action_type: GateSignoffAction;
-  action_timestamp: string;
-  verified_qty: number | null;
-  verified_vehicle: string | null;
-  remarks: string | null;
-  photo_url: string | null;
-  device_info: Record<string, unknown> | null;
-  session_id: string | null;
-  created_at: string;
-};
-
-export type GatePassItem = {
-  id: string;
-  gate_pass_id: string;
-  description: string;
-  qty: number;
-  unit: string | null;
-  serial_no: string | null;
-  approx_value: number | null;
-  returned_qty: number;
-};
-
-export type GatePass = {
-  id: string;
-  ref_number: string;
-  type: GatePassType;
-  direction: GatePassDir;
-  visit_id: string | null;
-  department_id: string;
-  status: GatePassStatus;
-  reason: string;
-  carrier_name: string | null;
-  company_name: string | null;
-  verified_vehicle?: string | null;
-  expected_return_date: string | null;
-  created_by: string;
-  created_at: string;
-  // joined
-  items?: GatePassItem[];
-  signoffs?: GateSignoff[];
-  department?: Department;
-  created_by_profile?: Pick<Profile, 'id' | 'full_name'>;
-};
+// The material-movement module's types live in their own file — see the note
+// at the top of `types/gatePass.ts`. They are re-exported here so
+// `from '../types/index'` remains the one import path for a DB type.
+export type {
+  GatePassType, GatePassDir, GatePassStatus, GateSignoffAction,
+  GateSignoff, GatePassItem, GatePass,
+} from './gatePass';
 
 export type NotificationType =
   | 'visit_pending_approval'

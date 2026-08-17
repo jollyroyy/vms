@@ -1,8 +1,16 @@
 import { supabase } from '../supabaseClient';
 import type { UserRole } from '../types/index';
 
+// Every member of `UserRole`, listed once. A signed-in user whose role is not
+// in here reaches no route at all — which is indistinguishable from being
+// locked out — so a role added to the union and forgotten here is a lockout,
+// not a cosmetic gap. `satisfies` makes that a compile error rather than a
+// support call: `ceo` (migration 090) had to be added here as well as to the
+// type.
+const ROLES = ['guard', 'hod', 'staff', 'admin', 'ceo'] as const satisfies readonly UserRole[];
+
 export const isUserRole = (value: unknown): value is UserRole =>
-  value === 'guard' || value === 'hod' || value === 'staff' || value === 'admin';
+  (ROLES as readonly string[]).includes(value as string);
 
 /**
  * The signed-in user's role, JWT first and `profiles` as the fallback.

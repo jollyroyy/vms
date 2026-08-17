@@ -189,7 +189,12 @@ describe('purposeSplit', () => {
 describe('topHosts', () => {
   it('names a host who failed to join rather than dropping their visitor', () => {
     const visits = [v({ host_id: 'ghost', host: undefined, checked_in_at: '2026-08-14T09:00:00Z' })];
-    expect(topHosts(visits, NOW)).toEqual([{ hostId: 'ghost', label: 'Unassigned host', value: 1 }]);
+    expect(topHosts(visits, NOW)).toEqual([
+      // `avatarUrl` is null rather than absent: a host the join could not
+      // resolve has no photo to offer, and the card must render its monogram
+      // rather than a broken image.
+      { hostId: 'ghost', label: 'Unassigned host', value: 1, avatarUrl: null },
+    ]);
   });
 
   it('ranks by count, then breaks ties alphabetically', () => {

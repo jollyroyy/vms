@@ -107,14 +107,20 @@ describe('AdminSettings', () => {
 
   it('shows "Recorded — not yet enforced" on an unenforced field and not on an enforced one', async () => {
     await renderLoaded();
-    // General: Facility Name (enforced) and Time Zone (not enforced) sit in
-    // the same group, so this also proves the note is scoped per-field, not
-    // shared across the whole panel.
+    // General: Facility Name (enforced) and "Email invites before visit" (not
+    // enforced) sit in the same PANEL, so this also proves the note is scoped
+    // per-field rather than shared across the panel. Time Zone used to be the
+    // unenforced half of this pair and was removed 2026-08-17 — it was a
+    // one-option select governing nothing.
     const facilityRow = screen.getByLabelText('Facility Name').closest('div')!.parentElement!;
     expect(within(facilityRow).queryByText(/Recorded — not yet enforced/)).toBeNull();
 
-    const timezoneRow = screen.getByLabelText('Time Zone').closest('div')!.parentElement!;
-    expect(within(timezoneRow).getByText(/Recorded — not yet enforced/)).toBeInTheDocument();
+    const inviteRow = screen.getByLabelText('Email invites before visit').closest('div')!.parentElement!;
+    expect(within(inviteRow).getByText(/Recorded — not yet enforced/)).toBeInTheDocument();
+
+    // And the removed field is gone from the screen entirely, not merely
+    // hidden behind a disabled state.
+    expect(screen.queryByLabelText('Time Zone')).toBeNull();
   });
 
   it('renders the departments manager on Roles & Users, not setting fields', async () => {

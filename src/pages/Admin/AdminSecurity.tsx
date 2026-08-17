@@ -7,14 +7,18 @@ import AdminSecurityAlertsPanel from './AdminSecurityAlertsPanel';
 import AdminDeniedEntriesPanel from './AdminDeniedEntriesPanel';
 import AdminWatchlistPanel from './AdminWatchlistPanel';
 import AdminBlacklistForm from './AdminBlacklistForm';
+import BlacklistRemovalForm from './BlacklistRemovalForm';
+import BlacklistRemovalsPanel from './BlacklistRemovalsPanel';
 import VisitorDetails from '../../components/VisitorDetails';
 import { useAdminVisits } from '../../lib/useAdminVisits';
 import { useVisitorDirectory } from '../../lib/useVisitorDirectory';
+import { useBlacklistRemovals } from '../../lib/useBlacklistRemovals';
 import { attachVisitActors } from '../../lib/visitActors';
 import {
   blacklistedVisitors, deniedEntries, securityAlerts,
 } from '../../lib/adminSecurity';
 import type { ReportVisit } from '../../lib/reportRow';
+import type { Visitor } from '../../types/index';
 import { istDateKey } from '../../lib/visitExpiry';
 import { computeDateRange, type RangePreset } from '../../lib/reportsDateRange';
 
@@ -22,11 +26,22 @@ const SECURITY_LIMIT = 1000;
 
 // The admin "Blacklist & Security" tab.
 //
-// THIS IS THE ONE ADMIN SCREEN THAT WRITES. Every other admin tab is
-// read-only over visitor records (2026-08-17 scope, CLAUDE.md's Admin
-// scope section); Blacklist Visitor is security administration on
-// `visitors`, never a write to `visits` — no check-in, check-out, approve,
-// reject or deny-entry control exists anywhere on this page.
+// THIS IS THE ONE ADMIN SCREEN THAT WRITES, and it now writes TWO things.
+// Every other admin tab is read-only over visitor records (2026-08-17 scope,
+// CLAUDE.md's Admin scope section); both writes here are security
+// administration on `visitors` and its removal queue, never a write to
+// `visits` — no check-in, check-out, approve, reject or deny-entry control
+// exists anywhere on this page.
+//
+// THE TWO WRITES ARE NOT SYMMETRICAL, and that asymmetry is the feature
+// (client instruction, 2026-08-17). Blacklist Visitor is one admin's own call,
+// because delaying a protective action behind an approval leaves somebody
+// admissible who should not be. Request Removal is only an ASK: it files a
+// justification for the CEO and touches nothing on the visitor. The clearance
+// itself happens on the CEO's screen, and migration 092's trigger refuses it
+// from every other caller — including a direct PostgREST PATCH by this very
+// admin — so the second pair of eyes is a property of the database rather than
+// of which buttons this page happens to render.
 //
 // THIS TAB IS A MIX OF LIVE STATE AND HISTORICAL STATE (client instruction,
 // 2026-08-17), and getting that mix labelled honestly is the whole reason it
@@ -67,6 +82,7 @@ export default function AdminSecurity(): React.ReactElement {
     includeInside: true,
   });
   const { visitors, loading: visitorsLoading } = useVisitorDirectory();
+  const { requests, loading: removalsLoading, reload: reloadRemovals } = useBlacklistRemovals();
 
   // `attachVisitActors` resolves WHO refused each row from the
   // `visit_rejected` audit log — the Denied Entries panel's whole reason for
@@ -82,7 +98,18 @@ export default function AdminSecurity(): React.ReactElement {
   const alerts = useMemo(() => securityAlerts(visits, now), [visits, now]);
 
   const [showForm, setShowForm] = useState(false);
+  const [removalFor, setRemovalFor] = useState<Visitor | null>(null);
   const [selected, setSelected] = useState<ReportVisit | null>(null);
+
+  // Which blacklisted visitors already have a request waiting on the CEO. The
+  // panel needs the SET rather than the list: it is asking a per-row question,
+  // and migration 091's unique index means a second open request on the same
+  // visitor cannot exist, so offering the button there could only produce an
+  // error nobody could act on.
+  const awaitingCeo = useMemo(
+    () => new Set(requests.filter((r) => r.status === 'pending').map((r) => r.visitor_id)),
+    [requests],
+  );
 
   return (
     <div className="p-6 max-w-[1600px] mx-auto">
@@ -117,7 +144,12 @@ export default function AdminSecurity(): React.ReactElement {
       />
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-5 mb-5">
-        <AdminBlacklistPanel visitors={blacklisted} loading={visitorsLoading} />
+        <AdminBlacklistPanel
+          visitors={blacklisted}
+          loading={visitorsLoading}
+          awaitingCeo={awaitingCeo}
+          onRequestRemoval={setRemovalFor}
+        />
         <AdminSecurityAlertsPanel alerts={alerts} loading={visitsLoading} />
       </div>
 
@@ -126,7 +158,24 @@ export default function AdminSecurity(): React.ReactElement {
         <AdminWatchlistPanel />
       </div>
 
+      {/* FULL WIDTH, BELOW BOTH GRIDS. A removal request is the one thing on
+          this tab that is still in motion — it is waiting on somebody outside
+          the admin's own console — and its justification and the CEO's note
+          are prose, not cells, so a half-width column would wrap both into
+          columns of four words. */}
+      <div className="mt-5">
+        <BlacklistRemovalsPanel requests={requests} loading={removalsLoading} />
+      </div>
+
       {showForm && <AdminBlacklistForm onClose={() => setShowForm(false)} />}
+
+      {removalFor && (
+        <BlacklistRemovalForm
+          visitor={removalFor}
+          onClose={() => setRemovalFor(null)}
+          onFiled={() => { void reloadRemovals(); }}
+        />
+      )}
 
       {selected && (
         <VisitorDetails visit={selected} viewerRole="admin" onClose={() => setSelected(null)} />

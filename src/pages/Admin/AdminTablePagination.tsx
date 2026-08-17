@@ -41,7 +41,12 @@ export default function AdminTablePagination({
           : `Showing ${from} to ${to} of ${totalItems} entries`}
       </span>
 
-      <div className="flex items-center gap-3">
+      {/* This cluster (rows-per-page + Prev/Next) has no wrap of its own, so on
+          a phone the three controls were the ones overflowing past the outer
+          row's own `flex-wrap` break — the outer wrap only guarantees this
+          whole group drops to its own line, not that the group itself fits
+          343px. */}
+      <div className="flex flex-wrap items-center gap-3">
         <label className="flex items-center gap-2 text-navy-700">
           <span className="whitespace-nowrap">Rows per page</span>
           <select

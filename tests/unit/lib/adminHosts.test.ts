@@ -96,7 +96,7 @@ describe('hostDirectory', () => {
     ];
     const rows = hostDirectory(hods, departments, visits, NOW);
     expect(rows).toEqual([
-      { hostId: 'h1', name: 'Asha Rao', departmentName: 'HR', visitsThisWeek: 2 },
+      { hostId: 'h1', name: 'Asha Rao', departmentName: 'HR', visitsThisWeek: 2, avatarUrl: null },
     ]);
   });
 
@@ -110,14 +110,41 @@ describe('hostDirectory', () => {
     ];
     const rows = hostDirectory([], [], visits, NOW);
     expect(rows).toEqual([
-      { hostId: 'h9', name: 'Staff Member', departmentName: 'Facilities', visitsThisWeek: 1 },
+      { hostId: 'h9', name: 'Staff Member', departmentName: 'Facilities', visitsThisWeek: 1, avatarUrl: null },
     ]);
   });
 
   it('includes a host with zero visits this week rather than dropping them', () => {
     const hods = [hod({ id: 'h1' })];
     const rows = hostDirectory(hods, [dept()], [], NOW);
-    expect(rows).toEqual([{ hostId: 'h1', name: 'Asha Rao', departmentName: 'HR', visitsThisWeek: 0 }]);
+    expect(rows).toEqual([{ hostId: 'h1', name: 'Asha Rao', departmentName: 'HR', visitsThisWeek: 0, avatarUrl: null }]);
+  });
+
+  // The photo follows the SAME fallback ordering as the name and the
+  // department — `useHods()` first, because it is the realtime-subscribed
+  // truth, then whichever visit named the host. A card that took the visit's
+  // stale join over a photo the HOD had just changed would be the one place on
+  // this screen showing yesterday's answer.
+  it('prefers the HOD list’s avatar over the one a visit happened to join', () => {
+    const hods = [hod({ id: 'h1', full_name: 'Asha Rao', department_id: 'd1', avatar_url: 'https://cdn/new.png' })];
+    const visits = [
+      visit({
+        id: 'a', host_id: 'h1', checked_in_at: '2026-08-17T09:00:00Z',
+        host: { id: 'h1', full_name: 'Asha Rao', avatar_url: 'https://cdn/stale.png' },
+      } as Partial<Visit>),
+    ];
+    const rows = hostDirectory(hods, [dept({ id: 'd1', name: 'HR' })], visits, NOW);
+    expect(rows[0]?.avatarUrl).toBe('https://cdn/new.png');
+  });
+
+  it('takes a non-HOD host’s avatar from the visit that named them', () => {
+    const visits = [
+      visit({
+        id: 'a', host_id: 'h9', checked_in_at: '2026-08-17T09:00:00Z',
+        host: { id: 'h9', full_name: 'Staff Member', avatar_url: 'https://cdn/staff.png' },
+      } as Partial<Visit>),
+    ];
+    expect(hostDirectory([], [], visits, NOW)[0]?.avatarUrl).toBe('https://cdn/staff.png');
   });
 
   it('is empty for no hosts and no visits', () => {

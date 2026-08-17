@@ -26,7 +26,7 @@ export const ADMIN_VISIT_SELECT = `
   *,
   visitor:visitors(*),
   department:departments(id, name, code, created_at),
-  host:profiles!visits_host_id_fkey(id, full_name),
+  host:profiles!visits_host_id_fkey(id, full_name, avatar_url),
   entry_point:entry_points(id, name, code, kind, active, sort_order, created_at)
 `;
 
@@ -128,8 +128,17 @@ export function useAdminVisits(win: VisitWindow): State & { reload: () => void }
     }
 
     const { data, error } = await q;
+    // `photo_url` is the app-wide name for the face on a visit, and EVERY other
+    // hook that feeds a list maps it here (`useTodayVisits`, `useGateActivity`,
+    // `Console.loadVisits`, `Reports`). This one did not, so every admin tab
+    // rendered a two-letter monogram for visitors whose photo was sitting in
+    // the row it had just fetched — the check-in photo is mandatory on every
+    // path, so that is the whole arrived population.
     setState({
-      visits: (data as unknown as Visit[]) ?? [],
+      visits: ((data as unknown as Visit[]) ?? []).map((v) => ({
+        ...v,
+        photo_url: v.photo_data ?? undefined,
+      })),
       loading: false,
       error: error ? error.message : null,
     });

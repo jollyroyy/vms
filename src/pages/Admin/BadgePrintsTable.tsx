@@ -61,10 +61,23 @@ export default function BadgePrintsTable({ prints, loading }: Props): React.Reac
               return (
                 <tr key={p.id} className="border-t border-surface-200/50 dark:border-white/[0.05]">
                   <td className="px-4 py-3">
+                    {/* Same face treatment as `DashboardVisitorTable`'s name
+                        cell — the app's one visitor-face pattern: lead with
+                        the photo where the visit carries one (every visit
+                        that reached a check-in does), fall back to the
+                        monogram rather than an empty circle otherwise. */}
                     <span className="flex items-center gap-2.5">
-                      <span className="w-8 h-8 shrink-0 rounded-full bg-brand-600 flex items-center justify-center text-white text-xs font-bold">
-                        {initialsOf(visitor?.full_name)}
-                      </span>
+                      {p.visit?.photo_data ? (
+                        <img
+                          src={p.visit.photo_data}
+                          alt=""
+                          className="w-8 h-8 shrink-0 rounded-full object-cover ring-2 ring-brand-500/25"
+                        />
+                      ) : (
+                        <span className="w-8 h-8 shrink-0 rounded-full bg-brand-600 flex items-center justify-center text-white text-xs font-bold">
+                          {initialsOf(visitor?.full_name)}
+                        </span>
+                      )}
                       <span className="text-navy-950 dark:text-white font-medium truncate">
                         {visitor?.full_name ?? 'Unknown'}
                       </span>

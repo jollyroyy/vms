@@ -67,8 +67,19 @@ export default function DonutChart({
   });
 
   return (
-    <div className="flex flex-col sm:flex-row items-center gap-6">
-      <svg viewBox={`0 0 ${SIZE} ${SIZE}`} className="w-44 h-44 shrink-0" role="img"
+    // THE LAYOUT WRAPS ON THE CARD'S OWN WIDTH, not on the viewport's.
+    // `flex-col sm:flex-row` asked the wrong question: this card is one third
+    // of a three-column grid, so at a 1280px viewport — which is `sm` and up,
+    // so the row layout was in force — its inner width is about 270px, and a
+    // 176px donut beside a legend that cannot go below its swatch, gap and
+    // percentage overflowed the card. `flex-wrap` plus a legend basis means the
+    // legend drops UNDER the donut whenever there is not room beside it,
+    // whatever the viewport is doing. `min-w-0` on the list and on each row is
+    // what lets `truncate` actually engage on a long purpose name; without it
+    // the row's min-content width is the label's full width and the flex
+    // container is pushed past its parent.
+    <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-4">
+      <svg viewBox={`0 0 ${SIZE} ${SIZE}`} className="w-36 h-36 sm:w-40 sm:h-40 shrink-0" role="img"
            aria-label={`Breakdown of ${total} ${unit} across ${drawn.length} categories`}>
         {drawn.length === 1 && drawn[0] ? (
           <circle cx={C} cy={C} r={(R_OUTER + R_INNER) / 2} fill="none"
@@ -81,12 +92,12 @@ export default function DonutChart({
         )}
       </svg>
 
-      <ul className="flex-1 w-full space-y-2.5">
+      <ul className="grow shrink basis-40 min-w-0 space-y-2.5">
         {drawn.map((s) => (
-          <li key={s.label} className="flex items-center gap-3 text-sm">
+          <li key={s.label} className="flex items-center gap-3 text-sm min-w-0">
             <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: s.color }} aria-hidden="true" />
             <span className="flex-1 min-w-0 truncate text-navy-800">{s.label}</span>
-            <span className="tabular-nums font-semibold text-navy-950 dark:text-white">
+            <span className="shrink-0 tabular-nums font-semibold text-navy-950 dark:text-white">
               {Math.round(s.pct)}%
             </span>
           </li>

@@ -18,7 +18,12 @@ export type SettingValue = boolean | number | string;
 /** Every key the app reads, with the type it must be. */
 export const SETTING_DEFAULTS = {
   'general.facility_name': 'Quest Mall',
-  'general.timezone': 'Asia/Kolkata',
+  // 'general.timezone' was REMOVED 2026-08-17 (client instruction). It was a
+  // one-option select nothing read: the zone lives in `vms_day_start_ist`
+  // and `IST_OFFSET_MS`, and a settings key shadowing them could only ever
+  // disagree with them. Its `app_settings` row is deleted by migration 093 —
+  // a key left in the table with no reader is indistinguishable from a
+  // setting that quietly stopped working.
 
   'checkin.require_photo': true,
   'checkin.require_id_scan': true,

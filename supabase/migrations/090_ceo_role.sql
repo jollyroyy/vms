@@ -1,0 +1,27 @@
+-- 090 — a CEO role (2026-08-17, client instruction)
+--
+-- A blacklist removal now needs two people: an admin who asks for it with a
+-- justification, and a CEO who grants it. That second person needs a role, and
+-- `super_admin` was the obvious candidate to borrow — it already exists in this
+-- enum with no app surface at all. It was rejected on the client's own
+-- instruction: `super_admin` is an ADMINISTRATIVE ceiling, granted to whoever
+-- holds the keys to the project, and it already appears in a dozen policies
+-- (`profiles: admin manages all`, `visitors: guard/hod/admin can update`, the
+-- 064 password-reset guard) as a strictly-more-powerful admin. Reusing it would
+-- have meant the person who approves a removal is the same person who can reset
+-- every password and edit every profile — which is not a second pair of eyes,
+-- it is the first pair with a different hat on.
+--
+-- THIS MIGRATION ADDS THE VALUE AND NOTHING ELSE, deliberately. `ALTER TYPE …
+-- ADD VALUE` cannot be used by any statement in the same transaction that adds
+-- it, and Supabase applies a migration inside one transaction — so the table,
+-- the policies and the functions that compare against `'ceo'::user_role` are
+-- migration 091. Two files, not one, and 091 must be applied second.
+--
+-- A CEO IS NOT AN ADMIN AND INHERITS NOTHING. No existing policy is widened
+-- here. The only things a `ceo` may read or write are granted explicitly in
+-- 091: the removal queue, the visitors named on it, and the profiles of the
+-- admins who filed them. Their landing page is the approval queue and there is
+-- no admin console behind it.
+
+alter type public.user_role add value if not exists 'ceo';

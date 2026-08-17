@@ -4,6 +4,7 @@ import { formatDateTime } from '../../lib/formatDate';
 
 const ROLE_LABELS: Record<UserRole, string> = {
   guard: 'Guard', hod: 'Head of Department', staff: 'Staff', admin: 'Administrator',
+  ceo: 'Chief Executive Officer',
 };
 
 type Props = {

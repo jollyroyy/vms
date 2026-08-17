@@ -33,11 +33,86 @@
     kiosk writes a self-service check-in. Reading a visit through a read-only tab and
     reaching the desk that changes it are different permissions. Guarded by
     `tests/security/routeProtectionAdmin.test.tsx`.
-  - **The ONE write on the admin surface is the blacklist** (`AdminBlacklistForm` →
-    `lib/adminBlacklist.ts`), which writes `visitors.is_blacklisted` and never `visits`.
-    Blacklisting is security administration, not a visitor-record action, and the reason
-    box is mandatory — the confirm stays disabled until one is typed, so the
-    justification is the only route to the write.
+  - **The ONLY writes on the admin surface are the blacklist and the request to lift
+    it.** Both write `visitors` / its removal queue and never `visits`.
+    - **Flagging** is `AdminBlacklistForm` → `lib/adminBlacklist.ts`, one admin's own
+      call, reason mandatory — the confirm stays disabled until one is typed, so the
+      justification is the only route to the write.
+    - **UNflagging takes TWO PEOPLE and the admin is not one of them acting alone**
+      (client instruction, 2026-08-17). The admin's "Request removal" on
+      `AdminBlacklistPanel` opens `BlacklistRemovalForm`, which files a justification
+      (min 10 chars) for the **CEO**; `visitors.is_blacklisted` is untouched until the
+      CEO approves, so the gate keeps refusing entry for the whole life of the request.
+      The asymmetry is the design: delaying a *protective* action behind an approval
+      leaves somebody admissible who should not be, while lifting one is exactly where
+      a second pair of eyes belongs.
+    - **THE TWO-PERSON RULE IS IN THE DATABASE, NOT IN THE SCREEN** (migrations
+      **091**/**092**, applied + verified live 2026-08-17). `prevent_guard_blacklist`
+      already stopped a guard or HOD touching the flag, so the hole was the **admin's
+      own**: they could PATCH `is_blacklisted = false` through PostgREST and skip the
+      CEO entirely. `enforce_blacklist_clearance` refuses that write from every caller
+      except `decide_blacklist_removal`, which carries a transaction-local key —
+      **cleared again on the next line**, because transaction-local is not
+      statement-local and a live probe (8b) caught the wider version waving through
+      every later UPDATE in the same transaction. `prevent_guard_blacklist` had to
+      learn about that key too, or it would refuse the CEO's own approval, the CEO not
+      being an admin. **Two triggers, two questions**: who may touch the flag at all,
+      and which direction is free.
+    - `blacklist_removal_requests` has **NO insert/update/delete policy** — both writes
+      go through SECURITY DEFINER RPCs, which is what lets each enforce its half. A
+      **unique partial index** allows one open request per visitor, so the panel reads
+      **Awaiting CEO** instead of offering a button that could only fail.
+      `blacklist_reason` is **snapshotted onto the request**, because approving clears
+      it and the record of what the CEO was asked to forgive would otherwise be
+      destroyed by the act of granting it.
+- **`ceo` is the FIFTH role, and it inherits NOTHING** (migration **090**, client
+  instruction 2026-08-17). `ROLE_ROUTES.ceo` is `['/ceo/blacklist-removals', '/profile']`
+  — no visitor log, no reports, not even `/search`, which is a visitor-record lookup and
+  the CEO's business is with the one visitor already named on the request in front of
+  them. It is deliberately **NOT `super_admin`**, which is still in the DB enum and still
+  means "administrative ceiling": `super_admin` appears in a dozen policies as a
+  strictly-more-powerful admin, so reusing it would make the approver the same person who
+  can reset every password — the first pair of eyes in a different hat, not a second pair.
+  - **A refusal requires a note; an approval does not.** Approving grants what the admin
+    asked for and their justification is already on the row. Refusing overrides a
+    colleague who did write one, and "no" with nothing attached leaves them nothing to
+    act on — the same rule that makes the guard's Deny Entry reason mandatory.
+  - **Adding a role means four other edits, and three of them fail silently if missed.**
+    `resolveUserRole.isUserRole` (a role missing there reaches NO route, which is
+    indistinguishable from a lockout — it is now a `satisfies readonly UserRole[]` list),
+    `AppShell`'s greeting (was a ternary chain ending `: 'Staff'`, so a new role was
+    silently greeted as Staff — now a `Record<UserRole, string>`), and the two
+    `ROLE_LABELS` maps. Only `ROLE_ROUTES` fails at compile time on its own.
+- **The admin console draws FACES, not monograms** (client instruction, 2026-08-17).
+  `useAdminVisits` was the one list hook in the app that never mapped
+  `photo_url: v.photo_data ?? undefined` — every other one does (`useTodayVisits`,
+  `useGateActivity`, `Console.loadVisits`, `Reports`) — so every admin tab rendered two
+  letters for visitors whose photo was in the row it had just fetched. A check-in photo is
+  mandatory on every path, so that is the whole arrived population. `ADMIN_VISIT_SELECT`
+  also asks for the host's `avatar_url` (`Visit.host` gained it as an **optional** field:
+  "nobody asked" must stay distinguishable from "has no photo"), which feeds the Top Hosts
+  lead and `HostDirectoryCard`. **Every image keeps the monogram as its fallback and
+  carries `alt=""`** — the name is printed immediately beside it, and an alt carrying it
+  would both duplicate the render and break `AdminDashboard.test.tsx`'s host-name count.
+- **A chart card is ONE THIRD of a three-column grid, so its breakpoints are the wrong
+  question** (client report, 2026-08-17). `DonutChart` was `flex-col sm:flex-row` with a
+  `w-44` donut and a `flex-1 w-full` legend: at a 1280px viewport — which is `sm` and up,
+  so the ROW layout was in force — the card's inner width is about 270px and the two could
+  not fit, which is what pushed the purpose data out of its box. It is `flex-wrap` with a
+  `basis-40` legend now, so the legend drops UNDER the donut whenever there is no room
+  beside it, at any viewport. `UtilizationRows` had the identical defect and it read
+  worse: `flex-1` + `w-40` + `w-24` is 280px of FIXED width in that same 270px card, so
+  the label column was squeezed to nothing and "Host / Share / Visitors" overlapped. It is
+  a proportional `flex-[2]` / `flex-1` / `w-16` split now — every column shrinks with the
+  card instead of one refusing to. **The per-row unit word went with it**: the header
+  already says "Visitors", so "3 visitors" on every line was a duplicate render AND what
+  overflowed the count cell; the unit survives as the cell's `aria-label`.
+- **There is ONE switch and it is `components/SettingToggle`** (client report,
+  2026-08-17). `HostNotificationsPanel` had a hand-rolled copy, and the copy had drifted
+  the way duplicates always do: its OFF track was `bg-surface-200`, the same value as the
+  card behind it, so an off switch was an invisible rectangle with a white dot floating in
+  it. The shared component uses `bg-surface-300` — a step darker than any card it can land
+  on — and carries the focus ring and `aria-hidden` knob the copy had lost.
 - **EVERY ADMIN TAB SAYS WHETHER IT IS SHOWING NOW OR SHOWING THE PAST**
   (client instruction, 2026-08-17: "whatever is showing the historical data,
   mention that"). `AdminPageHeader` takes `scope?: 'live' | 'historical'` and
@@ -154,6 +229,15 @@
 - **`lib/settingsSections.ts` is the single source of truth for the Settings screen**, the
   same way `visitorSegments.ts` is for the Visitors surface: the left rail and the right
   panel are both derived from it, so a section cannot exist in one and not the other.
+  - **There is NO Time Zone field** (removed 2026-08-17, client instruction; migration
+    **093** deletes its `app_settings` row). It was a select with one option marked
+    "Recorded — not yet enforced" — a control that could not be changed, governing
+    nothing. The zone lives in `vms_day_start_ist()`/`vms_day_end_ist()` and
+    `IST_OFFSET_MS`, so moving it has always needed a migration, which is exactly why it
+    did not belong on a screen that invites an admin to set it. The row is DELETED
+    rather than orphaned: 089 gives `app_settings` no delete policy because a vanishing
+    key falls back to a default silently, and the mirror of that rule applies here — a
+    row nothing reads claims the app still honours a preference it has stopped having.
   - **EVERY FIELD DECLARES WHETHER THE APP HONOURS IT** (`enforced`). A settings screen
     where some switches govern behaviour and others merely store a preference, with nothing
     on screen distinguishing them, is a screen that lies about what it controls — the same
@@ -1986,6 +2070,49 @@ admin tabs render their honest empty states: "Not measured", "No visitor has rat
 today", "No arrival in this range recorded an entry point". That is the design, not a
 failure mode.
 
+### `090`–`092` — a blacklist removal takes two people (2026-08-17, applied + verified live)
+
+Client instruction: *"in the blacklist option have another option to put someone out
+of the blacklist ... It will ask for the justification to the admin. Once the admin
+gives it, it will go for the approval to the CEO. Once the CEO approves then only the
+particular person will be out of the blacklist."*
+
+- **`090` adds `ceo` to `user_role` AND NOTHING ELSE.** `ALTER TYPE … ADD VALUE`
+  cannot be used by any statement in the transaction that adds it, and Supabase applies
+  a migration inside one transaction — so everything comparing against
+  `'ceo'::user_role` is 091/092. **Apply in order: 090, 091, 092.** The split between
+  091 (table, indexes, RLS, the two widened read policies) and 092 (the two RPCs, the
+  two triggers, the ACLs) is only this project's 300-line cap.
+- **The hole this closes is the ADMIN's, not the gate's.** `prevent_guard_blacklist`
+  has always refused a guard or an HOD; an admin could PATCH `is_blacklisted = false`
+  through PostgREST and never file a request. A two-person rule that one person's API
+  call can skip is not a rule, so `enforce_blacklist_clearance` refuses the CLEARING
+  direction from every caller except `decide_blacklist_removal`. Setting the flag is
+  untouched.
+- **The clearance key is statement-scoped, not merely transaction-local.**
+  `decide_blacklist_removal` sets `vms.blacklist_clearance`, does the one update, and
+  **clears it again on the next line**. Left set, every later UPDATE in that
+  transaction is waved through — nothing can arrange that through PostgREST today,
+  which is exactly why it was worth closing: the gate would have rested on a property
+  of the HTTP layer rather than on anything the function says. Live probe **8b** caught
+  the wider version; it passes now.
+- **`prevent_guard_blacklist` was rebased on its LIVE body**, not on the migration that
+  first wrote it — one early return added, nothing removed, verified by diffing
+  `pg_get_functiondef` before and after. That is the `memory.md` **SB-15** discipline,
+  and skipping it here would have silently deleted the admin-only rule while appearing
+  to apply cleanly.
+- **`lapsed`-style honesty about who decided what**: a pending row has no
+  `decided_by`/`decided_at` and a decided row has both (CHECK, not convention);
+  `blacklist_reason` is snapshotted at request time because approving clears it.
+- **Verified live 2026-08-17**, 14 probes, all passing: an unauthenticated clear is
+  refused, an **admin's** direct clear is refused, a guard cannot file, a short
+  justification is refused, a second open request for one visitor is refused, the
+  visitor **stays flagged while pending**, an admin cannot decide, the CEO's approval
+  clears the flag and marks the request approved in one statement, a second decision on
+  a decided request is refused, the key does not leak, an admin can still SET the flag
+  unilaterally, and a **refusal leaves the visitor blacklisted**. Probe rows deleted;
+  `blacklist_removal_requests` is empty and no visitor is flagged.
+
 ### Migration drift
 - This project has always been migrated by hand, so
   `supabase_migrations.schema_migrations` is **not** authoritative and the 3-digit
@@ -2078,6 +2205,9 @@ src/
                      #   emits an `sr-only` list of its label/value pairs: that is
                      #   its accessible content AND what the tests assert on, so a
                      #   cosmetic change cannot break a test about the data.
+  pages/CEO/         # CeoBlacklistRemovals (the role's ONE screen: the queue of
+                     #   removal requests waiting on them, plus what they have
+                     #   already decided) + CeoDecisionCard
   pages/Admin/       # The nine-tab console: AdminDashboard (+AdminDashboardKpis),
                      #   AdminLiveCheckIn (+LiveCheckInTabs), AdminPreRegistration
                      #   (+Kpis, +Filters), AdminVisitorsLog (+VisitorsLogFilters),
@@ -2121,6 +2251,12 @@ src/
                      # visitorSearch (pure query parsing),
                      # statusRail (VisitorCard only — the stacked card has no rail),
                      # visitOrigin (pre-approved vs walk-in, INFERRED — read the note),
+                     # blacklistRemoval (the admin's request + the CEO's
+                     #   decision, both through SECURITY DEFINER RPCs — this
+                     #   file must NEVER grow a visitors update; that is what
+                     #   makes the two-person rule structural),
+                     # useBlacklistRemovals (the live queue + its three pure
+                     #   slicers),
                      # adminDepartments, adminHods (admin CRUD + validation),
                      # useDepartments, useHods (live, realtime-subscribed)
   styles/            # tokens, base, components-forms, components-surfaces,
@@ -2128,7 +2264,7 @@ src/
                      # components-filter, components-visitor-stack, aurora, animations
                      # — all @imported by index.css (see CSS note below)
   types/             # index.ts (all DB types)
-supabase/migrations/ # Numbered SQL migrations (001-060). Hand-applied — see Migration drift.
+supabase/migrations/ # Numbered SQL migrations (001-093). Hand-applied — see Migration drift.
 tests/
   unit/              # Component + logic tests
   security/          # RLS + route protection tests

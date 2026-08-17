@@ -1,0 +1,23 @@
+-- 093 — the Time Zone setting is removed (2026-08-17, client instruction)
+--
+-- `general.timezone` was a select with exactly ONE option, rendering
+-- "Recorded — not yet enforced" underneath it: a control an admin could not
+-- change, governing nothing. The zone is not configurable and never was — it
+-- lives in `vms_day_start_ist()` / `vms_day_end_ist()` on this side and
+-- `IST_OFFSET_MS` on the client, and moving it has always required a
+-- migration. A settings key shadowing those could only ever disagree with
+-- them.
+--
+-- THE ROW IS DELETED, not left orphaned. `src/lib/appSettings.ts` no longer
+-- lists the key, so nothing reads it — and 089's own note is the reason this
+-- matters: `app_settings` has no delete policy precisely because a key that
+-- vanishes falls back to a default silently, which is indistinguishable from
+-- a setting turning itself back on. The mirror of that rule applies here: a
+-- row nothing reads, sitting in the table an admin can list, claims the app
+-- still honours a preference it has stopped having.
+--
+-- Deleted with an explicit key rather than a LIKE pattern. `general.%` would
+-- also take `general.facility_name`, which is enforced and printed on every
+-- visitor pass.
+
+delete from public.app_settings where key = 'general.timezone';

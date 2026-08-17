@@ -33,6 +33,21 @@ type Props = {
 //
 // The count is always printed. A bar alone says "more than that one" and
 // nothing about how many — and this is a list an admin reads to act on.
+//
+// THE COLUMNS ARE PROPORTIONAL, NOT FIXED PIXELS (client report, 2026-08-17:
+// the Top Hosts headings were "not visible" and "overlapping"). They were
+// `flex-1 + w-40 + w-24`, i.e. 280px of fixed width plus gaps inside a card
+// that is one third of a three-column grid — about 270px of inner width at a
+// 1280px viewport. The label column was squeezed to nothing and the row
+// overflowed the card, which is what put "Host", "Share" and "Visitors" on top
+// of each other. A 2:1 split with a `w-16` count cannot overflow at any width,
+// because every column shrinks with the card instead of one of them refusing.
+//
+// THE UNIT IS NOT PRINTED ON EVERY ROW. The header above the column already
+// says "Visitors" / "Total Visits", so "3 visitors" under it was the same word
+// on every line — the no-duplicate-renders rule — and it was also what made a
+// fixed-width count cell overflow. It survives as the cell's `aria-label`, so
+// a screen reader still hears the unit with the figure.
 
 export default function UtilizationRows({
   rows, headers, showShare = false, unit, color = '#3b82f6', emptyMessage,
@@ -46,23 +61,23 @@ export default function UtilizationRows({
 
   return (
     <div>
-      <div className="flex items-center gap-3 px-1 pb-2 mb-1 border-b border-surface-200/60 dark:border-white/[0.07]
+      <div className="flex items-center gap-2 px-1 pb-2 mb-1 border-b border-surface-200/60 dark:border-white/[0.07]
                       text-[11px] uppercase tracking-wider font-semibold text-navy-500">
-        <span className="flex-1 min-w-0">{headers[0]}</span>
-        {headers.length === 3 && <span className="w-40 shrink-0">{headers[1]}</span>}
-        <span className="w-24 shrink-0 text-right">{headers[headers.length - 1]}</span>
+        <span className="flex-[2] min-w-0 truncate">{headers[0]}</span>
+        {headers.length === 3 && <span className="flex-1 min-w-[4rem] truncate">{headers[1]}</span>}
+        <span className="w-16 shrink-0 text-right whitespace-nowrap">{headers[headers.length - 1]}</span>
       </div>
 
       <ul>
         {rows.map((row) => (
           <li key={row.label}
-              className="flex items-center gap-3 px-1 py-2.5 border-b border-surface-200/40 dark:border-white/[0.05] last:border-0">
-            <span className="flex-1 min-w-0 flex items-center gap-2.5">
+              className="flex items-center gap-2 px-1 py-2.5 border-b border-surface-200/40 dark:border-white/[0.05] last:border-0">
+            <span className="flex-[2] min-w-0 flex items-center gap-2.5">
               {row.lead}
               <span className="truncate text-sm text-navy-800">{row.label}</span>
             </span>
 
-            <span className="w-40 shrink-0 flex items-center gap-2">
+            <span className="flex-1 min-w-[4rem] flex items-center gap-2">
               {showShare && (
                 <span className="w-9 text-xs tabular-nums text-navy-700 shrink-0">
                   {total === 0 ? '0%' : `${Math.round((row.value / total) * 100)}%`}
@@ -74,8 +89,9 @@ export default function UtilizationRows({
               </span>
             </span>
 
-            <span className="w-24 shrink-0 text-right text-sm font-semibold tabular-nums text-navy-950 dark:text-white">
-              {row.value}{unit ? ` ${unit}` : ''}
+            <span className="w-16 shrink-0 text-right text-sm font-semibold tabular-nums text-navy-950 dark:text-white"
+                  aria-label={unit ? `${row.value} ${unit}` : undefined}>
+              {row.value}
             </span>
           </li>
         ))}

@@ -1,4 +1,4 @@
-// The tables the admin surface added (migrations 084, 086, 087, 089).
+// The tables the admin surface added (migrations 084, 086, 087, 089, 091).
 //
 // Split out of `types/index.ts` rather than appended to it: that file mirrors
 // the live schema and was already at 275 lines, and this project's 300-line cap
@@ -9,7 +9,7 @@
 // Re-exported from `types/index.ts`, so every existing `from '../types/index'`
 // import keeps working and nothing has to learn a second path.
 
-import type { Visit } from './index';
+import type { Visit, Visitor, Profile } from './index';
 
 /** A physical door. A table rather than an enum or a text column so a gate can
  *  be retired (`active = false`) while keeping the visits that came through
@@ -55,4 +55,32 @@ export type AppSetting = {
   value: unknown;
   updated_at: string;
   updated_by: string | null;
+};
+
+/** A request to take a visitor OFF the blacklist (migration 091).
+ *
+ *  `blacklist_reason` is a SNAPSHOT taken when the request was filed, not a
+ *  join: approving the request clears `visitors.blacklist_reason`, so without
+ *  the copy the record of what the CEO was actually asked to forgive would be
+ *  destroyed by the act of granting it.
+ *
+ *  A pending row carries no `decided_by` / `decided_at` and a decided row
+ *  carries both — a CHECK constraint, not a convention. */
+export type BlacklistRemovalStatus = 'pending' | 'approved' | 'rejected';
+
+export type BlacklistRemovalRequest = {
+  id: string;
+  visitor_id: string;
+  requested_by: string;
+  justification: string;
+  blacklist_reason: string | null;
+  status: BlacklistRemovalStatus;
+  decided_by: string | null;
+  decided_at: string | null;
+  decision_note: string | null;
+  created_at: string;
+  // joined
+  visitor?: Pick<Visitor, 'id' | 'full_name' | 'phone' | 'vendor_name' | 'is_blacklisted'>;
+  requester?: Pick<Profile, 'id' | 'full_name'>;
+  decider?: Pick<Profile, 'id' | 'full_name'>;
 };

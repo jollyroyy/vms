@@ -13,6 +13,9 @@ import AdminSecurity from '../../../src/pages/Admin/AdminSecurity';
 
 const mockVisits = vi.hoisted(() => ({ current: { visits: [] as any[], loading: false } }));
 const mockVisitors = vi.hoisted(() => ({ current: { visitors: [] as any[], loading: false } }));
+const mockRemovals = vi.hoisted(() => ({
+  current: { requests: [] as any[], loading: false, error: null as string | null, reload: async () => {} },
+}));
 
 vi.mock('../../../src/lib/useAdminVisits', () => ({
   useAdminVisits: () => mockVisits.current,
@@ -20,6 +23,19 @@ vi.mock('../../../src/lib/useAdminVisits', () => ({
 vi.mock('../../../src/lib/useVisitorDirectory', () => ({
   useVisitorDirectory: () => mockVisitors.current,
 }));
+// The removal queue is mocked for the same reason as the two above, and one
+// more besides: it is the only hook on this page that subscribes to
+// `postgres_changes` through the REAL client when it is not replaced, which
+// opens a live websocket during a unit run — vitest reports that as an
+// unhandled error and the pre-commit gate fails on it. A unit test must not
+// reach the network.
+vi.mock('../../../src/lib/useBlacklistRemovals', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../../src/lib/useBlacklistRemovals')>();
+  return {
+    ...actual,
+    useBlacklistRemovals: () => mockRemovals.current,
+  };
+});
 vi.mock('../../../src/lib/visitActors', () => ({
   attachVisitActors: async (visits: any[]) => visits,
 }));
