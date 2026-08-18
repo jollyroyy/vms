@@ -34,6 +34,13 @@ and it is refused by `admin_create_user`, so no created account can be one. See 
   **800** values that get scanned, **950** primary name, **600** minimum for any control
   or icon. `dark:text-white` is fine (different scale).
 - **Colour is never the only carrier of status** — always a text badge too.
+- **A STAT CARD'S HEADING AND EVERY COLUMN HEADER ARE 13px** (2026-08-18, client
+  instruction: increase them by two everywhere). Three classes carry the whole instruction —
+  `.table-head` (every table header in the app), `.stat-label` (the plain stat card) and
+  `.gate-tile-label` (`KpiTile`) — plus the eyebrow literal in `DashboardTile` and
+  `AdminKpiTile`, which must keep matching each other. The sizes are written out rather than
+  raised in the `micro` token: that token also sets form labels and every grouping caption,
+  and what grew is a heading, not the smallest type in the system.
 - **EVERY table header row is `.table-head`, and it is GOLD AND BOLD** (2026-08-18, two
   client instructions the same day: headers must stand out from the sub-text under them,
   and every table header is bold). One class in
@@ -144,6 +151,34 @@ two `ROLE_LABELS` maps.
   `toISOString()` ends `Z`, and `'+' < 'Z'`.
 - **An expected time is always DATE AND TIME**, never a bare time (`formatDateTime`); no
   slot reads "Anytime", never a dash. Same for every In/Out cell (`dashboardColumns.stamp`).
+  **A SEARCH RESULT CARRIES NO SLOT AT ALL** (2026-08-18, client instruction: don't mention
+  the schedule anywhere in the result — show the type of visitor, the walk-in approval time
+  and the check-in time). Both result rows obeyed the rule above and were wrong anyway:
+  `CheckInMatchCard`'s clock badge printed `scheduledFor` or, for every walk-in, the words
+  "Anytime today", and `SearchResultCard` had a "Scheduled … NA" field whose commonest
+  value was the admission it had nothing to say. What replaces them is not a shorter guess
+  — the type badge says which desk, and the named instants (Approved at / Checked in at /
+  Checked out at, each a `formatDateTime`) say what happened. The slot is still on the
+  record the row opens, and `CheckInBadgeRail` / `PreApprovalRow` / `VisitorCard` /
+  `CheckInVisitorSummary` keep theirs: those are the RECORD, not a result. A pass booked
+  for another day now says "Not due today" instead of printing the day.
+- **NOBODY IS LATE FOR A SLOT THAT WAS ALREADY GONE WHEN IT WAS BOOKED** (2026-08-18,
+  client report: a visitor whose pass read 12 am and who arrived at 11 am was called late).
+  The subtraction was right and the conclusion was nonsense — the live row (SP,
+  `VIS-2026-08-18`) was raised at 10:08 IST for 00:10 IST the SAME morning, which is a
+  datetime picker left on AM, so no one could have been punctual for it even in principle.
+  **`isKeepableSlot` (`lib/visitExpiry.ts`) is the one place that judgement is made**: a
+  slot preceding its own `created_at` by more than `SLOT_BACKDATE_TOLERANCE_MINUTES` (15 —
+  a pass raised for somebody already at the desk lands a minute or two behind) is not an
+  appointment. `lateArrivalMs` returns 0 and `minutesPastSlot` returns null, so the Late
+  chip on an arrived row and the LATE/MISSED pill on the Pre-Registered board both go quiet
+  together and one visitor cannot read differently on two screens. **The slot is still
+  stored, still shown, still exported — what stops is the JUDGEMENT drawn from it.**
+  `validatePreApproval` refuses to create any more (same tolerance, and the message names
+  AM/PM); `isKeepableSlot` exists for the rows already in the database, which cannot be
+  re-typed. The three `PreApproveForm*` test files and `visitLifecycle.test.ts` now carry a
+  **fixed clock** — their fixtures are dated literals, so a real `now` would have passed on
+  the day they were written and failed for good after.
 - **No zone suffix on any exported column** (the deployment is IST; naming it on one
   column implies the others might differ).
 - **If a panel needs a row the tiles don't have, widen the existing hook — never add a
@@ -257,6 +292,14 @@ Renamed from "Scan Pass" 2026-08-18: the old name described the camera, not the 
   rows are strangers wearing the same label. Matched EXACTLY and case-insensitively — the
   guard is quoting an identifier, so `%10%` returning C-104, C-1042 and B-210 is worse than
   useless, but `c-104` must find `C-104`. Indexed by migration **097**.
+- **THE PHONE LEG ONLY FIRES ON SOMETHING PHONE-SHAPED** (2026-08-18, client report:
+  searching a card number returned yesterday's visitor). It fired on any query carrying two
+  digits, and it is a SUBSTRING match on `visitors.phone` — so "C-V12" was reduced to "12"
+  and matched a stranger whose mobile happened to contain those digits, above a card that
+  had never been issued. `isPhoneShaped` now requires **no letters and four digits or more**
+  (a card number, a ref and a name each have a leg that matches them properly; four is the
+  "last four" a person actually quotes). Separators are still welcome — "+91 90786 12345"
+  searches. Never loosen this back to a digit count alone.
 - **CARD HITS SORT AMONG THEMSELVES AND SIT ABOVE EVERY OTHER LEG** (`byCardIssueDesc` in
   `searchVisits.ts`). They are ordered by `checked_in_at` — when the card was ISSUED — not
   `created_at`: a pre-approval raised last week and used this morning is the row in the
