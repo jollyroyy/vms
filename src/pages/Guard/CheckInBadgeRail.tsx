@@ -70,6 +70,19 @@ type CheckInBadgeRailProps = {
   onClose: () => void;
   /** Log this visitor's exit. Omitted, the rail is read-only. */
   onCheckOut?: () => void;
+  /** START this visitor's check-in (client instruction, 2026-08-18: put the
+   *  button here too, so the guard can admit or release straight from the
+   *  record instead of going back to the list).
+   *
+   *  Passed only by Find & Scan, whose search can land on a visitor who has
+   *  not arrived yet — every row Entry & Exit opens is already through the
+   *  gate. It never WRITES: it hands the guard to `CheckInPhotoStep`, so the
+   *  photo, the mandatory ID scan and the card number are all still collected
+   *  by the one flow that collects them everywhere else. */
+  onCheckIn?: () => void;
+  /** What the last button says. "Back to Queue" on Entry & Exit, whose frame
+   *  sits under a queue; Find & Scan sends the guard back to search results. */
+  backLabel?: string;
 };
 
 export default function CheckInBadgeRail({
@@ -78,6 +91,8 @@ export default function CheckInBadgeRail({
   onPrintBadge,
   onClose,
   onCheckOut,
+  onCheckIn,
+  backLabel = 'Back to Queue',
 }: CheckInBadgeRailProps): React.ReactElement {
   const name = activeVisit.visitor?.full_name ?? 'Visitor';
   const phone = activeVisit.visitor?.phone?.trim();
@@ -210,6 +225,19 @@ export default function CheckInBadgeRail({
             screen that changes the visit — printing is optional and Back to
             Queue is navigation. /visitors/inside used to be the sole place a
             visitor could leave; with that surface retired, this is it. */}
+        {/* Only ever one of the two: a visitor is either outside and due in,
+            or inside and due out. Check In leads for the same reason Check Out
+            does — it is the thing on this rail that changes the visit. */}
+        {onCheckIn && (
+          <button
+            onClick={onCheckIn}
+            className="w-full rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-semibold text-sm px-4 py-2.5 flex items-center justify-center gap-2 transition-colors shadow-glow-sm">
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l3 3m0 0l-3 3m3-3H2.25" />
+            </svg>
+            Check In
+          </button>
+        )}
         {onCheckOut && (
           <button
             onClick={onCheckOut}
@@ -228,13 +256,13 @@ export default function CheckInBadgeRail({
           </svg>
           Print Badge
         </button>
-        <p className="text-[10px] text-navy-400 dark:text-navy-500 text-center leading-snug">
+        <p className="text-[10px] text-navy-700 text-center leading-snug">
           Pass is issued after the visitor scans their pass — printing is optional.
         </p>
         <button
           onClick={onClose}
-          className="w-full rounded-xl border border-surface-200/60 dark:border-white/[0.12] text-navy-700 dark:text-navy-200 hover:bg-surface-100/70 dark:hover:bg-white/[0.05] font-semibold text-sm px-4 py-2.5 transition-colors">
-          Back to Queue
+          className="w-full rounded-xl border border-surface-200/60 dark:border-white/[0.12] text-navy-800 hover:bg-surface-100/70 dark:hover:bg-white/[0.05] font-semibold text-sm px-4 py-2.5 transition-colors">
+          {backLabel}
         </button>
       </div>
     </div>

@@ -64,13 +64,13 @@ export default function CheckInVisitorSummary({ match }: Props): React.ReactElem
           are the same ones every list on the board uses. Absent for a
           recurring visitor, who has no visit row to have a status. */}
       <div className="flex items-center gap-2 flex-wrap">
-        <span className="text-xs text-navy-500 dark:text-navy-400">Type of Visitor</span>
+        <span className="text-xs text-navy-700">Type of Visitor</span>
         <span className={`inline-flex items-center text-xs font-semibold px-2 py-0.5 rounded-full ${APPROVAL_BADGE[match.approvalType]}`}>
           {label}
         </span>
         {match.status && (
           <>
-            <span className="text-xs text-navy-500 dark:text-navy-400">Status</span>
+            <span className="text-xs text-navy-700">Status</span>
             <span className={`inline-flex items-center gap-1.5 text-xs font-semibold px-2 py-0.5 rounded-full ${STATUS_STYLES[match.status].bg} ${STATUS_STYLES[match.status].text}`}>
               <span className={`h-1.5 w-1.5 rounded-full ${STATUS_STYLES[match.status].dot}`} />
               {STATUS_STYLES[match.status].label}
@@ -78,7 +78,7 @@ export default function CheckInVisitorSummary({ match }: Props): React.ReactElem
           </>
         )}
         {match.refNumber && (
-          <span className="text-[11px] font-mono text-navy-500 dark:text-navy-400">{match.refNumber}</span>
+          <span className="text-[11px] font-mono text-navy-700">{match.refNumber}</span>
         )}
       </div>
 
@@ -114,10 +114,10 @@ export default function CheckInVisitorSummary({ match }: Props): React.ReactElem
 function Row({ term, value, capitalize, sub }: { term: string; value: string; capitalize?: boolean; sub?: string }): React.ReactElement {
   return (
     <div className="flex justify-between gap-3">
-      <dt className="text-navy-500 dark:text-navy-400 shrink-0">{term}</dt>
-      <dd className={`font-semibold text-navy-700 text-right truncate ${capitalize ? 'capitalize' : ''}`}>
+      <dt className="text-navy-700 shrink-0">{term}</dt>
+      <dd className={`font-semibold text-navy-800 text-right truncate ${capitalize ? 'capitalize' : ''}`}>
         {value || '—'}
-        {value && sub && <span className="block text-[10px] font-normal text-navy-500 dark:text-navy-400 truncate">{sub}</span>}
+        {value && sub && <span className="block text-[10px] font-normal text-navy-700 truncate">{sub}</span>}
       </dd>
     </div>
   );

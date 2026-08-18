@@ -43,6 +43,12 @@ type CheckInFrameProps = {
   onClose: () => void;
   /** Log this visitor's exit. Threaded straight through to the badge rail. */
   onCheckOut?: () => void;
+  /** Start this visitor's check-in. Threaded through to the badge rail; only
+   *  Find & Scan passes it, because only that surface can reach a visitor who
+   *  has not come through the gate yet (client instruction, 2026-08-18). */
+  onCheckIn?: () => void;
+  /** Overrides the rail's last button, which reads "Back to Queue" here. */
+  backLabel?: string;
 };
 
 export default function CheckInFrame({
@@ -51,6 +57,8 @@ export default function CheckInFrame({
   onPrintBadge,
   onClose,
   onCheckOut,
+  onCheckIn,
+  backLabel,
 }: CheckInFrameProps): React.ReactElement {
   const steps: Step[] = useMemo(() => {
     // Three steps only: Photo → ID Scan → Host Notified. Print Badge was
@@ -83,7 +91,7 @@ export default function CheckInFrame({
       ? 'bg-success-500 text-white border-success-500'
       : pending
         ? 'border-brand-500 text-brand-500 dark:text-brand-400'
-        : 'border-navy-300 text-navy-400 dark:border-navy-500 dark:text-navy-500';
+        : 'border-navy-500 text-navy-700';
 
   return (
     <div className="grid grid-cols-1 xl:grid-cols-12 gap-5 items-start">
@@ -103,7 +111,7 @@ export default function CheckInFrame({
             {activeVisit.photo_data ? (
               <img src={activeVisit.photo_data} alt={activeVisit.visitor?.full_name ?? 'Visitor'} className="w-full h-full object-cover" />
             ) : (
-              <span className="font-display text-4xl text-navy-400 dark:text-navy-500">{initialsOf(activeVisit.visitor?.full_name)}</span>
+              <span className="font-display text-4xl text-navy-700">{initialsOf(activeVisit.visitor?.full_name)}</span>
             )}
           </div>
         </div>
@@ -147,7 +155,7 @@ export default function CheckInFrame({
 
         {/* The one thing the Entry & Exit table above does not carry. */}
         <div className="w-full mt-6 pt-5 border-t border-surface-200/60 dark:border-white/[0.07] flex flex-wrap items-center gap-3">
-          <span className="text-xs font-semibold uppercase tracking-wider text-navy-500 dark:text-navy-400">Vehicle</span>
+          <span className="text-xs font-semibold uppercase tracking-wider text-navy-700">Vehicle</span>
           <span className="flex-1 min-w-0 text-sm font-medium text-navy-950 dark:text-white break-words">
             {activeVisit.visitor?.vehicle_number ?? '—'}
           </span>
@@ -162,6 +170,8 @@ export default function CheckInFrame({
         onPrintBadge={onPrintBadge}
         onClose={onClose}
         onCheckOut={onCheckOut}
+        onCheckIn={onCheckIn}
+        backLabel={backLabel}
       />
     </div>
   );

@@ -247,11 +247,34 @@ Renamed from "Scan Pass" 2026-08-18: the old name described the camera, not the 
   finds renders exactly one action, decided by where the visitor actually is:
   **Check In** when the pass is honourable today and they are outside, **Check Out** when
   `status === 'checked_in'`, and **no button** otherwise with the status stated.
-- **The card lookup is LIVE HOLDER ONLY** (`fetchVisitsByCard`, client instruction):
-  `status = 'checked_in'`, matched EXACTLY and case-insensitively — the guard is quoting an
-  identifier, so `%10%` returning C-104, C-1042 and B-210 is worse than useless, but `c-104`
-  must find `C-104`. A card is reissued the day after it comes back, so the historical rows
-  are not what "who has C-104" means. Indexed by migration **097**.
+- **The card lookup is TODAY ONLY, LATEST FIRST** (`fetchVisitsByCard`, client instruction
+  2026-08-18). It was `status = 'checked_in'` — the single live holder — which answered half
+  the question: a card handed back at 11:00 and reissued at noon has had two holders today,
+  and the guard needs the current one on top with the earlier one under it. The window is
+  therefore `checked_in_at >= istDayStart()` (the same bound `guardTiles.checkedOut` and
+  `useGateActivity` use, and unlike a status test it cannot drop a visitor the moment they
+  walk out); last week's holder is still excluded, because a card is reissued daily and those
+  rows are strangers wearing the same label. Matched EXACTLY and case-insensitively — the
+  guard is quoting an identifier, so `%10%` returning C-104, C-1042 and B-210 is worse than
+  useless, but `c-104` must find `C-104`. Indexed by migration **097**.
+- **CARD HITS SORT AMONG THEMSELVES AND SIT ABOVE EVERY OTHER LEG** (`byCardIssueDesc` in
+  `searchVisits.ts`). They are ordered by `checked_in_at` — when the card was ISSUED — not
+  `created_at`: a pre-approval raised last week and used this morning is the row in the
+  guard's hand, and a created_at sort buries it under a walk-in registered an hour ago. The
+  ref/name/phone legs keep their `created_at` order below. Two ordered groups, never one sort.
+- **CLICKING A RESULT OPENS THE ENTRY & EXIT FRAME** (`ScanPassDetail.tsx`, client
+  instruction 2026-08-18). It is the SAME `CheckInFrame` — identity ring, Photo → ID Scan →
+  Host Notified tracker, `CheckInTimeline`, vehicle, printable pass — never a lookalike. It
+  re-reads the row through `lib/fetchVisitById.ts` (one definition of the visit select,
+  which `checkOutFlow.fetchVisitForExit` now delegates to) rather than widening `MatchItem`,
+  and it re-reads at the press for the same reason the exit does. **It writes nothing**:
+  Check Out opens `CardReturnConfirm` + `logVisitExit`, Check In hands to `CheckInPhotoStep`
+  so the photo, the mandatory ID scan and the card number are still collected by the one flow
+  that collects them. Exactly one of the two renders — `checked_in` → Check Out,
+  `isCheckableStatus && isDueToday` → Check In, otherwise neither, and the record still
+  opens. `CheckInMatchCard`'s new optional **`onOpen`** is what makes the whole row openable
+  regardless of `disabled` (absent on the pre-approvals desk, where a click IS the check-in);
+  `CheckInBadgeRail` gained an optional `onCheckIn` and a `backLabel`.
 - **`canCheckOut` is deliberately NOT gated on `disabled`** — that flag means "cannot be
   checked IN", which is exactly what somebody already inside is.
 - **The exit is NOT reimplemented here**: the same `CardReturnConfirm` + `logVisitExit`
@@ -1178,6 +1201,17 @@ photo and removal knows the one key (bucket + RLS: migration **053**). Only `ful
 Settings → Roles & Users; `role` syncs into the JWT and must never be self-service.
 
 ## Notifications bell
+- **THE FIND & SCAN RESULT ROW CARRIES NO `dark:text-navy-*` EITHER** (client report,
+  2026-08-18: things in the result field are not visible in the dark theme). `CheckInMatchCard`
+  said `text-navy-600 dark:text-navy-200` on its neutral badges — navy-200 in dark mode is
+  near-black on `bg-white/[0.06]` — plus `dark:text-navy-400` on the purpose and department
+  lines and `text-navy-300` icons. Same pass on `CheckInVisitorSummary`, `CheckInFrame`,
+  `CheckInBadgeRail`, `ScanPassLookup` and `ScanPassSearchBar`. **And the `brand` scale is a
+  separate trap**: only `brand-50`/`brand-100` are CSS-variable driven, every step from 200 up
+  is a STATIC blue, so the "Checked In" badge resolved to `#1d4ed8` on `rgb(23 37 84)` — about
+  1.6:1. It needs an explicit dark twin (`dark:bg-brand-500/12 dark:text-brand-300`) in the
+  shape the amber and accent badges already use; it cannot borrow the token trick
+  success/danger/warning use, because those tokens flip and brand's do not.
 - **THE PANEL IS WHITE IN LIGHT MODE, SO NOTHING ON IT MAY BE WHITE** (2026-08-17). It was
   authored dark-first: the heading and every title carried a hardcoded `text-white` and were
   invisible; `ModalCloseButton` was a white × on white; separators were `border-white/10`
@@ -1450,7 +1484,8 @@ src/
                      CheckInFrame, CheckInBadgeRail, CheckInTimeline;
                      GuardPreRegistered + PreRegisteredCard; PreApprovals + PreApprovalRow;
                      CheckInPanel + CheckInMatchList/MatchCard, CheckInPhotoStep,
-                     CheckInVisitorSummary, CheckInScanGate, GuardQRScan, ScanPass*,
+                     CheckInVisitorSummary, CheckInScanGate, GuardQRScan, ScanPass +
+                     ScanPassEntryBar/SearchBar/Lookup/Detail,
                      IdScanOverlay, CardReturnConfirm; Search + SearchResultCard;
                      VisitorForm* ; VisitorCheckInFlow
   pages/HOD/         HODConsole (dashboard / walk-in desk / schedule, all ?tab= views of
@@ -1488,7 +1523,8 @@ src/
                      visitorSegments, preRegisteredBoard, visitOrigin, visitLifecycle,
                      visitExpiry, istDateTime, visitTimeline, visitApproval, visitActors,
                      checkableStatus, activeVisit, statusRail, cardNumber, pii;
-                     checkInFlow, checkInWalkInApproved, checkOutFlow, denyEntryFlow,
+                     checkInFlow, checkInWalkInApproved, checkOutFlow, fetchVisitById,
+                     denyEntryFlow,
                      notifyHostCheckIn, printBadge, photoUpload, avatarUpload;
                      searchVisits, visitorSearch, decodeQrImage, pdfQrPage, qrPassPdf,
                      sharePass, qrToken;

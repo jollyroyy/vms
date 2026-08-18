@@ -21,7 +21,8 @@ import { fetchVisitForExit, logVisitExit } from '../../lib/checkOutFlow';
 import CardReturnConfirm from './CardReturnConfirm';
 import GuardQRScan from './GuardQRScan';
 import ScanPassLookup from './ScanPassLookup';
-import ScanPassSearchBar from './ScanPassSearchBar';
+import ScanPassDetail from './ScanPassDetail';
+import ScanPassEntryBar from './ScanPassEntryBar';
 import CheckInPhotoStep from './CheckInPhotoStep';
 import CheckInVisitorSummary from './CheckInVisitorSummary';
 import { visitToMatchItem } from './qrMatchItem';
@@ -39,6 +40,11 @@ export default function GuardScanPass(): React.ReactElement {
   // this page the press has already happened by the time it mounts, the same
   // reasoning `CheckInScanGate` uses.
   const [scanOpen, setScanOpen] = useState(false);
+  // THE VISITOR THE GUARD CLICKED (client instruction, 2026-08-18: opening a
+  // result must render everything Entry & Exit renders, with the button on it).
+  // Only the id is held: `ScanPassDetail` re-reads the row itself, so the frame
+  // can never describe a visitor a second device has moved since the search ran.
+  const [detailId, setDetailId] = useState<string | null>(null);
   // A pass that resolved to a real visit but may not be honoured. It is held
   // separately from `match` on purpose: `match` means "this person is checking
   // in", and merging the two would put a photo step under a visitor who is
@@ -69,7 +75,7 @@ export default function GuardScanPass(): React.ReactElement {
   const [successMsg, setSuccessMsg] = useState('');
 
   const backToScanner = useCallback(() => {
-    setMatch(null); setBlocked(null); setPhotoBlob(null); setIdScan(null); setIdOverride(false); setCardNumber(''); setCarrying(false); setRemarks(''); setError('');
+    setMatch(null); setBlocked(null); setDetailId(null); setPhotoBlob(null); setIdScan(null); setIdOverride(false); setCardNumber(''); setCarrying(false); setRemarks(''); setError('');
   }, []);
 
   const handleResolved = useCallback(async (visit: Visit) => {
@@ -95,6 +101,26 @@ export default function GuardScanPass(): React.ReactElement {
     setMatch(null);
   }, []);
 
+  // Check Out pressed on the OPEN RECORD. The row is already the freshly read
+  // one — `ScanPassDetail` fetched it — so this is the same guard the list
+  // route applies, without a second round trip a keystroke later.
+  const startCheckOutVisit = useCallback((visit: Visit) => {
+    setError('');
+    if (visit.status !== 'checked_in') { setError('That visitor has already been checked out.'); return; }
+    setExitTarget(visit);
+  }, []);
+
+  // Check In pressed on the open record. It does NOT write: it hands the guard
+  // to CheckInPhotoStep, which is where the photo, the mandatory ID scan and
+  // the visitor card number are collected on every other route in.
+  const startCheckInVisit = useCallback(async (visit: Visit) => {
+    const [withHost] = await attachHostNames([visit]);
+    setDetailId(null);
+    setMatch(visitToMatchItem(withHost ?? visit));
+    setBlocked(null);
+    setPhotoBlob(null); setIdScan(null); setIdOverride(false); setCardNumber(''); setCarrying(false); setRemarks(''); setError('');
+  }, []);
+
   const startCheckOut = useCallback(async (m: MatchItem) => {
     if (!m.visitId) return;
     setError('');
@@ -115,6 +141,8 @@ export default function GuardScanPass(): React.ReactElement {
     if (!outcome.ok) { setError(outcome.message); setExitTarget(null); return; }
     setSuccessMsg(`"${exitTarget.visitor?.full_name ?? 'Visitor'}" checked out successfully.`);
     setExitTarget(null);
+    // The open record described somebody who is inside; they are not any more.
+    setDetailId(null);
     setTimeout(() => setSuccessMsg(''), 6000);
   }, [exitTarget]);
 
@@ -145,32 +173,12 @@ export default function GuardScanPass(): React.ReactElement {
           the fallback route, and it used to be a card BELOW the scanner, i.e.
           under the fold of a full-height camera frame, hidden behind the thing
           that had just failed the guard. */}
-      {!match && !blocked && (
-        <div className="space-y-2">
-          <div className="flex justify-end">
-            <ScanPassSearchBar onQueryChange={setQuery} />
-          </div>
-          {/* EITHER SEARCH, OR THE LINK FOR SCAN — and nothing else on this row
-              (client instruction, 2026-08-18). What used to sit here was the
-              whole scanner card: a heading, a paragraph, a dark 3:4 placeholder
-              the size of the camera frame, and three buttons, all of it above
-              the search results, for a page whose most common use is typing a
-              mobile number. A guard who wants the camera says so in one press
-              and gets it; a guard who does not never sees it. */}
-          {!scanOpen && (
-            <div className="flex justify-end">
-              <button
-                type="button"
-                onClick={() => setScanOpen(true)}
-                className="inline-flex items-center gap-2 text-sm font-bold text-brand-700 hover:text-brand-800 hover:underline underline-offset-4 rounded-lg px-1 py-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500">
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8} aria-hidden="true">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 4.5h4.5v4.5h-4.5v-4.5zM15.75 4.5h4.5v4.5h-4.5v-4.5zM3.75 15.75h4.5v4.5h-4.5v-4.5zM15.75 15.75h1.5v1.5h-1.5v-1.5zM19.5 15.75h.75v.75h-.75v-.75zM15.75 19.5h.75v.75h-.75v-.75zM18.75 18.75h1.5v1.5h-1.5v-1.5z" />
-                </svg>
-                Scan QR code
-              </button>
-            </div>
-          )}
-        </div>
+      {!match && !blocked && !detailId && (
+        <ScanPassEntryBar
+          onQueryChange={setQuery}
+          scanOpen={scanOpen}
+          onOpenScanner={() => setScanOpen(true)}
+        />
       )}
 
       {exitTarget && (
@@ -235,6 +243,17 @@ export default function GuardScanPass(): React.ReactElement {
           onScanResult={setIdScan}
           onOverrideChange={setIdOverride}
         />
+      ) : detailId ? (
+        /* THE FULL RECORD, in the Entry & Exit frame, instead of the results —
+           not beside them. The frame is a two-column page of its own, and a
+           list of other visitors under it would invite a click that silently
+           swapped the subject of the buttons above. "Back to results" returns. */
+        <ScanPassDetail
+          visitId={detailId}
+          onBack={() => { setDetailId(null); setError(''); }}
+          onCheckOut={startCheckOutVisit}
+          onCheckIn={(v) => { void startCheckInVisit(v); }}
+        />
       ) : (
         <div className="space-y-5">
           {/* The other way in, for the ordinary cases the camera cannot serve:
@@ -248,6 +267,7 @@ export default function GuardScanPass(): React.ReactElement {
             query={query}
             onSelect={setMatch}
             onCheckOut={(m) => void startCheckOut(m)}
+            onOpen={(m) => { if (m.visitId) { setError(''); setDetailId(m.visitId); } }}
           />
           {/* MOUNTED ONLY ONCE THE GUARD HAS ASKED FOR IT. Nothing above
               acquires a camera device, because nothing above exists until this

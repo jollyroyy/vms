@@ -44,11 +44,15 @@ export default function ScanPassLookup({
   query,
   onSelect,
   onCheckOut,
+  onOpen,
 }: {
   query: string;
   onSelect: (m: MatchItem) => void;
   /** Omitted by any caller that cannot complete an exit. */
   onCheckOut?: (m: MatchItem) => void;
+  /** Open this visitor's full record — the Entry & Exit frame (client
+   *  instruction, 2026-08-18). */
+  onOpen?: (m: MatchItem) => void;
 }): React.ReactElement | null {
   // Nothing to exclude: this page has no candidate list of its own, so no row
   // can render twice.
@@ -66,11 +70,11 @@ export default function ScanPassLookup({
 
       {!searching && historyMatches.length === 0 && (
         <div className="card empty-state !py-10">
-          <p className="text-sm font-semibold text-navy-500">No visitor found.</p>
-          <p className="text-xs text-navy-500 mt-1">
+          <p className="text-sm font-semibold text-navy-800">No visitor found.</p>
+          <p className="text-xs text-navy-700 mt-1">
             This search covers every visit on record by name, mobile number or reference — and any
-            visitor card that is currently issued. Nothing here means no pass was ever raised, and
-            no card by that number is in use right now.
+            visitor card issued today. Nothing here means no pass was ever raised, and no card by
+            that number has been handed out today.
           </p>
         </div>
       )}
@@ -99,6 +103,13 @@ export default function ScanPassLookup({
             expired={false}
             onSelect={() => onSelect(m)}
             onCheckOut={onCheckOut ? () => onCheckOut(m) : undefined}
+            // ONE ROW PER HIT, STACKED, AND EVERY ONE OF THEM OPENS (client
+            // instruction, 2026-08-18). Three visitors carried card C-104
+            // today; the list shows all three, newest first, and clicking any
+            // of them renders the same full record Entry & Exit renders —
+            // photo, identity steps, timeline and pass — with whichever of
+            // Check In / Check Out that visitor is actually due.
+            onOpen={onOpen && m.visitId ? () => onOpen(m) : undefined}
           />
         );
       })}

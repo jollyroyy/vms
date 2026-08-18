@@ -9,6 +9,7 @@
 import { supabase } from '../supabaseClient';
 import type { Visit } from '../types/index';
 import { safeErrorMessage } from './errors';
+import { fetchVisitById } from './fetchVisitById';
 
 export type ExitOutcome = { ok: true } | { ok: false; message: string };
 
@@ -94,14 +95,5 @@ export async function undoVisitExit(visit: Visit): Promise<ExitOutcome> {
  * when a second device may have checked the same visitor out already.
  */
 export async function fetchVisitForExit(visitId: string): Promise<Visit | null> {
-  const { data, error } = await supabase
-    .from('visits')
-    .select('*, visitor:visitors(*), department:departments(id, name, code, created_at)')
-    .eq('id', visitId)
-    .maybeSingle();
-  if (error) {
-    console.error('[checkOutFlow] could not load the visit to check out', error);
-    return null;
-  }
-  return (data as unknown as Visit | null) ?? null;
+  return fetchVisitById(visitId);
 }

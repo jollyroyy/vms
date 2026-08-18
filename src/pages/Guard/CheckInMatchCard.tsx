@@ -20,10 +20,26 @@ const APPROVAL_META: Record<MatchItem['approvalType'], { label: string; badge: s
 
 type Badge = { label: string; badge: string };
 
-const NEUTRAL = 'bg-navy-50 text-navy-600 border border-navy-500/15 dark:bg-white/[0.06] dark:text-navy-200';
+// EVERY FOREGROUND HERE IS ONE NAVY STEP WITH NO `dark:` TWIN (client report,
+// 2026-08-18: things in the result field are not visible in the dark theme).
+// The navy scale is INVERTED between themes, so a `dark:text-navy-*` override
+// does not brighten a colour, it reverses it: this row's neutral badge said
+// `text-navy-600 dark:text-navy-200`, and navy-200 in dark mode is near-black
+// (48 45 38) printed on `bg-white/[0.06]` — the label was there and could not
+// be read. Same fault on the purpose line and the department sub-line
+// (`dark:text-navy-400`). One step resolves correctly in both themes.
+const NEUTRAL = 'bg-navy-50 text-navy-700 border border-navy-500/15 dark:bg-white/[0.06]';
 const DANGER  = 'bg-danger-50 text-danger-700 border border-danger-500/20';
 const AMBER   = 'bg-amber-50 text-amber-700 border border-amber-500/20 dark:bg-amber-500/12 dark:text-amber-300 dark:border-amber-500/25';
-const BRAND   = 'bg-brand-50 text-brand-700 border border-brand-500/20';
+// "Checked In" — the badge this surface prints most often, and the one that
+// was hardest to read of the lot. Unlike success/danger/warning, only
+// `brand-50` and `brand-100` are CSS-variable driven; every step from 200 up
+// is a STATIC blue. So in dark mode this badge resolved to `#1d4ed8` on
+// `rgb(23 37 84)` — dark blue on dark navy, about 1.6:1. It needs an explicit
+// dark twin in the same shape as the amber and accent ones above; it cannot
+// borrow the token trick the status colours use, because the token is not
+// there to borrow.
+const BRAND   = 'bg-brand-50 text-brand-700 border border-brand-500/20 dark:bg-brand-500/12 dark:text-brand-300 dark:border-brand-500/25';
 
 // WHAT BECAME OF THIS PASS, one entry per status that has an answer. Declared
 // over the FULL VisitStatus union so a new status forces a decision here rather
@@ -56,10 +72,21 @@ type Props = {
    *  the surface can actually complete an exit, so a row that offers it is a
    *  row where pressing it does something. */
   onCheckOut?: () => void;
+  /** OPEN THE FULL RECORD (client instruction, 2026-08-18: clicking a visitor
+   *  must render everything Entry & Exit renders).
+   *
+   *  Passed only by Find & Scan, where the row is a lookup result and the
+   *  natural meaning of clicking it is "show me this person". Where it is
+   *  absent — the pre-approvals desk — the row keeps its old behaviour, in
+   *  which a click IS the check-in and a row that may not be checked in must
+   *  therefore stay inert. Supplying it makes the whole row openable
+   *  regardless of `disabled`: reading a record and being allowed to act on it
+   *  are different permissions, and this opens the reading. */
+  onOpen?: () => void;
 };
 
 export default function CheckInMatchCard({
-  match: m, disabled, isCheckedIn, expired, onSelect, onCheckOut,
+  match: m, disabled, isCheckedIn, expired, onSelect, onCheckOut, onOpen,
 }: Props): React.ReactElement {
   // EXACTLY ONE ACTION PER ROW, decided by where the visitor actually is
   // (client instruction, 2026-08-17). A guard who has just found somebody has
@@ -119,8 +146,18 @@ export default function CheckInMatchCard({
     // contrast. `pointer-events-none` went with the opacity — it also blocked
     // selecting the phone number to copy it, on the one card built to show it.
     <div
-      className={`${disabled && !canCheckOut ? CRISP_CARD : CRISP_CARD_INTERACTIVE} p-4 flex items-start gap-3.5`}
-      onClick={() => { if (canCheckOut) onCheckOut?.(); else if (!disabled) onSelect(); }}
+      className={`${!onOpen && disabled && !canCheckOut ? CRISP_CARD : CRISP_CARD_INTERACTIVE} p-4 flex items-start gap-3.5`}
+      // WHERE `onOpen` IS GIVEN, THE ROW OPENS THE RECORD AND THE BUTTON ACTS.
+      // The two used to be the same gesture, which is why a row that could not
+      // be checked in had to swallow its own click: there was nothing else for
+      // it to mean. Now the click means "show me this visitor" on every row,
+      // including a closed one, and the Check In / Check Out button beside it
+      // (which stops propagation) is the only thing that changes the visit.
+      onClick={() => {
+        if (onOpen) { onOpen(); return; }
+        if (canCheckOut) onCheckOut?.();
+        else if (!disabled) onSelect();
+      }}
     >
       <div className="h-11 w-11 rounded-2xl avatar-gradient flex items-center justify-center text-sm font-bold shrink-0">
         {getInitials(m.visitorName)}
@@ -128,9 +165,9 @@ export default function CheckInMatchCard({
 
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2 flex-wrap">
-          <p className="text-h3 text-navy-900 truncate">{m.visitorName}</p>
+          <p className="text-h3 text-navy-950 truncate">{m.visitorName}</p>
           <span className={`status-badge ${approval.badge}`}>{approval.label}</span>
-          <span className="status-badge bg-navy-50 text-navy-600 border border-navy-500/15 dark:bg-white/[0.06] dark:text-navy-200">
+          <span className={`status-badge ${NEUTRAL}`}>
             <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6l4 2m5-2a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
@@ -145,26 +182,26 @@ export default function CheckInMatchCard({
           {stateBadge && <span className={`status-badge ${stateBadge.badge}`}>{stateBadge.label}</span>}
         </div>
 
-        <p className="text-caption text-navy-500 dark:text-navy-400 mt-1 truncate">{m.purpose}</p>
+        <p className="text-caption text-navy-700 mt-1 truncate">{m.purpose}</p>
 
-        <div className="flex flex-col gap-1 mt-2 text-caption text-navy-500">
+        <div className="flex flex-col gap-1 mt-2 text-caption text-navy-700">
           {m.hostName && (
             <span className="flex items-center gap-1.5">
-              <svg className="w-3.5 h-3.5 shrink-0 text-navy-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+              <svg className="w-3.5 h-3.5 shrink-0 text-navy-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0" />
               </svg>
               {/* Department moved here, under the host's name, instead of
                   staying paired with purpose above — that combination
                   duplicated the same department value on this card. */}
               <span className="truncate">
-                Person to Meet: <span className="font-semibold text-navy-700">{m.hostName}</span>
-                {m.departmentName && <span className="block text-[11px] text-navy-500 dark:text-navy-400">{m.departmentName}</span>}
+                Person to Meet: <span className="font-semibold text-navy-800">{m.hostName}</span>
+                {m.departmentName && <span className="block text-[11px] text-navy-700">{m.departmentName}</span>}
               </span>
             </span>
           )}
           {m.vendorName && (
             <span className="flex items-center gap-1.5">
-              <svg className="w-3.5 h-3.5 shrink-0 text-navy-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+              <svg className="w-3.5 h-3.5 shrink-0 text-navy-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 21h16.5M4.5 3.75h15v16.5h-15V3.75zM9 6.75h1.5m-1.5 3h1.5m-1.5 3h1.5M13.5 6.75H15m-1.5 3H15m-1.5 3H15M9 21v-3.375c0-.621.504-1.125 1.125-1.125h3.75c.621 0 1.125.504 1.125 1.125V21" />
               </svg>
               <span className="truncate">{m.vendorName}</span>
@@ -177,7 +214,7 @@ export default function CheckInMatchCard({
               since the type was written; only the rendering was missing. */}
           {m.visitorPhone && (
             <span className="flex items-center gap-1.5">
-              <svg className="w-3.5 h-3.5 shrink-0 text-navy-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+              <svg className="w-3.5 h-3.5 shrink-0 text-navy-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z" />
               </svg>
               <span className="truncate tabular-nums">{m.visitorPhone}</span>
@@ -197,34 +234,34 @@ export default function CheckInMatchCard({
               form, and each of these is only ever a fact once it exists. */}
           {m.approvedAt && (
             <span className="flex items-center gap-1.5">
-              <svg className="w-3.5 h-3.5 shrink-0 text-navy-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+              <svg className="w-3.5 h-3.5 shrink-0 text-navy-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
               {/* "Approved at", not "Pre-approved at" — the badge beside the
                   name already prints the desk, and the same word twice on one
                   card is the duplicate-render rule. This row is about WHEN. */}
               <span className="truncate">
-                Approved at <span className="font-semibold text-navy-700">{formatDateTime(m.approvedAt)}</span>
+                Approved at <span className="font-semibold text-navy-800">{formatDateTime(m.approvedAt)}</span>
               </span>
             </span>
           )}
           {m.checkedInAt && (
             <span className="flex items-center gap-1.5">
-              <svg className="w-3.5 h-3.5 shrink-0 text-navy-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+              <svg className="w-3.5 h-3.5 shrink-0 text-navy-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l3 3m0 0l-3 3m3-3H2.25" />
               </svg>
               <span className="truncate">
-                Checked in at <span className="font-semibold text-navy-700">{formatDateTime(m.checkedInAt)}</span>
+                Checked in at <span className="font-semibold text-navy-800">{formatDateTime(m.checkedInAt)}</span>
               </span>
             </span>
           )}
           {m.checkedOutAt && (
             <span className="flex items-center gap-1.5">
-              <svg className="w-3.5 h-3.5 shrink-0 text-navy-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+              <svg className="w-3.5 h-3.5 shrink-0 text-navy-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" />
               </svg>
               <span className="truncate">
-                Checked out at <span className="font-semibold text-navy-700">{formatDateTime(m.checkedOutAt)}</span>
+                Checked out at <span className="font-semibold text-navy-800">{formatDateTime(m.checkedOutAt)}</span>
               </span>
             </span>
           )}

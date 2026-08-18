@@ -55,7 +55,7 @@ export default function ScanPassSearchBar({
             // otherwise the guard clears the field and the previous visitor's
             // pass is still sitting there, ready to be clicked.
             onChange={(e) => { setInput(e.target.value); if (!e.target.value.trim()) onQueryChange(''); }}
-            className="w-full px-3.5 py-2.5 bg-surface-50 border border-surface-200 rounded-xl text-sm font-medium text-navy-900 placeholder-navy-300 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all"
+            className="w-full px-3.5 py-2.5 bg-surface-50 border border-surface-200 rounded-xl text-sm font-medium text-navy-900 placeholder-navy-500 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all"
           />
         </div>
         <button
@@ -70,7 +70,7 @@ export default function ScanPassSearchBar({
           which is the hook's own rule — say so beside the box rather than
           returning an empty list, which reads as "no such visitor". */}
       {tooShort && (
-        <p className="text-xs text-navy-500 mt-1.5">Type at least two characters.</p>
+        <p className="text-xs text-navy-700 mt-1.5">Type at least two characters.</p>
       )}
     </div>
   );

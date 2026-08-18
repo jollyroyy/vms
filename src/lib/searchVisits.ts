@@ -17,6 +17,7 @@
 import { supabase } from '../supabaseClient';
 import type { Visit } from '../types/index';
 import { attachHostNames } from './hostNames';
+import { istDayStart } from './visitExpiry';
 
 export const VISIT_SEARCH_LIMIT = 50;
 
@@ -52,12 +53,23 @@ async function fetchVisitsByRef(pattern: string): Promise<Visit[]> {
  * them for a ref number instead asks for something they were never given, and
  * asking for a name gets you three Sharmas.
  *
- * LIVE HOLDER ONLY, on the client's instruction: `status = 'checked_in'`. One
- * card is reissued to a different visitor the day after it comes back, so the
- * historical rows are not what the guard means when they type C-104 — they mean
- * "who has this one, now". Matching `checked_out` rows as well would put three
- * strangers on screen for one card, newest first, and the guard would have to
- * work out which is the person standing in front of them.
+ * TODAY ONLY, AND TODAY IS AN IST DAY (client instruction, 2026-08-18). The
+ * scope was `status = 'checked_in'` — the one live holder — and that answered
+ * only half the question the guard is actually asking. A card comes back at
+ * the gate and is handed straight to the next visitor, so within one shift the
+ * same number can have been carried by three people; the guard holding C-104
+ * needs the person who has it NOW, but also needs to see that it was returned
+ * an hour ago by somebody else, or the number reads as never issued. What is
+ * genuinely not meant by "who has C-104" is last week's holder: the card is
+ * reissued daily, so historical rows are three strangers wearing the same
+ * label. So the window is the IST day, keyed on `checked_in_at` — the instant
+ * the card was ISSUED — which is the same bound `guardTiles` and
+ * `useGateActivity` use for today's departures, and unlike a status test it
+ * cannot silently drop a visitor the moment they walk out.
+ *
+ * ORDER IS LATEST FIRST, by that same issue instant, and `searchAllVisits`
+ * keeps these rows at the top of the merged list: the current holder is the
+ * answer to the question, and the earlier ones are the trail behind it.
  *
  * EXACT and CASE-INSENSITIVE, not a substring: the number is read off a printed
  * card, so `c-104` must find `C-104`; but `10` must NOT find `C-104`, `C-1042`
@@ -69,13 +81,21 @@ async function fetchVisitsByCard(raw: string): Promise<Visit[]> {
   const { data, error } = await supabase
     .from('visits')
     .select(VISIT_SELECT)
-    .eq('status', 'checked_in')
+    .gte('checked_in_at', istDayStart().toISOString())
     .ilike('visitor_card_number', escapeIlike(raw));
   if (error) {
     console.error('[searchVisits] visitor_card_number lookup failed', error);
     return [];
   }
   return (data as unknown as Visit[]) ?? [];
+}
+
+/** Newest issue first. A row with no arrival stamp cannot be in this list —
+ *  the fetch is bounded on it — but the fallback keeps the comparator total. */
+function byCardIssueDesc(a: Visit, b: Visit): number {
+  const at = new Date(a.checked_in_at ?? a.created_at).getTime();
+  const bt = new Date(b.checked_in_at ?? b.created_at).getTime();
+  return bt - at;
 }
 
 async function fetchVisitorIds(column: 'full_name' | 'phone', pattern: string): Promise<string[]> {
@@ -100,7 +120,8 @@ async function fetchVisitsByVisitorIds(ids: string[]): Promise<Visit[]> {
 /**
  * Finds every visit — any status — matching `query` against ref number,
  * visitor name, visitor phone, or the physical visitor card the person is
- * holding right now. Never throws: a Supabase failure on any one leg is logged
+ * carrying — the card leg scoped to today's issues, newest first, and kept at
+ * the top of the result. Never throws: a Supabase failure on any one leg is logged
  * and treated as an empty result for that leg, so the other legs can still
  * answer.
  *
@@ -130,15 +151,33 @@ export async function searchAllVisits(query: string, limit?: number): Promise<Vi
     const visitorIds = [...new Set([...nameIds, ...phoneIds])];
     const visitorVisits = await fetchVisitsByVisitorIds(visitorIds);
 
-    const merged = new Map<string, Visit>();
-    // The map dedupes by visit id, so a card hit that is also a name hit lands
-    // once. Card rows go in FIRST, which is only a tie-break on identity, not
-    // on order — the sort below is by created_at either way.
-    for (const v of [...cardVisits, ...refVisits, ...visitorVisits]) merged.set(v.id, v);
+    // TWO ORDERED GROUPS, NOT ONE SORT (client instruction, 2026-08-18: the
+    // latest card holder must be on top, then back through today).
+    //
+    // A card hit is an answer to a different question from a name hit — "who
+    // is carrying this number", not "who is this person" — and the instant
+    // that orders it is when the card was ISSUED, not when the visit row was
+    // created (a pre-approval raised last week and used this morning would
+    // sink to the bottom under a created_at sort, which is exactly the row the
+    // guard is holding in their hand). So card rows are sorted among
+    // themselves by arrival, newest first, and kept ABOVE everything else;
+    // the remaining legs keep the created_at order they always had.
+    const cardIds = new Set(cardVisits.map((v) => v.id));
+    const cardRows = [...new Map(cardVisits.map((v) => [v.id, v])).values()].sort(byCardIssueDesc);
 
-    const rows = [...merged.values()]
-      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-      .slice(0, effectiveLimit);
+    // The map dedupes by visit id, so a visit matched by both the ref and the
+    // name lands once; anything already carried by the card group is dropped
+    // here rather than rendered twice under a different order.
+    const merged = new Map<string, Visit>();
+    for (const v of [...refVisits, ...visitorVisits]) {
+      if (!cardIds.has(v.id)) merged.set(v.id, v);
+    }
+
+    const rest = [...merged.values()].sort(
+      (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+    );
+
+    const rows = [...cardRows, ...rest].slice(0, effectiveLimit);
 
     return await attachHostNames(rows);
   } catch (err) {
