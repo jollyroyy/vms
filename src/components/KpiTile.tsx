@@ -1,4 +1,5 @@
 import React from 'react';
+import { kpiLabelClass } from '../lib/kpiLabelSize';
 
 export type KpiTileSpec = {
   label: string;
@@ -78,7 +79,13 @@ export default function KpiTile({
         {value !== null && (
           <span className={`gate-tile-value block ${spec.tone}`}>{loading ? '—' : value}</span>
         )}
-        <span className="gate-tile-label block">{spec.label}</span>
+        {/* ONE LINE (client instruction, 2026-08-18). `.gate-tile-label` carries
+            the 13px default; the utility below wins in the cascade and steps
+            the size down for a long label, so "Pending Walk-in Approvals" sits
+            on one line like "Inside" does rather than wrapping and shoving the
+            hint under it. `.gate-tile` clips, so the callers' grids were capped
+            to widths this size actually fits. */}
+        <span className={`gate-tile-label block whitespace-nowrap ${kpiLabelClass(spec.label)}`}>{spec.label}</span>
         {hint && (
           <span className="block text-[10px] text-navy-400 dark:text-navy-400 mt-0.5 leading-snug">
             {hint}

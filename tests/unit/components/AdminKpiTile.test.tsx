@@ -55,11 +55,22 @@ describe('AdminKpiTile', () => {
     expect(tile.className).not.toContain('truncate');
     expect(tile.innerHTML).not.toContain('truncate');
 
-    // Everything wraps instead, so a long string is fully readable rather than
-    // clipped into something indistinguishable from a short one.
-    for (const text of ['Guest Satisfaction', 'No ratings', 'No visitor has rated today']) {
+    // The value and the caption wrap instead, so a long string is fully
+    // readable rather than clipped into something indistinguishable from a
+    // short one.
+    for (const text of ['No ratings', 'No visitor has rated today']) {
       expect(screen.getByText(text).className).toContain('break-words');
     }
+
+    // THE LABEL IS THE EXCEPTION, AND IT IS NOT A TRUNCATION (client
+    // instruction, 2026-08-18: every KPI name on one line). It does not wrap
+    // and it does not clip — it steps DOWN A SIZE with its own length
+    // (lib/kpiLabelSize.ts), and the grids that hold these cards were capped
+    // to widths that size fits.
+    const label = screen.getByText('Guest Satisfaction');
+    expect(label.className).toContain('whitespace-nowrap');
+    expect(label.className).toContain('text-[12px]');
+    expect(label.className).not.toContain('truncate');
   });
 
   it('keeps the label, the value and the caption inside one card root', () => {

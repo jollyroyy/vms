@@ -1,4 +1,5 @@
 import React from 'react';
+import { kpiLabelClass, kpiLabelClassCompact } from '../lib/kpiLabelSize';
 
 // THE dashboard KPI tile — one card, drawn once, used by the guard board and
 // the HOD board alike.
@@ -62,10 +63,18 @@ export default function DashboardTile({
             paragraphs with big numbers under them. It also buys the label a
             line: at 11px "Awaiting Walk-in Approval" fits a four-across tile
             where 13px sentence case wrapped to three.
+            IT IS ONE LINE (client instruction, 2026-08-18): `whitespace-nowrap`,
+            and the SIZE steps down with the label's own length
+            (lib/kpiLabelSize.ts) so "Cards Not Returned" fits the same tile
+            "Expected" does instead of wrapping to two lines and pushing its
+            numeral out of line with its neighbours'. The grids were capped in
+            the same pass — type can shrink, width cannot be conjured.
             One navy step, no `dark:` override — the scale is inverted per
             theme, so a single number resolves correctly in both. Identical to
             AdminKpiTile by intent: a label must read the same on both boards. */}
-        <span className={`block font-semibold uppercase tracking-[0.07em] leading-snug break-words text-navy-700 ${compact ? 'text-[12px]' : 'text-[13px]'}`}>
+        <span className={`block font-semibold uppercase tracking-[0.07em] leading-snug whitespace-nowrap text-navy-700 ${
+          compact ? kpiLabelClassCompact(label) : kpiLabelClass(label)
+        }`}>
           {label}
         </span>
         <span className={`block font-display leading-none font-semibold tracking-tight tabular-nums text-navy-950 mt-1.5 ${compact ? 'text-[1.5rem]' : 'text-[2rem]'}`}>

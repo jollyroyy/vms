@@ -216,6 +216,27 @@ two `ROLE_LABELS` maps.
   also buys the label a line, so "Awaiting Walk-in Approval" now fits a four-across tile.
   Uppercasing is CSS, never the string — every test that queries a label by text still
   matches.
+- **EVERY KPI NAME SITS ON ONE LINE** (2026-08-18, client instruction: "all the texts in
+  the same line for all the KPI names"). A wrapped label is what made a row of tiles read
+  as ragged — six labels at three different heights, and the numerals under them no longer
+  aligned across the row. Two halves, and neither works alone:
+  - **The label never wraps and its SIZE is derived from its own length** —
+    `lib/kpiLabelSize.ts` (`kpiLabelClass` 13/12/11px by character count,
+    `kpiLabelClassCompact` for the guard board's secondary row), read by all three tile
+    components (`DashboardTile`, `AdminKpiTile`, `KpiTile`) plus `whitespace-nowrap`, so
+    one label reads the same size on every board. Derived, never a prop — the same
+    argument `AdminKpiTile.valueClass` already makes for the numeral. `.stat-label` gets
+    the nowrap only; those three labels are short.
+  - **The grids were capped to widths that size actually fits.** Type can shrink; width
+    cannot be conjured, and `.gate-tile` is `overflow-hidden`, so a board that goes six
+    across would CLIP a label rather than wrap it — strictly worse. Guard row 1 is now
+    `lg:grid-cols-3` (was `2xl:grid-cols-6`), guard row 2 `xl:grid-cols-3` (was 5), the HOD
+    board `2xl:grid-cols-4` with three below it, the admin Dashboard/Hosts/Security tiles
+    and `AdminStats` `lg:grid-cols-3`, `WhosInside` `xl:grid-cols-4` and
+    `OverviewStatCards` `2xl:grid-cols-4`. A taller board is the correct price for a
+    legible label — the same trade the 2026-08-18 seven-across report already forced.
+  The 13px rule above still holds for a label short enough to keep it, which is most of
+  them; the step down is what the long ones cost, and 11px is the floor.
 - **`GlanceHeader` is the one board header** ("Today at a Glance", `h2`, per-board caption,
   no date — the topbar clock carries it). Guard, HOD and admin Dashboard render it, and
   **no tile says "Today"**: labels are `Expected` / `Checked In` / `Checked Out` /

@@ -60,7 +60,7 @@ const CARDS: { key: StatKey; field: keyof Stats; spec: KpiTileSpec }[] = [
 
 export default function OverviewStatCards({ loading, stats, activeFilter, onSelect }: Props): React.ReactElement {
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+    <div className="grid grid-cols-1 sm:grid-cols-2 2xl:grid-cols-4 gap-3">
       {CARDS.map(({ key, field, spec }, i) => {
         const isActive = activeFilter === key;
         return (

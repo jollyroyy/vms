@@ -124,23 +124,28 @@ export default function GuardDashboardMain(): React.ReactElement {
       {/* Row 1 — the gate's own board, six tiles since Cards Not Returned
           joined it (2026-08-18, client instruction).
 
-          IT DOES NOT GO SIX ACROSS AT xl. A DashboardTile spends 104px before a
-          letter is drawn (px-5 each side + the 48px icon plate + gap-4), which
-          is what made the HOD board unreadable at seven columns and split words
-          down the middle. Six columns only at 2xl, where each tile still has
-          ~110px of text; below that it steps down to three and then two, and a
-          taller board is the correct price for a legible label. It no longer
-          matches row 2's five — a shared column rhythm was worth having and is
-          not worth an unreadable tile. */}
-      <div className="grid grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6 gap-4">
+          THREE ACROSS IS THE WIDEST IT GOES, and that is the label's doing
+          (client instruction, 2026-08-18: every KPI name on one line). A
+          DashboardTile spends 104px before a letter is drawn (px-5 each side +
+          the 48px icon plate + gap-4); at six columns on a 1536px screen the
+          text column came out around 87px, which "Cards Not Returned" could
+          only occupy by wrapping to three lines — so the six labels sat at
+          three different heights and the numerals under them stopped lining
+          up. Six tiles at three columns is two even rows of three, and the
+          label sizes step down with their own length (lib/kpiLabelSize.ts).
+          A taller board is the correct price for a legible label. */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {GUARD_TILE_KEYS.map((k) => renderTile(k, false))}
       </div>
 
-      {/* Row 2 — the lanes that came off the Visitors tab, on one compact line
-          (client instruction). Compact rather than full-size because these are
-          the board's secondary questions; the shape and the interaction are
-          identical, so a guard learns the card once. */}
-      <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3">
+      {/* Row 2 — the lanes that came off the Visitors tab (client
+          instruction). Compact rather than full-size because these are the
+          board's secondary questions; the shape and the interaction are
+          identical, so a guard learns the card once. It was five across at xl
+          until 2026-08-18: "Entry Refused at the Gate" is the longest label on
+          any board in this app, and one line of it needs about 255px of tile.
+          Three columns from xl, two below it. */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
         {VISITOR_TILE_KEYS.map((k) => renderTile(k, true))}
       </div>
 

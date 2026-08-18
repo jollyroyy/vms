@@ -211,8 +211,11 @@
      grouping caption in the app — a card's heading grew, not the smallest type
      in the system. Tracking and weight come with `text-micro` normally, so both
      are restated here. */
+  /* ONE LINE (client instruction, 2026-08-18: every KPI name on the same
+     line). See lib/kpiLabelSize.ts for the tiles that also step their size
+     down; these three labels are short enough that nowrap alone does it. */
   .stat-label {
-    @apply text-[13px] font-semibold tracking-[0.08em] text-navy-500 uppercase;
+    @apply text-[13px] font-semibold tracking-[0.08em] text-navy-500 uppercase whitespace-nowrap;
   }
   .dark .stat-label {
     @apply text-navy-400;

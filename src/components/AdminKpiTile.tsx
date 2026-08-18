@@ -1,4 +1,5 @@
 import React from 'react';
+import { kpiLabelClass } from '../lib/kpiLabelSize';
 
 export type KpiTone = 'brand' | 'success' | 'warning' | 'danger' | 'violet';
 
@@ -86,9 +87,14 @@ type Props = {
 // card's whole width. `mt-auto` floats that block to the bottom, so the numerals
 // line up across a row whose labels wrap to different numbers of lines.
 //
-// Nothing here truncates: a clipped label is indistinguishable from a short one,
-// the same reason PassField uses break-words. Everything wraps instead, and the
-// grid stretches the row to the tallest card.
+// THE LABEL IS ONE LINE (client instruction, 2026-08-18: all the KPI names on
+// the same line). It no longer wraps; instead its SIZE steps down with its own
+// length (lib/kpiLabelSize.ts), the same derive-from-the-value argument
+// `valueClass` above makes for the numeral. Nothing here truncates either — a
+// clipped label is indistinguishable from a short one, the same reason
+// PassField uses break-words — which is why the admin grids were capped at
+// three columns in the same pass: at six across there is no size that both
+// fits and reads.
 
 export default function AdminKpiTile({
   label, value, icon, tone = 'brand', caption, captionToned = false, loading = false,
@@ -104,7 +110,7 @@ export default function AdminKpiTile({
             for a job one value does. 700 is this file's secondary-text step and
             is a shade firmer than 500 was, which the label needed: it is the
             only thing on the top line that has to be read. */}
-        <span className="min-w-0 text-[13px] font-semibold uppercase tracking-[0.07em] leading-snug text-navy-700 break-words">{label}</span>
+        <span className={`min-w-0 font-semibold uppercase tracking-[0.07em] leading-snug text-navy-700 whitespace-nowrap ${kpiLabelClass(label)}`}>{label}</span>
         <span className={`shrink-0 w-10 h-10 rounded-full flex items-center justify-center ${TONE[tone]}`}>
           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.7} aria-hidden="true">
             <path strokeLinecap="round" strokeLinejoin="round" d={icon} />

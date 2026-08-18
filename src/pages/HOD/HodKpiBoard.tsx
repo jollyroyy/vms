@@ -60,21 +60,21 @@ export default function HodKpiBoard({
 
       {/* Seven since check-ins and check-outs joined the board (client
           instruction, 2026-08-17), and NEVER SEVEN ACROSS (2026-08-18, client
-          report: the tile labels could not be read).
-          `2xl:grid-cols-7` was arithmetic that did not survive contact with the
-          longest label. A tile spends 104px before a letter is drawn — `px-5`
-          each side plus the 48px icon plate and its `gap-4` — so at 2xl, where
-          the content column beside the sidebar is ~1230px, seven tiles left
-          about 58px of text column. `break-words` then does what it is for and
-          splits INSIDE the word, so "Pre-Approvals Given" came out stacked as
-          "Pre-/Approva/ls Given": four lines, one of them not a word.
-          Four across is the widest this board goes. It fills 4+3 with no tile
-          stranded alone on a line, and at every step the longest label
-          ("Awaiting Walk-in Approval") wraps only between words. One column on
-          a phone for the same reason — two 172px tiles put the label back under
-          70px — which is also the ladder KpiTile already climbs on the Visitors
+          report: the tile labels could not be read). `2xl:grid-cols-7` was
+          arithmetic that did not survive contact with the longest label: a
+          tile spends 104px before a letter is drawn — `px-5` each side plus
+          the 48px icon plate and its `gap-4` — so seven tiles left about 58px
+          of text column and the label split INSIDE the word.
+
+          FOUR ONLY AT 2xl, THREE BELOW IT (2026-08-18, client instruction:
+          every KPI name on one line). The labels no longer wrap at all — they
+          step down a size with their own length instead (lib/kpiLabelSize.ts)
+          — and "Awaiting Walk-in Approval" on one line needs roughly 270px of
+          tile, which xl's four columns (~250px) do not have and 2xl's do. Seven
+          tiles fill 3+3+1 or 4+3 with nothing worse than a short last row. One
+          column on a phone, the same ladder KpiTile climbs on the Visitors
           rail. */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-4">
         {HOD_TILE_KEYS.map((key) => (
           <DashboardTile
             key={key}

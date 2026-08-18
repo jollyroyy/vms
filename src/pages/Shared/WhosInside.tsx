@@ -144,7 +144,7 @@ export default function WhosInside(): React.ReactElement {
       {/* Stat summary — the same KPI card as every other count board, with the
           same tone meanings (success = on site, brand = pre-booked, accent =
           the walk-in lane, orange = owed a human's attention). */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
         <KpiTile
           spec={{ label: 'Inside', hint: 'Right now', tone: 'text-success-600 dark:text-success-700', tint: 'var(--c-success-100)', icon: glyph(...USERS) }}
           value={checkedIn.length}
