@@ -205,8 +205,14 @@
   .stat-value {
     @apply text-kpi text-navy-950 tabular-nums;
   }
+  /* 13px, not `text-micro`'s 11px (client instruction, 2026-08-18: increase
+     the stat cards' heading by two everywhere). Spelled out rather than moved
+     into the `micro` token, because that token also sets form labels and every
+     grouping caption in the app — a card's heading grew, not the smallest type
+     in the system. Tracking and weight come with `text-micro` normally, so both
+     are restated here. */
   .stat-label {
-    @apply text-micro text-navy-500 uppercase;
+    @apply text-[13px] font-semibold tracking-[0.08em] text-navy-500 uppercase;
   }
   .dark .stat-label {
     @apply text-navy-400;
@@ -268,8 +274,15 @@
      is defined once per theme in tokens.css, so this class needs no `.dark`
      twin at all. Set the SIZE and SPACING here too, or the next table to be
      written picks its own. */
+  /* SIZE IS 13px, NOT 11px (client instruction, 2026-08-18: increase the
+     column headings by two everywhere). One class carries every table header
+     in the app, so the whole instruction is this one number — never a size on
+     an individual `th`, which is how five hand-written headers drifted apart
+     before this class existed. It stays two steps above nothing else: the
+     header must out-rank the sub-text under it, which was the reason the class
+     went gold and bold in the first place. */
   .table-head {
-    @apply text-left text-[11px] uppercase tracking-wider font-bold;
+    @apply text-left text-[13px] uppercase tracking-wider font-bold;
     color: rgb(var(--c-gold));
     background: rgb(var(--c-surface-100) / 0.5);
   }

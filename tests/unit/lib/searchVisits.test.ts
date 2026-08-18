@@ -127,7 +127,7 @@ describe('searchAllVisits — matching', () => {
     expect(calls.visitsIn[0][1]).toEqual(['visitor-9']);
   });
 
-  it('finds a visit by a phone-number substring (query with 2+ digits)', async () => {
+  it('finds a visit by a phone-number substring (query with 4+ digits)', async () => {
     mockVisitorsIlike.mockImplementation((col: string) =>
       col === 'phone'
         ? Promise.resolve({ data: [{ id: 'visitor-7' }], error: null })
@@ -140,9 +140,38 @@ describe('searchAllVisits — matching', () => {
     expect(result.map((v) => v.id)).toContain('v-phone');
   });
 
-  it('does not run a phone lookup when the query has fewer than 2 digits', async () => {
-    await searchAllVisits('a1bc');
+  // THE PHONE LEG ONLY FIRES ON SOMETHING PHONE-SHAPED (client report,
+  // 2026-08-18: searching a card number returned yesterday's visitor instead of
+  // today's). It used to fire on any query carrying two or more digits, which
+  // is a SUBSTRING match against every visitor's mobile — so a card number was
+  // reduced to its digits and matched a stranger whose number happened to
+  // contain them. Two conditions, both about what was typed: no letters, and at
+  // least four digits.
+  it('does not run a phone lookup when the query has fewer than 4 digits', async () => {
+    await searchAllVisits('123');
     expect(calls.visitorsIlike.some(([col]) => col === 'phone')).toBe(false);
+  });
+
+  // The live case that reported this: "C-V12" is a card number. Reduced to
+  // "12" it matched Biswajit's 9078612345 — a visitor who had checked in the
+  // previous day — and put him at the top of a card search for a card he had
+  // never held.
+  it('does not run a phone lookup for a card number that contains digits', async () => {
+    await searchAllVisits('C-V12');
+    expect(calls.visitorsIlike.some(([col]) => col === 'phone')).toBe(false);
+  });
+
+  it('does not run a phone lookup for a ref number', async () => {
+    await searchAllVisits('VIS-20260818-0001');
+    expect(calls.visitorsIlike.some(([col]) => col === 'phone')).toBe(false);
+  });
+
+  // Separators are still welcome — what disqualifies a query is letters, not
+  // punctuation, so the number as it is written on a form still searches.
+  it('runs the phone lookup on a formatted number, stripped to its digits', async () => {
+    await searchAllVisits('+91 90786 12345');
+    const phoneCall = calls.visitorsIlike.find(([col]) => col === 'phone');
+    expect(phoneCall?.[1]).toBe('%919078612345%');
   });
 
   it('dedupes a visit matched by BOTH ref and name — appears exactly once', async () => {

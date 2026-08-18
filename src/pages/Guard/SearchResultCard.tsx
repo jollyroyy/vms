@@ -71,18 +71,17 @@ export default function SearchResultCard({ visit: v, onClick }: { visit: Visit; 
             Read the INFERRED caveat in visitOrigin.ts before trusting it on a
             pre-2026-08 row. */}
         <CardField label="Type of Visitor" value={visitOriginLabel(visitOrigin(v))} />
-        {/* Split apart. It was one "Date & Time" row falling back from
-            `scheduled_for` to `created_at`, so the same label meant "the slot
-            they were booked for" on a pre-approval and "when the request was
-            raised" on a walk-in — two different facts under one heading, on the
-            card whose whole job is telling one visitor from another. Each is
-            now named, and each is absent rather than guessed at. */}
-        {/* "NA", not a dash — the same wording `COLUMN.scheduled` uses on both
-            dashboards (client instruction, 2026-08-16). A dash reads as a slot
-            somebody forgot to record; the honest answer for a walk-in is that
-            it never had one. Beside Type of Visitor the pair reads
-            "Walk-in / NA". */}
-        <CardField label="Scheduled" value={v.scheduled_for ? formatDateTime(v.scheduled_for) : null} empty="NA" />
+        {/* NO SCHEDULED SLOT ON A SEARCH RESULT (client instruction,
+            2026-08-18, the same one that took the slot badge off Find & Scan's
+            result row). The field was "Scheduled … NA", and "NA" was what it
+            printed for every walk-in — a column whose commonest value is the
+            admission that it has nothing to say. What a guard is looking for on
+            a found row is which desk the visitor came through and what has
+            already happened to them, and Type of Visitor above plus the
+            arrival stamps below carry both. The slot is still on the record
+            this card opens. Do not re-add it here.
+            `Registered` stays: it is when the request was raised, a fact of
+            this row, not a promise about a time nobody booked. */}
         <CardField label="Registered" value={formatDateTime(v.created_at)} />
         {/* Conditional, not dashed. Before a visitor arrives their absence from
             the building is already stated by the status pill at the top of this

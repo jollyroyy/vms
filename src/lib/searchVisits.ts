@@ -37,6 +37,33 @@ function digitsOnly(s: string): string {
   return s.replace(/\D/g, '');
 }
 
+/**
+ * IS THE GUARD QUOTING A PHONE NUMBER? (client report, 2026-08-18: searching a
+ * card number returned yesterday's visitor instead of today's.)
+ *
+ * The phone leg used to fire on ANY query carrying two or more digits, which
+ * is a substring match on `visitors.phone`. So "C-V12" — a card number, with
+ * letters in it — was reduced to "12" and matched every visitor whose ten-digit
+ * mobile happens to contain those two digits anywhere; a card that had never
+ * been issued therefore returned a stranger who checked in the day before, and
+ * a guard reading the top of that list had no way to tell it was a phone hit.
+ *
+ * Two conditions, and both are about what the guard TYPED rather than what it
+ * might match:
+ *   * NO LETTERS. A phone number does not contain any. A card number
+ *     ("C-350", "CV-895") and a ref ("VIS-20260818-0001") do, and each has its
+ *     own leg that matches it properly — exactly, in the card's case.
+ *   * FOUR DIGITS OR MORE. Below that it is not an identifier, it is a filter:
+ *     "12" narrows a directory to roughly a third of itself and calls the
+ *     result a match. Four is the "last four digits" a person actually quotes.
+ *
+ * Separators stay welcome — "+91 90786 12345", "9078-612345" and "612345" are
+ * all phone-shaped and all still search.
+ */
+function isPhoneShaped(query: string, digits: string): boolean {
+  return digits.length >= 4 && !/[A-Za-z]/.test(query);
+}
+
 async function fetchVisitsByRef(pattern: string): Promise<Visit[]> {
   const { data, error } = await supabase.from('visits').select(VISIT_SELECT).ilike('ref_number', pattern);
   if (error) {
@@ -143,7 +170,7 @@ export async function searchAllVisits(query: string, limit?: number): Promise<Vi
       fetchVisitsByRef(pattern),
       fetchVisitsByCard(trimmed),
       fetchVisitorIds('full_name', pattern),
-      digits.length >= 2 ? fetchVisitorIds('phone', `%${digits}%`) : Promise.resolve<string[]>([]),
+      isPhoneShaped(trimmed, digits) ? fetchVisitorIds('phone', `%${digits}%`) : Promise.resolve<string[]>([]),
     ]);
 
     // One combined lookup for both name- and phone-matched visitors, rather

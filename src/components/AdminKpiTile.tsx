@@ -104,7 +104,7 @@ export default function AdminKpiTile({
             for a job one value does. 700 is this file's secondary-text step and
             is a shade firmer than 500 was, which the label needed: it is the
             only thing on the top line that has to be read. */}
-        <span className="min-w-0 text-[11px] font-semibold uppercase tracking-[0.07em] leading-snug text-navy-700 break-words">{label}</span>
+        <span className="min-w-0 text-[13px] font-semibold uppercase tracking-[0.07em] leading-snug text-navy-700 break-words">{label}</span>
         <span className={`shrink-0 w-10 h-10 rounded-full flex items-center justify-center ${TONE[tone]}`}>
           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.7} aria-hidden="true">
             <path strokeLinecap="round" strokeLinejoin="round" d={icon} />

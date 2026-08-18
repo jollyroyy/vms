@@ -167,18 +167,19 @@ export default function CheckInMatchCard({
         <div className="flex items-center gap-2 flex-wrap">
           <p className="text-h3 text-navy-950 truncate">{m.visitorName}</p>
           <span className={`status-badge ${approval.badge}`}>{approval.label}</span>
-          <span className={`status-badge ${NEUTRAL}`}>
-            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6l4 2m5-2a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            {/* Date AND time on every row (client instruction, 2026-08-13).
-                It used to print a bare time for a pass due today and the full
-                date only for a search hit on another day — the not-due half of
-                that was load-bearing, since "03:30" alone reads as an arrival
-                due now, and printing it everywhere is the same guarantee
-                without asking the guard to notice which format they got. */}
-            {m.scheduledFor ? formatDateTime(m.scheduledFor) : 'Anytime today'}
-          </span>
+          {/* NO SLOT ON A SEARCH RESULT (client instruction, 2026-08-18: don't
+              mention the schedule at all — show the type of visitor, the
+              approval time and the check-in time).
+              This badge printed `scheduledFor`, falling back to the words
+              "Anytime today" for anyone who never had a slot, which is every
+              walk-in — so on the row the guard reads most, the clock said the
+              one thing that was not a fact about this visitor. What replaces
+              it is not a shorter version of the same guess: the type badge
+              beside the name already says which desk they came through, and
+              the named instants below (Approved at / Checked in at / Checked
+              out at) say what has actually happened and when, each with its
+              own date. The booked slot is still on the record this row opens.
+              Do not re-add a scheduled-time badge here. */}
           {stateBadge && <span className={`status-badge ${stateBadge.badge}`}>{stateBadge.label}</span>}
         </div>
 

@@ -38,8 +38,11 @@
   .gate-tile-value {
     @apply text-kpi leading-none tabular-nums text-navy-950;
   }
+  /* 13px — same client instruction as `.stat-label` and `.table-head`
+     (2026-08-18). See the note on `.stat-label` for why the size is written
+     out instead of raising the `micro` token. */
   .gate-tile-label {
-    @apply mt-1.5 text-micro uppercase text-navy-500;
+    @apply mt-1.5 text-[13px] font-semibold tracking-[0.08em] uppercase text-navy-500;
   }
   .dark .gate-tile-label {
     @apply text-navy-400;

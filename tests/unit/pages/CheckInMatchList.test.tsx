@@ -179,20 +179,29 @@ describe('CheckInMatchList — expected arrival time', () => {
   // Date AND time, even for a match due today (client instruction,
   // 2026-08-13). The card used to switch formats on dueToday; it no longer
   // does, so a guard never has to notice which format they were given.
-  it('shows the scheduled arrival date and time when one was set', () => {
+  // THE SLOT IS OFF THE ROW ENTIRELY (client instruction, 2026-08-18: don't
+  // mention the schedule at all on a search result — show the type of visitor,
+  // the approval time and the check-in time). The two tests that stood here
+  // pinned the opposite: that a booked slot printed as a date-and-time badge,
+  // and that a visit with no slot printed the words "Anytime today" — which is
+  // every walk-in, on the row a guard reads most. Both assertions are now
+  // inverted into one, so re-adding the badge fails rather than passing
+  // quietly.
+  it('never prints the scheduled slot, with or without one', () => {
     const scheduledFor = '2026-07-30T09:30:00Z';
     render(<CheckInMatchList {...baseProps({
       allMatches: [match({ scheduledFor })],
     })} />);
-    expect(screen.getByText(formatDateTime(scheduledFor))).toBeInTheDocument();
+    expect(screen.queryByText(formatDateTime(scheduledFor))).toBeNull();
     expect(screen.queryByText(formatTime(scheduledFor))).toBeNull();
+    expect(screen.queryByText(/anytime/i)).toBeNull();
   });
 
-  it('falls back to "Anytime today" when no arrival time was scheduled', () => {
+  it('says nothing about a slot for a visit that never had one', () => {
     render(<CheckInMatchList {...baseProps({
       allMatches: [match({ scheduledFor: null })],
     })} />);
-    expect(screen.getByText('Anytime today')).toBeInTheDocument();
+    expect(screen.queryByText(/anytime/i)).toBeNull();
   });
 });
 
@@ -240,16 +249,18 @@ describe('CheckInMatchList — dueToday disables check-in without hiding the row
     expect(onSelectMatch).toHaveBeenCalledTimes(1);
   });
 
-  it('shows the scheduled DATE, not just a time, for a match not due today', () => {
+  // A pass booked for another day now says SO, rather than printing the day
+  // and asking the guard to work it out. That was the load-bearing half of the
+  // slot badge — "this one is not for today" — and it survives as the row's
+  // own state badge, which is a sentence instead of a date to be compared
+  // against today's.
+  it('says "Not due today" instead of printing the day it was booked for', () => {
     const scheduledFor = '2026-08-15T09:30:00Z';
     render(<CheckInMatchList {...baseProps({
       allMatches: [match({ dueToday: false, scheduledFor })],
     })} />);
-    // formatDateTime includes the day/month/year alongside the time (e.g.
-    // "15 Aug 2026, 03:00 pm") — assert against its real output rather than
-    // a guessed string, and keep the match resilient to locale punctuation.
-    const expected = formatDateTime(scheduledFor);
-    const datePortion = expected.split(',')[0];
-    expect(screen.getByText(new RegExp(datePortion.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')))).toBeInTheDocument();
+    expect(screen.getByText(/not due today/i)).toBeInTheDocument();
+    const datePortion = formatDateTime(scheduledFor).split(',')[0];
+    expect(screen.queryByText((t) => t.includes(datePortion))).toBeNull();
   });
 });
