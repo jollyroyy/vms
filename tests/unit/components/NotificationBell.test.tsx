@@ -76,9 +76,19 @@ describe('M12-NOTIFICATION: NotificationBell', () => {
     expect(document.querySelector('svg')).toBeInTheDocument();
   });
 
-  it('returns null for staff role', () => {
+  // Staff became approvers on 2026-08-18 (client instruction), and a walk-in
+  // request is the one notification that asks somebody to DO something — an
+  // approver who is never told a visitor is at the gate is the reason this bell
+  // exists. Migration 101's fan-out sends them the row.
+  it('renders for staff role, who now approve walk-ins', () => {
     setupMocks([]);
     const { container } = render(<NotificationBell userId="user-1" role="staff" />);
+    expect(container.innerHTML).not.toBe('');
+  });
+
+  it('returns null for the CEO, who has no visitor desk', () => {
+    setupMocks([]);
+    const { container } = render(<NotificationBell userId="user-1" role="ceo" />);
     expect(container.innerHTML).toBe('');
   });
 

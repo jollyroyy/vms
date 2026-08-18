@@ -3,12 +3,16 @@
  * TOTP Multi-Factor Authentication logic for admin/hod roles.
  */
 import type { UserRole } from '../types/index';
+import { HOD_ROLES } from './hodRoles';
 
 /** Roles that are required to complete TOTP MFA before accessing the app.
- *  `senior_manager` is here for the same reason `hod` is: the account can clear
- *  a stranger into the building, and it is the ability rather than the job
- *  title that decides who needs a second factor. */
-const MFA_REQUIRED_ROLES: UserRole[] = ['admin', 'hod', 'senior_manager'];
+ *  Every approver role is here for the same reason `hod` is: the account can
+ *  clear a stranger into the building, and it is the ability rather than the
+ *  job title that decides who needs a second factor. `staff` joined that set on
+ *  2026-08-18 (client instruction), so it joins this one — the alternative is a
+ *  second factor that the weakest approver account is exempt from, which is the
+ *  account an attacker would pick. */
+const MFA_REQUIRED_ROLES: UserRole[] = ['admin', ...HOD_ROLES];
 
 /** Returns true if the given role must complete MFA */
 export function requiresMFA(role: UserRole | null): boolean {

@@ -139,20 +139,11 @@ describe('SEC-7: frontend route protection', () => {
     });
   });
 
-  // ── Staff ──────────────────────────────────────────────────
-  describe('staff', () => {
-    const role = 'staff' as const;
-
-    it('staff is FORBIDDEN on /guard', () => {
-      expect(isForbidden('/guard', role)).toBe(true);
-    });
-    it('staff is FORBIDDEN on /approvals', () => {
-      expect(isForbidden('/approvals', role)).toBe(true);
-    });
-    it('staff is FORBIDDEN on /admin', () => {
-      expect(isForbidden('/admin', role)).toBe(true);
-    });
-  });
+  // STAFF: see routeProtectionStaff.test.tsx (2026-08-18). The block lived here
+  // until staff became an approver, at which point what it had to assert was no
+  // longer three paths but an EQUIVALENCE with `hod` — the same reason admin,
+  // ceo and senior_manager each have a file of their own, and the same 300-line
+  // cap that split them.
 
   // ADMIN block: see routeProtectionAdmin.test.tsx (2026-08-17).
   // ── Deleted gate-pass feature ──────────────────────────────
@@ -213,17 +204,19 @@ describe('SEC-7: frontend route protection', () => {
   });
 
   // ── Route path match semantics ────────────────────────────
-  it('/visitors is allowed for guard and staff, but FORBIDDEN for hod and admin', () => {
+  // Staff left both of these on 2026-08-18 along with the rest of their own
+  // surface: /overview shows the same department's visits with tiles, panels
+  // and the two decisions a host actually makes, and its On Site panel is what
+  // /whos-inside was.
+  it('/visitors is allowed for the guard alone', () => {
     expect(isForbidden('/visitors', 'guard')).toBe(false);
-    expect(isForbidden('/visitors', 'staff')).toBe(false);
+    expect(isForbidden('/visitors', 'staff')).toBe(true);
     expect(isForbidden('/visitors', 'admin')).toBe(true);
     expect(isForbidden('/visitors', 'hod')).toBe(true);
   });
-  it('/whos-inside is allowed for guard and staff, but FORBIDDEN for hod (on-site info now lives on Overview)', () => {
-    const allowedRoles = ['guard', 'staff'] as const;
-    for (const r of allowedRoles) {
-      expect(isForbidden('/whos-inside', r)).toBe(false);
-    }
+  it('/whos-inside is allowed for the guard alone (on-site info lives on Overview)', () => {
+    expect(isForbidden('/whos-inside', 'guard')).toBe(false);
+    expect(isForbidden('/whos-inside', 'staff')).toBe(true);
     expect(isForbidden('/whos-inside', 'hod')).toBe(true);
   });
   // ── ROLE_ROUTES completeness ───────────────────────────────

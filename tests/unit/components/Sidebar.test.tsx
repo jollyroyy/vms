@@ -118,9 +118,14 @@ describe('Sidebar navigation links per role', () => {
     expect(screen.queryByText('Pre-Approvals')).not.toBeInTheDocument();
   });
 
-  it('staff still sees Visitors', () => {
+  // Staff are approvers since 2026-08-18 (client instruction), so they see the
+  // HOD's rail and nothing else — Visitors and On-site went with the rest of
+  // the staff-only surface.
+  it('staff sees the HOD rail, not Visitors', () => {
     renderSidebar('staff');
-    expect(screen.getByText('Visitors')).toBeInTheDocument();
+    expect(screen.queryByText('Visitors')).not.toBeInTheDocument();
+    expect(screen.queryByText('On-site')).not.toBeInTheDocument();
+    expect(screen.getByText('Pre-Approvals')).toBeInTheDocument();
   });
 
   it('hod does not see Visitors', () => {

@@ -95,10 +95,13 @@ describe('visitStatusLabel', () => {
     expect(result).toContain('(Admin)');
   });
 
-  it('maps staff role to "Staff"', () => {
+  // "Person to Meet", same as an HOD and a senior manager, since 2026-08-18: a
+  // staff account is an approver now, and this label names the actor's
+  // relationship to the VISITOR reading the row, not their rank.
+  it('maps staff role to "Person to Meet"', () => {
     const actor: VisitActor = { name: 'Eve', role: 'staff', department: null };
     const result = visitStatusLabel({ status: 'rejected', actor });
-    expect(result).toContain('(Staff)');
+    expect(result).toContain('(Person to Meet)');
   });
 
   it('falls back to raw role string for unrecognized role', () => {

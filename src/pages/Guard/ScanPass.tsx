@@ -14,7 +14,6 @@
 // shared mutation the search desk uses — lib/checkInFlow.ts — so the two
 // surfaces can never drift apart on the security-relevant moment.
 import React, { useCallback, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import type { Visit } from '../../types/index';
 import { attachHostNames } from '../../lib/hostNames';
 import { checkInScannedVisit } from '../../lib/checkInFlow';
@@ -30,8 +29,16 @@ import type { MatchItem } from './checkInTypes';
 import type { IdScanResult } from './IdScanOverlay';
 
 export default function GuardScanPass(): React.ReactElement {
-  const navigate = useNavigate();
   const [match, setMatch] = useState<MatchItem | null>(null);
+  // THE CAMERA IS NOT ON THIS PAGE UNTIL IT IS ASKED FOR (client instruction,
+  // 2026-08-18: give a link to scan below the search, and only then show the
+  // camera). `GuardQRScan` is not RENDERED while this is false — the arming is
+  // owned here rather than inside the scanner, so what the guard lands on is a
+  // search box and one line under it, not a scanner card standing by. The
+  // component keeps its own `autoStart` placeholder for any other caller; on
+  // this page the press has already happened by the time it mounts, the same
+  // reasoning `CheckInScanGate` uses.
+  const [scanOpen, setScanOpen] = useState(false);
   // A pass that resolved to a real visit but may not be honoured. It is held
   // separately from `match` on purpose: `match` means "this person is checking
   // in", and merging the two would put a photo step under a visitor who is
@@ -139,8 +146,30 @@ export default function GuardScanPass(): React.ReactElement {
           under the fold of a full-height camera frame, hidden behind the thing
           that had just failed the guard. */}
       {!match && !blocked && (
-        <div className="flex justify-end">
-          <ScanPassSearchBar onQueryChange={setQuery} />
+        <div className="space-y-2">
+          <div className="flex justify-end">
+            <ScanPassSearchBar onQueryChange={setQuery} />
+          </div>
+          {/* EITHER SEARCH, OR THE LINK FOR SCAN — and nothing else on this row
+              (client instruction, 2026-08-18). What used to sit here was the
+              whole scanner card: a heading, a paragraph, a dark 3:4 placeholder
+              the size of the camera frame, and three buttons, all of it above
+              the search results, for a page whose most common use is typing a
+              mobile number. A guard who wants the camera says so in one press
+              and gets it; a guard who does not never sees it. */}
+          {!scanOpen && (
+            <div className="flex justify-end">
+              <button
+                type="button"
+                onClick={() => setScanOpen(true)}
+                className="inline-flex items-center gap-2 text-sm font-bold text-brand-700 hover:text-brand-800 hover:underline underline-offset-4 rounded-lg px-1 py-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500">
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8} aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 4.5h4.5v4.5h-4.5v-4.5zM15.75 4.5h4.5v4.5h-4.5v-4.5zM3.75 15.75h4.5v4.5h-4.5v-4.5zM15.75 15.75h1.5v1.5h-1.5v-1.5zM19.5 15.75h.75v.75h-.75v-.75zM15.75 19.5h.75v.75h-.75v-.75zM18.75 18.75h1.5v1.5h-1.5v-1.5z" />
+                </svg>
+                Scan QR code
+              </button>
+            </div>
+          )}
         </div>
       )}
 
@@ -220,18 +249,22 @@ export default function GuardScanPass(): React.ReactElement {
             onSelect={setMatch}
             onCheckOut={(m) => void startCheckOut(m)}
           />
-          {/* autoStart={false}: this is a TAB, not a modal somebody pressed
-              Scan to open, and it is the search desk as well. The camera used
-              to come on the moment the tab was clicked — webcam light and a
-              live picture of the guard — for the very common case of looking
-              a visitor up by mobile number. Nothing acquires the device until
-              they press Scan QR code. */}
-          <GuardQRScan
-            autoStart={false}
-            onResolved={(v) => void handleResolved(v)}
-            onBlocked={(v, reason) => void handleBlocked(v, reason)}
-            onCancel={() => navigate('/guard/pre-approvals')}
-          />
+          {/* MOUNTED ONLY ONCE THE GUARD HAS ASKED FOR IT. Nothing above
+              acquires a camera device, because nothing above exists until this
+              branch renders — which is a stronger guarantee than the old
+              `autoStart={false}`, where the component was on screen with its
+              placeholder and its own arming button.
+
+              `onCancel` returns to the search rather than navigating to
+              /guard/pre-approvals: "Search Manually" now means the search box
+              at the top of THIS page, which is where the guard started. */}
+          {scanOpen && (
+            <GuardQRScan
+              onResolved={(v) => void handleResolved(v)}
+              onBlocked={(v, reason) => void handleBlocked(v, reason)}
+              onCancel={() => setScanOpen(false)}
+            />
+          )}
         </div>
       )}
     </div>

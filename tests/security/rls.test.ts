@@ -109,13 +109,33 @@ const svcStatus = async (id: string) =>
 // ─────────────────────────────────────────────────────────────────────────────
 
 describe('S9/SEC-5: role enforcement — staff', () => {
-  it('staff CANNOT approve a visit (RPC rejected, direct update touches 0 rows)', async () => {
+  // STAFF ARE APPROVERS SINCE 2026-08-18 (client instruction: every account
+  // that is not a guard and not an admin gets the HOD's features, workflow and
+  // permissions). Migration 100 folds `staff` onto `hod` inside
+  // `effective_role()`, so `approve_visit` admits them — but only for their own
+  // department, and only through the RPC. The DIRECT update stays refused:
+  // there is no UPDATE policy on `visits` for an approver at all (022's
+  // "visits: hod updates own department" is deliberately unapplied), so every
+  // approver write still goes through a SECURITY DEFINER function that can
+  // check the department and write the audit row.
+  it('staff CAN approve a visit in their OWN department, via the RPC only', async () => {
     const { error } = await staff.rpc('approve_visit', { visit_id: vHrPending });
-    expect(error).not.toBeNull();
-    expect(error!.message).toMatch(/Only HOD or Admin/i);
+    expect(error).toBeNull();
+    expect((await svcStatus(vHrPending)).status).toBe('walkin_approved');
+
+    // Put the fixture back for the tests below it.
+    await svc.from('visits').update({ status: 'pending_approval' }).eq('id', vHrPending);
+    expect((await svcStatus(vHrPending)).status).toBe('pending_approval');
 
     await staff.from('visits').update({ status: 'approved' }).eq('id', vHrPending);
-    expect((await svcStatus(vHrPending)).status).toBe('pending_approval'); // unchanged
+    expect((await svcStatus(vHrPending)).status).toBe('pending_approval'); // no UPDATE policy
+  }, 30_000);
+
+  it('staff CANNOT approve a visit in another department', async () => {
+    const { error } = await staff.rpc('approve_visit', { visit_id: vDeny }); // IT, staff is HR
+    expect(error).not.toBeNull();
+    expect(error!.message).toMatch(/your own department/i);
+    expect((await svcStatus(vDeny)).status).toBe('pending_approval');
   }, 30_000);
 
   it('staff CANNOT read pending approvals of another department', async () => {
@@ -239,10 +259,18 @@ describe('S9/SEC-5: role enforcement — HOD', () => {
     expect(upErr).toBeNull();
     await staff.auth.refreshSession(); // new JWT now carries the forged user_metadata
 
-    // …but enforcement reads app_metadata, so the forgery changes nothing:
+    // …but enforcement reads app_metadata, so the forgery changes nothing. The
+    // REFUSAL MOVED ONE LINE DOWN and that is the whole point: since 2026-08-18
+    // this account is a legitimate approver for HR (migration 100), so the
+    // question is no longer "may you approve at all" but "whose department is
+    // this". If the forged `department_id: itDept` had been read, this call
+    // would have succeeded — it is refused because `approve_visit` takes the
+    // department from app_metadata too, and the forged `role: 'admin'` never
+    // reaches the check that would have skipped the department test entirely.
     const { error } = await staff.rpc('approve_visit', { visit_id: vDeny });
     expect(error).not.toBeNull();
-    expect(error!.message).toMatch(/Only HOD or Admin/i);
+    expect(error!.message).toMatch(/your own department/i);
+    expect(error!.message).not.toMatch(/admin/i);
     expect((await svcStatus(vDeny)).status).toBe('pending_approval');
 
     const { data: leaked } = await staff.from('visits').select('id').eq('department_id', itDept);

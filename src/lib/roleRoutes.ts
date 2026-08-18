@@ -48,7 +48,21 @@ export const ROLE_ROUTES: Record<UserRole, string[]> = {
   // without being rewritten. Audit rows still record `auth.uid()`, so a senior
   // manager's approval is never mistaken for somebody else's.
   senior_manager: ['/overview', '/approvals', '/reports', '/profile', '/search'],
-  staff:       ['/visitors', '/whos-inside', '/reports', '/profile', '/search'],
+  // STAFF IS AN HOD (client instruction, 2026-08-18: every account that is not
+  // a guard and not an admin gets the HOD's features, workflow and frontend
+  // exactly). The list is the HOD's, WRITTEN OUT rather than aliased, for the
+  // same reason `senior_manager`'s is: this file is where a reader asks what a
+  // role can reach, and the answer must be readable here rather than one hop
+  // away behind a shared array reference.
+  //
+  // `/visitors` and `/whos-inside` are GONE from this list, and that is the
+  // instruction rather than a casualty of it. `VisitorsDashboard` was a
+  // display-only list of the same department's visits that `/overview` now
+  // shows with tiles, panels and the two decisions a host actually makes, and
+  // `/whos-inside` is the Overview's On Site panel. Exact equality with `hod`
+  // is what `routeProtectionStaff.test.tsx` asserts, so the two cannot drift.
+  // The COMPONENTS stay on disk — this is an unlinking, not a deletion.
+  staff:       ['/overview', '/approvals', '/reports', '/profile', '/search'],
   // ADMIN SEES VISITOR RECORDS, READ-ONLY (client instruction, 2026-08-17).
   // This reverses the standing rule that admin had no route to visitor data at
   // all. The reasoning that rule carried — that an admin who can act on a visit

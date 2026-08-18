@@ -86,7 +86,17 @@ export default function ScanPassLookup({
             match={m}
             disabled={!checkable || !m.dueToday}
             isCheckedIn={m.status === 'checked_in'}
-            expired={!checkable}
+            // NOT `!checkable` (client instruction, 2026-08-18). That said
+            // "Expired" about every closed pass alike — a visitor who had
+            // checked out an hour ago, a request the host declined, a walk-in
+            // nobody answered — because non-checkable and expired are not the
+            // same fact. This surface computes no expiry of its own: it has a
+            // MatchItem, not a Visit, and it does not need one. The sweep
+            // (migrations 065/066/077) writes `expired` or `no_show` onto the
+            // row itself once a pass really has run out unused, and
+            // CheckInMatchCard prints the row's own status in preference to
+            // anything a caller infers. So the honest value here is false.
+            expired={false}
             onSelect={() => onSelect(m)}
             onCheckOut={onCheckOut ? () => onCheckOut(m) : undefined}
           />

@@ -31,6 +31,7 @@ import { istDayStart } from '../../lib/visitExpiry';
 import { useVisitDecisions } from './useVisitDecisions';
 import { hodTileVisits, type HodTileKey } from '../../lib/hodTiles';
 import HodKpiBoard from './HodKpiBoard';
+import OverstayAlertBanner from '../../components/OverstayAlertBanner';
 import HodWalkInDesk from './HodWalkInDesk';
 import HodSchedule from './HodSchedule';
 import VisitorDetails from '../../components/VisitorDetails';
@@ -176,6 +177,15 @@ export default function HODConsole(): React.ReactElement {
     <div className="space-y-4 animate-fade-in pb-4">
       {successMsg && <div className="alert-success">{successMsg}</div>}
       {error && <div className="alert-error">{error}</div>}
+
+      {/* THIS DEPARTMENT'S OVERDUE VISITORS, IN RED, ABOVE THE TILES (client
+          instruction, 2026-08-18). Fed from `onSite` — the department's
+          checked-in rows, whose query is deliberately NOT date-bounded, so a
+          contractor still inside from yesterday is exactly who this catches.
+          The same `isOverstaying` the guard's board and the admin's use; an
+          HOD chasing a visitor and a guard chasing the same one must be
+          looking at the same list. */}
+      {tab === 'overview' && <OverstayAlertBanner visits={onSite} now={clock} />}
 
       {tab === 'overview' && (
         <HodKpiBoard

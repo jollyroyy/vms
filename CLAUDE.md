@@ -4,8 +4,16 @@ React 18 + TS + Vite · Supabase (auth, DB, realtime, RLS) · Tailwind (`brand-*
 `accent-*`, `surface-*`) · Vitest + RTL. Deployment is **IST end to end**.
 
 Roles: `guard | hod | senior_manager | staff | admin | ceo` (`src/types/index.ts`).
-`senior_manager` is an HOD under a different job title (2026-08-18) — same routes, same
-department scope, same desks — see Settings → Users and migrations 098/099.
+**EVERY ACCOUNT THAT IS NOT A GUARD AND NOT AN ADMIN IS AN HOD** (client instruction,
+2026-08-18): `hod`, `senior_manager` and `staff` get the same routes, the same nav, the
+same desks and the same permissions — one list, `src/lib/hodRoles.ts` (`HOD_ROLES` /
+`isHodRole`), mirrored in the database by migration 100's `public.effective_role()`. Edit
+the two together. `staff` in particular is what a HOST is here
+(`get_hosts_for_department` returns the staff and HODs of a department), so a staff
+account raising its own pre-approval is the point of the change. `ceo` is deliberately
+OUT of that list — it is the second pair of eyes on an admin's blacklist-removal request,
+and it is refused by `admin_create_user`, so no created account can be one. See Settings
+→ Users and migrations 098/099 (senior_manager) and 100/101 (staff).
 
 ## Hard Rules
 - **Max 300 lines per file. No exceptions** — `src/`, `tests/`, CSS, SQL alike. Split
@@ -55,6 +63,43 @@ department scope, same desks — see Settings → Users and migrations 098/099.
 - Sidebar nav: `components/layout/navLinks.tsx` `ALL_LINKS`, each with `roles: UserRole[]`.
 - Classes: `status-badge`, `tab-active/inactive`, `card-hover`, `card-premium`, `input`, `label`.
 
+## Every non-guard, non-admin role is an HOD (2026-08-18)
+- **`src/lib/hodRoles.ts` is the client-side list**, `public.effective_role()` (migration
+  **100**) the server's. `ROLE_ROUTES.staff` is the HOD list written out, not aliased —
+  `routeProtectionStaff.test.tsx` asserts EQUIVALENCE with `hod` rather than a copied path
+  list, so the three cannot drift. Staff lost `/visitors` and `/whos-inside` (that is the
+  instruction, not a casualty: both were display-only views of rows `/overview` shows with
+  the decisions attached). `VisitorsDashboard` stays on disk — an unlinking, not a deletion.
+- **099 SAID "ONE EDIT, NOT TWELVE", AND IT WAS ONE EDIT SHORT.** Six SECURITY DEFINER
+  bodies and five policies never call `current_user_role()` — they inline
+  `auth.jwt() -> 'app_metadata' ->> 'role'`. So a **senior manager could not approve or
+  decline a walk-in** between 098/099 and 100/101: the console offered the button and
+  Postgres raised "Only HOD or Admin can approve visits." 100 rebases `approve_visit`,
+  `reject_visit`, `cancel_visit`, `cancel_all_pre_approved` and `clear_pre_approved`; 101
+  rebases `enforce_visit_update_rules`, the two `visitors` write policies and the three
+  `recurring_visits` policies. All on `effective_role()`, which reads **`app_metadata`
+  only** (SEC-8 — three of those bodies had a `user_metadata` fallback, and that column is
+  writable by the person it describes).
+- **`notify_hod_on_visit` is a FAN-OUT, not `limit 1`** (101). It used to pick one profile
+  with `role = 'hod'`, so a department headed by a senior manager — or staffed only by
+  hosts — was never told a visitor was at the gate. It now notifies every approver in the
+  department plus the named host. **The enum literal needs an explicit
+  `::public.notification_type` cast**: under `select distinct` an untyped literal resolves
+  as `text` before the INSERT can coerce it, and the trigger raised 42804 on every walk-in
+  request without it.
+- **`pre_approve_visitor_v2` never had a role check** — it is SECURITY DEFINER and
+  bypasses RLS — so the pre-approval half of the instruction was a FRONTEND gate all
+  along: staff simply had no `/approvals` route.
+- **Removing an HOD still writes `role = 'staff'`** (`adminHods.ts`, `adminDepartments.ts`)
+  and that no longer withdraws approver permission by itself. It withdraws
+  `department_id`, which is what every approver RPC and every policy scopes on, so the
+  account can reach the desk and find nothing on it. If a real "switched off" state is
+  wanted, that is Settings → Users' Deactivate (migration 094), not a role rewrite.
+- App-side edits, all reading `HOD_ROLES`: `navLinks` (four HOD items + Reports),
+  `NotificationBell` (they receive the walk-in requests), `VisitorDetails` (no ID proof),
+  `mfa` (the account can clear a stranger into the building), `visitStatusLabel`
+  ("Person to Meet", not "Staff").
+
 ## Route access
 `src/lib/roleRoutes.ts` is the single source of truth; `isForbidden()` enforces in
 `App.tsx` (prefix match). Auth = JWT `app_metadata.role` + `department_id`, fallback
@@ -92,6 +137,17 @@ two `ROLE_LABELS` maps.
 - **If a panel needs a row the tiles don't have, widen the existing hook — never add a
   second query.** Two answers to "what happened today" on one screen is the defect this
   project has fixed repeatedly.
+- **AN OVERSTAYING VISITOR IS FLAGGED IN RED AT THE TOP OF EVERY BOARD**
+  (2026-08-18, client instruction). `components/OverstayAlertBanner.tsx` sits above
+  `GlanceHeader` on the guard dashboard (`GuardDashboardMain`, over `useTodayVisits`), above
+  it on the admin Dashboard (over the same two-day fetch, which is why that fetch is worth
+  keeping — the visitor most likely to be overdue arrived at 21:00 last night) and above
+  `HodKpiBoard` on the HOD Overview (over `onSite`, whose query is deliberately not
+  date-bounded). **It runs `isOverstaying`, the Overstaying TILE's own predicate** — a
+  banner with a threshold of its own would be a second answer to "who is overdue" on the
+  same screen as the first. It names each visitor, the overrun (`formatDuration` over
+  `overstayMs`, longest first) and the host, carries `role="alert"`, and renders **nothing**
+  when nobody is overdue.
 - **One KPI card design everywhere**: `components/KpiTile.tsx` (guard dashboard, Visitors
   rail, HOD overview, admin panel, `WhosInside`). Active = `gate-tile-active` gold ring
   only, never a border/cap change. No `compact` variant, no top cap / accent bar / per-card
@@ -503,9 +559,21 @@ routable (bookmarks, `?verify=` links). The FILE is still `GuardLiveQueue.tsx`.
   card, unfixable from the running app. Both flags were deleted from `FeatureFlag`, not
   defaulted on. Remaining flags (`faceVerify`, …) carry the same caveat: unset on Vercel is
   off permanently.
+- **THE SCANNER IS NOT ON THE PAGE UNTIL IT IS ASKED FOR** (2026-08-18, client
+  instruction: give a link to scan just below the search, and only then show the camera).
+  `ScanPass` owns a `scanOpen` flag and does **not render `GuardQRScan` at all** while it
+  is false — a stronger guarantee than 2026-08-17's `autoStart={false}`, where the
+  component sat on screen as a heading, a paragraph, a dark 3:4 placeholder the size of the
+  camera frame and three buttons, above the results of a page whose commonest use is typing
+  a mobile number. What is there instead is one line under the search box: a **"Scan QR
+  code"** text link. `onCancel` ("Search Manually") now closes the scanner and returns to
+  that box rather than navigating to `/guard/pre-approvals`. The file upload stays inside
+  the opened panel, which is also where the no-camera case is handled (primary-styled
+  upload under "Camera unavailable"). `GuardQRScan` keeps `autoStart` and its placeholder
+  branch for `CheckInScanGate`'s contract; on this page the press has already happened by
+  the time it mounts.
 - **THE TAB DOES NOT OPEN THE CAMERA BY ITSELF** (2026-08-17). `GuardQRScan` takes
-  `autoStart` (default true); `ScanPass` passes `false` and shows a dark placeholder plus a
-  primary **"Scan QR code"** button. Arming is one-way. `CheckInScanGate` keeps the default
+  `autoStart` (default true). Arming is one-way. `CheckInScanGate` keeps the default
   — it is a modal opened by pressing Scan, and a second press would be a button behind a
   button. The gate is `useQrScanner`'s **`enabled`**, not `paused`: `enabled: false` returns
   before the `hasCamera()` probe so no device is ever acquired (same rule as
@@ -525,6 +593,23 @@ routable (bookmarks, `?verify=` links). The FILE is still `GuardLiveQueue.tsx`.
   the same `visitToMatchItem` the accepted path uses. **The gate decision did not move** —
   `evaluateQrVisit` still decides; only the presentation of a refusal changed. Record
   first, refusal underneath; no photo step, no Check In button.
+- **ONE STATE BADGE PER SEARCH ROW, AND THE VISIT'S OWN STATUS IS THE LAST WORD**
+  (2026-08-18, client instruction: a visitor who has checked out must read **Checked Out**,
+  never Expired; Expired is for a pass that really ran out and the visitor never appeared).
+  `CheckInMatchCard` used to render up to four badges from three sources with the
+  precedence backwards — the CALLER's `expired` and `isCheckedIn` computations suppressed
+  the row's own `statusMeta`. Both callers therefore painted every closed pass the same red
+  "Expired": `ScanPassLookup` passed `expired={!isCheckableStatus(status)}`, true of
+  `checked_out` / `rejected` / `cancelled` / `no_show` / `lapsed` alike, and
+  `CheckInMatchList` passes a real `isVisitExpired`, which is true of any completed visit
+  from an earlier day. Now: `STATUS_META` is a **full `Record<VisitStatus, Badge | null>`**
+  (a new status forces a decision; `approved`/`walkin_approved` are the two open states and
+  map to `null`), and the badge is picked once — **inside now → the row's decided status →
+  a computed expiry → not due today** — first match wins and there is never a second.
+  `lapsed` reads **"Not Approved"**, the same words Reports uses, because no host ever
+  cleared that visitor. `ScanPassLookup` now passes `expired={false}` and says why: it
+  holds a `MatchItem`, not a `Visit`, and the sweep (065/066/077) writes `expired` or
+  `no_show` onto the row itself once a pass really has run out.
 - **A SEARCH HIT THAT CANNOT BE CHECKED IN IS STILL FULLY LEGIBLE.** `CheckInMatchCard`
   drops the click AFFORDANCE (`CRISP_CARD`, not `CRISP_CARD_INTERACTIVE`) and keeps full
   contrast; `opacity-50 pointer-events-none` is gone (it also blocked selecting the phone
@@ -1287,6 +1372,14 @@ through a SECURITY DEFINER RPC, so a direct UPDATE grant is attack surface with 
     into the building), `NotificationBell` (it receives the walk-in requests) and
     `VisitorDetails` (no ID proof, same as an HOD). `routeProtectionSeniorManager.test.tsx`
     asserts EQUIVALENCE with `hod` rather than a copied path list, so the two cannot drift.
+- **100/101** every account that is not a guard and not an admin is an HOD (see the
+  section of that name). **Apply 100 then 101** — 101 calls `effective_role()`, which 100
+  creates. No enum change, so no `ALTER TYPE` split is involved this time; the two files
+  are the 300-line cap. Verified live 2026-08-18: policy counts unchanged on `visitors` (3)
+  and `recurring_visits` (4), `enforce_visit_update_rules` rebased, `current_user_role()`
+  mapping both roles, and `tests/security/rls.test.ts` proving a staff account approves in
+  its OWN department, is refused in another, and gains nothing from forging
+  `user_metadata`.
 - **064** admin-assisted password reset + forced change on first sign-in (verified live
   2026-08-10). Self-service reset was removed from the login card the same day: the built-in
   Supabase mailer is capped at **~2 mails/hour PROJECT-WIDE**, shared with the sibling

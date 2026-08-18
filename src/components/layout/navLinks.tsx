@@ -1,5 +1,6 @@
 import React from 'react';
 import type { UserRole } from '../../types/index';
+import { hodRoles } from '../../lib/hodRoles';
 
 // Single source of truth for sidebar navigation. Extracted out of Sidebar.tsx
 // so that file stays under the 300-line cap.
@@ -66,10 +67,10 @@ export const ALL_LINKS: NavLink[] = [
   // and a guard describing their landing page are describing the same thing. The
   // ROUTE stays /overview: it is in bookmarks and in every `?tab=` link the
   // console emits.
-  { to: '/overview', label: 'Dashboard', roles: ['hod', 'senior_manager'], icon: icon(ICON_GRID) },
+  { to: '/overview', label: 'Dashboard', roles: hodRoles(), icon: icon(ICON_GRID) },
   // The FORM — raise a pre-approved visitor pass. The one HOD screen that
   // CREATES a visit rather than deciding one.
-  { to: '/approvals', label: 'Pre-Approvals', roles: ['hod', 'senior_manager'], icon: icon(ICON_PLUS) },
+  { to: '/approvals', label: 'Pre-Approvals', roles: hodRoles(), icon: icon(ICON_PLUS) },
   // THERE IS NO APPROVAL DESK (removed 2026-08-16, client instruction). It sat
   // at /overview?tab=preapprovals and listed `pending_approval` rows carrying a
   // `scheduled_for` — a set that cannot exist, since WalkInRequest and the kiosk
@@ -87,8 +88,8 @@ export const ALL_LINKS: NavLink[] = [
   // members live here, in the one left-hand panel. They are `?tab=` views of
   // /overview rather than routes of their own, which is what HODConsole's
   // `tabFromLocation` already reads.
-  { to: '/overview?tab=walkins', label: 'Walk-in Desk', roles: ['hod', 'senior_manager'], icon: icon(ICON_USERS) },
-  { to: '/overview?tab=schedule', label: 'Visitor Schedule', roles: ['hod', 'senior_manager'], icon: icon(ICON_GRID) },
+  { to: '/overview?tab=walkins', label: 'Walk-in Desk', roles: hodRoles(), icon: icon(ICON_USERS) },
+  { to: '/overview?tab=schedule', label: 'Visitor Schedule', roles: hodRoles(), icon: icon(ICON_GRID) },
 
   // ── Guard: the visitor console ───────────────────────────────────────────
   { to: '/guard/dashboard', label: 'Dashboard', roles: ['guard'], icon: icon(ICON_GRID) },
@@ -145,17 +146,20 @@ export const ALL_LINKS: NavLink[] = [
   // ROLE_ROUTES.guard), the same precedent as /kiosk and /guard/search: it is
   // in guards' bookmarks and nothing about it became unsafe, it simply stopped
   // being a place to go.
-  // Staff see a different component at this route (VisitorsDashboard, not the
-  // guard console), so they get the unqualified label and no sub-nav.
-  { to: '/visitors', label: 'Visitors', roles: ['staff'], icon: icon(ICON_USERS) },
+  // STAFF NO LONGER HAVE AN ITEM HERE (client instruction, 2026-08-18: every
+  // account that is not a guard and not an admin gets the HOD's features,
+  // workflow and frontend exactly). `VisitorsDashboard` listed the same
+  // department's visits that /overview now shows with tiles, panels and the two
+  // decisions a host actually makes, and `/whos-inside` is that board's On Site
+  // panel — so what a staff member lost here they gained above, with actions on
+  // it. The components stay on disk; see ROLE_ROUTES.staff.
   // Search left the nav but stays routable at /guard/search (see
   // ROLE_ROUTES.guard in roleRoutes.ts).
 
   // ── Other roles ───────────────────────────────────────────────────────────
   // "Pre-Approvals", not "Approvals": the pending walk-in decisions moved to the
   // Overview, so this route is now only the form for booking a visitor ahead.
-  { to: '/whos-inside', label: 'On-site', roles: ['staff'], icon: icon(ICON_USERS) },
-  { to: '/reports', label: 'Reports', roles: ['hod', 'senior_manager', 'staff'], icon: icon(ICON_REPORT) },
+  { to: '/reports', label: 'Reports', roles: hodRoles(), icon: icon(ICON_REPORT) },
 
   // ── Admin: the SIX-tab console ───────────────────────────────────────────
   // It was eight until 2026-08-18, when the client asked for two merges:

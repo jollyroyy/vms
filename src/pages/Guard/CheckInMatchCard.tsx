@@ -18,22 +18,32 @@ const APPROVAL_META: Record<MatchItem['approvalType'], { label: string; badge: s
   recurring:    { label: 'Regular',      badge: 'bg-accent-50 text-accent-700 border border-accent-500/20 dark:bg-accent-500/10 dark:text-accent-300 dark:border-accent-500/25' },
 };
 
-// Closed/non-actionable pass states, surfaced so a search hit that cannot be
-// checked in still tells the guard WHY. `checked_in` and `pending_approval`
-// aren't "closed" exactly, but neither is checkable-in from this list either
-// (checked_in has its own `isCheckedIn` badge below computed from a live
-// checked-in-ids set, not from m.status, which is why it's handled separately
-// rather than through this map — see the render guard below). Statuses left
-// out here (`approved`, `walkin_approved`) are the checkable ones and need no
-// badge at all.
-const STATUS_META: Partial<Record<VisitStatus, { label: string; badge: string }>> = {
-  checked_out:      { label: 'Checked Out',       badge: 'bg-navy-50 text-navy-600 border border-navy-500/15 dark:bg-white/[0.06] dark:text-navy-200' },
-  rejected:         { label: 'Rejected',          badge: 'bg-danger-50 text-danger-700 border border-danger-500/20' },
-  cancelled:        { label: 'Cancelled',         badge: 'bg-navy-50 text-navy-600 border border-navy-500/15 dark:bg-white/[0.06] dark:text-navy-200' },
-  no_show:          { label: 'No Show',           badge: 'bg-danger-50 text-danger-700 border border-danger-500/20' },
-  expired:          { label: 'Expired',           badge: 'bg-danger-50 text-danger-700 border border-danger-500/20' },
-  checked_in:       { label: 'Inside Now',        badge: 'bg-brand-50 text-brand-700 border border-brand-500/20' },
-  pending_approval: { label: 'Awaiting Approval', badge: 'bg-amber-50 text-amber-700 border border-amber-500/20 dark:bg-amber-500/12 dark:text-amber-300 dark:border-amber-500/25' },
+type Badge = { label: string; badge: string };
+
+const NEUTRAL = 'bg-navy-50 text-navy-600 border border-navy-500/15 dark:bg-white/[0.06] dark:text-navy-200';
+const DANGER  = 'bg-danger-50 text-danger-700 border border-danger-500/20';
+const AMBER   = 'bg-amber-50 text-amber-700 border border-amber-500/20 dark:bg-amber-500/12 dark:text-amber-300 dark:border-amber-500/25';
+const BRAND   = 'bg-brand-50 text-brand-700 border border-brand-500/20';
+
+// WHAT BECAME OF THIS PASS, one entry per status that has an answer. Declared
+// over the FULL VisitStatus union so a new status forces a decision here rather
+// than falling silently through to a computed guess — the same rule
+// `lib/checkableStatus.ts` follows. `approved` and `walkin_approved` are the
+// two OPEN states: nothing has become of them yet, so they carry no badge and
+// the row is free to say "Expired" or "Not due today" about itself instead.
+const STATUS_META: Record<VisitStatus, Badge | null> = {
+  approved:         null,
+  walkin_approved:  null,
+  checked_in:       { label: 'Checked In',        badge: BRAND },
+  checked_out:      { label: 'Checked Out',       badge: NEUTRAL },
+  rejected:         { label: 'Rejected',          badge: DANGER },
+  cancelled:        { label: 'Cancelled',         badge: NEUTRAL },
+  no_show:          { label: 'No Show',           badge: DANGER },
+  expired:          { label: 'Expired',           badge: DANGER },
+  // 081/082: nobody ever answered. It must never read as an approval that ran
+  // out — no host cleared this visitor — which is the same word Reports uses.
+  lapsed:           { label: 'Not Approved',      badge: NEUTRAL },
+  pending_approval: { label: 'Awaiting Approval', badge: AMBER },
 };
 
 type Props = {
@@ -62,13 +72,35 @@ export default function CheckInMatchCard({
   // exactly what a person already inside is.
   const canCheckOut = Boolean(onCheckOut) && m.status === 'checked_in';
   const approval = APPROVAL_META[m.approvalType];
-  // Mutually exclusive with the three existing badges below: `isCheckedIn`
-  // and `expired` come from the guard's own live computation (checkedInIds /
-  // isExpired), not from m.status, so a row can satisfy one of those AND
-  // have a status that would otherwise map to the same or a conflicting
-  // label. Only fall through to the status badge when none of the other
-  // three already explain why the row can't be acted on.
-  const statusMeta = !isCheckedIn && !expired && m.dueToday && m.status ? STATUS_META[m.status] : undefined;
+
+  // ONE STATE BADGE, AND THE VISIT'S OWN STATUS IS THE LAST WORD (client
+  // instruction, 2026-08-18: a visitor who has checked out must read "Checked
+  // Out", never "Expired"; "Expired" is for a pass that really ran out and the
+  // visitor never appeared).
+  //
+  // This row used to render up to four state badges from three sources that
+  // could contradict each other, and the precedence was backwards: `expired`
+  // and `isCheckedIn` are the CALLER's computations (`isVisitExpired`, a live
+  // checked-in-ids set) and they SUPPRESSED the status badge, `statusMeta`,
+  // rather than deferring to it. Every closed pass therefore printed the same
+  // red "Expired":
+  //   * `ScanPassLookup` passed `expired={!isCheckableStatus(status)}`, which
+  //     is true for checked_out, rejected, cancelled, no_show and lapsed alike
+  //     — so a visitor who had walked out an hour ago was labelled Expired.
+  //   * `CheckInMatchList` passes a real `isVisitExpired(visit)`, which is also
+  //     true of any completed visit from an earlier day, for the same result.
+  // A computed expiry can only ever be a guess about an OPEN pass; once the
+  // visit has an outcome, the outcome is the answer. So: what happened, then
+  // what we inferred, then whether it is due — first one wins, and there is
+  // never a second.
+  const decided = m.status ? STATUS_META[m.status] : null;
+  const insideNow = isCheckedIn || m.status === 'checked_in';
+  const stateBadge: Badge | null =
+    insideNow ? STATUS_META.checked_in
+    : decided ? decided
+    : expired ? { label: 'Expired', badge: DANGER }
+    : !m.dueToday ? { label: 'Not due today', badge: AMBER }
+    : null;
 
   return (
     // A ROW THAT CANNOT BE ACTED ON IS STILL FULLY LEGIBLE (client instruction,
@@ -110,14 +142,7 @@ export default function CheckInMatchCard({
                 without asking the guard to notice which format they got. */}
             {m.scheduledFor ? formatDateTime(m.scheduledFor) : 'Anytime today'}
           </span>
-          {isCheckedIn && <span className="status-badge bg-brand-50 text-brand-700 border border-brand-500/20">Checked In</span>}
-          {expired && !isCheckedIn && <span className="status-badge bg-danger-50 text-danger-700 border border-danger-500/20">Expired</span>}
-          {!m.dueToday && !expired && !isCheckedIn && (
-            <span className="status-badge bg-amber-50 text-amber-700 border border-amber-500/20 dark:bg-amber-500/12 dark:text-amber-300 dark:border-amber-500/25">
-              Not due today
-            </span>
-          )}
-          {statusMeta && <span className={`status-badge ${statusMeta.badge}`}>{statusMeta.label}</span>}
+          {stateBadge && <span className={`status-badge ${stateBadge.badge}`}>{stateBadge.label}</span>}
         </div>
 
         <p className="text-caption text-navy-500 dark:text-navy-400 mt-1 truncate">{m.purpose}</p>

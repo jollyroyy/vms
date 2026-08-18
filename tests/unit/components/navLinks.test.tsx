@@ -78,13 +78,16 @@ describe('navLinks: linksForRole', () => {
     expect(links.find((l) => l.label === 'Visitors')).toBeUndefined();
   });
 
-  // Staff land on a different component at this same route (VisitorsDashboard,
-  // not the guard console) and never get the sub-nav.
-  it('staff Visitors link carries no sub-nav children', () => {
+  // STAFF HAVE NO VISITORS ITEM EITHER, since 2026-08-18 (client instruction:
+  // every account that is not a guard and not an admin gets the HOD's features,
+  // workflow and frontend). `VisitorsDashboard` listed the same department's
+  // visits that /overview shows with tiles, panels and the two decisions a host
+  // actually makes.
+  it('staff has no /visitors nav link', () => {
     const links = linksForRole('staff');
-    const visitors = links.find((l) => l.label === 'Visitors');
-    expect(visitors?.to).toBe('/visitors');
-    expect((visitors as any)?.children).toBeUndefined();
+    expect(links.find((l) => l.to === '/visitors')).toBeUndefined();
+    expect(links.find((l) => l.label === 'Visitors')).toBeUndefined();
+    expect(links.find((l) => l.label === 'On-site')).toBeUndefined();
   });
 
   // The admin console is NINE TABS as of 2026-08-17 (client instruction), and
@@ -159,9 +162,13 @@ describe('navLinks: linksForRole', () => {
     expect(links.find((l) => l.label === 'Pre-Approvals')?.to).toBe('/approvals');
   });
 
-  it('staff gets Visitors, On-site, Reports', () => {
-    const links = linksForRole('staff');
-    expect(links.map((l) => l.label)).toEqual(['Visitors', 'On-site', 'Reports']);
+  // THE APPROVER ROLES GET ONE NAV, and it is the HOD's (client instruction,
+  // 2026-08-18). Asserted as an equivalence rather than a copied list of five
+  // labels, so the three cannot drift apart the first time an item is added.
+  it('staff and senior_manager get exactly the HOD nav', () => {
+    const hod = linksForRole('hod').map((l) => l.to);
+    expect(linksForRole('staff').map((l) => l.to)).toEqual(hod);
+    expect(linksForRole('senior_manager').map((l) => l.to)).toEqual(hod);
   });
 
   // Daily Staff and Self-Service Kiosk are intentionally absent from every

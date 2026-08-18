@@ -7,6 +7,7 @@ import DashboardVisitorTable from '../../components/DashboardVisitorTable';
 import VisitorDetails from '../../components/VisitorDetails';
 import AdminDashboardKpis from './AdminDashboardKpis';
 import GlanceHeader from '../../components/GlanceHeader';
+import OverstayAlertBanner from '../../components/OverstayAlertBanner';
 import { useAdminVisits } from '../../lib/useAdminVisits';
 import { useVisitFeedback } from '../../lib/useVisitFeedback';
 import { adminKpis, hourlyFlow, purposeSplit, topHosts, lobbyFeed } from '../../lib/adminDashboard';
@@ -54,6 +55,15 @@ export default function AdminDashboard(): React.ReactElement {
 
   return (
     <div className="p-6 max-w-[1600px] mx-auto">
+      {/* THE ONE RED THING ON THIS BOARD (client instruction, 2026-08-18), and
+          the reason the two-day fetch above is worth keeping: the visitor most
+          likely to be overdue right now arrived at 21:00 last night. Same
+          `isOverstaying` the Blacklist & Security tab's overstay half uses, so
+          the console cannot name two different sets of people. */}
+      <div className="mb-5">
+        <OverstayAlertBanner visits={visits} now={now} />
+      </div>
+
       {/* Still no PAGE heading — the sidebar item just clicked says "Dashboard"
           and this screen has no toolbar for a heading row to anchor, so it
           passes no AdminPageHeader, unchanged. What this is instead is the

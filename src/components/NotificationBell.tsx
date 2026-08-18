@@ -4,6 +4,7 @@ import type { UserRole, Notification } from '../types/index';
 import ModalCloseButton from './ModalCloseButton';
 import { useEscapeKey } from '../lib/useEscapeKey';
 import { istDayStart } from '../lib/visitExpiry';
+import { isHodRole } from '../lib/hodRoles';
 
 interface Props {
   userId: string;
@@ -22,7 +23,12 @@ export default function NotificationBell({ userId, role }: Props): React.ReactEl
   // A senior manager receives an HOD's notifications, because they receive an
   // HOD's walk-in requests — omitting them here would leave the one role whose
   // job is to answer those requests with no sign that any had arrived.
-  const isEligible = role && ['hod', 'senior_manager', 'guard', 'admin'].includes(role);
+  // `staff` joined the approver roles on 2026-08-18 (client instruction: every
+  // account that is not a guard and not an admin gets the HOD's surface), and a
+  // walk-in request is the one notification that asks somebody to DO something.
+  // An approver who is not told a visitor is waiting at the gate is the whole
+  // reason this bell exists.
+  const isEligible = role !== null && (isHodRole(role) || role === 'guard' || role === 'admin');
 
   const fetchNotifications = useCallback(async () => {
     try {

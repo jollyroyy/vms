@@ -180,12 +180,16 @@ describe('Sidebar: navigation links', () => {
     expect(screen.queryByText('Material Passes')).not.toBeInTheDocument();
   });
 
-  it('renders correct nav links for staff role', () => {
+  // Staff are approvers since 2026-08-18 (client instruction: every account
+  // that is not a guard and not an admin gets the HOD's features, workflow and
+  // frontend), so this rail is the HOD's rail.
+  it('renders the HOD nav links for staff role', () => {
     renderWithRouter(<Sidebar session={staffSession} role="staff" />);
-    expect(screen.getByText('Visitors')).toBeInTheDocument();
-    expect(screen.getByText('On-site')).toBeInTheDocument();
+    expect(screen.getByText('Pre-Approvals')).toBeInTheDocument();
+    expect(screen.getByText('Walk-in Desk')).toBeInTheDocument();
     expect(screen.getByText('Reports')).toBeInTheDocument();
-    expect(screen.queryByText('Approvals')).not.toBeInTheDocument();
+    expect(screen.queryByText('Visitors')).not.toBeInTheDocument();
+    expect(screen.queryByText('On-site')).not.toBeInTheDocument();
     expect(screen.queryByText('Settings')).not.toBeInTheDocument();
   });
 

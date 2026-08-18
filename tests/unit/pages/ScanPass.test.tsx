@@ -86,6 +86,14 @@ function renderPage() {
   );
 }
 
+// THE CAMERA IS BEHIND ONE PRESS (client instruction, 2026-08-18): the page
+// opens as a search box with a "Scan QR code" link under it, and the scanner is
+// not RENDERED — not merely disarmed — until that link is used. Every test
+// below that needs the scanner opens it through the same link a guard would.
+function openScanner() {
+  fireEvent.click(screen.getByRole('button', { name: /scan qr code/i }));
+}
+
 beforeEach(() => {
   mockCheckInScannedVisit.mockReset();
   mockCheckInScannedVisit.mockResolvedValue({ ok: true, visitorName: 'Alice Johnson' });
@@ -109,13 +117,23 @@ describe('S-SCAN-PASS: ScanPass', () => {
     expect(screen.queryByText(/scan the qr code of the visitor pass/i)).not.toBeInTheDocument();
   });
 
-  it('renders the QR scanner until a pass is resolved', () => {
+  it('opens as search only — no scanner until the guard asks for one', () => {
     renderPage();
+    expect(screen.queryByText('QR SCANNER STUB')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /scan qr code/i })).toBeInTheDocument();
+  });
+
+  it('renders the QR scanner once the scan link is pressed, until a pass is resolved', () => {
+    renderPage();
+    openScanner();
     expect(screen.getByText('QR SCANNER STUB')).toBeInTheDocument();
+    // The link is spent: one arming control on screen, never two.
+    expect(screen.queryByRole('button', { name: /scan qr code/i })).not.toBeInTheDocument();
   });
 
   it('shows the visitor summary once a scan resolves', async () => {
     renderPage();
+    openScanner();
     fireEvent.click(screen.getByRole('button', { name: 'scan-resolved' }));
     expect(await screen.findByText('Alice Johnson')).toBeInTheDocument();
     expect(screen.queryByText('QR SCANNER STUB')).not.toBeInTheDocument();
@@ -123,6 +141,7 @@ describe('S-SCAN-PASS: ScanPass', () => {
 
   it('checks in a scanned visitor once a photo is captured', async () => {
     renderPage();
+    openScanner();
     fireEvent.click(screen.getByRole('button', { name: 'scan-resolved' }));
     fireEvent.click(await screen.findByText('PHOTO CAPTURE STUB'));
     fireEvent.click(await screen.findByText('Scan ID card'));
@@ -144,6 +163,7 @@ describe('S-SCAN-PASS: ScanPass', () => {
   it('keeps the photo step and shows the reason when the check-in is blocked', async () => {
     mockCheckInScannedVisit.mockResolvedValue({ ok: false, message: 'blocked' });
     renderPage();
+    openScanner();
     fireEvent.click(screen.getByRole('button', { name: 'scan-resolved' }));
     fireEvent.click(await screen.findByText('PHOTO CAPTURE STUB'));
     fireEvent.click(await screen.findByText('Scan ID card'));
@@ -163,6 +183,7 @@ describe('S-SCAN-PASS: ScanPass', () => {
   // is gone.
   it('always renders the scanner — there is no feature flag to switch it off', () => {
     renderPage();
+    openScanner();
     expect(screen.getByText('QR SCANNER STUB')).toBeInTheDocument();
     expect(screen.queryByText(/unavailable on this deployment/i)).not.toBeInTheDocument();
   });

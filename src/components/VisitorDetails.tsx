@@ -7,6 +7,7 @@ import VisitorDetailsActions from './VisitorDetailsActions';
 import VisitorDetailsOverview from './VisitorDetailsOverview';
 import VisitorDetailsIdCard, { isIdentityVerified } from './VisitorDetailsIdCard';
 import { VisitorTimelineCard } from './VisitorDetailsTimeline';
+import { isHodRole } from '../lib/hodRoles';
 
 interface Props {
   // Widened from `Visit` so callers that have already attached the audit-log
@@ -69,7 +70,10 @@ export default function VisitorDetails({
   // A senior manager is an HOD in everything but title, so the ID proof is
   // hidden from them by the same rule — an approver decides whether to admit a
   // visitor, which never requires seeing their identity document.
-  const showIdTab = viewerRole !== 'hod' && viewerRole !== 'senior_manager';
+  // Every approver role is treated as an HOD here (lib/hodRoles.ts): the ID
+  // proof is the gate's business, and who may see it follows the permission,
+  // not the job title.
+  const showIdTab = !isHodRole(viewerRole);
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };

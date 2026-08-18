@@ -10,7 +10,11 @@ const ROLE_LABELS: Record<string, string> = {
   senior_manager: 'Person to Meet',
   admin: 'Admin',
   super_admin: 'Admin',
-  staff: 'Staff',
+  // Same phrase again, and for the same reason: since 2026-08-18 a staff
+  // account IS an approver (lib/hodRoles.ts), so "cleared by Staff" on a
+  // visitor's row named the actor's rank where the row wants their
+  // relationship to the visitor.
+  staff: 'Person to Meet',
 };
 
 function getRoleLabel(role: string): string {

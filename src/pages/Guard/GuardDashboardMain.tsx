@@ -13,6 +13,7 @@ import DashboardTile from '../../components/DashboardTile';
 import { TILE_ICONS, TILE_RING, sortForTile } from './dashboardTileMeta';
 import VisitorDetails from '../../components/VisitorDetails';
 import GlanceHeader from '../../components/GlanceHeader';
+import OverstayAlertBanner from '../../components/OverstayAlertBanner';
 
 // Guard Dashboard — the whole board, on one screen.
 //
@@ -95,6 +96,16 @@ export default function GuardDashboardMain(): React.ReactElement {
 
   return (
     <div className="space-y-4 animate-fade-in pb-4">
+      {/* ABOVE EVERYTHING, IN RED (client instruction, 2026-08-18). The
+          Overstaying tile is one number in a row of five; a visitor who is
+          still in the building past their time is the one thing on this board
+          that is about a person rather than a count, and it should not wait for
+          the guard to notice a tile. Same rows, same predicate — the banner
+          filters the very list `TILE_FILTER.overstaying` slices, so the line at
+          the top and the tile below it can never disagree. Renders nothing when
+          nobody is overdue. */}
+      <OverstayAlertBanner visits={visits} now={clock} />
+
       {/* The board's window, said once (client instruction, 2026-08-17). It is
           an h2 and NOT the <h1> this page had removed in 2026-08-13 — the
           sidebar item still says "Dashboard" and this does not repeat it, which
