@@ -27,6 +27,8 @@
 import React, { useState } from 'react';
 import type { Visit } from '../../types/index';
 import { isValidCardNumber } from '../../lib/cardNumber';
+import { useCardAvailability } from '../../lib/useCardAvailability';
+import { cardInUseMessage } from '../../lib/cardAssignment';
 import type { WalkInCheckIn } from '../../lib/checkInWalkInApproved';
 
 type Props = {
@@ -42,13 +44,22 @@ export default function WalkInCheckInForm({ visit: v, busy, onConfirm, onCancel 
   const [carrying, setCarrying] = useState(false);
   const [remarks, setRemarks] = useState('');
 
-  const cardBad = !isValidCardNumber(cardNumber);
+  const cardInvalid = !isValidCardNumber(cardNumber);
+
+  // ONE CARD, ONE HOLDER (client instruction, 2026-08-18). Migration 102's
+  // unique indexes refuse the write; this lookup refuses the FORM, while the
+  // card is still in the guard's hand rather than in the visitor's pocket.
+  // `visit.id` is excluded so a re-submit is never blocked by its own write.
+  const { holder } = useCardAvailability(cardNumber, v.id);
+  const cardBad = cardInvalid || holder !== null;
   const canConfirm = !cardBad && !busy;
 
   // Why Confirm Check In is refused, in one line — same rule as
-  // CheckInPhotoStep. There is only one requirement left, but a greyed-out
-  // button with nothing saying why is what this desk cannot afford.
-  const blockedReason = cardBad ? 'Enter the visitor card number before checking in.' : '';
+  // CheckInPhotoStep. A greyed-out button with nothing saying why is what this
+  // desk cannot afford, and "the number is taken" needs to name who has it.
+  const blockedReason = holder
+    ? cardInUseMessage(holder)
+    : cardInvalid ? 'Enter the visitor card number before checking in.' : '';
 
   // What registration already put on the row. Each line renders only if the
   // record actually holds it — an unconditional "Identity verified" would be a
@@ -97,9 +108,9 @@ export default function WalkInCheckInForm({ visit: v, busy, onConfirm, onCancel 
             mistake, and painting the box red the moment the form opens spent the
             one error colour on the normal case; the outstanding-requirement line
             above the buttons is what names an untouched field. */}
-        {cardBad && cardNumber !== '' && (
+        {cardNumber !== '' && (cardInvalid || holder) && (
           <p id={`walkin-card-hint-${v.id}`} className="text-[11px] text-danger-600 font-semibold">
-            Letters, digits and hyphens only — e.g. C-104.
+            {cardInvalid ? 'Letters, digits and hyphens only — e.g. C-104.' : holder ? cardInUseMessage(holder) : ''}
           </p>
         )}
       </div>

@@ -202,3 +202,50 @@ describe('Checked Out Today', () => {
     )).toBe(false);
   });
 });
+
+describe('Cards Not Returned', () => {
+  // The end-of-day tally the client asked for (2026-08-18). Its predicate is
+  // `isCardOutstanding` from lib/cardAssignment.ts — the same module that
+  // decides a number cannot be reissued — so the tile and the constraint are
+  // one rule read from two ends, and the count is still the length of the list
+  // it opens.
+  it('counts a card whose visit closed with no return stamped', () => {
+    expect(TILE_FILTER.cardsOutstanding(v({
+      status: 'checked_out',
+      checked_in_at: '2026-08-14T04:00:00Z',
+      checked_out_at: '2026-08-14T10:00:00Z',
+      visitor_card_number: 'C-124',
+      visitor_card_returned_at: null,
+    } as any), NOW)).toBe(true);
+  });
+
+  // NOT-RETURNED, not in-use. A card with a visitor who is still inside is
+  // exactly where it should be; counting them would make the tile read as a
+  // fault every afternoon, which is how a number stops being believed.
+  it('does not count a card still with a visitor who is inside', () => {
+    expect(TILE_FILTER.cardsOutstanding(v({
+      status: 'checked_in',
+      checked_in_at: '2026-08-14T04:00:00Z',
+      visitor_card_number: 'C-124',
+      visitor_card_returned_at: null,
+    } as any), NOW)).toBe(false);
+  });
+
+  it('does not count a card that came back', () => {
+    expect(TILE_FILTER.cardsOutstanding(v({
+      status: 'checked_out',
+      visitor_card_number: 'C-124',
+      visitor_card_returned_at: '2026-08-14T10:00:00Z',
+    } as any), NOW)).toBe(false);
+  });
+
+  it('the count is the length of the list it opens', () => {
+    const rows = [
+      v({ id: 'a', status: 'checked_out', visitor_card_number: 'C-1', visitor_card_returned_at: null } as any),
+      v({ id: 'b', status: 'checked_out', visitor_card_number: 'C-2', visitor_card_returned_at: '2026-08-14T10:00:00Z' } as any),
+      v({ id: 'c', status: 'checked_in', visitor_card_number: 'C-3', visitor_card_returned_at: null } as any),
+    ];
+    const drill = tileVisits(rows, NOW);
+    expect(drill.cardsOutstanding.map((r) => r.id)).toEqual(['a']);
+  });
+});

@@ -487,8 +487,27 @@ Tests in `VisitorCard` and `GuardConsole` assert the absence.
   - **Verify ID** — a button that renders `VisitorCheckInFlow` IN PLACE in a modal with the
     scan overlay open immediately (`autoScan` through `CheckInPhotoStep`). Never a `<Link>`
     to a tab where the scan is absent or one click deep.
-- **Row 1 is FIVE tiles** (2026-08-17), in the order a visit passes the gate:
-  Expected · Checked In · In Premises · Checked Out · Overstaying (`xl:grid-cols-5`).
+- **Row 1 is SIX tiles** (2026-08-18), in the order a visit passes the gate:
+  Expected · Checked In · In Premises · Checked Out · Overstaying · **Cards Not
+  Returned**. The grid is `grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6` — six across **only
+  at 2xl**, never at xl: a `DashboardTile` spends **104px** before a letter is drawn, which
+  is what split "Pre-/Approva/ls Given" on the HOD board, and six xl columns would leave
+  ~62px of text column. It no longer matches row 2's five; a shared column rhythm was worth
+  having and is not worth an unreadable tile.
+- **THE CARDS NOT RETURNED TILE IS THE END-OF-DAY CARD TALLY** (client instruction,
+  2026-08-18: "at the end of the day, also tally whatever cards did not return, flag
+  those … dashboard KPI"). Its predicate is **`isCardOutstanding` from
+  `lib/cardAssignment.ts`** — the same module that decides a number cannot be reissued, so
+  "which cards are missing" and "which numbers are blocked" are one rule read from two ends
+  rather than two rules that agree until they do not. `visitor_card_number` set,
+  `visitor_card_returned_at` null, **and `status !== 'checked_in'`**: that last clause is
+  what makes it NOT-RETURNED rather than in-use — a card with a visitor who is inside is
+  exactly where it should be, and counting them would make the tile read as a fault every
+  afternoon. What lands on it is the row the overstay sweep gave up on (067 can stamp
+  `checked_out_at` and `exit_verified = false`, never a return nobody witnessed). Its window
+  is `useTodayVisits`, the same "only for today" the reissue rule uses, so the two cannot
+  describe different days. The panel leads with `COLUMN.card` — the guard reading it is
+  holding a stack and looking for the gaps in it.
 - **`lib/guardTiles.ts` holds one predicate per tile (`TILE_FILTER`) and one slicer
   (`tileVisits`)**; the tile renders `drill[key].length` and the panel `drill[key]`.
   - `expected` = `approved` with `checked_in_at IS NULL`, plus `walkin_approved` (restored
@@ -620,6 +639,31 @@ routable (bookmarks, `?verify=` links). The FILE is still `GuardLiveQueue.tsx`.
   Scan Pass and the Verify ID modal all render it. **The approved-walk-in lane is
   deliberately EXEMPT** — that visitor's ID was scanned at registration and is on the row,
   and since 2026-08-17 the lane asks for neither scan nor photo.
+- **THE VISITOR IS PHOTOGRAPHED ONCE** (client instruction, 2026-08-18: "the photo cannot
+  be taken twice, it should not ask twice — once it has captured it, it should keep it").
+  The approved-walk-in LANE has refused to re-photograph since 2026-08-17; this is the same
+  rule on the other three ways into the same visit, because a rule that holds on one lane
+  is not a rule. A walk-in's face is uploaded by `WalkInRequest` BEFORE the visit row
+  exists, and that visitor then reaches `CheckInPhotoStep` through the search desk, the
+  Expected panel's Verify ID, or a scanned pass — each of which pointed a camera at the
+  same person a second time, minutes later, for a record the row already held.
+  **`CheckInPhotoStep` reads `selectedMatch.photoUrl`**: present ⇒ the camera never mounts,
+  `CheckInPhotoRow` states "Photo already on file", and the step goes straight to the card
+  and the carrying declaration. Absent (every host-raised pre-approval, every recurring
+  visitor) ⇒ the camera opens exactly as before, because then nobody has taken one.
+  - **`checkInScannedVisit`'s `photoBlob` is `Blob | null`.** Null uploads nothing and
+    spreads no photo columns, so what registration filled survives untouched — that is what
+    "keep it" means at the write. `checkInRecurringVisitor` still demands a real blob: a
+    recurring visitor has no visit row and therefore never a photo on file.
+  - **There is deliberately NO "replace the photo" control.** Offering one is asking twice
+    with a politer label; `onRetake` renders only for a photo THIS desk just took. The
+    missing-identity case a guard must still be stopped by is the ID SCAN.
+  - Guarded by `CheckInPhotoStepPhotoOnce.test.tsx`, which fails on a `<video>` or a
+    Capture Photo button when the row carries a face.
+  - The 300-line cap split three presentational blocks out of the step in the same pass:
+    `CheckInCardField`, `CheckInScanField`, `CheckInPhotoRow`. All three render only — every
+    decision about whether Check In may be pressed stays in `CheckInPhotoStep`, so exactly
+    one place gates the admission.
 - **Every check-in path RECORDS a photo; only the pre-approved ones TAKE it** — structurally
   in `CheckInPanel`, and `VisitorForm.checkInPreApproved` uploads one. The approved-walk-in
   lane carries the photo `WalkInRequest` already uploaded onto the row.
@@ -865,6 +909,42 @@ routable (bookmarks, `?verify=` links). The FILE is still `GuardLiveQueue.tsx`.
   `visitor_card_number` (`^[A-Za-z0-9-]{1,20}$`) + `visitor_card_returned_at`. The number is
   required at the APP level on every check-in path (`CheckInPhotoStep`), the CHECK is a
   backstop. `lib/cardNumber.ts` mirrors it.
+- **ONE CARD, ONE HOLDER — A NUMBER CANNOT BE ISSUED AGAIN UNTIL IT COMES BACK**
+  (client instruction, 2026-08-18: "the same card number cannot be assigned twice, until
+  and unless it gets returned — and that only for today"). 076 minted the card and demanded
+  it back; nothing ever asked whether the number being typed was ALREADY out, so two
+  visitors could hold C-124 an hour apart and the exit desk had two open visits demanding
+  one card back — the guard collects one, ticks one box, and the other tick is an assertion
+  about an object that is not there.
+  - **`src/lib/cardAssignment.ts` is the one place both halves are decided**:
+    `findCardHolder` (may this number be issued?) and `isCardOutstanding` (did it come
+    back?). Never answer either question anywhere else.
+  - **THE WINDOW IS TWO CLAUSES, NOT ONE.** Blocked while the holder is **inside, on any
+    day** — a contractor who arrived at 21:00 last night is still carrying it — and blocked
+    for the rest of the **IST day it was issued on** if it never came back. That second
+    bound is the client's "only for today", and it is load-bearing: a card is reissued
+    daily, and without it one lost card would wedge its number out of the stack forever,
+    with no screen in this app able to release it (there is no card-inventory surface, only
+    two columns on a visit).
+  - **Migration 102 is the real gate** — two unique partial indexes,
+    `visits_card_live_holder_uidx` (one live holder per card, any day) and
+    `visits_card_unreturned_today_uidx` (`upper(number)` + `date(timezone('Asia/Kolkata',
+    checked_in_at))`). Three devices write check-ins; a pre-check can only narrow the race.
+    The day key is that `timezone(text, timestamptz)` expression and **not**
+    `vms_day_start_ist()`: an index expression must be IMMUTABLE and anything reading the
+    session TimeZone is only STABLE. 102 also **drops 097's
+    `visits_card_number_inside_idx`**, the non-unique version of exactly the first index.
+    `isCardTakenError` matches BOTH names, so an unrelated 23505 is never mislabelled — the
+    same rule `activeVisit.ts` follows.
+  - **All three writes pre-check and all three map the race**: `checkInFlow`,
+    `checkInWalkInApproved`, and `checkInRecurring` (which passes no `excludeVisitId` — it
+    INSERTs, so there is no row of its own to forgive). The two forms check as the guard
+    types, through `lib/useCardAvailability.ts` (debounced, request-id race guard), because
+    the write happens AFTER the card is handed over: "C-124 is still with Priya Nair" is
+    worth reading while it is in your hand, not once it is in the visitor's pocket.
+  - Matched **case-insensitively** (`normalizeCard`, `upper()` in both indexes) — the number
+    is read off a printed card and typed by hand, and a rule a shift key defeats is not a
+    rule. Guarded by `cardAssignment.test.ts`.
 - **THE RETURN TICK IS REQUIRED ON EVERY CHECK-OUT, CARD OR NO CARD** (2026-08-17). The
   no-card branch of `CardReturnConfirm` keeps the checkbox and changes only what it asserts
   ("I have looked and no card was issued"). The issued number is printed **inside the
@@ -1456,6 +1536,12 @@ through a SECURITY DEFINER RPC, so a direct UPDATE grant is attack surface with 
 - **097** `visits.id_match_overridden` (the scan-mismatch override, recorded without a
   reason) and a PARTIAL index on `upper(visitor_card_number)` for `checked_in` rows, which
   is what Find & Scan's card lookup reads. Verified live 2026-08-18.
+- **102** ONE CARD, ONE HOLDER — the two unique indexes behind "a number cannot be issued
+  again until it is returned" (see the card rule above). It opens with a DO block that
+  NAMES every already-double-issued card as a NOTICE before either CREATE runs, because
+  "could not create unique index" pointing at a row id is not something an operator can
+  act on. It also drops 097's now-redundant `visits_card_number_inside_idx`. No enum
+  change, so no `ALTER TYPE` split this time.
 - **098/099** the `senior_manager` role — an HOD's permissions under a different job title
   (client instruction, 2026-08-18), so a department headed by somebody not called an HOD
   can be represented as what they are. **Apply 098 alone, then 099**: `ALTER TYPE … ADD
@@ -1526,7 +1612,8 @@ src/
                      GuardLiveQueue (= Entry & Exit) + LiveQueueTable, EntryExitTabs,
                      CheckInFrame, CheckInBadgeRail, CheckInTimeline;
                      GuardPreRegistered + PreRegisteredCard; PreApprovals + PreApprovalRow;
-                     CheckInPanel + CheckInMatchList/MatchCard, CheckInPhotoStep,
+                     CheckInPanel + CheckInMatchList/MatchCard, CheckInPhotoStep
+                     (+ CheckInCardField, CheckInScanField, CheckInPhotoRow),
                      CheckInVisitorSummary, CheckInScanGate, GuardQRScan, ScanPass +
                      ScanPassEntryBar/SearchBar/Lookup/Detail,
                      IdScanOverlay, CardReturnConfirm; Search + SearchResultCard;
@@ -1565,7 +1652,8 @@ src/
                      useVisitorDirectory, useBlacklistRemovals, useVisitHistorySearch;
                      visitorSegments, preRegisteredBoard, visitOrigin, visitLifecycle,
                      visitExpiry, istDateTime, visitTimeline, visitApproval, visitActors,
-                     checkableStatus, activeVisit, statusRail, cardNumber, pii;
+                     checkableStatus, activeVisit, statusRail, cardNumber,
+                     cardAssignment, useCardAvailability, pii;
                      checkInFlow, checkInWalkInApproved, checkOutFlow, fetchVisitById,
                      denyEntryFlow,
                      notifyHostCheckIn, printBadge, photoUpload, avatarUpload;
@@ -1581,6 +1669,6 @@ src/
                      components-filter, components-visitor-stack, print, aurora, animations
                      — all @imported by index.css BEFORE @tailwind
   types/             index.ts (all DB types, mirroring the live schema)
-supabase/migrations/ 001–099, hand-applied. See Migrations.
+supabase/migrations/ 001–102, hand-applied. See Migrations.
 tests/unit, tests/security
 ```

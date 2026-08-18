@@ -24,6 +24,7 @@ export const TILE_ICONS: Record<GuardTileKey, string> = {
   inside: ICON_PEOPLE,
   checkedOut: ICON_EXIT,
   overstaying: ICON_CLOCK,
+  cardsOutstanding: ICON_SHIELD_X,
   all: ICON_LIST,
   pending: ICON_CLOCK,
   walkinApproved: ICON_WALKING,
@@ -43,6 +44,9 @@ export const TILE_RING: Record<GuardTileKey, string> = {
   // and "left" while making a routine departure look like an outcome.
   checkedOut: 'border-navy-400/30 text-navy-700',
   overstaying: 'border-warning-400/40 text-warning-400',
+  // Danger, not warning. An overstay is a person we can still see; a card
+  // that did not come back has already left the building with somebody.
+  cardsOutstanding: 'border-danger-500/40 text-danger-500',
   all: 'border-navy-400/30 text-navy-700',
   pending: 'border-warning-400/40 text-warning-400',
   walkinApproved: 'border-accent-500/40 text-accent-500',
@@ -60,6 +64,9 @@ const SORT_KEY: Record<GuardTileKey, (v: ReportVisit) => string> = {
   // The exit is why the row is in this lane, so it is what the lane is read by.
   checkedOut: (v) => v.checked_out_at ?? v.checked_in_at ?? v.created_at,
   overstaying: (v) => v.checked_in_at ?? v.created_at,
+  // The exit is when the card left with them, so it is what this lane is
+  // read by — most recently walked out of the gate on top.
+  cardsOutstanding: (v) => v.checked_out_at ?? v.checked_in_at ?? v.created_at,
   all: (v) => v.checked_out_at ?? v.checked_in_at ?? v.scheduled_for ?? v.created_at,
   pending: (v) => v.created_at,
   walkinApproved: (v) => v.created_at,

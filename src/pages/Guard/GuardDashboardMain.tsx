@@ -17,9 +17,9 @@ import OverstayAlertBanner from '../../components/OverstayAlertBanner';
 
 // Guard Dashboard — the whole board, on one screen.
 //
-//   row 1  — the gate's five tiles, in the order a visit passes through it:
-//            Expected Today / Checked In / In Premises / Checked Out Today /
-//            Overstaying
+//   row 1  — the gate's six tiles, in the order a visit passes through it:
+//            Expected / Checked In / In Premises / Checked Out / Overstaying /
+//            Cards Not Returned
 //   row 2  — the five lanes moved off the Visitors tab (2026-08-15, client
 //            instruction): All Visitors / Pending Approval / Approved Walk-ins /
 //            Declined by Host / Entry Refused at the Gate, rendered compact
@@ -121,10 +121,18 @@ export default function GuardDashboardMain(): React.ReactElement {
           must not mistrust. */}
       <GlanceHeader caption="Today's gate activity — plus anyone still inside, or still waiting on a host, from an earlier day." />
 
-      {/* Row 1 — the gate's own board. Five across at xl since Checked Out
-          joined it (2026-08-17), matching row 2's five so the two rows share a
-          column rhythm instead of a four-and-five stagger. */}
-      <div className="grid grid-cols-2 xl:grid-cols-5 gap-4">
+      {/* Row 1 — the gate's own board, six tiles since Cards Not Returned
+          joined it (2026-08-18, client instruction).
+
+          IT DOES NOT GO SIX ACROSS AT xl. A DashboardTile spends 104px before a
+          letter is drawn (px-5 each side + the 48px icon plate + gap-4), which
+          is what made the HOD board unreadable at seven columns and split words
+          down the middle. Six columns only at 2xl, where each tile still has
+          ~110px of text; below that it steps down to three and then two, and a
+          taller board is the correct price for a legible label. It no longer
+          matches row 2's five — a shared column rhythm was worth having and is
+          not worth an unreadable tile. */}
+      <div className="grid grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6 gap-4">
         {GUARD_TILE_KEYS.map((k) => renderTile(k, false))}
       </div>
 

@@ -8,6 +8,13 @@ const mockUseCameraStream = vi.hoisted(() => vi.fn());
 const mockGetEngine = vi.hoisted(() => vi.fn());
 const mockRecognise = vi.hoisted(() => vi.fn());
 
+// The card-availability lookup (migration 102) is a separate rule with its own
+// test file. Mocked free here so a debounced query never reaches the real
+// supabase client mid-test — this file is about the ID scan.
+vi.mock('../../../src/lib/useCardAvailability', () => ({
+  useCardAvailability: () => ({ holder: null, checking: false }),
+}));
+
 vi.mock('../../../src/lib/useCameraStream', () => ({ useCameraStream: mockUseCameraStream }));
 vi.mock('../../../src/lib/ai/engine', () => ({ getEngine: mockGetEngine }));
 

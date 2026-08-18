@@ -14,6 +14,7 @@ import {
   isAlreadyInsideError, ALREADY_INSIDE_FALLBACK,
 } from './activeVisit';
 import { isVisitExpired } from './visitExpiry';
+import { findCardHolder, cardInUseMessage, isCardTakenError, CARD_TAKEN_FALLBACK } from './cardAssignment';
 import { notifyHostOnCheckIn } from './notifyHostCheckIn';
 
 /** The subset of a MatchItem this write needs. Structural on purpose: src/lib
@@ -40,7 +41,11 @@ type Opts = {
       token resolved to it — and CheckInPanel's search desk finds it in its
       loaded list. Pass null to skip the expiry re-check. */
   visit: Visit | null;
-  photoBlob: Blob;
+  /** A face captured on this screen, or NULL when the row already carries one
+      (client instruction, 2026-08-18: the photo is never asked for twice). A
+      null blob writes no photo columns at all, so what registration uploaded
+      survives the check-in untouched. */
+  photoBlob: Blob | null;
   carrying: boolean;
   remarks: string;
   idScan: IdScanResult | null;
@@ -97,6 +102,15 @@ export async function checkInScannedVisit({ match, visit, photoBlob, carrying, r
 
   if (!match.visitId) return { ok: false, message: 'Missing visit ID for check-in' };
 
+  // ONE CARD, ONE HOLDER (client instruction, 2026-08-18). Migration 102's two
+  // unique indexes are the real gate — three devices write check-ins and a
+  // pre-check can only narrow the race — but a 23505 tells a guard nothing,
+  // while "C-124 is still with Priya Nair" tells them where the card is. Same
+  // division of labour as the already-inside check above. Runs BEFORE the photo
+  // upload: nothing should be stored for an entry that cannot happen.
+  const cardHolder = await findCardHolder(cardNumber, { excludeVisitId: match.visitId });
+  if (cardHolder) return { ok: false, message: cardInUseMessage(cardHolder) };
+
   // A valid pass says an APPROVER said yes; it does not say the person is
   // still welcome. WalkInRequest and the kiosk refuse a flagged phone at
   // REGISTRATION, but every scan-and-enter path skipped is_blacklisted
@@ -114,7 +128,13 @@ export async function checkInScannedVisit({ match, visit, photoBlob, carrying, r
   const flag = flagOf((visitRec as { visitor?: unknown } | null)?.visitor);
   if (flag?.is_blacklisted) return { ok: false, message: blacklistMessage(match.visitorName, flag.blacklist_reason) };
 
-  const { photoPath, photoData } = await uploadPhoto(photoBlob);
+  // No blob means the visit already carries a face — every walk-in does, since
+  // WalkInRequest uploads one before the row exists. Uploading nothing and
+  // spreading no photo columns is what "keep the photo it captured" means at
+  // the write: the original stays exactly as registration left it.
+  const { photoPath, photoData } = photoBlob
+    ? await uploadPhoto(photoBlob)
+    : { photoPath: null as string | null, photoData: null as string | null };
 
   if (idScan?.idType || idScan?.idLast4) {
     await supabase.from('visitors').update({
@@ -136,7 +156,11 @@ export async function checkInScannedVisit({ match, visit, photoBlob, carrying, r
   if (err) {
     // The race the pre-check cannot close: a second device checked the same
     // visitor in between our lookup and our write.
-    return { ok: false, message: isAlreadyInsideError(err) ? ALREADY_INSIDE_FALLBACK : safeErrorMessage(err, 'Check-in failed.') };
+    if (isAlreadyInsideError(err)) return { ok: false, message: ALREADY_INSIDE_FALLBACK };
+    // The other race the pre-check cannot close: a second device issued this
+    // same card between our lookup and our write.
+    if (isCardTakenError(err)) return { ok: false, message: CARD_TAKEN_FALLBACK };
+    return { ok: false, message: safeErrorMessage(err, 'Check-in failed.') };
   }
 
   // Tell the host who made the pre-approval their guest is inside — a red

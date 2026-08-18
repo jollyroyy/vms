@@ -77,6 +77,17 @@ export const PANEL_SPEC: Record<GuardTileKey, DashboardPanelSpec> = {
     columns: [COLUMN.name, COLUMN.idProof, COLUMN.purpose, COLUMN.host, COLUMN.origin, COLUMN.checkedIn,
       COLUMN.overstay, COLUMN.status],
   },
+  // THE END-OF-DAY CARD TALLY (client instruction, 2026-08-18). The card number
+  // leads, because the guard reading this list is holding a stack and looking
+  // for gaps in it; the name and the exit stamp are how they work out who to
+  // call. No Scheduled column — a card exists only from check-in onwards, so
+  // the slot says nothing about where it went.
+  cardsOutstanding: {
+    heading: 'Cards Not Returned',
+    empty: 'Every visitor card issued today has come back.',
+    columns: [COLUMN.card, COLUMN.name, COLUMN.host, COLUMN.department, COLUMN.checkedIn,
+      COLUMN.checkedOut, COLUMN.status],
+  },
   all: {
     heading: 'All Visitors',
     empty: 'No visitor activity yet today.',

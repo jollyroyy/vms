@@ -2,6 +2,7 @@ import type { ReportVisit } from './reportRow';
 import type { VisitStatus } from '../types/index';
 import { isOverstaying, istDayStart } from './visitExpiry';
 import { isApprovedWalkIn } from './visitOrigin';
+import { isCardOutstanding } from './cardAssignment';
 
 // The guard dashboard's four KPI tiles, as PREDICATES over the day's visits.
 //
@@ -31,7 +32,7 @@ import { isApprovedWalkIn } from './visitOrigin';
 // opens the walk-in registration form, and a form does not belong in a board of
 // numbers. It is its own left-hand nav item now (/guard/walk-in).
 export type GuardTileKey =
-  | 'expected' | 'checked' | 'inside' | 'checkedOut' | 'overstaying'
+  | 'expected' | 'checked' | 'inside' | 'checkedOut' | 'overstaying' | 'cardsOutstanding'
   | 'all' | 'pending' | 'walkinApproved'
   | 'declinedByHost' | 'refusedByGuard';
 
@@ -46,7 +47,15 @@ export type GuardTileKey =
  *  subtracting is a step a guard does in their head at a gate, and the Entry &
  *  Exit tab's Checked Out lane already states the number one click away. Two
  *  surfaces, one answer. */
-export const GUARD_TILE_KEYS: GuardTileKey[] = ['expected', 'checked', 'inside', 'checkedOut', 'overstaying'];
+/*  `cardsOutstanding` joined on 2026-08-18 (client instruction: "at the end of
+ *  the day, also tally whatever cards did not return, flag those … dashboard
+ *  KPI"). It is on ROW ONE and not with the secondary lanes below because a
+ *  physical card missing from the stack is a thing to act on before the shift
+ *  ends, not a lane to browse — and because the guard who can still find it is
+ *  the one reading this board. */
+export const GUARD_TILE_KEYS: GuardTileKey[] = [
+  'expected', 'checked', 'inside', 'checkedOut', 'overstaying', 'cardsOutstanding',
+];
 
 /** Row 2 — the lanes that used to live on the Visitors tab, plus the two
  *  refusal lanes (client instruction, 2026-08-15). */
@@ -159,6 +168,26 @@ export const TILE_FILTER: Record<GuardTileKey, (v: ReportVisit, now?: Date) => b
   // stopped believing the row (migration 067).
   overstaying: (v, now) => isOverstaying(v, now ?? new Date()),
 
+  // A card was handed over and never came back, and the visit is closed
+  // (client instruction, 2026-08-18). The predicate is `isCardOutstanding` from
+  // lib/cardAssignment.ts — the SAME file that decides a number cannot be
+  // reissued, so "which cards are missing" and "which numbers are blocked" are
+  // answered by one module rather than by two rules that agree until they do
+  // not.
+  //
+  // `status !== 'checked_in'` is what makes this NOT-RETURNED rather than
+  // in-use: while the visitor is inside, the card is exactly where it should
+  // be, and counting them here would make the tile read as a fault every
+  // afternoon. What lands on it is the visit closed without the tick — in
+  // practice the row the overstay sweep gave up on, which can stamp
+  // `checked_out_at` and `exit_verified = false` but can never stamp a return
+  // nobody witnessed (migration 067).
+  //
+  // Its window is `useTodayVisits`, so this is today's tally — which is the
+  // same "only for today" the reissue rule uses, and the reason the two cannot
+  // describe different days.
+  cardsOutstanding: (v) => isCardOutstanding(v),
+
   // ── The three lanes moved off the Visitors tab (2026-08-15) ──────────────
   // Deliberately the SAME predicates as SEGMENT_FILTER in lib/visitorSegments.ts,
   // because they are the same questions. They are restated here rather than
@@ -198,6 +227,7 @@ export function tileVisits(visits: ReportVisit[], now: Date = new Date()): Recor
     inside: visits.filter((v) => TILE_FILTER.inside(v, now)),
     checkedOut: visits.filter((v) => TILE_FILTER.checkedOut(v, now)),
     overstaying: visits.filter((v) => TILE_FILTER.overstaying(v, now)),
+    cardsOutstanding: visits.filter((v) => TILE_FILTER.cardsOutstanding(v, now)),
     all: visits.filter((v) => TILE_FILTER.all(v, now)),
     pending: visits.filter((v) => TILE_FILTER.pending(v, now)),
     walkinApproved: visits.filter((v) => TILE_FILTER.walkinApproved(v, now)),

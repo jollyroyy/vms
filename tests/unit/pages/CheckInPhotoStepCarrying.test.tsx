@@ -7,6 +7,13 @@ import type { MatchItem } from '../../../src/pages/Guard/CheckInPanel';
 // The carrying-material control, isolated from the OCR/scan behaviour that
 // CheckInPhotoStepScan.test.tsx covers. Split per CLAUDE.md: one behaviour per
 // test file, each with its own harness.
+// The card-availability lookup (migration 102) is a separate rule with its own
+// test file. Mocked free here so a debounced query never reaches the real
+// supabase client mid-test — this file is about the ID scan.
+vi.mock('../../../src/lib/useCardAvailability', () => ({
+  useCardAvailability: () => ({ holder: null, checking: false }),
+}));
+
 vi.mock('../../../src/lib/useCameraStream', () => ({
   useCameraStream: () => ({ status: 'streaming', errorMessage: '', start: vi.fn(), stop: vi.fn() }),
 }));

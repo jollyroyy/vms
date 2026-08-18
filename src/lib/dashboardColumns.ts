@@ -40,6 +40,16 @@ export function formatDuration(ms: number): string {
 // clock and the columns' contract should not shift under them.
 const stamp = (iso: string | null | undefined, _now: Date) => (iso ? formatDateTime(iso) : '—');
 
+// The number printed on the physical card handed over at check-in (076). It
+// goes only on the Cards Not Returned lane: everywhere else it would print an
+// em dash for the pre-approvals nobody has admitted yet, and the number is not
+// what those lanes are read for.
+const CARD: DashboardColumn = {
+  key: 'card', header: 'Card',
+  value: (v) => v.visitor_card_number ?? 'Not recorded',
+  tone: 'warn',
+};
+
 const NAME: DashboardColumn = {
   key: 'name', header: 'Name',
   value: (v) => v.visitor?.full_name ?? 'Unknown',
@@ -229,6 +239,7 @@ export const COLUMN = {
   reason: REASON,
   email: EMAIL,
   invited: INVITED,
+  card: CARD,
 } as const;
 
 // PANEL_SPEC (which tile shows which of the columns above) moved to

@@ -43,6 +43,16 @@ vi.mock('../../../src/lib/activeVisit', () => ({
   ALREADY_INSIDE_FALLBACK: 'already inside',
 }));
 
+// The card-availability gate (migration 102) is a separate rule with its own
+// test file; here it must simply never claim the number is taken, or every
+// watchlist assertion below would be measuring the wrong refusal.
+vi.mock('../../../src/lib/cardAssignment', () => ({
+  findCardHolder: vi.fn(async () => null),
+  cardInUseMessage: () => 'card in use',
+  isCardTakenError: () => false,
+  CARD_TAKEN_FALLBACK: 'card in use',
+}));
+
 vi.mock('../../../src/lib/visitExpiry', () => ({ isVisitExpired: () => false }));
 vi.mock('../../../src/lib/notifyHostCheckIn', () => ({ notifyHostOnCheckIn: vi.fn(async () => ({ notified: true })) }));
 

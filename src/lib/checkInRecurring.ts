@@ -16,6 +16,7 @@ import {
   findActiveVisitByPhone, findActiveVisitByIdProof, activeVisitMessage,
   isAlreadyInsideError, ALREADY_INSIDE_FALLBACK,
 } from './activeVisit';
+import { findCardHolder, cardInUseMessage, isCardTakenError, CARD_TAKEN_FALLBACK } from './cardAssignment';
 import type { VisitorPurpose } from '../types/index';
 import type { MatchItem } from '../pages/Guard/checkInTypes';
 import type { IdScanResult } from '../pages/Guard/idScanTypes';
@@ -53,6 +54,12 @@ export async function checkInRecurringVisitor(
         idScan?.idLast4 ?? match.idLast4,
       );
     if (clash) return { ok: false, message: activeVisitMessage(clash) };
+
+    // ONE CARD, ONE HOLDER (client instruction, 2026-08-18). This path INSERTS
+    // a visit rather than updating one, so there is no visit id to exclude —
+    // any open, unreturned issue of the number belongs to somebody else.
+    const cardHolder = await findCardHolder(cardNumber);
+    if (cardHolder) return { ok: false, message: cardInUseMessage(cardHolder) };
 
     const { photoPath, photoData } = await uploadPhoto(photoBlob);
 
@@ -115,7 +122,9 @@ export async function checkInRecurringVisitor(
       ok: false,
       message: isAlreadyInsideError(err)
         ? ALREADY_INSIDE_FALLBACK
-        : safeErrorMessage(err, 'Check-in failed.'),
+        : isCardTakenError(err)
+          ? CARD_TAKEN_FALLBACK
+          : safeErrorMessage(err, 'Check-in failed.'),
     };
   }
 }

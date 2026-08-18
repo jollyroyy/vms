@@ -121,13 +121,24 @@ export default function CheckInPanel({ today, onCheckInSuccess }: Props): React.
   // the pre-approved/walk-in branch, checkInRecurring.ts for the recurring one —
   // so the panel no longer owns a copy of that update.
   const performCheckIn = async () => {
-    if (!selectedMatch || !photoBlob) return;
+    // A photo is still structurally required — it is the record of who actually
+    // walked in — but it does not have to be taken HERE. A walk-in already
+    // carries the one uploaded at registration, and asking again photographed
+    // the same person twice for one visit (client instruction, 2026-08-18).
+    // CheckInPhotoStep shows what is on file instead of opening the camera, so
+    // by this point "no blob" means "the row has one", never "nobody has one".
+    if (!selectedMatch) return;
+    const photoOnFile = Boolean(selectedMatch.photoUrl);
+    if (!photoBlob && !photoOnFile) return;
     setCheckingIn(true); setError('');
     try {
       if (selectedMatch.source === 'recurring') {
         // A recurring visitor has no visit row to update, so this path creates
         // both visitor and visit — a genuinely different write, kept in its own
         // module (lib/checkInRecurring.ts) rather than inlined here.
+        // A recurring visitor has no visit row and therefore never a photo on
+        // file, so this branch always has a freshly captured blob.
+        if (!photoBlob) return;
         const outcome = await checkInRecurringVisitor({
           match: selectedMatch, photoBlob, carrying, remarks, idScan, cardNumber,
         });

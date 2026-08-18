@@ -3,6 +3,7 @@ import type { Visit } from '../types/index';
 import { isAlreadyInsideError } from './activeVisit';
 import { notifyHostOnCheckIn } from './notifyHostCheckIn';
 import { safeErrorMessage } from './errors';
+import { findCardHolder, cardInUseMessage, isCardTakenError, CARD_TAKEN_FALLBACK } from './cardAssignment';
 
 // The approved-walk-in check-in WRITE, in one place.
 //
@@ -40,6 +41,12 @@ export async function checkInApprovedWalkIn(
   try {
     const remarks = details.remarks.trim();
 
+    // ONE CARD, ONE HOLDER (client instruction, 2026-08-18). The card number is
+    // the only thing this desk collects, so it is also the only thing this desk
+    // can get wrong twice. Migration 102 enforces it; this names the holder.
+    const cardHolder = await findCardHolder(details.cardNumber, { excludeVisitId: visit.id });
+    if (cardHolder) return { ok: false, message: cardInUseMessage(cardHolder) };
+
     const { error, data: updated } = await supabase.from('visits').update({
       status: 'checked_in',
       checked_in_at: new Date().toISOString(),
@@ -64,7 +71,9 @@ export async function checkInApprovedWalkIn(
       ok: false,
       message: isAlreadyInsideError(err)
         ? 'That visitor is already checked in and has not been checked out.'
-        : safeErrorMessage(err, 'Check-in failed.'),
+        : isCardTakenError(err)
+          ? CARD_TAKEN_FALLBACK
+          : safeErrorMessage(err, 'Check-in failed.'),
     };
   }
 }

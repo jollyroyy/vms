@@ -104,6 +104,17 @@ beforeEach(() => {
           // lib/activeVisit's "is this person already inside?" lookup —
           // chainable .eq() ending in .limit(). Returns whatever
           // alreadyInside.current holds; empty means nobody is inside.
+          // The card-availability lookup (lib/cardAssignment.findCardHolder):
+          // migration 102's "a number cannot be issued again until it is
+          // returned". Nothing holds a card in these fixtures, so it is free.
+          if (cols.includes('visitor_card_number')) {
+            const cardChain: any = {
+              is: () => cardChain,
+              ilike: () => cardChain,
+              limit: () => Promise.resolve({ data: [], error: null }),
+            };
+            return cardChain;
+          }
           if (cols.includes('visitor:visitors!inner')) {
             const chain: any = { eq: () => chain, limit: () => Promise.resolve({ data: alreadyInside.current, error: null }) };
             return chain;

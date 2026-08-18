@@ -25,10 +25,13 @@ type Props = {
 // is the security-relevant moment of the whole gate, and a third hand-rolled
 // copy of that mutation is a third place for it to drift.
 //
-// A photo is structurally mandatory. `performCheckIn` returns early without
-// one, and CheckInPhotoStep does not render its confirm control until a photo
-// exists — an approval says who was expected, the photo is the record of who
-// actually walked in.
+// A photo is structurally mandatory, but it is not taken twice (client
+// instruction, 2026-08-18). `performCheckIn` returns early when the visit has
+// neither a freshly captured blob nor a face already on the row, and
+// CheckInPhotoStep renders no confirm control in that state — an approval says
+// who was expected, the photo is the record of who actually walked in. When the
+// row DOES carry one (every walk-in does), the step shows it and the camera
+// never opens.
 export default function VisitorCheckInFlow({ visit, onDone, onCancel, autoScan = false }: Props): React.ReactElement {
   const [photoBlob, setPhotoBlob] = useState<Blob | null>(null);
   const [idScan, setIdScan] = useState<IdScanResult | null>(null);
@@ -45,7 +48,11 @@ export default function VisitorCheckInFlow({ visit, onDone, onCancel, autoScan =
   const match = visitToMatchItem(visit);
 
   const performCheckIn = async () => {
-    if (!photoBlob) return;
+    // Null is legitimate when the visit already carries a face — see the note
+    // on `photoBlob` in lib/checkInFlow.ts. CheckInPhotoStep never renders a
+    // confirm control with neither, so this guard only has to refuse the case
+    // where nobody has ever photographed this visitor.
+    if (!photoBlob && !match.photoUrl) return;
     setCheckingIn(true); setError('');
     try {
       const outcome = await checkInScannedVisit({ match, visit, photoBlob, carrying, remarks, idScan, cardNumber, idOverride });

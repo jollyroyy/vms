@@ -6,6 +6,13 @@ import type { MatchItem } from '../../../src/pages/Guard/CheckInPanel';
 
 // The visitor-card-number gate, isolated from scan and carrying behaviour —
 // one behaviour per file per CLAUDE.md.
+// The card-availability lookup (migration 102) is a separate rule with its own
+// test file. Mocked free here so a debounced query never reaches the real
+// supabase client mid-test — this file is about the ID scan.
+vi.mock('../../../src/lib/useCardAvailability', () => ({
+  useCardAvailability: () => ({ holder: null, checking: false }),
+}));
+
 vi.mock('../../../src/lib/useCameraStream', () => ({
   useCameraStream: () => ({ status: 'streaming', errorMessage: '', start: vi.fn(), stop: vi.fn() }),
 }));
