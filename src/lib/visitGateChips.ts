@@ -1,5 +1,5 @@
 import type { ReportVisit } from './reportRow';
-import { isOverstaying, overstayMs, OVERDUE_GRACE_MINUTES } from './visitExpiry';
+import { isOverstaying, overstayMs, isKeepableSlot, OVERDUE_GRACE_MINUTES } from './visitExpiry';
 import { formatDuration } from './dashboardColumns';
 
 // The small boxed labels a guard reads off a row: is this person still inside,
@@ -32,6 +32,13 @@ export type GateChip = {
  */
 export function lateArrivalMs(v: ReportVisit): number {
   if (!v.checked_in_at || !v.scheduled_for) return 0;
+  // ...or when the slot was already in the past when the booking was made
+  // (client report, 2026-08-18). A pass raised at 10:08 for 00:10 the same
+  // morning is a mis-set picker, not a visitor who is eleven hours late, and
+  // `isKeepableSlot` is the one place that judgement is made — the
+  // Pre-Registered board's pill asks it too, so a row cannot be LATE on one
+  // screen and unremarkable on the other.
+  if (!isKeepableSlot(v)) return 0;
   const late = new Date(v.checked_in_at).getTime() - new Date(v.scheduled_for).getTime();
   return Number.isNaN(late) ? 0 : Math.max(0, late);
 }

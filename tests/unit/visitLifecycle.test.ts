@@ -58,8 +58,15 @@ describe('S8/FR-VIS-08: auto-checkout at day close', () => {
 });
 
 describe('HOD pre-approval', () => {
+  // An injected clock, because `validatePreApproval` now refuses a slot in the
+  // past (client report, 2026-08-18). These fixtures are dated literals, so
+  // without it they would pass on the day they were written and fail for good
+  // afterwards — a test that measures the calendar rather than the code. NOW
+  // sits a few days before the slot every case below books.
+  const NOW = new Date('2026-08-01T06:00:00Z');
+
   it('accepts valid pre-approval input', () => {
-    expect(validatePreApproval({ department_id: 'dept-1', purpose: 'meeting', scheduled_for: '2026-08-05T10:00' })).toBeNull();
+    expect(validatePreApproval({ department_id: 'dept-1', purpose: 'meeting', scheduled_for: '2026-08-05T10:00', now: NOW })).toBeNull();
   });
 
   it('rejects missing department_id', () => {
@@ -85,7 +92,7 @@ describe('HOD pre-approval', () => {
 
   // expected_departure is what makes a multi-day contractor distinguishable
   // from a check-out somebody forgot — see migration 073.
-  const base = { department_id: 'dept-1', purpose: 'meeting', scheduled_for: '2026-08-05T10:00' };
+  const base = { department_id: 'dept-1', purpose: 'meeting', scheduled_for: '2026-08-05T10:00', now: NOW };
 
   it('accepts a pre-approval with no expected departure — it is optional', () => {
     expect(validatePreApproval(base)).toBeNull();

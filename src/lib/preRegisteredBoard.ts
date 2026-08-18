@@ -1,5 +1,5 @@
 import type { ReportVisit } from './reportRow';
-import { istDateKey } from './visitExpiry';
+import { istDateKey, isKeepableSlot } from './visitExpiry';
 
 // The Pre-Registered board's two rules: which visits belong on it at all, and
 // what each filter chip selects.
@@ -119,8 +119,14 @@ export function isPreRegisteredArrival(v: ReportVisit, now: Date): boolean {
   return v.status === 'approved' && !v.checked_in_at && isScheduledToday(v, now);
 }
 
+// Null means "there is nothing to be late for", and there are two ways to get
+// there: no slot at all, or a slot that was already in the past when the pass
+// was booked (client report, 2026-08-18 — see `isKeepableSlot`). Both land the
+// card on EXPECTED and in the `arriving` chip, which is the honest reading: the
+// gate is still waiting for this visitor, and the app has nothing to say about
+// when they should have come.
 function minutesPastSlot(v: ReportVisit, now: Date): number | null {
-  if (!v.scheduled_for) return null;
+  if (!v.scheduled_for || !isKeepableSlot(v)) return null;
   const slot = new Date(v.scheduled_for).getTime();
   if (Number.isNaN(slot)) return null;
   return (now.getTime() - slot) / 60000;

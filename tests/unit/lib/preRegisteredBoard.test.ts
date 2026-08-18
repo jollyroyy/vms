@@ -87,3 +87,21 @@ describe('chip filters', () => {
     expect(Object.keys(chipCounts(board, NOW))).not.toContain('arrived');
   });
 });
+
+// THE SAME RULE THE LATE CHIP FOLLOWS (client report, 2026-08-18). A pass
+// raised at 10:08 for 00:10 the same morning is a mis-set picker, and this
+// board must not lead with LATE on it any more than the arrived row's chip
+// may. Both go through `isKeepableSlot`, so the two surfaces cannot disagree
+// about one visitor.
+describe('preRegisteredPill — a slot booked after it had already passed', () => {
+  it('reads EXPECTED, not LATE', () => {
+    const backdated = v({
+      created_at: '2026-08-14T03:55:00Z',    // booked five minutes ago
+      scheduled_for: '2026-08-13T20:00:00Z', // for last night
+    });
+    expect(preRegisteredPill(backdated, NOW).label).toBe('EXPECTED');
+    expect(chipVisits('arriving', [backdated], NOW)).toHaveLength(1);
+    expect(chipVisits('late', [backdated], NOW)).toHaveLength(0);
+    expect(chipVisits('missed', [backdated], NOW)).toHaveLength(0);
+  });
+});

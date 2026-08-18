@@ -18,6 +18,25 @@ vi.mock('../../../src/supabaseClient', () => ({
   },
 }));
 
+// THE CLOCK IS FROZEN, because `validatePreApproval` now refuses a slot in the
+// past (client report, 2026-08-18: a visitor booked for 12 am and arriving at
+// 11 am was being reported as eleven hours late — the pass had been raised for
+// a moment that was already gone). Every fixture below types the same literal
+// datetime it always did, and its exact converted instant is still asserted
+// against the RPC, which is what guards the +5h30m timezone bug. Without a
+// fixed `now` those literals would pass on the day they were written and fail
+// ever after, which is a test that measures the calendar rather than the code.
+const NOW = new Date('2026-08-01T06:00:00Z');
+
+beforeEach(() => {
+  vi.useFakeTimers({ shouldAdvanceTime: true });
+  vi.setSystemTime(NOW);
+});
+
+afterEach(() => {
+  vi.useRealTimers();
+});
+
 afterEach(() => {
   cleanup();
   vi.restoreAllMocks();

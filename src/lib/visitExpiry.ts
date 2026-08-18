@@ -112,6 +112,48 @@ export function isDueToday(v: ExpiryFields, now: Date = new Date()): boolean {
   return istDateKey(visitMoment(v)) <= istDateKey(now);
 }
 
+/** How far a slot may sit BEFORE the moment it was booked and still be read as
+ *  an appointment. A host raising a pass for a visitor already walking up to
+ *  the desk types "now" and lands a minute or two behind by the time the row
+ *  is written; fifteen minutes covers that, a slow form and a clock that
+ *  disagrees. Beyond it the slot is not a late booking, it is a wrong one. */
+export const SLOT_BACKDATE_TOLERANCE_MINUTES = 15;
+
+/**
+ * IS THIS SLOT AN APPOINTMENT SOMEBODY COULD HAVE KEPT? (client report,
+ * 2026-08-18: a visitor whose slot read 12 am and who arrived at 11 am was
+ * being called late.)
+ *
+ * The arithmetic in `lateArrivalMs` was right — 00:10 to 11:22 is eleven hours
+ * — and the answer was still wrong, because the slot it measured against was
+ * booked at 10:08 THAT MORNING. A pass raised at ten past ten for ten past
+ * midnight is not a visitor who overslept; it is a picker set to AM instead of
+ * PM, and nobody could have arrived on time for it even in principle. Reading
+ * eleven hours off it and printing them on the visitor's row states a fact
+ * about the person that is really a fact about the form.
+ *
+ * So: a slot that predates its own booking by more than the tolerance is not
+ * an appointment, and everything that compares a visitor against their slot —
+ * the Late chip on a row that has arrived, the LATE/MISSED pill on the
+ * Pre-Registered board for one who has not — asks this first and says nothing
+ * rather than something untrue. The slot is still stored, still shown, still
+ * exported; what stops is the JUDGEMENT drawn from it.
+ *
+ * `validatePreApproval` refuses to create any more of these. This exists for
+ * the rows already in the database, which cannot be re-typed.
+ */
+export function isKeepableSlot(
+  v: Pick<ExpiryFields, 'scheduled_for' | 'created_at'>,
+): boolean {
+  if (!v.scheduled_for) return false;
+  const slot = new Date(v.scheduled_for).getTime();
+  const booked = new Date(v.created_at).getTime();
+  if (Number.isNaN(slot)) return false;
+  // An unparseable created_at cannot disprove the slot, so the slot stands.
+  if (Number.isNaN(booked)) return true;
+  return slot >= booked - SLOT_BACKDATE_TOLERANCE_MINUTES * 60_000;
+}
+
 /**
  * True when a booked visitor is late enough to be worth chasing — and nothing more.
  *

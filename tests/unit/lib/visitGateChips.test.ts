@@ -57,3 +57,51 @@ describe('gateChips — presence', () => {
       .toBe('Not arrived');
   });
 });
+
+// A SLOT THAT PREDATES ITS OWN BOOKING IS NOT AN APPOINTMENT (client report,
+// 2026-08-18: "his scheduled time was 12 am and he checked in around 11 am —
+// how is he late here?").
+//
+// The live row: raised at 10:08 IST on 18 August, for 00:10 IST the SAME
+// morning — a picker left on AM — and checked in at 11:22. The subtraction was
+// right and the conclusion was nonsense, because nobody could have arrived on
+// time for a slot that was ten hours gone when the pass was made. The chip now
+// says nothing rather than something untrue; `validatePreApproval` stops any
+// more of these being created, and this covers the ones already stored.
+describe('gateChips — late arrival', () => {
+  const late = (v: ReportVisit) => gateChips(v, now).find((c) => c.key === 'late');
+
+  it('does not call a visitor late against a slot booked after it had passed', () => {
+    expect(late(visit({
+      status: 'checked_in',
+      created_at: '2026-08-18T04:38:00Z',      // 10:08 IST
+      scheduled_for: '2026-08-17T18:40:00Z',   // 00:10 IST, ten hours earlier
+      checked_in_at: '2026-08-18T05:52:00Z',   // 11:22 IST
+    }))).toBeUndefined();
+  });
+
+  // The rule must not swallow the case it exists to report. Same visitor, same
+  // arrival, but the slot was booked BEFORE it came round.
+  it('still calls a visitor late when the slot was a real appointment', () => {
+    const chip = late(visit({
+      status: 'checked_in',
+      created_at: '2026-08-17T18:00:00Z',      // booked the night before
+      scheduled_for: '2026-08-17T18:40:00Z',   // 00:10 IST
+      checked_in_at: '2026-08-18T05:52:00Z',   // 11:22 IST
+    }));
+    expect(chip?.label).toMatch(/^Late by /);
+  });
+
+  // A pass raised for a visitor already standing at the desk is ordinary, and
+  // the few minutes between typing "now" and the row landing must not disqualify
+  // the slot.
+  it('accepts a slot a handful of minutes behind its booking', () => {
+    const chip = late(visit({
+      status: 'checked_in',
+      created_at: '2026-08-16T04:05:00Z',
+      scheduled_for: '2026-08-16T04:00:00Z',   // five minutes back
+      checked_in_at: '2026-08-16T09:00:00Z',   // ~5h later
+    }));
+    expect(chip?.label).toMatch(/^Late by /);
+  });
+});
