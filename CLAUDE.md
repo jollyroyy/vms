@@ -1541,7 +1541,10 @@ through a SECURITY DEFINER RPC, so a direct UPDATE grant is attack surface with 
   NAMES every already-double-issued card as a NOTICE before either CREATE runs, because
   "could not create unique index" pointing at a row id is not something an operator can
   act on. It also drops 097's now-redundant `visits_card_number_inside_idx`. No enum
-  change, so no `ALTER TYPE` split this time.
+  change, so no `ALTER TYPE` split this time. **Applied and verified live 2026-08-18**:
+  both unique indexes exist on `public.visits` with the expected expressions and
+  predicates, `visits_card_number_inside_idx` is gone, and the pre-check found zero
+  double-issued cards, so nothing had to be reconciled first.
 - **098/099** the `senior_manager` role — an HOD's permissions under a different job title
   (client instruction, 2026-08-18), so a department headed by somebody not called an HOD
   can be represented as what they are. **Apply 098 alone, then 099**: `ALTER TYPE … ADD
