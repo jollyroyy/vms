@@ -7,6 +7,7 @@
 import { supabase } from '../supabaseClient';
 import type { Profile } from '../types/index';
 import { personNameError, squashSpace, stripControlChars, PERSON_NAME_MAX } from './inputRules';
+import { isHodRole } from './hodRoles';
 
 export type HodInput = { fullName: string; email: string };
 
@@ -73,14 +74,28 @@ export async function addHod(
 
   const { data: found } = await supabase
     .from('profiles')
-    .select('id')
+    .select('id, role')
     .eq('email', email)
     .maybeSingle();
 
   if (found?.id) {
+    // AN EXISTING APPROVER KEEPS THEIR OWN JOB TITLE (2026-08-18). A senior
+    // manager or a staff member already holds the HOD's permissions exactly
+    // (lib/hodRoles.ts, migration 100's `effective_role()`), so overwriting
+    // `role` with the literal 'hod' bought no authority whatsoever and cost the
+    // account the only record of what the person actually is — the string the
+    // directory, the sidebar and the greeting all print. What heading a
+    // department really means here is `department_id`, which is what every
+    // approver RPC and every policy scopes on, so that is what this write is.
+    // A guard, an admin or a brand-new profile still becomes an 'hod'.
+    const keepsRole = isHodRole((found as { role?: string }).role);
     const { error } = await supabase
       .from('profiles')
-      .update({ role: 'hod', department_id: departmentId, full_name: fullName })
+      .update({
+        ...(keepsRole ? {} : { role: 'hod' }),
+        department_id: departmentId,
+        full_name: fullName,
+      })
       .eq('id', found.id);
     if (error) throw new Error(error.message);
     return { created: false };
@@ -135,11 +150,21 @@ export async function updateHod(profileId: string, input: HodInput): Promise<voi
   if (error) throw new Error(error.message);
 }
 
-/** Demotes an HOD back to staff and detaches them from the department. */
+/**
+ * Detaches a head of department from their department.
+ *
+ * IT NO LONGER REWRITES `role` (2026-08-18). Writing 'staff' withdrew nothing —
+ * since `HOD_ROLES`, a staff account has the HOD's permissions exactly — while
+ * destroying the person's real job title in the act, which is the one thing the
+ * directory, the sidebar and the greeting have to print. What it withdraws is
+ * `department_id`, and that is the real switch: every approver RPC and every
+ * policy scopes on it, so the account reaches the desk and finds nothing on it.
+ * A genuine "switched off" state is Settings → Users' Deactivate (migration 094).
+ */
 export async function removeHod(profileId: string): Promise<void> {
   const { error } = await supabase
     .from('profiles')
-    .update({ role: 'staff', department_id: null, delegate_id: null })
+    .update({ department_id: null, delegate_id: null })
     .eq('id', profileId);
   if (error) throw new Error(error.message);
 }

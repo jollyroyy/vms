@@ -26,10 +26,17 @@ describe('PassIdentity', () => {
     expect(img).toHaveAttribute('src', 'https://example.com/photo.jpg');
   });
 
-  it('renders the placeholder and NO Visitor photo img when photoUrl is null', () => {
+  // NO PLACEHOLDER (client instruction, 2026-08-18). A pre-approval is raised
+  // before anybody has photographed the visitor, so a grey silhouette stood in
+  // for something nobody had failed to supply — and it stole a third of the
+  // card's width from the facts beside it.
+  it('renders NOTHING where the photo would be when photoUrl is null', () => {
     render(<PassIdentity {...baseProps} photoUrl={null} />);
     expect(screen.queryByAltText('Visitor photo')).not.toBeInTheDocument();
-    expect(screen.getByLabelText('No visitor photo on record')).toBeInTheDocument();
+    expect(screen.queryByLabelText('No visitor photo on record')).not.toBeInTheDocument();
+    expect(screen.queryByRole('img')).toBeNull();
+    // The facts it used to displace are still all there.
+    expect(screen.getByText('John Doe')).toBeInTheDocument();
   });
 
   it('renders "Aadhaar ••••46" for idType=Aadhaar and idLast4=9646', () => {

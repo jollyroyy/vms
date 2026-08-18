@@ -14,7 +14,7 @@ const state = vi.hoisted(() => ({
   rows: [] as any[],
   rowsError: null as { message: string } | null,
   fetchCount: 0,
-  eqCalls: [] as Array<[string, any]>,
+  inCalls: [] as Array<[string, any]>,
   handlers: [] as Array<{ config: any; cb: (payload: any) => void }>,
   channelNames: [] as string[],
   subscribed: 0,
@@ -25,8 +25,8 @@ vi.mock('../../../src/supabaseClient', () => ({
   supabase: {
     from: () => ({
       select: () => ({
-        eq: (col: string, val: any) => {
-          state.eqCalls.push([col, val]);
+        in: (col: string, val: any) => {
+          state.inCalls.push([col, val]);
           return {
             order: () => {
               state.fetchCount += 1;
@@ -54,7 +54,7 @@ beforeEach(() => {
   state.rows = [];
   state.rowsError = null;
   state.fetchCount = 0;
-  state.eqCalls = [];
+  state.inCalls = [];
   state.handlers = [];
   state.channelNames = [];
   state.subscribed = 0;
@@ -107,9 +107,12 @@ describe('useHods', () => {
     await waitFor(() => expect(screen.getByTestId('loading')).toHaveTextContent('false'));
   });
 
-  it("filters on role='hod'", async () => {
+  // EVERY APPROVER ROLE, not the enum literal: a department headed by a senior
+  // manager or staffed by a host who approves their own visitors must appear on
+  // the roster under their OWN job title, not vanish from it.
+  it('filters on every approver role, not just the literal hod', async () => {
     render(<Probe />);
-    await waitFor(() => expect(state.eqCalls).toContainEqual(['role', 'hod']));
+    await waitFor(() => expect(state.inCalls).toContainEqual(['role', ['hod', 'senior_manager', 'staff']]));
   });
 
   it('subscribes to postgres_changes on the profiles table', async () => {

@@ -139,9 +139,13 @@ describe('M-QR-PASS: PreApprovalPass', () => {
     expect(screen.queryByText(/9646/)).not.toBeInTheDocument();
   });
 
+  // The pre-approval case: the pass is issued before the visitor exists as a
+  // face, so the photo slot is ABSENT rather than empty, and comes back by
+  // itself at check-in when `photo_data` lands on the row (asserted above).
   it('still renders the pass when the visitor has no photo and no ID on record', async () => {
     render(<PreApprovalPass visit={baseVisit} />);
-    expect(screen.getByLabelText('No visitor photo on record')).toBeInTheDocument();
+    expect(screen.queryByLabelText('No visitor photo on record')).not.toBeInTheDocument();
+    expect(screen.queryByAltText('Visitor photo')).not.toBeInTheDocument();
     expect(screen.getByText('ID Proof')).toBeInTheDocument();
     expect(await screen.findByAltText('Entry pass QR code')).toBeInTheDocument();
   });

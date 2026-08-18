@@ -32,35 +32,25 @@ export default function PassIdentity({
   const photoSize = isLarge ? 'w-20 h-24' : 'w-14 h-[72px]';
 
   return (
-    <div className="flex gap-4">
-      {/* Photo */}
-      {photoUrl ? (
+    <div className={photoUrl ? 'flex gap-4' : 'flex'}>
+      {/* THE PHOTO SLOT EXISTS ONLY WHEN THERE IS A PHOTO (client instruction,
+          2026-08-18). A pre-approval is raised hours or days before anybody
+          points a camera at the visitor — the approver types a name and a slot,
+          and `WalkInRequest`'s capture belongs to a different route entirely —
+          so the grey silhouette that used to stand here was a placeholder for
+          something nobody had failed to provide. On the success pass it read as
+          a broken image, and it pushed every fact beside it into a column two
+          thirds of the card wide for no reason.
+          Nothing is lost at the gate: check-in uploads `photo_data`, so the
+          same block draws the real face the moment there is one, and the
+          missing-photo case a guard DOES need told about is the ID scan, which
+          `CheckInPhotoStep` refuses to proceed without. */}
+      {photoUrl && (
         <img
           src={photoUrl}
           alt="Visitor photo"
           className={`${photoSize} object-cover rounded-xl ring-1 ring-surface-200 flex-shrink-0`}
         />
-      ) : (
-        <div
-          role="img"
-          aria-label="No visitor photo on record"
-          className={`${photoSize} bg-surface-50 rounded-xl ring-1 ring-surface-200 flex items-center justify-center flex-shrink-0`}
-        >
-          <svg
-            aria-hidden="true"
-            className="w-6 h-6 text-surface-300"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-            strokeWidth={1.5}
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0"
-            />
-          </svg>
-        </div>
       )}
 
       {/* Text column */}

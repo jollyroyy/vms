@@ -3,12 +3,10 @@ import type { Visit } from '../../types/index';
 import ChartCard from '../../components/charts/ChartCard';
 import LineChart from '../../components/charts/LineChart';
 import DonutChart from '../../components/charts/DonutChart';
-import UtilizationRows from '../../components/charts/UtilizationRows';
-import { hourlyFlow, purposeSplit, topHosts } from '../../lib/adminDashboard';
+import { hourlyFlow, purposeSplit } from '../../lib/adminDashboard';
 import { chartColor } from '../../lib/chartPalette';
-import { initialsOf } from '../../lib/initials';
 
-// The HOD dashboard's chart band — the admin Dashboard's three charts, over
+// The HOD dashboard's chart band — two of the admin Dashboard's charts, over
 // this HOD's own department (client instruction, 2026-08-17: "in hod view also
 // create similar visual dashboard as done for admin, but scope should be their
 // own meeting data").
@@ -30,6 +28,18 @@ import { initialsOf } from '../../lib/initials';
 // be a second definition of an IST hour, and this file has a whole section on
 // what happens when a rule gets retyped at a new call site.
 //
+// WHAT IS NOT HERE, AND WHY — BUSIEST HOSTS (client instruction, 2026-08-18:
+// remove it from the individual employee's dashboard view). The ranking is an
+// ORG-WIDE question wearing a department's clothes: on the admin Dashboard it
+// compares departments' hosts against each other and tells the console who is
+// carrying the visitor load. Inside one department — and since 2026-08-18 every
+// non-guard, non-admin account gets this board, so the reader is frequently a
+// single host looking at their own name — it ranks a handful of colleagues by
+// how many visitors they received today, which is a league table of people who
+// sit next to each other and answers no question this desk asks. `topHosts`
+// STAYS in `lib/adminDashboard.ts`, where the admin Dashboard still calls it;
+// this is one call site removed, not a function deleted.
+//
 // WHAT IS NOT HERE: the admin's Live Lobby Feed. Its rows are the drill-down
 // panel the KPI board directly above already renders — press Checked In and you
 // have it, sorted, with more columns. On the admin Dashboard that feed is the
@@ -44,7 +54,6 @@ type Props = {
 export default function HodDashboardCharts({ visits, now }: Props): React.ReactElement {
   const flow = useMemo(() => hourlyFlow(visits, now), [visits, now]);
   const purposes = useMemo(() => purposeSplit(visits, now), [visits, now]);
-  const hosts = useMemo(() => topHosts(visits, now), [visits, now]);
 
   return (
     <div className="grid grid-cols-1 xl:grid-cols-3 gap-5">
@@ -72,40 +81,6 @@ export default function HodDashboardCharts({ visits, now }: Props): React.ReactE
           emptyMessage="No arrivals to break down yet."
         />
       </ChartCard>
-
-      <div className="xl:col-span-3">
-        <ChartCard
-          heading="Busiest Hosts"
-          about="People in your department ranked by how many visitors they received today."
-        >
-          {/* The avatar the admin board draws is deliberately absent: this
-              board's rows come through `attachHostNames`, whose RPC returns a
-              name and a department and no `avatar_url`. A monogram is the
-              honest render of "we did not fetch a photo"; reaching for one
-              would mean a second round trip per host to decorate a ranking. */}
-          <UtilizationRows
-            headers={['Host', 'Share', 'Visitors']}
-            unit="visitors"
-            showShare
-            rows={hosts.map((h, i) => ({
-              label: h.label,
-              value: h.value,
-              lead: (
-                <span className="shrink-0 flex items-center gap-1.5">
-                  <span className="w-4 shrink-0 text-[11px] tabular-nums text-navy-500 text-right">
-                    {i + 1}
-                  </span>
-                  <span className="w-7 h-7 rounded-full bg-brand-500/15 text-brand-600 dark:text-brand-400
-                                   text-[11px] font-semibold flex items-center justify-center">
-                    {initialsOf(h.label)}
-                  </span>
-                </span>
-              ),
-            }))}
-            emptyMessage="No arrivals today, so there is nobody to rank."
-          />
-        </ChartCard>
-      </div>
     </div>
   );
 }

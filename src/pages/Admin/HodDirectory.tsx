@@ -1,5 +1,6 @@
 import React from 'react';
 import type { Department, Profile } from '../../types/index';
+import HodRoleChip from './HodRoleChip';
 
 // Displays a read-only directory of all heads of department, grouped by department.
 // All HOD editing is handled in the Departments view / DepartmentCard component.
@@ -71,9 +72,12 @@ export default function HodDirectory({ id, departments, hodsByDept }: Props): Re
                   </span>
                 </div>
                 <div className="min-w-0">
-                  <p className="text-sm font-semibold text-navy-800 truncate">
-                    {hod.full_name}
-                  </p>
+                  <div className="flex items-center gap-2 min-w-0">
+                    <p className="text-sm font-semibold text-navy-800 truncate">
+                      {hod.full_name}
+                    </p>
+                    <HodRoleChip role={hod.role} />
+                  </div>
                   <p className="text-xs text-navy-500 dark:text-navy-400 truncate">{hod.email}</p>
                 </div>
               </div>

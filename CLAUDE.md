@@ -90,11 +90,23 @@ and it is refused by `admin_create_user`, so no created account can be one. See 
 - **`pre_approve_visitor_v2` never had a role check** — it is SECURITY DEFINER and
   bypasses RLS — so the pre-approval half of the instruction was a FRONTEND gate all
   along: staff simply had no `/approvals` route.
-- **Removing an HOD still writes `role = 'staff'`** (`adminHods.ts`, `adminDepartments.ts`)
-  and that no longer withdraws approver permission by itself. It withdraws
-  `department_id`, which is what every approver RPC and every policy scopes on, so the
-  account can reach the desk and find nothing on it. If a real "switched off" state is
-  wanted, that is Settings → Users' Deactivate (migration 094), not a role rewrite.
+- **NOTHING ON THE DEPARTMENT SCREENS REWRITES A PERSON'S ROLE ANY MORE** (2026-08-18).
+  `removeHod` and `deleteDepartment`'s unlink used to stamp `role = 'staff'`; `addHod`
+  used to stamp `role = 'hod'` on whoever it promoted. All three withdrew or granted
+  NOTHING — a staff account is an approver — while destroying the one record of what the
+  person actually is, which is the string the directory, the sidebar greeting and every
+  role chip print. The write that matters is **`department_id`**, which is what every
+  approver RPC and every policy scopes on, so removal leaves the account able to reach
+  the desk and find nothing on it. `addHod` still writes `role = 'hod'` for a brand-new
+  invite or for somebody who is not yet an approver (a guard); an existing `hod` /
+  `senior_manager` / `staff` keeps their own title. A real "switched off" state is
+  Settings → Users' Deactivate (migration 094), never a role rewrite.
+- **`useHods()` reads `role IN (HOD_ROLES)`, not `= 'hod'`** — a department headed by a
+  senior manager used to read "Awaiting an HOD" while its head approved that department's
+  visitors all day. The roster and the Heads of Department directory print each person's
+  OWN job title through `HodRoleChip` (`ROLE_LABEL`/`ROLE_CHIP` from `lib/userStatus.ts`,
+  the same pair Settings → Users uses), because one permission with three titles is only
+  legible if the screen says which. Guarded by `HodRosterRoleChip.test.tsx`.
 - App-side edits, all reading `HOD_ROLES`: `navLinks` (four HOD items + Reports),
   `NotificationBell` (they receive the walk-in requests), `VisitorDetails` (no ID proof),
   `mfa` (the account can clear a stranger into the building), `visitStatusLabel`
@@ -192,9 +204,9 @@ two `ROLE_LABELS` maps.
   only element on the row carrying no figure of its own — the percentage says how much and
   the count says how many — and it was paid for out of the label column, which then had to
   `truncate`. Row is now `name · share% · count`, the name wraps, and `showShare` is passed
-  at **every** three-header call site (Top Hosts on the admin board, Busiest Hosts on the
-  HOD board, Department Summary on Hosts) — the middle header renders only when it is, so a
-  "Share" column can never head an empty cell. The `color` prop is deleted with the bar.
+  at **every** three-header call site (Top Hosts on the admin board, Department Summary on
+  Hosts — the HOD board's Busiest Hosts card went on 2026-08-18) — the middle header
+  renders only when it is, so a "Share" column can never head an empty cell. The `color` prop is deleted with the bar.
 - **`prefers-color-scheme`/theme colours resolve through tokens** so a rebrand follows
   automatically. Palette is Quest Mall gold/bronze — a hue is only information if it means
   the same thing on every screen.
@@ -694,12 +706,18 @@ routable (bookmarks, `?verify=` links). The FILE is still `GuardLiveQueue.tsx`.
 - **`HODConsole`'s day query = created OR arrived OR departed today**; the `onSite` query
   has **no date bound** (a contractor still on site from yesterday must not drop off the
   fire-marshal list at midnight).
-- **Chart band `pages/HOD/HodDashboardCharts.tsx`**: Visitor Flow, Visit Purpose, Busiest
-  Hosts. `hourlyFlow` / `purposeSplit` / `topHosts` are **imported from
+- **Chart band `pages/HOD/HodDashboardCharts.tsx`**: Visitor Flow and Visit Purpose, and
+  that is ALL of it. `hourlyFlow` / `purposeSplit` are **imported from
   `lib/adminDashboard.ts`, never copied** — scoping is done entirely by which rows are
   passed in (`.eq('department_id', …)` plus RLS). **No second query.** The admin's Live
-  Lobby Feed is deliberately not ported (it would be the second list on this screen), and
-  host avatars are absent because `get_profile_names` returns no `avatar_url`.
+  Lobby Feed is deliberately not ported (it would be the second list on this screen).
+  - **BUSIEST HOSTS IS REMOVED** (2026-08-18, client instruction: take it off the
+    individual employee's dashboard view). A host ranking is an org-wide question wearing
+    a department's clothes — on the admin board it says who across the building is
+    carrying the visitor load; inside one department, read by an account that is often one
+    of the three names in it, it is a league table of colleagues. `topHosts` STAYS in
+    `lib/adminDashboard.ts` for the admin Dashboard: one call site removed, not a function
+    deleted. Guarded by `HodDashboardCharts.test.tsx`, which fails on `/busiest hosts/i`.
 - **There is NO Approval Desk** (removed 2026-08-16): it listed `pending_approval` rows
   carrying a `scheduled_for`, a set that cannot exist. `?tab=preapprovals` degrades onto
   the dashboard. The `walkins` KPI tile went with it (two tiles opening one list).
@@ -795,6 +813,22 @@ routable (bookmarks, `?verify=` links). The FILE is still `GuardLiveQueue.tsx`.
   **validation too**, or `validatePreApproval` compares a different instant than the one
   stored. Never `new Date(localString)` (that reads the browser's zone) — regex + `Date.UTC`,
   then subtract `IST_OFFSET_MS`.
+- **THE PASS HAS NO PHOTO SLOT UNTIL THERE IS A PHOTO** (2026-08-18, client instruction).
+  A pre-approval is raised by a host hours or days before anybody points a camera at the
+  visitor, so `PassIdentity`'s grey silhouette placeholder stood in for something nobody
+  had failed to supply — it read as a broken image on the success pass and took a third of
+  the card's width off the facts beside it. `photoUrl` absent now renders **nothing**, and
+  the real face comes back by itself at check-in, when `photo_data` lands on the row. Do
+  not re-add a placeholder: the missing-identity case a guard must be stopped by is the ID
+  SCAN, which `CheckInPhotoStep` refuses to proceed without.
+- **The success popup is TWO SECTIONS, and only the top one is centred** (same
+  instruction: align it properly, make it premium). `SuccessPopup` renders the tick, the
+  title and the message on the tinted ground, then `children` — the entry pass, which is a
+  document of labelled facts — **outside** that block, on the modal's own surface behind a
+  hairline. They used to share one `text-center` container, so every label sat over a value
+  of a different width. `PreApprovalPass` matches: every block is full width on one left
+  edge (the `max-w-xs` caps are gone), and only the QR, its caption and the buttons are
+  centred, each saying so with `self-center`.
 - **`PreApprovalPass` prints SCHEDULED AT and VALID UNTIL**, resolved through the same
   `qr_expires_at ?? expected_departure ?? istDayEnd(...)` ladder `CheckInBadgeRail` climbs.
   One column, not two (at `text-xs` in a 320px card half the width cannot hold a full

@@ -4,6 +4,7 @@ import React from 'react';
 import HodForm from './HodForm';
 import type { HodInput } from '../../lib/adminHods';
 import type { Profile } from '../../types/index';
+import HodRoleChip from './HodRoleChip';
 
 export type HodFormSlot =
   | { kind: 'add'; departmentId: string }
@@ -54,7 +55,10 @@ export default function HodList({
                 <span className="text-[11px] font-bold">{initials(hod.full_name ?? '')}</span>
               </div>
               <div className="min-w-0">
-                <p className="text-sm font-semibold text-navy-800 truncate">{hod.full_name}</p>
+                <div className="flex items-center gap-2 min-w-0">
+                  <p className="text-sm font-semibold text-navy-800 truncate">{hod.full_name}</p>
+                  <HodRoleChip role={hod.role} />
+                </div>
                 <p className="text-xs text-navy-500 dark:text-navy-400 truncate">{hod.email}</p>
               </div>
             </div>

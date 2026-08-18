@@ -5,6 +5,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '../supabaseClient';
 import type { Profile } from '../types/index';
+import { HOD_ROLES } from './hodRoles';
 
 export type UseHods = {
   hods: Profile[];
@@ -25,7 +26,14 @@ export function useHods(): UseHods {
     const { data, error: err } = await supabase
       .from('profiles')
       .select('*')
-      .eq('role', 'hod')
+      // EVERY APPROVER ROLE, NOT THE LITERAL 'hod' (2026-08-18). A department is
+      // headed by whoever heads it, and since `HOD_ROLES` a senior manager or a
+      // staff member holds exactly the HOD's permissions — so filtering on the
+      // enum literal made a department led by one of them read "Awaiting an HOD"
+      // while its head was approving that department's visitors all day. The
+      // roster still prints each person's OWN role name; it is the permission
+      // that is shared, never the job title.
+      .in('role', [...HOD_ROLES])
       .order('full_name');
     if (err) {
       setError(err.message);

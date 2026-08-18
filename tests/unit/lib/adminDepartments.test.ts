@@ -220,7 +220,7 @@ describe('deleteDepartment', () => {
     expect(state.calls[0]).toEqual({
       table: 'profiles',
       op: 'update',
-      payload: { department_id: null, role: 'staff', delegate_id: null },
+      payload: { department_id: null, delegate_id: null },
       col: 'department_id',
       val: 'd1',
     });

@@ -92,9 +92,16 @@ export const DELETE_BLOCKED =
  * cheerful success while the row was still there.
  */
 export async function deleteDepartment(id: string): Promise<void> {
+  // `department_id` ONLY — the role write that used to ride along here is gone
+  // (2026-08-18). This statement touches every member of the department at once,
+  // and stamping 'staff' on all of them withdrew no permission (a staff account
+  // is an approver, lib/hodRoles.ts) while erasing each person's real job title,
+  // which is what the directory and the sidebar print. Dropping the department
+  // is what actually withdraws the desk: every approver RPC and every policy
+  // scopes on `department_id`.
   const { error: unlinkError } = await supabase
     .from('profiles')
-    .update({ department_id: null, role: 'staff', delegate_id: null })
+    .update({ department_id: null, delegate_id: null })
     .eq('department_id', id);
   if (unlinkError) throw new Error(describeDeleteError(unlinkError.message));
 

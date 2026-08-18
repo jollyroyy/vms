@@ -91,7 +91,13 @@ export default function PreApprovalPass({ visit, showIdProof = true, identitySho
     // its own had nothing to read against in dark mode. White in light, a low-
     // alpha white lift in dark: `dark:bg-navy-800` looks right until you remember
     // navy is INVERTED in dark mode and would render this near-white-on-white.
-    <div className="mt-2 w-full flex flex-col items-center gap-3 rounded-2xl border border-surface-200/60 dark:border-white/[0.08] bg-white dark:bg-white/[0.06] p-4">
+    // EVERY BLOCK IS FULL WIDTH AND SHARES ONE LEFT EDGE (2026-08-18). The card
+    // used to centre its children and cap the identity and validity blocks at
+    // `max-w-xs` while the ref/status row above them ran the full width — three
+    // stacked boxes, three different left edges, inside a popup that also
+    // centred the text inside them. Only the QR, its caption and the buttons
+    // are deliberately centred now, and they say so with `self-center`.
+    <div className="w-full flex flex-col gap-3.5 rounded-2xl border border-surface-200/60 dark:border-white/[0.08] bg-white dark:bg-white/[0.06] p-4 text-left">
       {/* Ref number + status are the two facts a guard checks first, side by
           side at the top so neither needs scrolling to find. Status reuses the
           app's own STATUS_STYLES tokens — never a parallel palette. */}
@@ -113,7 +119,7 @@ export default function PreApprovalPass({ visit, showIdProof = true, identitySho
           photo. This block is what a *human* checks the pass against;
           scanning it is what pulls the same details out of the database. */}
       {!identityShownElsewhere && (
-        <div className="w-full max-w-xs">
+        <div className="w-full">
           <PassIdentity
             photoUrl={photo}
             name={visit.visitor?.full_name ?? ''}
@@ -130,7 +136,7 @@ export default function PreApprovalPass({ visit, showIdProof = true, identitySho
           fact in its own labelled block, not one undifferentiated list. The
           Person-to-Meet fact is dropped along with the identity block: the
           caller that says it already shows identity also shows it. */}
-      <div className="w-full max-w-xs grid grid-cols-1 gap-y-2.5 rounded-xl bg-surface-50 dark:bg-white/[0.04] px-3 py-2.5">
+      <div className="w-full grid grid-cols-1 gap-y-2.5 rounded-xl bg-surface-50 dark:bg-white/[0.04] px-3.5 py-3">
         {!identityShownElsewhere && (
           <PassField label="Person to Meet" value={visit.host?.full_name} sub={visit.department?.name} />
         )}
@@ -156,11 +162,11 @@ export default function PreApprovalPass({ visit, showIdProof = true, identitySho
           Size is unchanged from before this redesign: never shrink it for
           aesthetics, it has to actually scan at the gate. */}
       {qrDataUrl ? (
-        <div className="bg-white p-2 rounded-xl">
-          <img src={qrDataUrl} alt="Entry pass QR code" className="w-32 h-32 rounded-lg ring-1 ring-surface-200" />
+        <div className="self-center bg-white p-2 rounded-xl ring-1 ring-surface-200/70">
+          <img src={qrDataUrl} alt="Entry pass QR code" className="w-32 h-32 rounded-lg" />
         </div>
       ) : (
-        <div className="bg-white p-2 rounded-xl">
+        <div className="self-center bg-white p-2 rounded-xl ring-1 ring-surface-200/70">
           <div className="w-32 h-32 rounded-lg bg-surface-50 animate-pulse" />
         </div>
       )}
@@ -168,11 +174,11 @@ export default function PreApprovalPass({ visit, showIdProof = true, identitySho
           the pass is still the badge being worn — so it stays downloadable and
           says plainly that the code itself is spent. */}
       {gate.ok ? (
-        <p className="text-[10px] text-navy-300">Scan this at the guard console to check in</p>
+        <p className="self-center text-[10px] text-navy-700">Scan this at the guard console to check in</p>
       ) : (
-        <p className="text-[10px] text-warning-600 text-center max-w-xs">{gate.reason}</p>
+        <p className="self-center text-[10px] text-warning-600 text-center">{gate.reason}</p>
       )}
-      <div className="flex gap-2 flex-wrap justify-center">
+      <div className="w-full flex gap-2 flex-wrap justify-center">
         {/* Primary, and first: handing the pass to the visitor is what the
             approver came here to do. The two Download buttons were the only
             way out of this card and both of them end with a file in the HOD's
@@ -217,7 +223,7 @@ export default function PreApprovalPass({ visit, showIdProof = true, identitySho
           finding out after the fact. When there is no usable number the link
           opens WhatsApp's contact picker instead, and the copy says so rather
           than the button appearing to do the wrong thing. */}
-      <p className="text-[10px] text-navy-300 text-center">
+      <p className="text-[10px] text-navy-700 text-center leading-relaxed">
         {recipient
           ? `Opens WhatsApp to +${recipient}. The image is for uploading at the gate — the PDF is for printing.`
           : 'No mobile number on record — WhatsApp will ask you to pick the visitor. The image is for uploading at the gate; the PDF is for printing.'}

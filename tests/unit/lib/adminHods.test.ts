@@ -245,20 +245,23 @@ describe('updateHod', () => {
 /* ─── removeHod ─────────────────────────────────────────── */
 
 describe('removeHod', () => {
-  it('demotes the HOD to staff and clears their department and delegate', async () => {
+  // It withdraws the DEPARTMENT and leaves the job title alone: 'staff' is an
+  // approver role too, so the old rewrite withdrew nothing and erased the only
+  // record of what the person actually is.
+  it('clears the department and delegate WITHOUT rewriting the role', async () => {
     await removeHod('p1');
     expect(state.calls).toEqual([
       {
         table: 'profiles',
         op: 'update',
-        payload: { role: 'staff', department_id: null, delegate_id: null },
+        payload: { department_id: null, delegate_id: null },
         col: 'id',
         val: 'p1',
       },
     ]);
   });
 
-  it('throws when the demotion fails', async () => {
+  it('throws when the detach fails', async () => {
     state.error = 'permission denied';
     await expect(removeHod('p1')).rejects.toThrow(/permission denied/);
   });

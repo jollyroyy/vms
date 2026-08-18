@@ -41,19 +41,35 @@ export default function SuccessPopup({ title, message, onClose, children }: Prop
         {/* min-h-0 is load-bearing: without it a flex child refuses to shrink
             below its content and the scrollbar never appears. */}
         <div className="flex-1 min-h-0 overflow-y-auto">
-          <div className="bg-gradient-to-br from-success-500/10 to-success-600/5 p-8 flex flex-col items-center text-center">
-            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-success-400 to-success-600 flex items-center justify-center shadow-glow-sm ring-4 ring-success-100 mb-4">
-              <svg className="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+          {/* THE HEADER IS CENTRED; THE CONTENT BELOW IT IS NOT (2026-08-18,
+              client instruction: align the success popup properly and make it
+              more premium). The tick, the title and the message are an
+              announcement and read best on the centre line. The entry pass
+              underneath is a DOCUMENT — labelled facts in a column — and it
+              used to be rendered inside this same block, inheriting
+              `text-center` and the success tint, so every label sat over a
+              value of a different width and the whole card floated on green.
+              Two sections now: the announcement on the tinted ground, the
+              document on the modal's own surface, divided by a hairline. */}
+          <div className="bg-gradient-to-br from-success-500/10 to-success-600/5 px-7 pt-8 pb-6 flex flex-col items-center text-center">
+            <div className="w-14 h-14 rounded-full bg-gradient-to-br from-success-400 to-success-600 flex items-center justify-center shadow-glow-sm ring-4 ring-success-100 mb-3.5">
+              <svg className="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
               </svg>
             </div>
-            <h3 className="text-lg font-bold text-navy-900 font-display px-8">{title}</h3>
+            <h3 className="text-lg font-bold text-navy-900 font-display leading-snug px-6">{title}</h3>
             {message && <p className="text-sm text-navy-700 mt-1.5 leading-relaxed">{message}</p>}
-            {children}
           </div>
-          <div className="px-8 pb-6 pt-4 flex justify-center">
+
+          {children && (
+            <div className="border-t border-surface-200/70 dark:border-white/[0.08] px-5 pt-5">
+              {children}
+            </div>
+          )}
+
+          <div className="px-5 pb-6 pt-5 flex justify-center">
             <button onClick={onClose}
-              className="w-full max-w-[160px] rounded-xl bg-gradient-to-r from-success-500 to-success-600 text-white py-2.5 text-sm font-semibold shadow-glow-sm hover:shadow-glow-md hover:scale-[1.02] active:scale-[0.98] transition-all duration-200">
+              className="w-full max-w-[200px] rounded-xl bg-gradient-to-r from-success-500 to-success-600 text-white py-2.5 text-sm font-semibold shadow-glow-sm hover:shadow-glow-md hover:scale-[1.02] active:scale-[0.98] transition-all duration-200">
               Got it
             </button>
           </div>
