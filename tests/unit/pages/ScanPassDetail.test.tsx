@@ -98,15 +98,30 @@ function openRow(name = 'Alice Johnson') {
   fireEvent.click(screen.getByText(name));
 }
 
+/** 2026-08-18, 10:30 IST — inside the same IST day as `insideVisit`'s own
+ *  literal stamps, and comfortably before the 22:00 close. */
+const FIXED_NOW = new Date('2026-08-18T05:00:00Z');
+
 beforeEach(() => {
   vi.clearAllMocks();
+  // A FIXED CLOCK, for the same reason the three PreApproveForm files and
+  // visitLifecycle.test.ts carry one. The two Check In cases below need a
+  // visitor whose pass is both DUE TODAY and NOT YET EXPIRED, and after 22:00
+  // IST — when the IST day closes (migration 075) — no such visit exists at
+  // any date: today's slot has expired and tomorrow's is not due. Built against
+  // a real `now`, those two tests therefore passed all day and failed every
+  // night, which is worse than failing outright because it looks like a flake.
+  // `shouldAdvanceTime` keeps findBy*/waitFor working — they are timer-driven,
+  // and a frozen clock hangs them until they time out.
+  vi.useFakeTimers({ shouldAdvanceTime: true });
+  vi.setSystemTime(FIXED_NOW);
   historyMatches.current = [insideMatch];
   mockFetchVisitById.mockResolvedValue(insideVisit);
   mockFetchVisitForExit.mockResolvedValue(insideVisit);
   mockLogVisitExit.mockResolvedValue({ ok: true });
 });
 
-afterEach(() => { cleanup(); vi.restoreAllMocks(); });
+afterEach(() => { cleanup(); vi.useRealTimers(); vi.restoreAllMocks(); });
 
 describe('Find & Scan: opening a search hit', () => {
   it('renders the Entry & Exit frame — identity, the three steps, the vehicle and the pass', async () => {

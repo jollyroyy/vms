@@ -8,6 +8,7 @@ import SidebarProfile from './SidebarProfile';
 import Logo from '../Logo';
 import { linksForRole } from './navLinks';
 import ModalCloseButton from '../ModalCloseButton';
+import InstallAppButton from '../InstallAppButton';
 import { useEscapeKey } from '../../lib/useEscapeKey';
 
 type Props = {
@@ -126,8 +127,18 @@ export default function Sidebar({ session, role, collapsed: collapsedProp, onCol
           exists to prevent. Its window was also a UTC day, so between 00:00 and
           05:30 IST it counted yesterday. */}
 
-      {/* Bottom: theme toggle + profile */}
+      {/* Bottom: install + theme toggle + profile */}
       <div className="shrink-0 px-3 pb-5 space-y-2">
+        {/* Renders only where the browser has actually offered an install, so
+            most sessions never see this row at all. It sits here rather than on
+            the login card alone because a guard signs in once and then never
+            sees that card again — and a phone at the gate is exactly the device
+            this belongs on. */}
+        <InstallAppButton
+          showLabel={!isCollapsed}
+          className={`sidebar-link w-full px-3 py-2.5 ${isCollapsed ? 'justify-center !px-0' : ''}`}
+        />
+
         <button type="button" onClick={toggleTheme} aria-label="Toggle theme"
           className={`sidebar-link w-full px-3 py-2.5 ${isCollapsed ? 'justify-center !px-0' : ''}`}>
           <span className="shrink-0">
