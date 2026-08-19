@@ -1,0 +1,86 @@
+/* ============================================================
+   PHONE LAYER — what a desktop-first app owes an installed app.
+
+   Everything here is conditional on the DEVICE, never on the role. There is no
+   phone stylesheet for the HOD and a different one for anybody else, for the
+   same reason styles/hod-compact.css was deleted: a role does not get a
+   stylesheet, it gets the shared layers.
+
+   TWO PROBLEMS, AND NEITHER IS VISIBLE ON A LAPTOP.
+
+   1. THE SAFE AREA. index.html asks for `viewport-fit=cover`, so the page now
+      paints under the notch and the home indicator instead of being letterboxed
+      between two grey bars. That is the right trade only if the inset is paid
+      back — otherwise the topbar sits under the clock and the menu button is
+      half under the camera. The four classes below are that repayment, applied
+      to the containers that have no Tailwind padding utility of their own:
+      a `pb-6` from Tailwind lands in the utilities layer and would beat any
+      padding written here, which is why the footer's inset is carried by the
+      column around it instead of by the footer.
+
+   2. iOS SAFARI ZOOMS THE PAGE when a text field smaller than 16px takes focus,
+      and `.input` is `text-sm` — 14px. Every form in this app therefore jumped
+      and re-centred on the first tap: the pre-approval form, the walk-in
+      decline reason, the login card. It is not a scale the phone lets us keep,
+      so on a coarse pointer the field is 16px and the desktop keeps its 14.
+   ============================================================ */
+
+@layer components {
+  /* The inset itself, nothing added. Applied to elements that carry no
+     competing Tailwind padding — see the note above. */
+  .safe-top { padding-top: env(safe-area-inset-top, 0px); }
+  .safe-bottom { padding-bottom: env(safe-area-inset-bottom, 0px); }
+  .safe-x {
+    padding-left: env(safe-area-inset-left, 0px);
+    padding-right: env(safe-area-inset-right, 0px);
+  }
+
+  /* The mobile menu button is `fixed`, so an inset cannot be paid with padding
+     — the offsets themselves have to move. It owns its own top/left for that
+     reason; do not put Tailwind's `top-3.5 left-4` back on it, they would win
+     (utilities are emitted after components) and the button would sit under the
+     status bar on every notched phone. */
+  .mobile-menu-button {
+    top: calc(0.875rem + env(safe-area-inset-top, 0px));
+    left: calc(1rem + env(safe-area-inset-left, 0px));
+  }
+}
+
+@layer utilities {
+  @media (pointer: coarse) {
+    /* 16px is the threshold, not a preference: below it iOS Safari zooms on
+       focus. `.input` is repeated explicitly because the bare element selectors
+       beside it lose to its class on specificity alone, whatever the order. */
+    input,
+    select,
+    textarea,
+    .input,
+    .topbar-search input {
+      font-size: 16px;
+    }
+
+    /* A finger is not a cursor. 44px is Apple's minimum and Android's is 48dp;
+       the controls below sit at 40px on a desktop, which is comfortable with a
+       mouse and a miss with a thumb. Only the height is touched — nothing here
+       changes what a control looks like on a laptop. */
+    .btn-primary,
+    .btn-secondary,
+    .sidebar-link {
+      min-height: 44px;
+    }
+  }
+}
+
+/* Landscape on iOS inflates text in a way no breakpoint can see. */
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+/* Only inside the installed app: a rubber-band scroll past the top of the page
+   exposes the browser's own background, which in a standalone window is a bare
+   white or black rectangle where the app should be. */
+@media (display-mode: standalone) {
+  body {
+    overscroll-behavior-y: none;
+  }
+}

@@ -6,6 +6,7 @@ import { supabase } from '../../supabaseClient';
 import Sidebar from './Sidebar';
 import AuroraBackground from '../AuroraBackground';
 import NotificationBell from '../NotificationBell';
+import OfflineBanner from '../OfflineBanner';
 
 // The greeting's role word. A `Record<UserRole, string>` rather than the chain
 // of ternaries this used to be: that chain ended in `: 'Staff'`, so every role
@@ -132,7 +133,7 @@ export default function AppShell({ session, role, children }: Props): React.Reac
 
       <Sidebar session={session} role={role} collapsed={collapsed} onCollapsedChange={setCollapsed} />
 
-      <div className={`app-shell-content relative z-10 flex flex-col min-h-screen transition-[padding] duration-300 ease-in-out ${collapsed ? 'lg:pl-[84px]' : 'lg:pl-[264px]'}`}>
+      <div className={`app-shell-content relative z-10 flex flex-col min-h-screen safe-x safe-bottom transition-[padding] duration-300 ease-in-out ${collapsed ? 'lg:pl-[84px]' : 'lg:pl-[264px]'}`}>
         {/* Top strip — search, notifications.
 
             No bottom border and no drop shadow (client instruction,
@@ -141,7 +142,7 @@ export default function AppShell({ session, role, children }: Props): React.Reac
             scrolling under it — a hairline plus a shadow on top of that drew a
             hard seam across every screen at the exact height the eye starts
             reading. */}
-        <header className="no-print sticky top-0 z-30 card-glass !rounded-none !border-0 !shadow-none">
+        <header className="no-print sticky top-0 z-30 card-glass !rounded-none !border-0 !shadow-none safe-top">
           <div className="flex items-center gap-3 h-16 px-4 sm:px-6 lg:px-8 pl-16 lg:pl-8">
             {/* Search bar — a contained pill, not a stretched box; sits with the
                 notification bell as a right-hand action cluster. Hidden for the
@@ -236,6 +237,9 @@ export default function AppShell({ session, role, children }: Props): React.Reac
 
         {/* Content */}
         <main className="app-shell-main flex-1 w-full mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
+          {/* Above everything, on every screen: a list that has stopped
+              updating must say so before it is read. See OfflineBanner. */}
+          <OfflineBanner />
           {children}
         </main>
 

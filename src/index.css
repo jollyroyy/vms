@@ -13,6 +13,7 @@
 @import './styles/components-dashboard.css';
 @import './styles/components-visitor-stack.css';
 @import './styles/components-polish.css';
+@import './styles/mobile.css';
 @import './styles/aurora.css';
 @import './styles/animations.css';
 @import './styles/print.css';

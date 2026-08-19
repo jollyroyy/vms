@@ -1,0 +1,32 @@
+{
+  "id": "/",
+  "name": "Secure Gate — Visitor Management System",
+  "short_name": "Secure Gate",
+  "description": "Clear walk-in visitors, raise a pre-approval and see who is on site.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#fbfaf7",
+  "theme_color": "#fbfaf7",
+  "categories": ["business", "productivity", "security"],
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    {
+      "name": "Walk-ins waiting for you",
+      "short_name": "Walk-in desk",
+      "url": "/overview?tab=walkins",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png" }]
+    },
+    {
+      "name": "Pre-approve a visitor",
+      "short_name": "Pre-approve",
+      "url": "/approvals",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png" }]
+    }
+  ]
+}

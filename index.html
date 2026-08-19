@@ -2,9 +2,32 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- viewport-fit=cover lets the page paint under the notch and the home
+         indicator on an installed iOS app; styles/mobile.css then pays the
+         inset back with env(safe-area-inset-*) on the topbar, the menu button
+         and the footer. Without the cover, an installed app renders letterboxed
+         between two grey bars and reads as a website in a frame. -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>Secure Gate — Visitor Management System</title>
     <link rel="icon" type="image/jpeg" href="/quest-mall-logo.jpg">
+
+    <!-- Home-screen install, Android and iOS alike. The manifest carries the
+         name, the icons and the standalone display mode; apple-touch-icon is
+         listed separately because Safari does not read the manifest for it.
+
+         theme-color has NO `media` twin on purpose. The theme is a stored
+         CHOICE defaulting to dark (lib/theme.tsx), not the OS scheme, so a
+         prefers-color-scheme pair would paint the status bar the wrong colour
+         for everybody whose phone disagrees with their app setting. The value
+         here is the dark surface, matching that default, and applyTheme()
+         rewrites it from the --c-surface-50 token on every switch. -->
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon-180.png" />
+    <meta name="theme-color" content="#100f0c" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Secure Gate" />
     <!-- worker-src/child-src must allow blob:. qr-scanner runs its QR decoder in a
          Worker created from a blob: URL; worker scripts fall back to script-src
          when no worker-src is set, and script-src 'self' does not match blob:, so
